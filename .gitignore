@@ -1,0 +1,36 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+out/
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Electron
+*.asar
+
+# TypeScript
+*.tsbuildinfo
+
+# Thumbnails and temp files (app runtime)
+thumbnails/
+temp/
