@@ -11,44 +11,47 @@ MediaArchiver v2 の開発ロードマップです。
 - [x] 流用可能なロジック資産の特定
 - [x] 再構築方針の決定
 
+### Phase 1: プロジェクト基盤構築
+- [x] ドキュメント整備 (ARCHITECTURE, CONVENTIONS, Glossary)
+- [x] Vite + Electron + TypeScript プロジェクト初期化
+- [x] Zustand ストア基本設計
+- [x] SQLite データベーススキーマ設計
+- [x] IPC通信基盤の構築
+
+### Phase 2: コア機能実装
+- [x] Phase 2-1: フォルダスキャン機能
+- [x] Phase 2-2: ファイル操作系 (openExternal, showInExplorer)
+- [x] Phase 2-3: UI連携 (Sidebar, FileGrid, FileCard, TanStack Virtual)
+- [x] Phase 2-4: サムネイル生成 (FFmpeg/Sharp)
+
 ---
 
 ## 🚧 進行中 (In Progress)
 
-### Phase 1: プロジェクト基盤構築
-- [x] ドキュメント整備 (ARCHITECTURE, CONVENTIONS, Glossary)
-- [ ] Vite + Electron + TypeScript プロジェクト初期化
-- [ ] Zustand ストア基本設計
-- [ ] SQLite データベーススキーマ設計
-- [ ] IPC通信基盤の構築
+### Phase 3: UI機能拡張
+- [ ] フォルダ右クリックメニュー（削除、再スキャン）
+- [ ] ファイルソート機能
+- [ ] LightBox（クイックプレビュー）
+- [ ] コンテキストメニュー
 
 ---
 
 ## 📋 予定 (Planned)
 
-### Phase 2: コア機能移植
-- [ ] フォルダスキャン機能
-- [ ] サムネイル生成（画像・動画）
-- [ ] アーカイブ処理（書庫サムネイル・プレビュー）
-- [ ] 仮想スクロールグリッド（安定版）
+### Phase 4: アーカイブ対応
+- [ ] 書庫ファイル処理（v1からarchiveHandler移植）
+- [ ] 書庫内プレビュー
 
-### Phase 3: UI再構築
-- [ ] サイドバー（フォルダツリー・タグツリー）
-- [ ] ファイルカードコンポーネント
-- [ ] ライトボックス・クイックプレビュー
-- [ ] コンテキストメニュー
-
-### Phase 4: 機能拡張
+### Phase 5: 機能拡張
 - [ ] タグ管理システム
 - [ ] 検索・フィルター機能
 - [ ] 設定画面
 - [ ] プロファイル切り替え
 
-### Phase 5: ブラッシュアップ
+### Phase 6: ブラッシュアップ
 - [ ] アニメーション・マイクロインタラクション
 - [ ] キーボードショートカット
 - [ ] パフォーマンス最適化
-- [ ] ダークモード対応
 
 ---
 

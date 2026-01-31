@@ -7,42 +7,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-- Phase 1: プロジェクト基盤構築
+- **Phase 1: プロジェクト基盤構築**
   - Zustand ストア (useFileStore, useUIStore, useSettingsStore)
-  - SQLite データベースサービス (electron/services/database.ts)
-  - IPC通信基盤 (electron/ipc/database.ts)
+  - SQLite データベースサービス
+  - IPC通信基盤
   - 型定義 (src/types/)
-- Phase 2-1: フォルダスキャン機能
-  - 基本スキャナー実装 (scanner.ts)
-  - フォルダ管理機能 (database.ts, IPC)
+
+- **Phase 2-1: フォルダスキャン機能**
+  - 基本スキャナー実装
+  - フォルダ管理機能
   - ファイル登録・更新ロジック
-- Phase 2-2: ファイル操作系
+
+- **Phase 2-2: ファイル操作系**
   - 外部アプリで開く (openExternal)
   - エクスプローラーで表示 (showInExplorer)
-- Phase 2-3: UI連携
+
+- **Phase 2-3: UI連携**
   - Preload CJS ビルド問題修正 (vite-plugin-electron/simple)
   - Sidebar / FileGrid / FileCard コンポーネント
   - TanStack Virtual 仮想スクロール
-  - ネイティブフォルダ選択ダイアログ (dialog IPC)
-- Phase 2-4: サムネイル生成
+  - ネイティブフォルダ選択ダイアログ
+
+- **Phase 2-4: サムネイル生成**
   - 動画サムネイル (FFmpeg)
   - 画像サムネイル (Sharp)
   - アニメーションGIF/WebP判定
   - 動画再生時間取得
-- プロジェクトドキュメント整備
-  - ARCHITECTURE.md: システム構成と設計方針
-  - CONVENTIONS.md: コーディング規約
-  - Glossary.md: 用語集
-  - ROADMAP.md: 開発ロードマップ
-- セッション管理ドキュメント（.agent/SESSION.md）
-- 変更履歴管理（CHANGELOG.md）
-- ADRテンプレート（.agent/decisions/）
+  - DB snake_case ↔ Frontend camelCase マッピング
 
-### Changed
-- なし
+- **プロジェクトドキュメント**
+  - ARCHITECTURE.md, CONVENTIONS.md, Glossary.md, ROADMAP.md
+  - SESSION.md（セッション管理）
+  - ADRテンプレート（.agent/decisions/）
 
 ### Fixed
-- なし
+- Preload script ESM→CJS ビルド問題
+- thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題
+- 既存ファイルのサムネイル再生成スキップ問題
 
 ---
 
