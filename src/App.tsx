@@ -1,5 +1,6 @@
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
+import { LightBox } from './components/LightBox';
 
 function App() {
     return (
@@ -8,6 +9,7 @@ function App() {
             <main className="flex-1 flex flex-col h-full overflow-hidden">
                 <FileGrid />
             </main>
+            <LightBox />
         </div>
     );
 }

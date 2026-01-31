@@ -56,6 +56,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 昇順/降順切り替え
   - `useUIStore` / `useFileStore` 統合
 
+- **Phase 3-4: LightBox（クイックプレビュー）**
+  - フルスクリーンオーバーレイ実装
+  - キーボードナビゲーション（←→で前後移動、ESCで閉じる）
+  - 画像/動画プレビュー表示
+  - ファイル情報表示（名前、サイズ、再生時間）
+
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題

@@ -31,6 +31,10 @@
 - ✅ Phase 3-3: ファイルソート機能
   - ソート状態管理 (`useUIStore`, `useFileStore`)
   - ソートメニューUI (`SortMenu.tsx`)
+- ✅ Phase 3-4: LightBox（クイックプレビュー）
+  - フルスクリーンプレビュー表示
+  - キーボードナビゲーション（←→、ESC）
+  - 画像/動画プレビュー対応
 
 ## Next Steps
 - [ ] LightBox プレビュー

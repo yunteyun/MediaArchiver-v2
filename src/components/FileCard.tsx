@@ -1,6 +1,7 @@
 import React from 'react';
 import { Play, FileText, Image as ImageIcon } from 'lucide-react';
 import type { MediaFile } from '../types/file';
+import { useUIStore } from '../stores/useUIStore';
 
 interface FileCardProps {
     file: MediaFile;
@@ -10,9 +11,14 @@ interface FileCardProps {
 
 export const FileCard = React.memo(({ file, isSelected, onSelect }: FileCardProps) => {
     const Icon = file.type === 'video' ? Play : file.type === 'image' ? ImageIcon : FileText;
+    const openLightbox = useUIStore((s) => s.openLightbox);
 
     const handleClick = (e: React.MouseEvent) => {
-        onSelect(file.id, e.ctrlKey || e.metaKey);
+        if (e.ctrlKey || e.metaKey) {
+            onSelect(file.id, true);
+        } else {
+            openLightbox(file);
+        }
     };
 
     const handleDoubleClick = async () => {
