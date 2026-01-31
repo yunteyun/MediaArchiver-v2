@@ -1,5 +1,5 @@
 ---
-description: 開発状況に合わせてドキュメント（SESSION.md, ROADMAP.md, CHANGELOG.md）を更新する
+description: 開発状況に合わせてドキュメント（SESSION.md, ROADMAP.md, CHANGELOG.md, 開発日誌）を更新する
 ---
 
 # ドキュメント更新ワークフロー
@@ -13,6 +13,7 @@ description: 開発状況に合わせてドキュメント（SESSION.md, ROADMAP
 | `.agent/SESSION.md` | 現在のセッション状態、完了済みタスク、次のステップ |
 | `ROADMAP.md` | 開発ロードマップ、フェーズ進捗 |
 | `CHANGELOG.md` | 変更履歴、追加機能、修正バグ |
+| `.agent/devlog/YYYY-MM-DD.md` | 開発日誌（セッション終了時のみ） |
 
 ## 手順
 
@@ -35,7 +36,18 @@ description: 開発状況に合わせてドキュメント（SESSION.md, ROADMAP
 - **Changed**: 変更した機能
 - **Fixed**: 修正したバグ
 
-### 5. Gitコミット
+### 5. 開発日誌を作成（セッション終了時のみ）
+`.agent/devlog/YYYY-MM-DD.md`形式で本日の開発日誌を作成する。
+
+**記載内容**:
+- 本日の目標
+- 実装した機能（実装時間、内容、課題と解決、コミット）
+- 成果（完了フェーズ、コード統計）
+- 学んだこと・気づき
+- 次回の予定
+- 備考
+
+### 6. Gitコミット
 // turbo
 ```powershell
 git add -A; git commit -m "docs: 開発状況に合わせてドキュメント更新"
