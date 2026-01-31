@@ -45,7 +45,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Phase 3-1: サイドバー開閉機構**
   - 折りたたみ機能 (useUIStore / Sidebar)
   - スムーズな開閉アニメーション
+  - 折りたたみ機能 (useUIStore / Sidebar)
+  - スムーズな開閉アニメーション
   - 状態に応じたレイアウト切り替え
+  - UI改善: 開閉ボタンをサイドバー境界配置に変更、常時表示
 
 ### Fixed
 - Preload script ESM→CJS ビルド問題

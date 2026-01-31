@@ -55,45 +55,38 @@ export const Sidebar = React.memo(() => {
     return (
         <aside
             className={`
-                bg-surface-900 border-r border-surface-700 flex flex-col h-full
+                bg-surface-900 border-r border-surface-700 flex flex-col h-full relative group/sidebar
                 transition-all duration-300 ease-in-out
                 ${sidebarCollapsed ? 'w-16' : 'w-64'}
             `}
         >
+            {/* Toggle Button on the border */}
+            <button
+                onClick={toggleSidebar}
+                className={`
+                    absolute top-8 -right-3 z-20
+                    p-1 rounded-full border border-surface-600
+                    bg-surface-800 text-surface-400 hover:text-white hover:bg-surface-700
+                    transition-colors shadow-md
+                `}
+                title={sidebarCollapsed ? "サイドバーを展開" : "サイドバーを折りたたむ"}
+            >
+                {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            </button>
+
             <div className={`
                 p-4 border-b border-surface-700 flex items-center
-                ${sidebarCollapsed ? 'justify-center flex-col gap-4' : 'justify-between'}
+                ${sidebarCollapsed ? 'justify-center' : 'justify-between'}
             `}>
                 {!sidebarCollapsed && <h2 className="font-bold text-white truncate">Library</h2>}
 
-                <div className="flex gap-1">
-                    {!sidebarCollapsed && (
-                        <button
-                            onClick={handleAddFolder}
-                            className="p-1.5 hover:bg-surface-700 rounded transition-colors"
-                            title="フォルダを追加"
-                        >
-                            <Plus size={18} />
-                        </button>
-                    )}
-                    <button
-                        onClick={toggleSidebar}
-                        className="p-1.5 hover:bg-surface-700 rounded transition-colors"
-                        title={sidebarCollapsed ? "サイドバーを展開" : "サイドバーを折りたたむ"}
-                    >
-                        {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-                    </button>
-                </div>
-
-                {sidebarCollapsed && (
-                    <button
-                        onClick={handleAddFolder}
-                        className="p-1.5 hover:bg-surface-700 rounded transition-colors"
-                        title="フォルダを追加"
-                    >
-                        <Plus size={18} />
-                    </button>
-                )}
+                <button
+                    onClick={handleAddFolder}
+                    className="p-1.5 hover:bg-surface-700 rounded transition-colors"
+                    title="フォルダを追加"
+                >
+                    <Plus size={18} />
+                </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
