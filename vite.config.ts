@@ -13,7 +13,7 @@ export default defineConfig({
                     build: {
                         outDir: 'dist-electron',
                         rollupOptions: {
-                            external: [], // better-sqlite3 除外に伴い空にする
+                            external: ['better-sqlite3'],
                         },
                     },
                 },

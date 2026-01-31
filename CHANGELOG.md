@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Phase 1: プロジェクト基盤構築
+  - Zustand ストア (useFileStore, useUIStore, useSettingsStore)
+  - SQLite データベースサービス (electron/services/database.ts)
+  - IPC通信基盤 (electron/ipc/database.ts)
+  - 型定義 (src/types/)
 - プロジェクトドキュメント整備
   - ARCHITECTURE.md: システム構成と設計方針
   - CONVENTIONS.md: コーディング規約

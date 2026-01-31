@@ -3,20 +3,19 @@
 **Last Updated**: 2026-01-31
 
 ## Just Completed
-- Phase 0: 再構築準備（v1の問題点分析、流用資産特定）
-- ドキュメント整備（ARCHITECTURE, CONVENTIONS, Glossary, ROADMAP）
-- モデル切り替え対策のドキュメント類を作成
-- Phase 1 実装計画書を作成
+- Phase 1: プロジェクト基盤構築
+  - 型定義（src/types/）作成
+  - Zustand ストア（src/stores/）作成
+  - SQLite データベースサービス（electron/services/database.ts）実装
+  - IPCハンドラ（electron/ipc/database.ts）実装
+  - main.ts / vite.config.ts 設定調整
 
 ## Next Steps
-- [ ] 実装計画のレビュー・承認
-- [ ] Phase 1 実装開始：
-  - 型定義（src/types/）
-  - Zustand ストア（src/stores/）
-  - SQLite データベースサービス（electron/services/database.ts）
-  - IPCハンドラ（electron/ipc/）
-  - main.ts / preload.ts の更新
-- [ ] 動作検証
+- [ ] Phase 2: コア機能移植
+  - フォルダスキャン機能
+  - サムネイル生成
+  - アーカイブ処理
+- [ ] 動作確認（DBの読み書きテスト）
 
 ## Known Issues
 - なし

@@ -2,6 +2,8 @@ import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { initDB } from './services/database';
+import { registerDatabaseHandlers } from './ipc/database';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -45,6 +47,12 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
+    // Initialize Database
+    initDB();
+
+    // Register IPC Handlers
+    registerDatabaseHandlers();
+
     createWindow();
 
     app.on('activate', () => {
@@ -58,4 +66,12 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
