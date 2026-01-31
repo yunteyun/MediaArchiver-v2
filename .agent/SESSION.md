@@ -40,7 +40,6 @@
   - 外部アプリで開く、エクスプローラーで表示、削除
 
 ## Next Steps
-- [ ] コンテキストメニュー
 - [ ] 書庫ファイル対応（v1からarchiveHandler移植）
 
 ## Known Issues
