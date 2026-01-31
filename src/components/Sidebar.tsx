@@ -23,9 +23,7 @@ export const Sidebar = React.memo(() => {
         }
     }, []);
 
-    useEffect(() => {
-        loadFolders();
-    }, [loadFolders]);
+
 
     const handleAddFolder = useCallback(async () => {
         try {
@@ -51,6 +49,32 @@ export const Sidebar = React.memo(() => {
             console.error('Error loading files:', e);
         }
     }, [setCurrentFolderId, setFiles]);
+
+    useEffect(() => {
+        loadFolders();
+
+        const cleanupDelete = window.electronAPI.onFolderDeleted((folderId) => {
+            console.log('Folder deleted:', folderId);
+            loadFolders();
+            if (currentFolderId === folderId) {
+                setCurrentFolderId(null);
+                setFiles([]);
+            }
+        });
+
+        const cleanupRescan = window.electronAPI.onFolderRescanComplete((folderId) => {
+            console.log('Folder rescan complete:', folderId);
+            // Optionally reload files if current folder
+            if (currentFolderId === folderId) {
+                handleSelectFolder(folderId);
+            }
+        });
+
+        return () => {
+            cleanupDelete();
+            cleanupRescan();
+        };
+    }, [loadFolders, currentFolderId, setCurrentFolderId, setFiles, handleSelectFolder]);
 
     return (
         <aside
@@ -108,6 +132,10 @@ export const Sidebar = React.memo(() => {
                                     : 'hover:bg-surface-800 text-surface-300'}
                                 ${sidebarCollapsed ? 'justify-center' : ''}
                             `}
+                            onContextMenu={(e) => {
+                                e.preventDefault();
+                                window.electronAPI.showFolderContextMenu(folder.id, folder.path);
+                            }}
                             title={folder.path}
                         >
                             <Folder size={20} className="flex-shrink-0" />

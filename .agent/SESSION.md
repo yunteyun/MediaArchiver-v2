@@ -25,9 +25,12 @@
   - 折りたたみロジック (`useUIStore`)
   - UI実装 (`Sidebar.tsx`)
   - アニメーション実装
+- ✅ Phase 3-2: フォルダ右クリックメニュー
+  - コンテキストメニュー実装 (`electron/ipc/folder.ts`)
+  - 再スキャン、削除、Explorerで開く
 
 ## Next Steps
-- [ ] UI機能拡張（フォルダ右クリック削除、ソート等）
+- [ ] ファイルソート機能
 - [ ] LightBox プレビュー
 - [ ] 書庫ファイル対応（v1からarchiveHandler移植）
 

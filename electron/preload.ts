@@ -35,4 +35,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener('scanner:progress', subscription);
         };
     },
+
+    // === Context Menu ===
+    showFolderContextMenu: (folderId: string, path: string) =>
+        ipcRenderer.invoke('folder:showContextMenu', { folderId, path }),
+
+    onFolderDeleted: (callback: (folderId: string) => void) => {
+        const handler = (_event: any, folderId: string) => callback(folderId);
+        ipcRenderer.on('folder:deleted', handler);
+        return () => ipcRenderer.removeListener('folder:deleted', handler);
+    },
+
+    onFolderRescanComplete: (callback: (folderId: string) => void) => {
+        const handler = (_event: any, folderId: string) => callback(folderId);
+        ipcRenderer.on('folder:rescanComplete', handler);
+        return () => ipcRenderer.removeListener('folder:rescanComplete', handler);
+    },
 });

@@ -23,6 +23,11 @@ declare global {
 
             // Events
             onScanProgress: (callback: (progress: any) => void) => () => void;
+
+            // Context Menu
+            showFolderContextMenu: (folderId: string, path: string) => Promise<void>;
+            onFolderDeleted: (callback: (folderId: string) => void) => () => void;
+            onFolderRescanComplete: (callback: (folderId: string) => void) => () => void;
         };
     }
 }

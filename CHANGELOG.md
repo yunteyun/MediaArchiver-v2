@@ -48,7 +48,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 折りたたみ機能 (useUIStore / Sidebar)
   - スムーズな開閉アニメーション
   - 状態に応じたレイアウト切り替え
+  - 状態に応じたレイアウト切り替え
   - UI改善: 開閉ボタンをサイドバー境界配置に変更、常時表示
+
+- **Phase 3-2: フォルダ右クリックメニュー**
+  - ネイティブコンテキストメニュー実装
+  - 機能: 再スキャン、フォルダー削除、エクスプローラーで表示
+  - 削除/再スキャン時のUI自動更新
 
 ### Fixed
 - Preload script ESM→CJS ビルド問題
