@@ -3,11 +3,13 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { FileCard } from './FileCard';
+import { SortMenu } from './SortMenu';
 
 const CARD_GAP = 8;
 
 export const FileGrid = React.memo(() => {
-    const files = useFileStore((s) => s.files);
+    const getSortedFiles = useFileStore((s) => s.getSortedFiles);
+    const files = getSortedFiles();
     const selectedIds = useFileStore((s) => s.selectedIds);
     const selectFile = useFileStore((s) => s.selectFile);
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
@@ -45,64 +47,70 @@ export const FileGrid = React.memo(() => {
 
     if (files.length === 0) {
         return (
-            <div className="flex-1 flex items-center justify-center text-surface-500">
-                <div className="text-center">
-                    <p className="text-lg">ファイルがありません</p>
-                    <p className="text-sm mt-2">サイドバーからフォルダを選択してください</p>
+            <div className="flex-1 flex flex-col h-full">
+                <SortMenu />
+                <div className="flex-1 flex items-center justify-center text-surface-500">
+                    <div className="text-center">
+                        <p className="text-lg">ファイルがありません</p>
+                        <p className="text-sm mt-2">サイドバーからフォルダを選択してください</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div
-            ref={parentRef}
-            className="h-full w-full overflow-y-auto bg-surface-950 p-4"
-        >
+        <div className="flex flex-col h-full">
+            <SortMenu />
             <div
-                style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                }}
+                ref={parentRef}
+                className="flex-1 overflow-y-auto bg-surface-950 p-4"
             >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const startIndex = virtualRow.index * columns;
-                    const rowFiles = files.slice(startIndex, startIndex + columns);
+                <div
+                    style={{
+                        height: `${rowVirtualizer.getTotalSize()}px`,
+                        width: '100%',
+                        position: 'relative',
+                    }}
+                >
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const startIndex = virtualRow.index * columns;
+                        const rowFiles = files.slice(startIndex, startIndex + columns);
 
-                    return (
-                        <div
-                            key={virtualRow.index}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: `${virtualRow.size}px`,
-                                transform: `translateY(${virtualRow.start}px)`,
-                                display: 'flex',
-                                gap: `${CARD_GAP}px`,
-                                padding: `${CARD_GAP / 2}px`,
-                            }}
-                        >
-                            {rowFiles.map((file) => (
-                                <div
-                                    key={file.id}
-                                    style={{
-                                        width: `${thumbnailSize}px`,
-                                        height: `${thumbnailSize + 40}px`,
-                                    }}
-                                >
-                                    <FileCard
-                                        file={file}
-                                        isSelected={selectedIds.has(file.id)}
-                                        onSelect={handleSelect}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    );
-                })}
+                        return (
+                            <div
+                                key={virtualRow.index}
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: `${virtualRow.size}px`,
+                                    transform: `translateY(${virtualRow.start}px)`,
+                                    display: 'flex',
+                                    gap: `${CARD_GAP}px`,
+                                    padding: `${CARD_GAP / 2}px`,
+                                }}
+                            >
+                                {rowFiles.map((file) => (
+                                    <div
+                                        key={file.id}
+                                        style={{
+                                            width: `${thumbnailSize}px`,
+                                            height: `${thumbnailSize + 40}px`,
+                                        }}
+                                    >
+                                        <FileCard
+                                            file={file}
+                                            isSelected={selectedIds.has(file.id)}
+                                            onSelect={handleSelect}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

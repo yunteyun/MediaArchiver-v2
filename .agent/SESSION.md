@@ -28,6 +28,9 @@
 - ✅ Phase 3-2: フォルダ右クリックメニュー
   - コンテキストメニュー実装 (`electron/ipc/folder.ts`)
   - 再スキャン、削除、Explorerで開く
+- ✅ Phase 3-3: ファイルソート機能
+  - ソート状態管理 (`useUIStore`, `useFileStore`)
+  - ソートメニューUI (`SortMenu.tsx`)
 
 ## Next Steps
 - [ ] ファイルソート機能

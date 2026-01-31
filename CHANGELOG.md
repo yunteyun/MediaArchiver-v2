@@ -51,6 +51,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 機能: 再スキャン、フォルダー削除、エクスプローラーで表示
   - 削除/再スキャン時のUI自動更新
 
+- **Phase 3-3: ファイルソート機能**
+  - ソート条件選択UI (名前/日付/サイズ/種類)
+  - 昇順/降順切り替え
+  - `useUIStore` / `useFileStore` 統合
+
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題
