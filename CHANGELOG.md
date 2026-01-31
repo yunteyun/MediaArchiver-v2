@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - SQLite データベースサービス (electron/services/database.ts)
   - IPC通信基盤 (electron/ipc/database.ts)
   - 型定義 (src/types/)
+- Phase 2-1: フォルダスキャン機能
+  - 基本スキャナー実装 (scanner.ts)
+  - フォルダ管理機能 (database.ts, IPC)
+  - ファイル登録・更新ロジック
 - プロジェクトドキュメント整備
   - ARCHITECTURE.md: システム構成と設計方針
   - CONVENTIONS.md: コーディング規約

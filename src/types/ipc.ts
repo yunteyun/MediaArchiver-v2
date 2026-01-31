@@ -12,6 +12,30 @@ export interface IpcChannels {
         request: { folderPath: string };
         response: void;
     };
+    'scanner:progress': {
+        request: void; // Event from main
+        response: {
+            phase: 'counting' | 'scanning' | 'complete' | 'error';
+            current: number;
+            total: number;
+            currentFile?: string;
+            message?: string;
+        };
+    };
+
+    // Folder
+    'folder:add': {
+        request: { folderPath: string };
+        response: { id: string; path: string; name: string; createdAt: number };
+    };
+    'folder:list': {
+        request: void;
+        response: { id: string; path: string; name: string; createdAt: number }[];
+    };
+    'folder:delete': {
+        request: { folderId: string };
+        response: void;
+    };
 
     // App
     'app:openExternal': {

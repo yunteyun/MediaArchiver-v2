@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { initDB } from './services/database';
 import { registerDatabaseHandlers } from './ipc/database';
+import { registerScannerHandlers } from './ipc/scanner';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -52,6 +53,7 @@ app.whenReady().then(() => {
 
     // Register IPC Handlers
     registerDatabaseHandlers();
+    registerScannerHandlers();
 
     createWindow();
 

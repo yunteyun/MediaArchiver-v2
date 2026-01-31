@@ -11,6 +11,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === Database ===
     getFiles: (folderId?: string) => ipcRenderer.invoke('db:getFiles', folderId),
 
+    // === Folder ===
+    addFolder: (folderPath: string) => ipcRenderer.invoke('folder:add', folderPath),
+    getFolders: () => ipcRenderer.invoke('folder:list'),
+    deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
+
     // === Scanner ===
     scanFolder: (folderPath: string) => ipcRenderer.invoke('scanner:start', folderPath),
 
@@ -19,6 +24,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // === Events (Main -> Renderer) ===
     onScanProgress: (callback: (progress: any) => void) => {
-        ipcRenderer.on('scanner:progress', (_event, progress) => callback(progress));
+        const subscription = (_event: any, progress: any) => callback(progress);
+        ipcRenderer.on('scanner:progress', subscription);
+        // Return a cleanup function if needed, but for now specific implementation
+        return () => {
+            ipcRenderer.removeListener('scanner:progress', subscription);
+        };
     },
 });
