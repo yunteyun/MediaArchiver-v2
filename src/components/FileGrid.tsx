@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -8,11 +8,34 @@ import { SortMenu } from './SortMenu';
 const CARD_GAP = 8;
 
 export const FileGrid = React.memo(() => {
-    const getSortedFiles = useFileStore((s) => s.getSortedFiles);
-    const files = getSortedFiles();
+    const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const selectFile = useFileStore((s) => s.selectFile);
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
+    const sortBy = useUIStore((s) => s.sortBy);
+    const sortOrder = useUIStore((s) => s.sortOrder);
+
+    // Sort files in component using useMemo
+    const files = useMemo(() => {
+        return [...rawFiles].sort((a, b) => {
+            let comparison = 0;
+            switch (sortBy) {
+                case 'name':
+                    comparison = a.name.localeCompare(b.name);
+                    break;
+                case 'date':
+                    comparison = a.createdAt - b.createdAt;
+                    break;
+                case 'size':
+                    comparison = a.size - b.size;
+                    break;
+                case 'type':
+                    comparison = a.type.localeCompare(b.type);
+                    break;
+            }
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
+    }, [rawFiles, sortBy, sortOrder]);
 
     const parentRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = React.useState(1000);
