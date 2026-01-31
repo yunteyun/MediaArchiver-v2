@@ -19,7 +19,12 @@
   - FFmpeg動画サムネイル / Sharp画像サムネイル
   - 動画再生時間取得
   - アニメーションGIF/WebP判定
+  - アニメーションGIF/WebP判定
   - snake_case/camelCase マッピング修正
+- ✅ Phase 3-1: サイドバー開閉機構
+  - 折りたたみロジック (`useUIStore`)
+  - UI実装 (`Sidebar.tsx`)
+  - アニメーション実装
 
 ## Next Steps
 - [ ] UI機能拡張（フォルダ右クリック削除、ソート等）

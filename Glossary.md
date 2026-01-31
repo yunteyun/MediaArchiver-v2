@@ -75,3 +75,13 @@ jpg, jpeg, png, gif, webp, bmp, tiff
 
 ### 書庫ファイル
 zip, cbz, rar, cbr, 7z
+
+---
+
+## AI呼称
+
+### オプス (Opus)
+Claude Opus 4.5 モデルの呼称。主に設計・計画立案・コードレビューを担当。
+
+### ジェミニ (Gemini)
+Gemini 3 Pro モデルの呼称。実装作業を担当。

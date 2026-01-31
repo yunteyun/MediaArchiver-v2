@@ -1,12 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Folder, Plus } from 'lucide-react';
+import { Folder, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
+import { useUIStore } from '../stores/useUIStore';
 import type { MediaFolder } from '../types/file';
 
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
     const setFiles = useFileStore((s) => s.setFiles);
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
+
+    const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+    const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+
     const [folders, setFolders] = useState<MediaFolder[]>([]);
 
     const loadFolders = useCallback(async () => {
@@ -48,23 +53,56 @@ export const Sidebar = React.memo(() => {
     }, [setCurrentFolderId, setFiles]);
 
     return (
-        <aside className="w-64 bg-surface-900 border-r border-surface-700 flex flex-col h-full">
-            <div className="p-4 border-b border-surface-700 flex justify-between items-center">
-                <h2 className="font-bold text-white">Library</h2>
-                <button
-                    onClick={handleAddFolder}
-                    className="p-1.5 hover:bg-surface-700 rounded transition-colors"
-                    title="フォルダを追加"
-                >
-                    <Plus size={18} />
-                </button>
+        <aside
+            className={`
+                bg-surface-900 border-r border-surface-700 flex flex-col h-full
+                transition-all duration-300 ease-in-out
+                ${sidebarCollapsed ? 'w-16' : 'w-64'}
+            `}
+        >
+            <div className={`
+                p-4 border-b border-surface-700 flex items-center
+                ${sidebarCollapsed ? 'justify-center flex-col gap-4' : 'justify-between'}
+            `}>
+                {!sidebarCollapsed && <h2 className="font-bold text-white truncate">Library</h2>}
+
+                <div className="flex gap-1">
+                    {!sidebarCollapsed && (
+                        <button
+                            onClick={handleAddFolder}
+                            className="p-1.5 hover:bg-surface-700 rounded transition-colors"
+                            title="フォルダを追加"
+                        >
+                            <Plus size={18} />
+                        </button>
+                    )}
+                    <button
+                        onClick={toggleSidebar}
+                        className="p-1.5 hover:bg-surface-700 rounded transition-colors"
+                        title={sidebarCollapsed ? "サイドバーを展開" : "サイドバーを折りたたむ"}
+                    >
+                        {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                    </button>
+                </div>
+
+                {sidebarCollapsed && (
+                    <button
+                        onClick={handleAddFolder}
+                        className="p-1.5 hover:bg-surface-700 rounded transition-colors"
+                        title="フォルダを追加"
+                    >
+                        <Plus size={18} />
+                    </button>
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
                 {folders.length === 0 ? (
-                    <p className="text-surface-500 text-sm text-center py-4">
-                        フォルダがありません
-                    </p>
+                    !sidebarCollapsed && (
+                        <p className="text-surface-500 text-sm text-center py-4">
+                            フォルダがありません
+                        </p>
+                    )
                 ) : (
                     folders.map(folder => (
                         <div
@@ -75,12 +113,16 @@ export const Sidebar = React.memo(() => {
                                 ${currentFolderId === folder.id
                                     ? 'bg-blue-600 text-white'
                                     : 'hover:bg-surface-800 text-surface-300'}
+                                ${sidebarCollapsed ? 'justify-center' : ''}
                             `}
+                            title={folder.path}
                         >
-                            <Folder size={16} className="flex-shrink-0" />
-                            <span className="truncate text-sm" title={folder.path}>
-                                {folder.name}
-                            </span>
+                            <Folder size={20} className="flex-shrink-0" />
+                            {!sidebarCollapsed && (
+                                <span className="truncate text-sm">
+                                    {folder.name}
+                                </span>
+                            )}
                         </div>
                     ))
                 )}

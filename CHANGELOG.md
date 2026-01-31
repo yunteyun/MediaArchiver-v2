@@ -38,7 +38,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **プロジェクトドキュメント**
   - ARCHITECTURE.md, CONVENTIONS.md, Glossary.md, ROADMAP.md
   - SESSION.md（セッション管理）
+  - ARCHITECTURE.md, CONVENTIONS.md, Glossary.md, ROADMAP.md
+  - SESSION.md（セッション管理）
   - ADRテンプレート（.agent/decisions/）
+
+- **Phase 3-1: サイドバー開閉機構**
+  - 折りたたみ機能 (useUIStore / Sidebar)
+  - スムーズな開閉アニメーション
+  - 状態に応じたレイアウト切り替え
 
 ### Fixed
 - Preload script ESM→CJS ビルド問題
