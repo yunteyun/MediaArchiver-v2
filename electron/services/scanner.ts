@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import * as db from './database';
+import { generateThumbnail, getVideoDuration } from './thumbnail';
 
 const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.wmv'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
@@ -67,12 +68,20 @@ async function scanDirectoryInternal(
                     state.current++;
                     const stats = await fs.promises.stat(fullPath);
 
-                    // DB check (Update logic simplified for Phase 2-1)
-                    // TODO: implement detailed check like hash comparison in Phase 2-2
-
                     const existing = db.findFileByPath(fullPath);
-                    // Skip if size and mtime match (Simple check)
-                    if (existing && existing.size === stats.size && existing.mtime_ms === Math.floor(stats.mtimeMs)) {
+                    // Skip if size and mtime match AND thumbnail exists (if applicable)
+                    // If thumbnail is missing, we should fall through to generation logic
+                    // However, we need to be careful not to re-scan fully if only thumbnail is missing?
+                    // Actually, falling through is fine, the insertFile will act as update.
+
+                    const isMedia = type === 'video' || type === 'image';
+                    const hasThumbnail = !!existing?.thumbnail_path;
+
+                    if (existing &&
+                        existing.size === stats.size &&
+                        existing.mtime_ms === Math.floor(stats.mtimeMs) &&
+                        (!isMedia || hasThumbnail)
+                    ) {
                         if (onProgress) {
                             onProgress({
                                 phase: 'scanning',
@@ -84,8 +93,37 @@ async function scanDirectoryInternal(
                         continue;
                     }
 
+                    // Generate thumbnail if missing
+                    let thumbnailPath = existing?.thumbnail_path;
+                    if (!thumbnailPath) {
+                        try {
+                            if (onProgress) {
+                                onProgress({
+                                    phase: 'scanning',
+                                    current: state.current,
+                                    total: state.total,
+                                    currentFile: entry.name,
+                                    message: `サムネイル生成中...`
+                                });
+                            }
+                            const generated = await generateThumbnail(fullPath);
+                            if (generated) thumbnailPath = generated;
+                        } catch (e) {
+                            console.error('Thumbnail generation failed:', e);
+                        }
+                    }
+
+                    // Generate duration if missing (video only)
+                    let duration = existing?.duration;
+                    if (type === 'video' && !duration) {
+                        try {
+                            duration = await getVideoDuration(fullPath);
+                        } catch (e) {
+                            console.error('Duration extraction failed:', e);
+                        }
+                    }
+
                     // Insert or Update
-                    // Note: Thumbnail/Hash generation is postponed to Phase 2-2
                     db.insertFile({
                         name: entry.name,
                         path: fullPath,
@@ -94,10 +132,9 @@ async function scanDirectoryInternal(
                         created_at: stats.birthtimeMs,
                         mtime_ms: Math.floor(stats.mtimeMs),
                         root_folder_id: rootFolderId,
-                        // default values for now
-                        tags: [],
-                        duration: existing?.duration,
-                        thumbnail_path: existing?.thumbnail_path,
+                        tags: existing?.tags || [],
+                        duration: duration,
+                        thumbnail_path: thumbnailPath,
                         preview_frames: existing?.preview_frames,
                         content_hash: existing?.content_hash,
                         metadata: existing?.metadata
@@ -108,7 +145,8 @@ async function scanDirectoryInternal(
                             phase: 'scanning',
                             current: state.current,
                             total: state.total,
-                            currentFile: entry.name
+                            currentFile: entry.name,
+                            message: '登録完了'
                         });
                     }
                 }
@@ -134,11 +172,7 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
         const state = { current: 0, total };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, state);
 
-        // Orphaned files cleanup (Files in DB but not on disk for this root folder)
-        // Note: Ideally we should track which files were "touched" during this scan session to identify orphans accurately within a subfolder scan.
-        // For Phase 2-1, we skip complex orphan logic or implement a simple one:
-        // Getting all files for rootFolderId and checking existence.
-
+        // Orphan check (simplified)
         const registeredFiles = db.getFiles(rootFolderId);
         let removedCount = 0;
         for (const file of registeredFiles) {
@@ -149,6 +183,7 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
         }
 
         if (onProgress) {
+            console.log(`Scan completed. Total: ${total}, Removed: ${removedCount}`);
             onProgress({
                 phase: 'complete',
                 current: total,

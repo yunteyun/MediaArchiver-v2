@@ -24,6 +24,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Sidebar / FileGrid / FileCard コンポーネント
   - TanStack Virtual 仮想スクロール
   - ネイティブフォルダ選択ダイアログ (dialog IPC)
+- Phase 2-4: サムネイル生成
+  - 動画サムネイル (FFmpeg)
+  - 画像サムネイル (Sharp)
+  - アニメーションGIF/WebP判定
+  - 動画再生時間取得
 - プロジェクトドキュメント整備
   - ARCHITECTURE.md: システム構成と設計方針
   - CONVENTIONS.md: コーディング規約

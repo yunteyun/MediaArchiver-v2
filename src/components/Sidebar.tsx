@@ -38,7 +38,9 @@ export const Sidebar = React.memo(() => {
     const handleSelectFolder = useCallback(async (folderId: string) => {
         setCurrentFolderId(folderId);
         try {
+            console.log('Frontend: Requesting files for', folderId);
             const files = await window.electronAPI.getFiles(folderId);
+            console.log('Frontend: Received files:', files.length);
             setFiles(files);
         } catch (e) {
             console.error('Error loading files:', e);
