@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // === App ===
     openExternal: (path: string) => ipcRenderer.invoke('app:openExternal', path),
+    showInExplorer: (path: string) => ipcRenderer.invoke('app:showInExplorer', path),
 
     // === Events (Main -> Renderer) ===
     onScanProgress: (callback: (progress: any) => void) => {
