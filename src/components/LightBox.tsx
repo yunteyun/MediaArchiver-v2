@@ -1,12 +1,17 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 
 export const LightBox = React.memo(() => {
     const lightboxFile = useUIStore((s) => s.lightboxFile);
     const closeLightbox = useUIStore((s) => s.closeLightbox);
     const files = useFileStore((s) => s.files);
+    const videoVolume = useSettingsStore((s) => s.videoVolume);
+    const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
+
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const currentIndex = files.findIndex(f => f.id === lightboxFile?.id);
 
@@ -36,6 +41,19 @@ export const LightBox = React.memo(() => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [lightboxFile, closeLightbox, goToPrevious, goToNext]);
+
+    // Set initial volume when video loads
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.volume = videoVolume;
+        }
+    }, [lightboxFile, videoVolume]);
+
+    const handleVolumeChange = () => {
+        if (videoRef.current) {
+            setVideoVolume(videoRef.current.volume);
+        }
+    };
 
     if (!lightboxFile) return null;
 
@@ -74,10 +92,12 @@ export const LightBox = React.memo(() => {
             <div className="max-w-7xl max-h-screen p-8 flex items-center justify-center">
                 {lightboxFile.type === 'video' ? (
                     <video
+                        ref={videoRef}
                         src={`file://${lightboxFile.path}`}
                         controls
                         autoPlay
                         className="max-w-full max-h-full"
+                        onVolumeChange={handleVolumeChange}
                     />
                 ) : lightboxFile.type === 'image' ? (
                     <img

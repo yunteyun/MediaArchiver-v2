@@ -37,7 +37,7 @@
   - 画像/動画プレビュー対応
 
 ## Next Steps
-- [ ] LightBox プレビュー
+- [ ] コンテキストメニュー
 - [ ] 書庫ファイル対応（v1からarchiveHandler移植）
 
 ## Known Issues
