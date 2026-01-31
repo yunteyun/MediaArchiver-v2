@@ -6,6 +6,7 @@ import { initDB } from './services/database';
 import { registerDatabaseHandlers } from './ipc/database';
 import { registerScannerHandlers } from './ipc/scanner';
 import { registerAppHandlers } from './ipc/app';
+import { registerDialogHandlers } from './ipc/dialog';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -56,6 +57,7 @@ app.whenReady().then(() => {
     registerDatabaseHandlers();
     registerScannerHandlers();
     registerAppHandlers();
+    registerDialogHandlers();
 
     createWindow();
 

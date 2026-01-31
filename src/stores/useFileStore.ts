@@ -7,6 +7,7 @@ interface FileState {
     currentFolderId: string | null;
     // アクション
     setFiles: (files: MediaFile[]) => void;
+    setCurrentFolderId: (id: string | null) => void;
     selectFile: (id: string, multi?: boolean) => void;
     clearSelection: () => void;
 }
@@ -17,6 +18,7 @@ export const useFileStore = create<FileState>((set) => ({
     currentFolderId: null,
 
     setFiles: (files) => set({ files }),
+    setCurrentFolderId: (id) => set({ currentFolderId: id }),
 
     selectFile: (id, multi = false) =>
         set((state) => {

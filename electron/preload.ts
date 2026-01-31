@@ -23,6 +23,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openExternal: (path: string) => ipcRenderer.invoke('app:openExternal', path),
     showInExplorer: (path: string) => ipcRenderer.invoke('app:showInExplorer', path),
 
+    // === Dialog ===
+    selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
+
     // === Events (Main -> Renderer) ===
     onScanProgress: (callback: (progress: any) => void) => {
         const subscription = (_event: any, progress: any) => callback(progress);

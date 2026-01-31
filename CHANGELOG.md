@@ -16,6 +16,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 基本スキャナー実装 (scanner.ts)
   - フォルダ管理機能 (database.ts, IPC)
   - ファイル登録・更新ロジック
+- Phase 2-2: ファイル操作系
+  - 外部アプリで開く (openExternal)
+  - エクスプローラーで表示 (showInExplorer)
+- Phase 2-3: UI連携
+  - Preload CJS ビルド問題修正 (vite-plugin-electron/simple)
+  - Sidebar / FileGrid / FileCard コンポーネント
+  - TanStack Virtual 仮想スクロール
+  - ネイティブフォルダ選択ダイアログ (dialog IPC)
 - プロジェクトドキュメント整備
   - ARCHITECTURE.md: システム構成と設計方針
   - CONVENTIONS.md: コーディング規約
