@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-01 00:17
+**Last Updated**: 2026-02-01 08:43
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -18,7 +18,6 @@
 - ✅ Phase 2-4: サムネイル生成
   - FFmpeg動画サムネイル / Sharp画像サムネイル
   - 動画再生時間取得
-  - アニメーションGIF/WebP判定
   - アニメーションGIF/WebP判定
   - snake_case/camelCase マッピング修正
 - ✅ Phase 3-1: サイドバー開閉機構
@@ -38,9 +37,17 @@
 - ✅ Phase 3-5: ファイルコンテキストメニュー
   - 右クリックメニュー実装
   - 外部アプリで開く、エクスプローラーで表示、削除
+- ✅ Phase 4: アーカイブ対応
+  - 書庫ファイル処理（v1からarchiveHandler移植）
+  - 書庫サムネイル生成（ZIP/RAR/7Z/CBZ/CBR）
+  - 書庫内プレビュー（LightBox統合）
 
 ## Next Steps
-- [ ] 書庫ファイル対応（v1からarchiveHandler移植）
+- [ ] Phase 5: 機能拡張
+  - タグ管理システム
+  - 検索・フィルター機能
+  - 設定画面
+  - プロファイル切り替え
 
 ## Known Issues
 - なし
@@ -48,4 +55,4 @@
 ## Important Context
 - v2はv1（c:\MediaArchiver）のリファクタリング版
 - 状態管理: Zustand、仮想スクロール: TanStack Virtual
-- v1のarchiveHandler等のロジックは流用予定
+- Phase 4 で v1 の archiveHandler を移植・改善完了

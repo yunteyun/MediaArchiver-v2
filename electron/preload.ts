@@ -61,4 +61,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('file:deleted', handler);
         return () => ipcRenderer.removeListener('file:deleted', handler);
     },
+
+    // === Archive ===
+    getArchiveMetadata: (path: string) => ipcRenderer.invoke('archive:getMetadata', path),
+    getArchivePreviewFrames: (path: string, limit?: number) =>
+        ipcRenderer.invoke('archive:getPreviewFrames', { path, limit }),
+    cleanArchiveTemp: () => ipcRenderer.invoke('archive:cleanTemp'),
 });

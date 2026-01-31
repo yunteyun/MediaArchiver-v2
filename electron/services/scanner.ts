@@ -74,7 +74,8 @@ async function scanDirectoryInternal(
                     // However, we need to be careful not to re-scan fully if only thumbnail is missing?
                     // Actually, falling through is fine, the insertFile will act as update.
 
-                    const isMedia = type === 'video' || type === 'image';
+                    // All media types need thumbnails (video, image, archive)
+                    const isMedia = type === 'video' || type === 'image' || type === 'archive';
                     const hasThumbnail = !!existing?.thumbnail_path;
 
                     if (existing &&

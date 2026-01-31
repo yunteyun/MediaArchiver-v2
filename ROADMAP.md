@@ -31,6 +31,10 @@ MediaArchiver v2 の開発ロードマップです。
 - [x] Phase 3-4: LightBox（クイックプレビュー）
 - [x] Phase 3-5: ファイルコンテキストメニュー
 
+### Phase 4: アーカイブ対応
+- [x] 書庫ファイル処理（v1からarchiveHandler移植）
+- [x] 書庫内プレビュー
+
 ---
 
 ## 🚧 進行中 (In Progress)
@@ -40,10 +44,6 @@ MediaArchiver v2 の開発ロードマップです。
 ---
 
 ## 📋 予定 (Planned)
-
-### Phase 4: アーカイブ対応
-- [ ] 書庫ファイル処理（v1からarchiveHandler移植）
-- [ ] 書庫内プレビュー
 
 ### Phase 5: 機能拡張
 - [ ] タグ管理システム

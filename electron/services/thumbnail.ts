@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
+import { isArchive, getArchiveThumbnail } from './archiveHandler';
 
 // Setup paths
 const THUMBNAIL_DIR = path.join(app.getPath('userData'), 'thumbnails');
@@ -29,9 +30,16 @@ export async function generateThumbnail(filePath: string): Promise<string | null
     const outputPath = path.join(THUMBNAIL_DIR, filename);
 
     try {
+        // Archive files (zip, rar, 7z, cbz, cbr)
+        if (isArchive(filePath)) {
+            return getArchiveThumbnail(filePath);
+        }
+        // Video files
         if (['.mp4', '.webm', '.mov', '.avi', '.mkv'].includes(ext)) {
             return generateVideoThumbnail(filePath, filename, outputPath);
-        } else if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) {
+        }
+        // Image files
+        if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) {
             return generateImageThumbnail(filePath, outputPath);
         }
     } catch (e) {

@@ -32,6 +32,15 @@ declare global {
             // File Context Menu
             showFileContextMenu: (fileId: string, path: string) => Promise<void>;
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
+
+            // Archive
+            getArchiveMetadata: (path: string) => Promise<{
+                fileCount: number;
+                firstImageEntry: string | null;
+                imageEntries: string[];
+            } | null>;
+            getArchivePreviewFrames: (path: string, limit?: number) => Promise<string[]>;
+            cleanArchiveTemp: () => Promise<{ success: boolean }>;
         };
     }
 }

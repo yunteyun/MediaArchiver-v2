@@ -67,10 +67,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 機能: 外部アプリで開く、エクスプローラーで表示、ファイル削除
   - 削除時のUI自動更新
 
+- **Phase 4: アーカイブ対応**
+  - 書庫ファイル処理サービス (`archiveHandler.ts`)
+    - 7zip-bin を使用した書庫メタデータ取得
+    - サムネイル生成（書庫内最初の画像を抽出）
+    - プレビューフレーム取得（均等分散で最大12枚）
+  - 書庫IPC通信 (`archive.ts`)
+  - 書庫サムネイル生成対応 (`thumbnail.ts`)
+  - LightBox 書庫プレビュー機能
+    - 書庫内画像のグリッド表示
+    - クリックで拡大表示
+    - ローディング状態表示
+  - 対応形式: ZIP, RAR, 7Z, CBZ, CBR
+
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題
 - 既存ファイルのサムネイル再生成スキップ問題
+- scanner.ts の isMedia 判定に archive タイプが含まれていなかった問題
+- tsconfig.node.json の composite モード設定問題（noEmit → emitDeclarationOnly）
+
 
 ---
 
