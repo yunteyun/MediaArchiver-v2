@@ -24,16 +24,18 @@ MediaArchiver v2 の開発ロードマップです。
 - [x] Phase 2-3: UI連携 (Sidebar, FileGrid, FileCard, TanStack Virtual)
 - [x] Phase 2-4: サムネイル生成 (FFmpeg/Sharp)
 
----
-
-## 🚧 進行中 (In Progress)
-
 ### Phase 3: UI機能拡張
 - [x] Phase 3-1: サイドバー開閉機構
 - [x] Phase 3-2: フォルダ右クリックメニュー（削除、再スキャン）
 - [x] Phase 3-3: ファイルソート機能
 - [x] Phase 3-4: LightBox（クイックプレビュー）
 - [x] Phase 3-5: ファイルコンテキストメニュー
+
+---
+
+## 🚧 進行中 (In Progress)
+
+(なし)
 
 ---
 
