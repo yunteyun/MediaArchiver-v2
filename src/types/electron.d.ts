@@ -28,6 +28,10 @@ declare global {
             showFolderContextMenu: (folderId: string, path: string) => Promise<void>;
             onFolderDeleted: (callback: (folderId: string) => void) => () => void;
             onFolderRescanComplete: (callback: (folderId: string) => void) => () => void;
+
+            // File Context Menu
+            showFileContextMenu: (fileId: string, path: string) => Promise<void>;
+            onFileDeleted: (callback: (fileId: string) => void) => () => void;
         };
     }
 }

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -11,6 +11,7 @@ export const FileGrid = React.memo(() => {
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const selectFile = useFileStore((s) => s.selectFile);
+    const removeFile = useFileStore((s) => s.removeFile);
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
     const sortBy = useUIStore((s) => s.sortBy);
     const sortOrder = useUIStore((s) => s.sortOrder);
@@ -39,6 +40,16 @@ export const FileGrid = React.memo(() => {
 
     const parentRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = React.useState(1000);
+
+    // File deletion listener
+    useEffect(() => {
+        const cleanup = window.electronAPI.onFileDeleted((fileId) => {
+            console.log('File deleted:', fileId);
+            removeFile(fileId);
+        });
+
+        return cleanup;
+    }, [removeFile]);
 
     // ResizeObserver for responsive columns
     React.useEffect(() => {

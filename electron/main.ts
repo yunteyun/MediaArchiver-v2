@@ -8,6 +8,7 @@ import { registerScannerHandlers } from './ipc/scanner';
 import { registerAppHandlers } from './ipc/app';
 import { registerDialogHandlers } from './ipc/dialog';
 import { registerFolderHandlers } from './ipc/folder';
+import { registerFileHandlers } from './ipc/file';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -61,6 +62,7 @@ app.whenReady().then(() => {
     registerAppHandlers();
     registerDialogHandlers();
     registerFolderHandlers();
+    registerFileHandlers();
 
     createWindow();
 

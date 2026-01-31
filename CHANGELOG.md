@@ -62,6 +62,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 画像/動画プレビュー表示
   - ファイル情報表示（名前、サイズ、再生時間）
 
+- **Phase 3-5: ファイルコンテキストメニュー**
+  - ネイティブコンテキストメニュー実装
+  - 機能: 外部アプリで開く、エクスプローラーで表示、ファイル削除
+  - 削除時のUI自動更新
+
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題

@@ -12,6 +12,7 @@ interface FileState {
     selectFile: (id: string, multi?: boolean) => void;
     clearSelection: () => void;
     getSortedFiles: () => MediaFile[];
+    removeFile: (fileId: string) => void;
 }
 
 export const useFileStore = create<FileState>((set, get) => ({
@@ -58,4 +59,12 @@ export const useFileStore = create<FileState>((set, get) => ({
             return sortOrder === 'asc' ? comparison : -comparison;
         });
     },
+
+    removeFile: (fileId: string) =>
+        set((state) => ({
+            files: state.files.filter(f => f.id !== fileId),
+            selectedIds: new Set(
+                Array.from(state.selectedIds).filter(id => id !== fileId)
+            ),
+        })),
 }));

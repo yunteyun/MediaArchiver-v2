@@ -29,10 +29,16 @@ export const FileCard = React.memo(({ file, isSelected, onSelect }: FileCardProp
         }
     };
 
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        window.electronAPI.showFileContextMenu(file.id, file.path);
+    };
+
     return (
         <div
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
+            onContextMenu={handleContextMenu}
             className={`
                 w-full h-full rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
                 transition-all duration-150

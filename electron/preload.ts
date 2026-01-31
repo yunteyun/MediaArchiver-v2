@@ -51,4 +51,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('folder:rescanComplete', handler);
         return () => ipcRenderer.removeListener('folder:rescanComplete', handler);
     },
+
+    // === File Context Menu ===
+    showFileContextMenu: (fileId: string, path: string) =>
+        ipcRenderer.invoke('file:showContextMenu', { fileId, filePath: path }),
+
+    onFileDeleted: (callback: (fileId: string) => void) => {
+        const handler = (_event: any, fileId: string) => callback(fileId);
+        ipcRenderer.on('file:deleted', handler);
+        return () => ipcRenderer.removeListener('file:deleted', handler);
+    },
 });
