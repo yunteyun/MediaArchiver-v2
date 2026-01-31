@@ -76,6 +76,7 @@ export const Sidebar = React.memo(() => {
         };
     }, [loadFolders, currentFolderId, setCurrentFolderId, setFiles, handleSelectFolder]);
 
+
     return (
         <aside
             className={`

@@ -33,7 +33,6 @@
   - ソートメニューUI (`SortMenu.tsx`)
 
 ## Next Steps
-- [ ] ファイルソート機能
 - [ ] LightBox プレビュー
 - [ ] 書庫ファイル対応（v1からarchiveHandler移植）
 
