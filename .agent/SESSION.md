@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-01 08:43
+**Last Updated**: 2026-02-01 09:47
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -41,13 +41,18 @@
   - 書庫ファイル処理（v1からarchiveHandler移植）
   - 書庫サムネイル生成（ZIP/RAR/7Z/CBZ/CBR）
   - 書庫内プレビュー（LightBox統合）
+- ✅ Phase 5-1: タグ管理システム基盤
+  - DBスキーマ拡張（tag_categories, tag_definitions, file_tags）
+  - tagService.ts / tag.ts IPCハンドラー
+  - useTagStore.ts（Zustand）
+  - TagBadge / TagSelector / TagFilterPanel コンポーネント
+  - FileCard タグ表示 / LightBox タグ付け機能
 
 ## Next Steps
-- [ ] Phase 5: 機能拡張
-  - タグ管理システム
-  - 検索・フィルター機能
-  - 設定画面
-  - プロファイル切り替え
+- [ ] Phase 5-1 続き: タグ管理モーダル
+- [ ] Phase 5-2: タグフィルタリング機能
+- [ ] Phase 5-3: 検索機能
+- [ ] Phase 5-4: 設定画面
 
 ## Known Issues
 - なし

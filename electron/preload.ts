@@ -67,4 +67,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getArchivePreviewFrames: (path: string, limit?: number) =>
         ipcRenderer.invoke('archive:getPreviewFrames', { path, limit }),
     cleanArchiveTemp: () => ipcRenderer.invoke('archive:cleanTemp'),
+
+    // === Tags ===
+    // Categories
+    getTagCategories: () => ipcRenderer.invoke('tag:getCategories'),
+    createTagCategory: (name: string, color?: string) =>
+        ipcRenderer.invoke('tag:createCategory', { name, color }),
+    updateTagCategory: (id: string, updates: { name?: string; color?: string; sortOrder?: number }) =>
+        ipcRenderer.invoke('tag:updateCategory', { id, ...updates }),
+    deleteTagCategory: (id: string) => ipcRenderer.invoke('tag:deleteCategory', { id }),
+
+    // Tag Definitions
+    getAllTags: () => ipcRenderer.invoke('tag:getAll'),
+    createTag: (name: string, color?: string, categoryId?: string) =>
+        ipcRenderer.invoke('tag:create', { name, color, categoryId }),
+    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number }) =>
+        ipcRenderer.invoke('tag:update', { id, ...updates }),
+    deleteTag: (id: string) => ipcRenderer.invoke('tag:delete', { id }),
+
+    // File-Tag Operations
+    addTagToFile: (fileId: string, tagId: string) =>
+        ipcRenderer.invoke('tag:addToFile', { fileId, tagId }),
+    removeTagFromFile: (fileId: string, tagId: string) =>
+        ipcRenderer.invoke('tag:removeFromFile', { fileId, tagId }),
+    getFileTags: (fileId: string) => ipcRenderer.invoke('tag:getFileTags', { fileId }),
+    getFileTagIds: (fileId: string) => ipcRenderer.invoke('tag:getFileTagIds', { fileId }),
+    getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') =>
+        ipcRenderer.invoke('tag:getFilesByTags', { tagIds, mode }),
 });

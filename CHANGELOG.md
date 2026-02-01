@@ -80,6 +80,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - ローディング状態表示
   - 対応形式: ZIP, RAR, 7Z, CBZ, CBR
 
+- **Phase 5-1: タグ管理システム基盤**
+  - データベーススキーマ拡張
+    - `tag_categories` テーブル（カテゴリ管理）
+    - `tag_definitions` テーブル（タグマスター）
+    - `file_tags` テーブル（ファイル-タグ関連）
+  - バックエンド実装
+    - `tagService.ts`（CRUD操作）
+    - `tag.ts` IPCハンドラー
+  - Zustand ストア (`useTagStore.ts`)
+  - UIコンポーネント
+    - `TagBadge.tsx`（タグバッジ表示）
+    - `TagSelector.tsx`（タグ選択ドロップダウン）
+    - `TagFilterPanel.tsx`（サイドバーフィルター）
+  - FileCard ホバー時タグ表示
+  - LightBox タグ付け機能
+
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題

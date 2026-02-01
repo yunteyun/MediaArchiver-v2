@@ -58,11 +58,42 @@ export function initDB() {
       mtime_ms INTEGER DEFAULT 0
     );
 
+    -- Legacy tags table (file_id, tag string) - kept for backward compatibility
     CREATE TABLE IF NOT EXISTS tags (
       file_id TEXT,
       tag TEXT,
       PRIMARY KEY (file_id, tag),
       FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
+    );
+
+    -- New: Tag Categories
+    CREATE TABLE IF NOT EXISTS tag_categories (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      color TEXT DEFAULT 'gray',
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER
+    );
+
+    -- New: Tag Definitions (master table)
+    CREATE TABLE IF NOT EXISTS tag_definitions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      color TEXT DEFAULT 'gray',
+      category_id TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER,
+      FOREIGN KEY(category_id) REFERENCES tag_categories(id) ON DELETE SET NULL
+    );
+
+    -- New: File-Tag relationship (normalized)
+    CREATE TABLE IF NOT EXISTS file_tags (
+      file_id TEXT NOT NULL,
+      tag_id TEXT NOT NULL,
+      added_at INTEGER,
+      PRIMARY KEY (file_id, tag_id),
+      FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE,
+      FOREIGN KEY(tag_id) REFERENCES tag_definitions(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS folders (
@@ -89,6 +120,11 @@ export function initDB() {
 
     CREATE INDEX IF NOT EXISTS idx_files_path ON files(path);
     CREATE INDEX IF NOT EXISTS idx_files_hash ON files(content_hash);
+    CREATE INDEX IF NOT EXISTS idx_tag_definitions_category ON tag_definitions(category_id);
+    CREATE INDEX IF NOT EXISTS idx_tag_definitions_name ON tag_definitions(name);
+    CREATE INDEX IF NOT EXISTS idx_tag_categories_name ON tag_categories(name);
+    CREATE INDEX IF NOT EXISTS idx_file_tags_tag ON file_tags(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_file_tags_file ON file_tags(file_id);
   `);
 
     // Initialize schema version if not set

@@ -10,6 +10,7 @@ import { registerDialogHandlers } from './ipc/dialog';
 import { registerFolderHandlers } from './ipc/folder';
 import { registerFileHandlers } from './ipc/file';
 import { registerArchiveHandlers } from './ipc/archive';
+import { registerTagHandlers } from './ipc/tag';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -65,6 +66,7 @@ app.whenReady().then(() => {
     registerFolderHandlers();
     registerFileHandlers();
     registerArchiveHandlers();
+    registerTagHandlers();
 
     createWindow();
 

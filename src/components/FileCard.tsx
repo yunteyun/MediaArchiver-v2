@@ -1,7 +1,9 @@
-import React from 'react';
-import { Play, FileText, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, FileText, Image as ImageIcon, Archive } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
+import type { Tag } from '../stores/useTagStore';
+import { TagBadge } from './tags';
 
 interface FileCardProps {
     file: MediaFile;
@@ -10,8 +12,34 @@ interface FileCardProps {
 }
 
 export const FileCard = React.memo(({ file, isSelected, onSelect }: FileCardProps) => {
-    const Icon = file.type === 'video' ? Play : file.type === 'image' ? ImageIcon : FileText;
+    const Icon = file.type === 'video' ? Play
+        : file.type === 'image' ? ImageIcon
+            : file.type === 'archive' ? Archive
+                : FileText;
     const openLightbox = useUIStore((s) => s.openLightbox);
+
+    // File tags state
+    const [fileTags, setFileTags] = useState<Tag[]>([]);
+
+    // Load file tags
+    useEffect(() => {
+        let isMounted = true;
+        window.electronAPI.getFileTags(file.id).then((tags) => {
+            if (isMounted) {
+                // Map to Tag type from store
+                const mappedTags = tags.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    color: t.color,
+                    categoryId: t.categoryId,
+                    sortOrder: t.sortOrder,
+                    createdAt: t.createdAt
+                }));
+                setFileTags(mappedTags);
+            }
+        }).catch(console.error);
+        return () => { isMounted = false; };
+    }, [file.id]);
 
     const handleClick = (e: React.MouseEvent) => {
         if (e.ctrlKey || e.metaKey) {
@@ -66,6 +94,20 @@ export const FileCard = React.memo(({ file, isSelected, onSelect }: FileCardProp
                         {file.duration}
                     </div>
                 )}
+
+                {/* Tags Overlay (on hover) */}
+                {fileTags.length > 0 && (
+                    <div className="absolute top-1 left-1 flex flex-wrap gap-0.5 max-w-[90%] opacity-0 group-hover:opacity-100 transition-opacity">
+                        {fileTags.slice(0, 3).map(tag => (
+                            <TagBadge key={tag.id} name={tag.name} color={tag.color} size="sm" />
+                        ))}
+                        {fileTags.length > 3 && (
+                            <span className="text-xs bg-black/70 text-white px-1 rounded">
+                                +{fileTags.length - 3}
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Info Area */}
@@ -79,3 +121,4 @@ export const FileCard = React.memo(({ file, isSelected, onSelect }: FileCardProp
 });
 
 FileCard.displayName = 'FileCard';
+

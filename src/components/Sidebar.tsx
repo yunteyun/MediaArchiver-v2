@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Folder, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
+import { TagFilterPanel } from './tags';
 import type { MediaFolder } from '../types/file';
 
 export const Sidebar = React.memo(() => {
@@ -148,6 +149,9 @@ export const Sidebar = React.memo(() => {
                         </div>
                     ))
                 )}
+
+                {/* Tag Filter Panel */}
+                {!sidebarCollapsed && <TagFilterPanel />}
             </div>
         </aside>
     );

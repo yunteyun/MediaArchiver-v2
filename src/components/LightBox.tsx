@@ -3,6 +3,8 @@ import { X, ChevronLeft, ChevronRight, Loader2, Archive } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useTagStore } from '../stores/useTagStore';
+import { TagSelector } from './tags';
 
 export const LightBox = React.memo(() => {
     const lightboxFile = useUIStore((s) => s.lightboxFile);
@@ -17,6 +19,11 @@ export const LightBox = React.memo(() => {
     const [archivePreviewFrames, setArchivePreviewFrames] = useState<string[]>([]);
     const [archiveLoading, setArchiveLoading] = useState(false);
     const [selectedArchiveImage, setSelectedArchiveImage] = useState<string | null>(null);
+
+    // Tag state
+    const [fileTagIds, setFileTagIds] = useState<string[]>([]);
+    const loadTags = useTagStore((s) => s.loadTags);
+    const loadCategories = useTagStore((s) => s.loadCategories);
 
     const currentIndex = files.findIndex(f => f.id === lightboxFile?.id);
 
@@ -82,6 +89,19 @@ export const LightBox = React.memo(() => {
             setSelectedArchiveImage(null);
         }
     }, [lightboxFile]);
+
+    // Load file tags when lightbox opens
+    useEffect(() => {
+        if (lightboxFile) {
+            loadTags();
+            loadCategories();
+            window.electronAPI.getFileTagIds(lightboxFile.id)
+                .then(setFileTagIds)
+                .catch(console.error);
+        } else {
+            setFileTagIds([]);
+        }
+    }, [lightboxFile, loadTags, loadCategories]);
 
     const handleVolumeChange = () => {
         if (videoRef.current) {
@@ -193,13 +213,28 @@ export const LightBox = React.memo(() => {
             </div>
 
             {/* File info */}
-            <div className="absolute bottom-4 left-4 text-white bg-black/50 px-4 py-2 rounded">
-                <p className="font-bold text-lg">{lightboxFile.name}</p>
+            <div className="absolute bottom-4 left-4 text-white bg-black/50 px-4 py-2 rounded max-w-md">
+                <p className="font-bold text-lg truncate">{lightboxFile.name}</p>
                 <p className="text-sm text-surface-300">
                     {(lightboxFile.size / 1024 / 1024).toFixed(2)} MB
                     {lightboxFile.duration && ` • ${lightboxFile.duration}`}
                     {lightboxFile.type === 'archive' && archivePreviewFrames.length > 0 && ` • ${archivePreviewFrames.length} ページ`}
                 </p>
+
+                {/* Tag Selector */}
+                <div className="mt-2">
+                    <TagSelector
+                        selectedTagIds={fileTagIds}
+                        onAdd={async (tagId) => {
+                            await window.electronAPI.addTagToFile(lightboxFile.id, tagId);
+                            setFileTagIds([...fileTagIds, tagId]);
+                        }}
+                        onRemove={async (tagId) => {
+                            await window.electronAPI.removeTagFromFile(lightboxFile.id, tagId);
+                            setFileTagIds(fileTagIds.filter(id => id !== tagId));
+                        }}
+                    />
+                </div>
             </div>
         </div>
     );
