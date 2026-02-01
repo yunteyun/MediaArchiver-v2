@@ -109,6 +109,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - タグフィルターとの組み合わせ対応
   - `SortMenu.tsx` を `Header.tsx` に拡張して検索バーを統合
 
+- **Phase 5-4: 設定画面**
+  - `SettingsModal.tsx` コンポーネント作成
+  - サムネイルサイズ変更（80-300px）
+  - 動画再生時の音量設定
+  - サムネイルホバー動作設定（scrub/play）
+  - ヘッダーに設定ボタン追加
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題

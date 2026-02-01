@@ -1,6 +1,7 @@
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
 import { LightBox } from './components/LightBox';
+import { SettingsModal } from './components/SettingsModal';
 
 function App() {
     return (
@@ -10,6 +11,7 @@ function App() {
                 <FileGrid />
             </main>
             <LightBox />
+            <SettingsModal />
         </div>
     );
 }

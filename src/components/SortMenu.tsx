@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, Settings } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { SearchBar } from './SearchBar';
 
@@ -12,6 +12,7 @@ export const Header = React.memo(() => {
     const sortOrder = useUIStore((s) => s.sortOrder);
     const setSortBy = useUIStore((s) => s.setSortBy);
     const setSortOrder = useUIStore((s) => s.setSortOrder);
+    const openSettingsModal = useUIStore((s) => s.openSettingsModal);
 
     return (
         <div className="flex gap-4 items-center px-4 py-2 bg-surface-900 border-b border-surface-700">
@@ -39,6 +40,15 @@ export const Header = React.memo(() => {
                     {sortOrder === 'asc' ? <ArrowUp size={18} /> : <ArrowDown size={18} />}
                 </button>
             </div>
+
+            {/* Settings Button */}
+            <button
+                onClick={openSettingsModal}
+                className="p-1.5 hover:bg-surface-700 rounded transition-colors text-surface-400 hover:text-white"
+                title="設定"
+            >
+                <Settings size={18} />
+            </button>
         </div>
     );
 });
@@ -47,4 +57,3 @@ Header.displayName = 'Header';
 
 // 後方互換性のため SortMenu もエクスポート
 export const SortMenu = Header;
-
