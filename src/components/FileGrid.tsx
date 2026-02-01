@@ -4,7 +4,7 @@ import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
 import { FileCard } from './FileCard';
-import { SortMenu } from './SortMenu';
+import { Header } from './SortMenu';
 
 const CARD_GAP = 8;
 
@@ -17,6 +17,7 @@ export const FileGrid = React.memo(() => {
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
     const sortBy = useUIStore((s) => s.sortBy);
     const sortOrder = useUIStore((s) => s.sortOrder);
+    const searchQuery = useUIStore((s) => s.searchQuery);
 
     // Tag filter state
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -44,20 +45,29 @@ export const FileGrid = React.memo(() => {
             return sortOrder === 'asc' ? comparison : -comparison;
         });
 
-        // Then filter by tags
-        if (selectedTagIds.length === 0) {
-            return sorted;
+        // Filter by tags
+        let filtered = sorted;
+        if (selectedTagIds.length > 0) {
+            filtered = filtered.filter((file) => {
+                const fileTags = fileTagsCache.get(file.id) || [];
+                if (filterMode === 'OR') {
+                    return selectedTagIds.some((tagId) => fileTags.includes(tagId));
+                } else {
+                    return selectedTagIds.every((tagId) => fileTags.includes(tagId));
+                }
+            });
         }
 
-        return sorted.filter((file) => {
-            const fileTags = fileTagsCache.get(file.id) || [];
-            if (filterMode === 'OR') {
-                return selectedTagIds.some((tagId) => fileTags.includes(tagId));
-            } else {
-                return selectedTagIds.every((tagId) => fileTags.includes(tagId));
-            }
-        });
-    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache]);
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter((file) =>
+                file.name.toLowerCase().includes(query)
+            );
+        }
+
+        return filtered;
+    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery]);
 
     const parentRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = React.useState(1000);
@@ -103,7 +113,7 @@ export const FileGrid = React.memo(() => {
     if (files.length === 0) {
         return (
             <div className="flex-1 flex flex-col h-full">
-                <SortMenu />
+                <Header />
                 <div className="flex-1 flex items-center justify-center text-surface-500">
                     <div className="text-center">
                         <p className="text-lg">ファイルがありません</p>
@@ -116,7 +126,7 @@ export const FileGrid = React.memo(() => {
 
     return (
         <div className="flex flex-col h-full">
-            <SortMenu />
+            <Header />
             <div
                 ref={parentRef}
                 className="flex-1 overflow-y-auto bg-surface-950 p-4"

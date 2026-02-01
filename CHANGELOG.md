@@ -102,6 +102,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - AND/OR モード対応
   - タグ選択時に即座にファイルグリッドをフィルタリング
 
+- **Phase 5-3: 検索機能**
+  - `SearchBar.tsx` コンポーネント作成
+  - ファイル名での部分一致検索（大文字小文字を区別しない）
+  - デバウンス（300ms）でパフォーマンス最適化
+  - タグフィルターとの組み合わせ対応
+  - `SortMenu.tsx` を `Header.tsx` に拡張して検索バーを統合
+
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題

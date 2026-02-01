@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-01 10:41
+**Last Updated**: 2026-02-01 21:26
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -51,6 +51,10 @@
 - ✅ Phase 5-2: タグフィルタリング
   - fileTagsCache によるリアルタイムフィルタリング
   - AND/OR モード対応
+- ✅ Phase 5-3: 検索機能
+  - ファイル名での部分一致検索
+  - デバウンス（300ms）
+  - タグフィルターとの組み合わせ対応
 
 ## Next Steps
 - [ ] Phase 5-3: 検索機能

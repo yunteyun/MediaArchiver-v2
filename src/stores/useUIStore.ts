@@ -9,6 +9,7 @@ interface UIState {
     lightboxFile: MediaFile | null;
     sortBy: 'name' | 'date' | 'size' | 'type';
     sortOrder: 'asc' | 'desc';
+    searchQuery: string;
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -16,6 +17,7 @@ interface UIState {
     closeLightbox: () => void;
     setSortBy: (sortBy: UIState['sortBy']) => void;
     setSortOrder: (order: UIState['sortOrder']) => void;
+    setSearchQuery: (query: string) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -26,6 +28,7 @@ export const useUIStore = create<UIState>((set) => ({
     lightboxFile: null,
     sortBy: 'name',
     sortOrder: 'asc',
+    searchQuery: '',
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -33,4 +36,6 @@ export const useUIStore = create<UIState>((set) => ({
     closeLightbox: () => set({ lightboxFile: null }),
     setSortBy: (sortBy) => set({ sortBy }),
     setSortOrder: (order) => set({ sortOrder: order }),
+    setSearchQuery: (query) => set({ searchQuery: query }),
 }));
+
