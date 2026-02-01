@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
+import { useTagStore } from '../stores/useTagStore';
 import { FileCard } from './FileCard';
 import { SortMenu } from './SortMenu';
 
@@ -12,13 +13,19 @@ export const FileGrid = React.memo(() => {
     const selectedIds = useFileStore((s) => s.selectedIds);
     const selectFile = useFileStore((s) => s.selectFile);
     const removeFile = useFileStore((s) => s.removeFile);
+    const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
     const sortBy = useUIStore((s) => s.sortBy);
     const sortOrder = useUIStore((s) => s.sortOrder);
 
-    // Sort files in component using useMemo
+    // Tag filter state
+    const selectedTagIds = useTagStore((s) => s.selectedTagIds);
+    const filterMode = useTagStore((s) => s.filterMode);
+
+    // Sort and filter files in component using useMemo
     const files = useMemo(() => {
-        return [...rawFiles].sort((a, b) => {
+        // First sort
+        const sorted = [...rawFiles].sort((a, b) => {
             let comparison = 0;
             switch (sortBy) {
                 case 'name':
@@ -36,7 +43,21 @@ export const FileGrid = React.memo(() => {
             }
             return sortOrder === 'asc' ? comparison : -comparison;
         });
-    }, [rawFiles, sortBy, sortOrder]);
+
+        // Then filter by tags
+        if (selectedTagIds.length === 0) {
+            return sorted;
+        }
+
+        return sorted.filter((file) => {
+            const fileTags = fileTagsCache.get(file.id) || [];
+            if (filterMode === 'OR') {
+                return selectedTagIds.some((tagId) => fileTags.includes(tagId));
+            } else {
+                return selectedTagIds.every((tagId) => fileTags.includes(tagId));
+            }
+        });
+    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache]);
 
     const parentRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = React.useState(1000);

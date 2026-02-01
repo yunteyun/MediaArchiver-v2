@@ -93,8 +93,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - `TagBadge.tsx`（タグバッジ表示）
     - `TagSelector.tsx`（タグ選択ドロップダウン）
     - `TagFilterPanel.tsx`（サイドバーフィルター）
+    - `TagManagerModal.tsx`（タグ/カテゴリ管理モーダル）
   - FileCard ホバー時タグ表示
   - LightBox タグ付け機能
+
+- **Phase 5-2: タグフィルタリング**
+  - `fileTagsCache` によるリアルタイムフィルタリング
+  - AND/OR モード対応
+  - タグ選択時に即座にファイルグリッドをフィルタリング
 
 ### Fixed
 - Preload script ESM→CJS ビルド問題

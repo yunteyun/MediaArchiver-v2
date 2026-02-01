@@ -3,11 +3,15 @@
  */
 
 import React, { useEffect } from 'react';
-import { Tag as TagIcon, Filter, X } from 'lucide-react';
+import { Tag as TagIcon, Filter, X, Settings } from 'lucide-react';
 import { useTagStore } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
 
-export const TagFilterPanel = React.memo(() => {
+interface TagFilterPanelProps {
+    onOpenManager?: () => void;
+}
+
+export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps) => {
     const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -43,15 +47,26 @@ export const TagFilterPanel = React.memo(() => {
                     <TagIcon size={16} />
                     <span>タグフィルター</span>
                 </div>
-                {hasFilters && (
-                    <button
-                        onClick={clearTagFilter}
-                        className="text-xs text-surface-500 hover:text-surface-300 flex items-center gap-1"
-                    >
-                        <X size={12} />
-                        クリア
-                    </button>
-                )}
+                <div className="flex items-center gap-1">
+                    {hasFilters && (
+                        <button
+                            onClick={clearTagFilter}
+                            className="text-xs text-surface-500 hover:text-surface-300 flex items-center gap-1"
+                        >
+                            <X size={12} />
+                            クリア
+                        </button>
+                    )}
+                    {onOpenManager && (
+                        <button
+                            onClick={onOpenManager}
+                            className="p-1 hover:bg-surface-700 rounded"
+                            title="タグ管理"
+                        >
+                            <Settings size={14} className="text-surface-400 hover:text-surface-200" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Filter Mode Toggle */}

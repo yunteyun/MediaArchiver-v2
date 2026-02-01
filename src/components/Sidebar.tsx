@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Folder, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
-import { TagFilterPanel } from './tags';
+import { TagFilterPanel, TagManagerModal } from './tags';
 import type { MediaFolder } from '../types/file';
 
 export const Sidebar = React.memo(() => {
@@ -14,6 +14,7 @@ export const Sidebar = React.memo(() => {
     const toggleSidebar = useUIStore((s) => s.toggleSidebar);
 
     const [folders, setFolders] = useState<MediaFolder[]>([]);
+    const [tagManagerOpen, setTagManagerOpen] = useState(false);
 
     const loadFolders = useCallback(async () => {
         try {
@@ -151,8 +152,13 @@ export const Sidebar = React.memo(() => {
                 )}
 
                 {/* Tag Filter Panel */}
-                {!sidebarCollapsed && <TagFilterPanel />}
+                {!sidebarCollapsed && (
+                    <TagFilterPanel onOpenManager={() => setTagManagerOpen(true)} />
+                )}
             </div>
+
+            {/* Tag Manager Modal */}
+            <TagManagerModal isOpen={tagManagerOpen} onClose={() => setTagManagerOpen(false)} />
         </aside>
     );
 });

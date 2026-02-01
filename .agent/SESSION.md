@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-01 09:47
+**Last Updated**: 2026-02-01 10:41
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -47,10 +47,12 @@
   - useTagStore.ts（Zustand）
   - TagBadge / TagSelector / TagFilterPanel コンポーネント
   - FileCard タグ表示 / LightBox タグ付け機能
+  - タグ管理モーダル（CRUD UI）
+- ✅ Phase 5-2: タグフィルタリング
+  - fileTagsCache によるリアルタイムフィルタリング
+  - AND/OR モード対応
 
 ## Next Steps
-- [ ] Phase 5-1 続き: タグ管理モーダル
-- [ ] Phase 5-2: タグフィルタリング機能
 - [ ] Phase 5-3: 検索機能
 - [ ] Phase 5-4: 設定画面
 
@@ -58,6 +60,8 @@
 - なし
 
 ## Important Context
-- v2はv1（c:\MediaArchiver）のリファクタリング版
+- v2はv1（c:\\MediaArchiver）のリファクタリング版
 - 状態管理: Zustand、仮想スクロール: TanStack Virtual
 - Phase 4 で v1 の archiveHandler を移植・改善完了
+- Phase 5 でタグ管理システムを新規実装
+

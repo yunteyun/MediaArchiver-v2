@@ -10,6 +10,7 @@ export const LightBox = React.memo(() => {
     const lightboxFile = useUIStore((s) => s.lightboxFile);
     const closeLightbox = useUIStore((s) => s.closeLightbox);
     const files = useFileStore((s) => s.files);
+    const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
 
@@ -227,11 +228,15 @@ export const LightBox = React.memo(() => {
                         selectedTagIds={fileTagIds}
                         onAdd={async (tagId) => {
                             await window.electronAPI.addTagToFile(lightboxFile.id, tagId);
-                            setFileTagIds([...fileTagIds, tagId]);
+                            const newTagIds = [...fileTagIds, tagId];
+                            setFileTagIds(newTagIds);
+                            updateFileTagCache(lightboxFile.id, newTagIds);
                         }}
                         onRemove={async (tagId) => {
                             await window.electronAPI.removeTagFromFile(lightboxFile.id, tagId);
-                            setFileTagIds(fileTagIds.filter(id => id !== tagId));
+                            const newTagIds = fileTagIds.filter(id => id !== tagId);
+                            setFileTagIds(newTagIds);
+                            updateFileTagCache(lightboxFile.id, newTagIds);
                         }}
                     />
                 </div>
