@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-01 21:26
+**Last Updated**: 2026-02-02 23:50
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -60,10 +60,32 @@
   - サムネイルサイズ変更
   - 動画音量設定
   - 設定の永続化
+- ✅ Phase 6: プロファイル機能
+  - プロファイル切り替え機能
+  - ProfileSwitcher / ProfileModal コンポーネント
+  - プロファイル別データベース管理
+- ✅ Phase 7-1: キーボードショートカット
+  - ファイル選択・ナビゲーション（矢印キー、Home/End）
+  - 複数選択（Ctrl/Shift）
+  - クイックルック（Space）
+  - 削除（Delete）
+- ✅ Phase 7-2: パフォーマンス最適化
+  - スキャン進捗表示（ScanProgressBar、統計、キャンセル機能）
+  - パフォーマンスモード設定（ホバーアニメーション無効化）
+  - 起動時自動スキャン設定
+  - 書庫サムネイル改善（タイムアウト、エラー判定、フォールバック）
+- ✅ Phase 7-3: アニメーション・マイクロインタラクション
+  - FileCard 選択時スケール/シャドウ効果
+  - ScanProgressBar スライドイン/バウンス/パルスアニメーション
+  - カスタムアニメーション定義（tailwind.config.js）
 
 ## Next Steps
-- [ ] Phase 6: プロファイル機能
-- [ ] サムネイルホバー動作の実装（scrub/play）
+- [ ] Phase 8: UI/UX改善
+  - タグ表示の改善
+  - ファイルカード表示のカスタマイズ
+  - フォルダビュー拡張（ドライブ別表示）
+- [ ] Phase 9: 統計・分析機能
+- [ ] Phase 10: プレビュー機能強化
 
 ## Known Issues
 - なし
@@ -73,4 +95,6 @@
 - 状態管理: Zustand、仮想スクロール: TanStack Virtual
 - Phase 4 で v1 の archiveHandler を移植・改善完了
 - Phase 5 でタグ管理システムを新規実装
+- Phase 6 でプロファイル機能実装
+- Phase 7 でキーボードショートカット、パフォーマンス最適化、アニメーション実装完了
 

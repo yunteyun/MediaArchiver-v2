@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
 
+export interface ScanProgress {
+    phase: 'counting' | 'scanning' | 'complete' | 'error';
+    current: number;
+    total: number;
+    currentFile?: string;
+    message?: string;
+    stats?: {
+        newCount: number;
+        updateCount: number;
+        skipCount: number;
+    };
+}
+
 interface UIState {
     sidebarWidth: number;
     sidebarCollapsed: boolean;
@@ -11,6 +24,7 @@ interface UIState {
     sortOrder: 'asc' | 'desc';
     searchQuery: string;
     settingsModalOpen: boolean;
+    scanProgress: ScanProgress | null;
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -22,6 +36,7 @@ interface UIState {
     setSearchQuery: (query: string) => void;
     openSettingsModal: () => void;
     closeSettingsModal: () => void;
+    setScanProgress: (progress: ScanProgress | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -34,6 +49,7 @@ export const useUIStore = create<UIState>((set) => ({
     sortOrder: 'asc',
     searchQuery: '',
     settingsModalOpen: false,
+    scanProgress: null,
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -45,5 +61,5 @@ export const useUIStore = create<UIState>((set) => ({
     setSearchQuery: (query) => set({ searchQuery: query }),
     openSettingsModal: () => set({ settingsModalOpen: true }),
     closeSettingsModal: () => set({ settingsModalOpen: false }),
+    setScanProgress: (progress) => set({ scanProgress: progress }),
 }));
-

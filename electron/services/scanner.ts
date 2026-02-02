@@ -13,7 +13,24 @@ export type ScanProgressCallback = (progress: {
     total: number;
     currentFile?: string;
     message?: string;
+    stats?: {
+        newCount: number;
+        updateCount: number;
+        skipCount: number;
+    };
 }) => void;
+
+// スキャンキャンセル用フラグ
+let scanCancelled = false;
+export function cancelScan() {
+    scanCancelled = true;
+}
+export function isScanCancelled() {
+    return scanCancelled;
+}
+
+// Throttle設定（ms）
+const PROGRESS_THROTTLE_MS = 50;
 
 // ファイル数をカウント (再帰)
 async function countFiles(dirPath: string): Promise<number> {
@@ -44,9 +61,15 @@ async function scanDirectoryInternal(
     dirPath: string,
     rootFolderId: string,
     onProgress: ScanProgressCallback | undefined,
-    state: { current: number; total: number }
+    state: {
+        current: number;
+        total: number;
+        lastProgressTime: number;
+        stats: { newCount: number; updateCount: number; skipCount: number };
+    }
 ) {
     if (!fs.existsSync(dirPath)) return;
+    if (scanCancelled) return;
 
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
 
@@ -66,7 +89,7 @@ async function scanDirectoryInternal(
 
                 if (type) {
                     state.current++;
-                    const stats = await fs.promises.stat(fullPath);
+                    const fileStats = await fs.promises.stat(fullPath);
 
                     const existing = db.findFileByPath(fullPath);
                     // Skip if size and mtime match AND thumbnail exists (if applicable)
@@ -83,16 +106,21 @@ async function scanDirectoryInternal(
                         : (!isMedia || hasThumbnail);
 
                     if (existing &&
-                        existing.size === stats.size &&
-                        existing.mtime_ms === Math.floor(stats.mtimeMs) &&
+                        existing.size === fileStats.size &&
+                        existing.mtime_ms === Math.floor(fileStats.mtimeMs) &&
                         isComplete
                     ) {
-                        if (onProgress) {
+                        state.stats.skipCount++;
+                        // Throttled progress update
+                        const now = Date.now();
+                        if (onProgress && (now - state.lastProgressTime > PROGRESS_THROTTLE_MS || state.current === state.total)) {
+                            state.lastProgressTime = now;
                             onProgress({
                                 phase: 'scanning',
                                 current: state.current,
                                 total: state.total,
-                                currentFile: entry.name
+                                currentFile: entry.name,
+                                stats: state.stats
                             });
                         }
                         continue;
@@ -148,13 +176,14 @@ async function scanDirectoryInternal(
                     }
 
                     // Insert or Update
+                    const isNew = !existing;
                     db.insertFile({
                         name: entry.name,
                         path: fullPath,
-                        size: stats.size,
+                        size: fileStats.size,
                         type: type,
-                        created_at: stats.birthtimeMs,
-                        mtime_ms: Math.floor(stats.mtimeMs),
+                        created_at: fileStats.birthtimeMs,
+                        mtime_ms: Math.floor(fileStats.mtimeMs),
                         root_folder_id: rootFolderId,
                         tags: existing?.tags || [],
                         duration: duration,
@@ -164,13 +193,24 @@ async function scanDirectoryInternal(
                         metadata: existing?.metadata
                     });
 
-                    if (onProgress) {
+                    // Update stats
+                    if (isNew) {
+                        state.stats.newCount++;
+                    } else {
+                        state.stats.updateCount++;
+                    }
+
+                    // Throttled progress update
+                    const nowAfter = Date.now();
+                    if (onProgress && (nowAfter - state.lastProgressTime > PROGRESS_THROTTLE_MS || state.current === state.total)) {
+                        state.lastProgressTime = nowAfter;
                         onProgress({
                             phase: 'scanning',
                             current: state.current,
                             total: state.total,
                             currentFile: entry.name,
-                            message: '登録完了'
+                            message: isNew ? '新規登録' : '更新',
+                            stats: state.stats
                         });
                     }
                 }
@@ -182,6 +222,9 @@ async function scanDirectoryInternal(
 }
 
 export async function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback) {
+    // キャンセルフラグをリセット
+    scanCancelled = false;
+
     try {
         if (onProgress) {
             onProgress({ phase: 'counting', current: 0, total: 0, message: 'ファイル数をカウント中...' });
@@ -193,7 +236,12 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             onProgress({ phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
         }
 
-        const state = { current: 0, total };
+        const state = {
+            current: 0,
+            total,
+            lastProgressTime: 0,
+            stats: { newCount: 0, updateCount: 0, skipCount: 0 }
+        };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, state);
 
         // Orphan check (simplified)
@@ -206,13 +254,28 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             }
         }
 
+        // キャンセルされた場合
+        if (scanCancelled) {
+            if (onProgress) {
+                onProgress({
+                    phase: 'complete',
+                    current: state.current,
+                    total,
+                    message: `キャンセル: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ`,
+                    stats: state.stats
+                });
+            }
+            return;
+        }
+
         if (onProgress) {
-            console.log(`Scan completed. Total: ${total}, Removed: ${removedCount}`);
+            console.log(`Scan completed. Total: ${total}, New: ${state.stats.newCount}, Update: ${state.stats.updateCount}, Skip: ${state.stats.skipCount}, Removed: ${removedCount}`);
             onProgress({
                 phase: 'complete',
                 current: total,
                 total,
-                message: `完了: ${total}件登録, ${removedCount}件削除`
+                message: `完了: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ, ${removedCount}件削除`,
+                stats: state.stats
             });
         }
 

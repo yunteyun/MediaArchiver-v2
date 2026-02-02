@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
 import { LightBox } from './components/LightBox';
 import { SettingsModal } from './components/SettingsModal';
 import { ProfileSwitcher } from './components/ProfileSwitcher';
 import { ProfileModal } from './components/ProfileModal';
+import { ScanProgressBar } from './components/ScanProgressBar';
 import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
+import { useUIStore } from './stores/useUIStore';
+import { useSettingsStore } from './stores/useSettingsStore';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -16,11 +19,38 @@ function App() {
     const setFiles = useFileStore((s) => s.setFiles);
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
+    const setScanProgress = useUIStore((s) => s.setScanProgress);
+
+    // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
+    const autoScanOnStartupRef = useRef(false);
+    useEffect(() => {
+        // 設定は永続化されているので、初回マウント時にstoreから読み取り
+        autoScanOnStartupRef.current = useSettingsStore.getState().autoScanOnStartup;
+    }, []);
 
     // 初回ロード：プロファイル一覧を取得
     useEffect(() => {
         loadProfiles();
     }, [loadProfiles]);
+
+    // 起動時自動スキャン（初回マウント時のみ）
+    useEffect(() => {
+        if (autoScanOnStartupRef.current) {
+            // 少し遅延を入れてUIが準備できてから実行
+            const timer = setTimeout(() => {
+                window.electronAPI.autoScan().catch(console.error);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, []);
+
+    // スキャン進捗イベントを監視
+    useEffect(() => {
+        const cleanup = window.electronAPI.onScanProgress((progress) => {
+            setScanProgress(progress);
+        });
+        return cleanup;
+    }, [setScanProgress]);
 
     // プロファイル切替イベントを監視
     useEffect(() => {
@@ -34,6 +64,15 @@ function App() {
         });
         return cleanup;
     }, [setFiles, setCurrentFolderId, clearTagFilter]);
+
+    // スキャンキャンセル
+    const handleCancelScan = useCallback(async () => {
+        try {
+            await window.electronAPI.cancelScan();
+        } catch (e) {
+            console.error('Failed to cancel scan:', e);
+        }
+    }, []);
 
     return (
         <div className="flex h-screen w-screen bg-surface-950 text-white overflow-hidden">
@@ -56,6 +95,7 @@ function App() {
                 isOpen={profileModalOpen}
                 onClose={() => setProfileModalOpen(false)}
             />
+            <ScanProgressBar onCancel={handleCancelScan} />
         </div>
     );
 }

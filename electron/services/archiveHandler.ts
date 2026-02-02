@@ -157,9 +157,24 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
  * 書庫ファイルからサムネイル用の最初の画像を抽出
  */
 export async function getArchiveThumbnail(filePath: string): Promise<string | null> {
+    const TIMEOUT_MS = 30000; // 30秒タイムアウト
+
     try {
-        const metadata = await getArchiveMetadata(filePath);
+        // ファイル存在確認
+        if (!fs.existsSync(filePath)) {
+            console.warn(`[ArchiveHandler] File not found: ${filePath}`);
+            return null;
+        }
+
+        const metadata = await Promise.race([
+            getArchiveMetadata(filePath),
+            new Promise<null>((_, reject) =>
+                setTimeout(() => reject(new Error('Metadata timeout')), TIMEOUT_MS)
+            )
+        ]);
+
         if (!metadata || !metadata.firstImageEntry) {
+            console.warn(`[ArchiveHandler] No images in archive: ${filePath}`);
             return null;
         }
 
@@ -168,10 +183,35 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         const outName = `${uuidv4()}${ext}`;
         const outPath = path.join(THUMBNAIL_DIR, outName);
 
-        // 7za で抽出（フラット展開）
-        await execFilePromise(SEVEN_ZA_PATH, [
-            'e', filePath, `-o${TEMP_DIR}`, entryName, '-y', '-sccUTF-8'
-        ]);
+        // 7za で抽出（フラット展開）with timeout
+        try {
+            await Promise.race([
+                execFilePromise(SEVEN_ZA_PATH, [
+                    'e', filePath, `-o${TEMP_DIR}`, entryName, '-y', '-sccUTF-8'
+                ]),
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Extraction timeout')), TIMEOUT_MS)
+                )
+            ]);
+        } catch (execError: any) {
+            // エラー種別判定
+            const errorMsg = execError?.stderr || execError?.message || String(execError);
+
+            if (errorMsg.includes('password') || errorMsg.includes('Wrong password')) {
+                console.warn(`[ArchiveHandler] Password protected: ${filePath}`);
+                return null;
+            }
+            if (errorMsg.includes('Cannot open') || errorMsg.includes('Unexpected end')) {
+                console.warn(`[ArchiveHandler] Corrupted archive: ${filePath}`);
+                return null;
+            }
+            if (errorMsg.includes('timeout')) {
+                console.warn(`[ArchiveHandler] Extraction timeout: ${filePath}`);
+                return null;
+            }
+
+            throw execError;
+        }
 
         // 抽出されたファイルをサムネイルディレクトリに移動
         const extractedBasename = path.basename(entryName);
@@ -182,9 +222,31 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             return outPath;
         }
 
+        // フォールバック: TEMP_DIRを検索
+        const tempFiles = fs.readdirSync(TEMP_DIR);
+        const imageFile = tempFiles.find(f => {
+            const fExt = path.extname(f).toLowerCase();
+            return IMAGE_EXTENSIONS.includes(fExt);
+        });
+
+        if (imageFile) {
+            const foundPath = path.join(TEMP_DIR, imageFile);
+            fs.renameSync(foundPath, outPath);
+            console.log(`[ArchiveHandler] Found image via fallback: ${imageFile}`);
+            return outPath;
+        }
+
+        console.warn(`[ArchiveHandler] Extracted file not found: ${extractedPath}`);
         return null;
-    } catch (error) {
-        console.error(`[ArchiveHandler] Failed to extract thumbnail: ${filePath}`, error);
+    } catch (error: any) {
+        // 詳細ログ
+        const errorDetail = {
+            filePath,
+            message: error?.message || String(error),
+            code: error?.code,
+            stderr: error?.stderr
+        };
+        console.error('[ArchiveHandler] Failed to extract thumbnail:', errorDetail);
         return null;
     }
 }

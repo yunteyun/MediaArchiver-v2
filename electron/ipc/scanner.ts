@@ -1,6 +1,6 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
 import { addFolder, deleteFolder, getFolders } from '../services/database';
-import { scanDirectory } from '../services/scanner';
+import { scanDirectory, cancelScan } from '../services/scanner';
 
 export function registerScannerHandlers() {
     // === Folder Operations ===
@@ -48,5 +48,31 @@ export function registerScannerHandlers() {
         });
 
         return; // Return immediately
+    });
+
+    // === Cancel Scan ===
+    ipcMain.handle('scanner:cancel', async () => {
+        cancelScan();
+        return;
+    });
+
+    // === Auto Scan (all folders) ===
+    ipcMain.handle('scanner:autoScan', async (event) => {
+        const folders = getFolders();
+        if (folders.length === 0) return;
+
+        for (const folder of folders) {
+            // 各フォルダをスキャン（非同期）
+            scanDirectory(folder.path, folder.id, (progress) => {
+                event.sender.send('scanner:progress', {
+                    ...progress,
+                    folderName: folder.name || folder.path.split(/[\\/]/).pop()
+                });
+            }).catch(err => {
+                console.error(`Auto scan error for ${folder.path}:`, err);
+            });
+        }
+
+        return;
     });
 }

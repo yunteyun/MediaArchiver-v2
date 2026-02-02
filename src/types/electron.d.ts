@@ -50,6 +50,8 @@ declare global {
 
             // Events
             onScanProgress: (callback: (progress: any) => void) => () => void;
+            cancelScan: () => Promise<void>;
+            autoScan: () => Promise<void>;
 
             // Context Menu
             showFolderContextMenu: (folderId: string, path: string) => Promise<void>;

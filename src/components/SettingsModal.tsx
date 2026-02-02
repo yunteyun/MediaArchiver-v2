@@ -17,6 +17,10 @@ export const SettingsModal = React.memo(() => {
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const setThumbnailAction = useSettingsStore((s) => s.setThumbnailAction);
+    const performanceMode = useSettingsStore((s) => s.performanceMode);
+    const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
+    const autoScanOnStartup = useSettingsStore((s) => s.autoScanOnStartup);
+    const setAutoScanOnStartup = useSettingsStore((s) => s.setAutoScanOnStartup);
 
     if (!isOpen) return null;
 
@@ -109,6 +113,46 @@ export const SettingsModal = React.memo(() => {
                                 <span className="text-surface-200">再生</span>
                             </label>
                         </div>
+                    </div>
+
+                    {/* Performance Mode */}
+                    <div>
+                        <label className="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span className="block text-sm font-medium text-surface-300">
+                                    パフォーマンスモード
+                                </span>
+                                <span className="block text-xs text-surface-500 mt-0.5">
+                                    ホバーアニメーションを無効化して軽くする
+                                </span>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={performanceMode}
+                                onChange={(e) => setPerformanceMode(e.target.checked)}
+                                className="w-5 h-5 accent-primary-500 rounded"
+                            />
+                        </label>
+                    </div>
+
+                    {/* Auto Scan on Startup */}
+                    <div>
+                        <label className="flex items-center justify-between cursor-pointer">
+                            <div>
+                                <span className="block text-sm font-medium text-surface-300">
+                                    起動時に自動スキャン
+                                </span>
+                                <span className="block text-xs text-surface-500 mt-0.5">
+                                    アプリ起動時に全フォルダをスキャン
+                                </span>
+                            </div>
+                            <input
+                                type="checkbox"
+                                checked={autoScanOnStartup}
+                                onChange={(e) => setAutoScanOnStartup(e.target.checked)}
+                                className="w-5 h-5 accent-primary-500 rounded"
+                            />
+                        </label>
                     </div>
                 </div>
 

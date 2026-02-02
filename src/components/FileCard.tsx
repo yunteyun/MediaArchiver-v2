@@ -21,6 +21,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const videoVolume = useSettingsStore((s) => s.videoVolume);
+    const performanceMode = useSettingsStore((s) => s.performanceMode);
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
@@ -64,6 +65,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // ★ onMouseEnter でプリロード開始
     const handleMouseEnter = useCallback(() => {
+        // パフォーマンスモードではホバーアニメーション無効
+        if (performanceMode) return;
+
         // 100ms後にホバー状態をアクティブに（素早い通過時は発火しない）
         hoverTimeoutRef.current = window.setTimeout(() => {
             setIsHovered(true);
@@ -87,7 +91,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 )).then(() => setPreloadState('ready'));
             }
         }, 100);
-    }, [thumbnailAction, file.type, previewFrames, preloadState]);
+    }, [thumbnailAction, file.type, previewFrames, preloadState, performanceMode]);
 
     const handleMouseLeave = useCallback(() => {
         if (hoverTimeoutRef.current) {
@@ -180,12 +184,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             onMouseMove={handleMouseMove}
             className={`
                 w-full h-full rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
-                transition-all duration-150
+                transition-all duration-200 ease-out
                 ${isSelected
-                    ? 'border-blue-500 ring-2 ring-blue-500/50'
+                    ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02]'
                     : isFocused
-                        ? 'border-amber-400 ring-2 ring-amber-400/50'
-                        : 'border-transparent hover:border-surface-600'}
+                        ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-400/20'
+                        : 'border-transparent hover:border-surface-500 hover:shadow-md hover:shadow-black/30'}
             `}
         >
             {/* Thumbnail Area */}

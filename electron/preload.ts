@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener('scanner:progress', subscription);
         };
     },
+    cancelScan: () => ipcRenderer.invoke('scanner:cancel'),
+    autoScan: () => ipcRenderer.invoke('scanner:autoScan'),
 
     // === Context Menu ===
     showFolderContextMenu: (folderId: string, path: string) =>
