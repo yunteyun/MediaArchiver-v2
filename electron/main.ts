@@ -2,7 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { initDB } from './services/database';
+import { dbManager } from './services/databaseManager';
 import { registerDatabaseHandlers } from './ipc/database';
 import { registerScannerHandlers } from './ipc/scanner';
 import { registerAppHandlers } from './ipc/app';
@@ -11,6 +11,7 @@ import { registerFolderHandlers } from './ipc/folder';
 import { registerFileHandlers } from './ipc/file';
 import { registerArchiveHandlers } from './ipc/archive';
 import { registerTagHandlers } from './ipc/tag';
+import { registerProfileHandlers } from './ipc/profile';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -55,8 +56,8 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
-    // Initialize Database
-    initDB();
+    // Initialize Database Manager (loads active profile)
+    dbManager.initialize();
 
     // Register IPC Handlers
     registerDatabaseHandlers();
@@ -67,6 +68,7 @@ app.whenReady().then(() => {
     registerFileHandlers();
     registerArchiveHandlers();
     registerTagHandlers();
+    registerProfileHandlers();
 
     createWindow();
 

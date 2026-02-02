@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import * as db from './database';
-import { generateThumbnail, getVideoDuration } from './thumbnail';
+import { generateThumbnail, getVideoDuration, generatePreviewFrames } from './thumbnail';
 
 const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.wmv'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
@@ -70,18 +70,22 @@ async function scanDirectoryInternal(
 
                     const existing = db.findFileByPath(fullPath);
                     // Skip if size and mtime match AND thumbnail exists (if applicable)
-                    // If thumbnail is missing, we should fall through to generation logic
-                    // However, we need to be careful not to re-scan fully if only thumbnail is missing?
-                    // Actually, falling through is fine, the insertFile will act as update.
+                    // For videos, also require preview_frames to exist
 
                     // All media types need thumbnails (video, image, archive)
                     const isMedia = type === 'video' || type === 'image' || type === 'archive';
                     const hasThumbnail = !!existing?.thumbnail_path;
+                    const hasPreviewFrames = !!existing?.preview_frames;
+
+                    // Videos require both thumbnail and preview frames
+                    const isComplete = type === 'video'
+                        ? (hasThumbnail && hasPreviewFrames)
+                        : (!isMedia || hasThumbnail);
 
                     if (existing &&
                         existing.size === stats.size &&
                         existing.mtime_ms === Math.floor(stats.mtimeMs) &&
-                        (!isMedia || hasThumbnail)
+                        isComplete
                     ) {
                         if (onProgress) {
                             onProgress({
@@ -124,6 +128,25 @@ async function scanDirectoryInternal(
                         }
                     }
 
+                    // Generate preview frames if missing (video only, for scrub mode)
+                    let previewFrames = existing?.preview_frames;
+                    if (type === 'video' && !previewFrames) {
+                        try {
+                            if (onProgress) {
+                                onProgress({
+                                    phase: 'scanning',
+                                    current: state.current,
+                                    total: state.total,
+                                    currentFile: entry.name,
+                                    message: `プレビューフレーム生成中...`
+                                });
+                            }
+                            previewFrames = await generatePreviewFrames(fullPath, 10) || undefined;
+                        } catch (e) {
+                            console.error('Preview frames generation failed:', e);
+                        }
+                    }
+
                     // Insert or Update
                     db.insertFile({
                         name: entry.name,
@@ -136,7 +159,7 @@ async function scanDirectoryInternal(
                         tags: existing?.tags || [],
                         duration: duration,
                         thumbnail_path: thumbnailPath,
-                        preview_frames: existing?.preview_frames,
+                        preview_frames: previewFrames,
                         content_hash: existing?.content_hash,
                         metadata: existing?.metadata
                     });

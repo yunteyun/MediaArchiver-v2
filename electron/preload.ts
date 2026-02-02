@@ -94,4 +94,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFileTagIds: (fileId: string) => ipcRenderer.invoke('tag:getFileTagIds', { fileId }),
     getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') =>
         ipcRenderer.invoke('tag:getFilesByTags', { tagIds, mode }),
+
+    // === Profile ===
+    getProfiles: () => ipcRenderer.invoke('profile:list'),
+    getProfile: (id: string) => ipcRenderer.invoke('profile:get', id),
+    createProfile: (name: string) => ipcRenderer.invoke('profile:create', name),
+    updateProfile: (id: string, updates: { name?: string }) =>
+        ipcRenderer.invoke('profile:update', { id, ...updates }),
+    deleteProfile: (id: string) => ipcRenderer.invoke('profile:delete', id),
+    getActiveProfileId: () => ipcRenderer.invoke('profile:getActive'),
+    switchProfile: (profileId: string) => ipcRenderer.invoke('profile:switch', profileId),
+
+    onProfileSwitched: (callback: (profileId: string) => void) => {
+        const handler = (_event: any, profileId: string) => callback(profileId);
+        ipcRenderer.on('profile:switched', handler);
+        return () => ipcRenderer.removeListener('profile:switched', handler);
+    },
 });

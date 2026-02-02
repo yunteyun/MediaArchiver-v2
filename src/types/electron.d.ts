@@ -18,6 +18,15 @@ interface TagCategory {
     createdAt: number;
 }
 
+// Profile type
+interface Profile {
+    id: string;
+    name: string;
+    dbFilename: string;
+    createdAt: number;
+    updatedAt: number;
+}
+
 declare global {
     interface Window {
         electronAPI: {
@@ -78,6 +87,16 @@ declare global {
             getFileTags: (fileId: string) => Promise<TagDefinition[]>;
             getFileTagIds: (fileId: string) => Promise<string[]>;
             getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') => Promise<string[]>;
+
+            // Profile
+            getProfiles: () => Promise<Profile[]>;
+            getProfile: (id: string) => Promise<Profile | undefined>;
+            createProfile: (name: string) => Promise<Profile>;
+            updateProfile: (id: string, updates: { name?: string }) => Promise<void>;
+            deleteProfile: (id: string) => Promise<boolean>;
+            getActiveProfileId: () => Promise<string>;
+            switchProfile: (profileId: string) => Promise<{ success: boolean }>;
+            onProfileSwitched: (callback: (profileId: string) => void) => () => void;
         };
     }
 }

@@ -1,17 +1,61 @@
+import { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
 import { LightBox } from './components/LightBox';
 import { SettingsModal } from './components/SettingsModal';
+import { ProfileSwitcher } from './components/ProfileSwitcher';
+import { ProfileModal } from './components/ProfileModal';
+import { useProfileStore } from './stores/useProfileStore';
+import { useFileStore } from './stores/useFileStore';
+import { useTagStore } from './stores/useTagStore';
 
 function App() {
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const loadProfiles = useProfileStore((s) => s.loadProfiles);
+    const setFiles = useFileStore((s) => s.setFiles);
+    const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
+    const clearTagFilter = useTagStore((s) => s.clearTagFilter);
+
+    // 初回ロード：プロファイル一覧を取得
+    useEffect(() => {
+        loadProfiles();
+    }, [loadProfiles]);
+
+    // プロファイル切替イベントを監視
+    useEffect(() => {
+        const cleanup = window.electronAPI.onProfileSwitched((_profileId) => {
+            // プロファイルが切り替わったらファイル表示をクリア
+            setFiles([]);
+            setCurrentFolderId(null);
+            clearTagFilter();
+            // コンポーネントを再マウント
+            setRefreshKey((k) => k + 1);
+        });
+        return cleanup;
+    }, [setFiles, setCurrentFolderId, clearTagFilter]);
+
     return (
         <div className="flex h-screen w-screen bg-surface-950 text-white overflow-hidden">
-            <Sidebar />
+            <Sidebar key={`sidebar-${refreshKey}`} />
             <main className="flex-1 flex flex-col h-full overflow-hidden">
-                <FileGrid />
+                {/* Header with Profile Switcher */}
+                <header className="h-12 flex items-center justify-between px-4 border-b border-surface-800 bg-surface-900 flex-shrink-0">
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-lg font-semibold text-surface-100">MediaArchiver</h1>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <ProfileSwitcher onOpenManageModal={() => setProfileModalOpen(true)} />
+                    </div>
+                </header>
+                <FileGrid key={`grid-${refreshKey}`} />
             </main>
             <LightBox />
             <SettingsModal />
+            <ProfileModal
+                isOpen={profileModalOpen}
+                onClose={() => setProfileModalOpen(false)}
+            />
         </div>
     );
 }

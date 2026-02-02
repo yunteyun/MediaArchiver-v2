@@ -68,6 +68,88 @@ function generateVideoThumbnail(videoPath: string, filename: string, outputPath:
     });
 }
 
+/**
+ * 動画からプレビューフレームを生成（スクラブ用）
+ * @param videoPath 動画ファイルパス
+ * @param frameCount 生成するフレーム数（デフォルト: 10）
+ * @returns カンマ区切りのフレームパス文字列
+ */
+export async function generatePreviewFrames(videoPath: string, frameCount: number = 10): Promise<string | null> {
+    const videoId = uuidv4();
+    const frameDir = path.join(THUMBNAIL_DIR, 'frames', videoId);
+
+    try {
+        // フレームディレクトリ作成
+        if (!fs.existsSync(frameDir)) {
+            fs.mkdirSync(frameDir, { recursive: true });
+        }
+
+        // 動画の長さを取得
+        const durationSec = await new Promise<number>((resolve) => {
+            ffmpeg.ffprobe(videoPath, (err, metadata) => {
+                if (err || !metadata.format.duration) {
+                    resolve(0);
+                } else {
+                    resolve(metadata.format.duration);
+                }
+            });
+        });
+
+        if (durationSec < 1) {
+            return null;
+        }
+
+        // タイムマークを生成（5%〜95%の範囲で均等に）
+        const timemarks: string[] = [];
+        for (let i = 0; i < frameCount; i++) {
+            const percentage = 5 + (i * 90 / (frameCount - 1));
+            timemarks.push(`${percentage.toFixed(1)}%`);
+        }
+
+        return new Promise((resolve) => {
+            ffmpeg(videoPath)
+                .screenshots({
+                    count: frameCount,
+                    folder: frameDir,
+                    filename: 'frame_%02d.png',
+                    size: '320x?',
+                    timemarks: timemarks
+                })
+                .on('end', () => {
+                    // ディレクトリの内容を確認
+                    const filesInDir = fs.readdirSync(frameDir);
+
+                    // 生成されたフレームのパスを収集（想定形式: frame_01.png）
+                    const framePaths: string[] = [];
+                    for (let i = 1; i <= frameCount; i++) {
+                        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.png`);
+                        if (fs.existsSync(framePath)) {
+                            framePaths.push(framePath);
+                        }
+                    }
+
+                    if (framePaths.length > 0) {
+                        resolve(framePaths.join(','));
+                    } else {
+                        // フォールバック: ディレクトリ内の全PNGを使用
+                        const allPngs = filesInDir
+                            .filter(f => f.endsWith('.png'))
+                            .sort()
+                            .map(f => path.join(frameDir, f));
+                        resolve(allPngs.length > 0 ? allPngs.join(',') : null);
+                    }
+                })
+                .on('error', (err) => {
+                    console.error('Preview frames generation error:', err);
+                    resolve(null);
+                });
+        });
+    } catch (e) {
+        console.error('[PreviewFrames] Exception:', e);
+        return null;
+    }
+}
+
 async function generateImageThumbnail(imagePath: string, outputPath: string): Promise<string | null> {
     try {
         await sharp(imagePath)

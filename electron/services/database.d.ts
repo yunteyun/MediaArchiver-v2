@@ -1,3 +1,9 @@
+/**
+ * Database Operations - メディアファイル/フォルダのCRUD操作
+ *
+ * 注意: このファイルは dbManager.getDb() 経由でDBにアクセスします。
+ * 必ず dbManager.initialize() が呼ばれた後に使用してください。
+ */
 export interface MediaFile {
     id: string;
     name: string;
@@ -20,7 +26,6 @@ export interface MediaFolder {
     path: string;
     created_at: number;
 }
-export declare function initDB(): void;
 export declare function getFiles(rootFolderId?: string): MediaFile[];
 export declare function findFileByPath(filePath: string): MediaFile | undefined;
 export declare function findFileByHash(hash: string): MediaFile | undefined;
@@ -38,3 +43,4 @@ export declare function getFolders(): MediaFolder[];
 export declare function getFolderByPath(folderPath: string): MediaFolder | undefined;
 export declare function addFolder(folderPath: string, name?: string): MediaFolder;
 export declare function deleteFolder(id: string): void;
+export declare function initDB(): void;

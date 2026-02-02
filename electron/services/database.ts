@@ -1,11 +1,13 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import { app } from 'electron';
-import { v4 as uuidv4 } from 'uuid';
+/**
+ * Database Operations - メディアファイル/フォルダのCRUD操作
+ * 
+ * 注意: このファイルは dbManager.getDb() 経由でDBにアクセスします。
+ * 必ず dbManager.initialize() が呼ばれた後に使用してください。
+ */
 
-const dbPath = path.join(app.getPath('userData'), 'media.db');
-const db = new Database(dbPath);
-// db.pragma('journal_mode = WAL'); // Enhance performance
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { dbManager } from './databaseManager';
 
 // --- Types (Mirrors src/types/file.ts for usage in Electron) ---
 export interface MediaFile {
@@ -32,165 +34,15 @@ export interface MediaFolder {
     created_at: number;
 }
 
-// --- Database Initialization ---
-
-export function initDB() {
-    db.exec(`
-    CREATE TABLE IF NOT EXISTS schema_version (
-      version INTEGER PRIMARY KEY,
-      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      description TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS files (
-      id TEXT PRIMARY KEY,
-      path TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      size INTEGER,
-      type TEXT CHECK(type IN ('video', 'image', 'archive')),
-      created_at INTEGER,
-      duration TEXT,
-      thumbnail_path TEXT,
-      preview_frames TEXT,
-      root_folder_id TEXT,
-      content_hash TEXT,
-      metadata TEXT,
-      mtime_ms INTEGER DEFAULT 0
-    );
-
-    -- Legacy tags table (file_id, tag string) - kept for backward compatibility
-    CREATE TABLE IF NOT EXISTS tags (
-      file_id TEXT,
-      tag TEXT,
-      PRIMARY KEY (file_id, tag),
-      FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-
-    -- New: Tag Categories
-    CREATE TABLE IF NOT EXISTS tag_categories (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
-      color TEXT DEFAULT 'gray',
-      sort_order INTEGER DEFAULT 0,
-      created_at INTEGER
-    );
-
-    -- New: Tag Definitions (master table)
-    CREATE TABLE IF NOT EXISTS tag_definitions (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
-      color TEXT DEFAULT 'gray',
-      category_id TEXT,
-      sort_order INTEGER DEFAULT 0,
-      created_at INTEGER,
-      FOREIGN KEY(category_id) REFERENCES tag_categories(id) ON DELETE SET NULL
-    );
-
-    -- New: File-Tag relationship (normalized)
-    CREATE TABLE IF NOT EXISTS file_tags (
-      file_id TEXT NOT NULL,
-      tag_id TEXT NOT NULL,
-      added_at INTEGER,
-      PRIMARY KEY (file_id, tag_id),
-      FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE,
-      FOREIGN KEY(tag_id) REFERENCES tag_definitions(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS folders (
-      id TEXT PRIMARY KEY,
-      path TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      created_at INTEGER,
-      auto_scan INTEGER DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS profiles (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      watched_folder_ids TEXT DEFAULT '[]',
-      tag_categories TEXT DEFAULT '[]',
-      created_at INTEGER,
-      updated_at INTEGER
-    );
-
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_files_path ON files(path);
-    CREATE INDEX IF NOT EXISTS idx_files_hash ON files(content_hash);
-    CREATE INDEX IF NOT EXISTS idx_tag_definitions_category ON tag_definitions(category_id);
-    CREATE INDEX IF NOT EXISTS idx_tag_definitions_name ON tag_definitions(name);
-    CREATE INDEX IF NOT EXISTS idx_tag_categories_name ON tag_categories(name);
-    CREATE INDEX IF NOT EXISTS idx_file_tags_tag ON file_tags(tag_id);
-    CREATE INDEX IF NOT EXISTS idx_file_tags_file ON file_tags(file_id);
-  `);
-
-    // Initialize schema version if not set
-    const versionCheck = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number } | undefined;
-    if (!versionCheck) {
-        db.prepare('INSERT INTO schema_version (version, description) VALUES (?, ?)').run(1, 'Initial v2 schema');
-    }
-
-    // Create default profile if none exists
-    const profileCount = (db.prepare('SELECT COUNT(*) as count FROM profiles').get() as { count: number }).count;
-    if (profileCount === 0) {
-        initDefaultProfile();
-    }
+// --- Helper ---
+function getDb() {
+    return dbManager.getDb();
 }
-
-function initDefaultProfile() {
-    const defaultTagCategories = JSON.stringify([
-        {
-            id: 'cat_genre',
-            name: 'ジャンル',
-            color: 'blue',
-            tags: [
-                { id: 'tag_anime', name: 'アニメ' },
-                { id: 'tag_game', name: 'ゲーム' },
-                { id: 'tag_live', name: '実写' },
-                { id: 'tag_landscape', name: '風景' },
-                { id: 'tag_illust', name: 'イラスト' }
-            ]
-        },
-        {
-            id: 'cat_rating',
-            name: '評価',
-            color: 'amber',
-            tags: [
-                { id: 'tag_star5', name: '★5(最高)' },
-                { id: 'tag_star4', name: '★4(良)' },
-                { id: 'tag_star3', name: '★3(普通)' },
-                { id: 'tag_important', name: '重要' }
-            ]
-        },
-        {
-            id: 'cat_status',
-            name: '状態',
-            color: 'emerald',
-            tags: [
-                { id: 'tag_unchecked', name: '未チェック' },
-                { id: 'tag_checked', name: '確認済' },
-                { id: 'tag_pending', name: '編集待ち' }
-            ]
-        },
-    ]);
-    const now = Date.now();
-    db.prepare('INSERT INTO profiles (id, name, watched_folder_ids, tag_categories, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-        .run('default', 'Default', '[]', defaultTagCategories, now, now);
-
-    db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)')
-        .run('active_profile_id', 'default');
-}
-
-// --- File Operations ---
-
-// ... (existing helper functions if any)
 
 // --- File Operations ---
 
 export function getFiles(rootFolderId?: string): MediaFile[] {
+    const db = getDb();
     let query = 'SELECT * FROM files';
     let params: any[] = [];
 
@@ -209,9 +61,7 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
 }
 
 export function findFileByPath(filePath: string): MediaFile | undefined {
-    // スキャン時のパス照合はケース依存しない方が安全だが、システムによる
-    // Windows環境なのでnocase比較が良いが、とりあえずexact matchで検索
-    // v1では特になし。
+    const db = getDb();
     const file = db.prepare('SELECT * FROM files WHERE path = ?').get(filePath) as any;
     if (file) {
         return { ...file, tags: getTags(file.id) };
@@ -220,6 +70,7 @@ export function findFileByPath(filePath: string): MediaFile | undefined {
 }
 
 export function findFileByHash(hash: string): MediaFile | undefined {
+    const db = getDb();
     const file = db.prepare('SELECT * FROM files WHERE content_hash = ?').get(hash) as any;
     if (file) {
         return { ...file, tags: getTags(file.id) };
@@ -228,15 +79,11 @@ export function findFileByHash(hash: string): MediaFile | undefined {
 }
 
 export function insertFile(fileData: Partial<MediaFile> & { name: string; path: string; root_folder_id: string }): MediaFile {
+    const db = getDb();
     const existing = findFileByPath(fileData.path);
     const now = Date.now();
 
     if (existing) {
-        // Update existing
-        // updateFileLocation等で移動扱いの場合はIDが変わる実装もあったが、
-        // ここでは単純なメタデータ更新とする（ハッシュ変更なしの場合）
-        // スキャナーロジックでハッシュ比較等は行われる
-
         const stmt = db.prepare(`
             UPDATE files SET
                 size = COALESCE(?, size),
@@ -264,7 +111,6 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
 
         return { ...existing, ...fileData };
     } else {
-        // Insert new
         const id = uuidv4();
         const stmt = db.prepare(`
             INSERT INTO files (
@@ -300,29 +146,34 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
 }
 
 export function deleteFile(id: string) {
+    const db = getDb();
     db.prepare('DELETE FROM files WHERE id = ?').run(id);
 }
 
 export function updateFileLocation(id: string, newPath: string, newRootFolderId: string) {
+    const db = getDb();
     db.prepare('UPDATE files SET path = ?, root_folder_id = ? WHERE id = ?')
         .run(newPath, newRootFolderId, id);
 }
 
 export function updateFileHash(id: string, hash: string) {
+    const db = getDb();
     db.prepare('UPDATE files SET content_hash = ? WHERE id = ?').run(hash, id);
 }
 
 export function updateFileMetadata(id: string, metadataJson: string) {
+    const db = getDb();
     db.prepare('UPDATE files SET metadata = ? WHERE id = ?').run(metadataJson, id);
 }
 
 export function updateFileAllPaths(id: string, pathVal: string, thumbPath: string, previewFrames: string) {
+    const db = getDb();
     db.prepare('UPDATE files SET path = ?, thumbnail_path = ?, preview_frames = ? WHERE id = ?')
         .run(pathVal, thumbPath, previewFrames, id);
 }
 
-
 function getTags(fileId: string): string[] {
+    const db = getDb();
     const rows = db.prepare('SELECT tag FROM tags WHERE file_id = ?').all(fileId) as { tag: string }[];
     return rows.map(r => r.tag);
 }
@@ -330,14 +181,17 @@ function getTags(fileId: string): string[] {
 // --- Folder Operations ---
 
 export function getFolders(): MediaFolder[] {
+    const db = getDb();
     return db.prepare('SELECT * FROM folders ORDER BY created_at DESC').all() as MediaFolder[];
 }
 
 export function getFolderByPath(folderPath: string): MediaFolder | undefined {
+    const db = getDb();
     return db.prepare('SELECT * FROM folders WHERE path = ?').get(folderPath) as MediaFolder | undefined;
 }
 
 export function addFolder(folderPath: string, name?: string): MediaFolder {
+    const db = getDb();
     const existing = getFolderByPath(folderPath);
     if (existing) return existing;
 
@@ -352,10 +206,14 @@ export function addFolder(folderPath: string, name?: string): MediaFolder {
 }
 
 export function deleteFolder(id: string) {
-    // Cascade delete files (though we might want to keep them if they are just unlinked? No, usually delete files record too)
-    // Manually delete files or rely on application logic?
-    // Let's delete files associated with this root folder
+    const db = getDb();
     db.prepare('DELETE FROM files WHERE root_folder_id = ?').run(id);
     db.prepare('DELETE FROM folders WHERE id = ?').run(id);
 }
 
+// --- Legacy initDB (no longer needed, kept for compatibility) ---
+export function initDB() {
+    // Now handled by dbManager.initialize()
+    // This function is kept for backward compatibility but does nothing
+    console.log('initDB() called - now handled by dbManager.initialize()');
+}
