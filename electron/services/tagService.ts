@@ -1,14 +1,14 @@
 /**
  * Tag Service - タグ管理サービス
+ * 
+ * プロファイルDB（dbManager）を使用してタグを管理
  */
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
+import { dbManager } from './databaseManager';
 
-const dbPath = path.join(app.getPath('userData'), 'media.db');
-const db = new Database(dbPath);
+// 毎回現在のプロファイルDBを取得（dbは実際には関数呼び出し）
+const db = () => dbManager.getDb();
 
 // --- Types ---
 
@@ -32,7 +32,7 @@ export interface TagDefinition {
 // --- Category Operations ---
 
 export function getAllCategories(): TagCategory[] {
-    const rows = db.prepare(`
+    const rows = db().prepare(`
         SELECT id, name, color, sort_order, created_at 
         FROM tag_categories 
         ORDER BY sort_order ASC, name ASC
@@ -50,9 +50,9 @@ export function getAllCategories(): TagCategory[] {
 export function createCategory(name: string, color: string = 'gray'): TagCategory {
     const id = uuidv4();
     const now = Date.now();
-    const maxOrder = (db.prepare('SELECT MAX(sort_order) as max FROM tag_categories').get() as any)?.max || 0;
+    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM tag_categories').get() as any)?.max || 0;
 
-    db.prepare(`
+    db().prepare(`
         INSERT INTO tag_categories (id, name, color, sort_order, created_at)
         VALUES (?, ?, ?, ?, ?)
     `).run(id, name, color, maxOrder + 1, now);
@@ -61,14 +61,14 @@ export function createCategory(name: string, color: string = 'gray'): TagCategor
 }
 
 export function updateCategory(id: string, updates: { name?: string; color?: string; sortOrder?: number }): TagCategory | null {
-    const existing = db.prepare('SELECT * FROM tag_categories WHERE id = ?').get(id) as any;
+    const existing = db().prepare('SELECT * FROM tag_categories WHERE id = ?').get(id) as any;
     if (!existing) return null;
 
     const newName = updates.name ?? existing.name;
     const newColor = updates.color ?? existing.color;
     const newSortOrder = updates.sortOrder ?? existing.sort_order;
 
-    db.prepare(`
+    db().prepare(`
         UPDATE tag_categories SET name = ?, color = ?, sort_order = ? WHERE id = ?
     `).run(newName, newColor, newSortOrder, id);
 
@@ -76,13 +76,13 @@ export function updateCategory(id: string, updates: { name?: string; color?: str
 }
 
 export function deleteCategory(id: string): void {
-    db.prepare('DELETE FROM tag_categories WHERE id = ?').run(id);
+    db().prepare('DELETE FROM tag_categories WHERE id = ?').run(id);
 }
 
 // --- Tag Definition Operations ---
 
 export function getAllTags(): TagDefinition[] {
-    const rows = db.prepare(`
+    const rows = db().prepare(`
         SELECT id, name, color, category_id, sort_order, created_at 
         FROM tag_definitions 
         ORDER BY sort_order ASC, name ASC
@@ -101,9 +101,9 @@ export function getAllTags(): TagDefinition[] {
 export function createTag(name: string, color: string = 'gray', categoryId: string | null = null): TagDefinition {
     const id = uuidv4();
     const now = Date.now();
-    const maxOrder = (db.prepare('SELECT MAX(sort_order) as max FROM tag_definitions').get() as any)?.max || 0;
+    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM tag_definitions').get() as any)?.max || 0;
 
-    db.prepare(`
+    db().prepare(`
         INSERT INTO tag_definitions (id, name, color, category_id, sort_order, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
     `).run(id, name, color, categoryId, maxOrder + 1, now);
@@ -112,7 +112,7 @@ export function createTag(name: string, color: string = 'gray', categoryId: stri
 }
 
 export function updateTag(id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number }): TagDefinition | null {
-    const existing = db.prepare('SELECT * FROM tag_definitions WHERE id = ?').get(id) as any;
+    const existing = db().prepare('SELECT * FROM tag_definitions WHERE id = ?').get(id) as any;
     if (!existing) return null;
 
     const newName = updates.name ?? existing.name;
@@ -120,7 +120,7 @@ export function updateTag(id: string, updates: { name?: string; color?: string; 
     const newCategoryId = updates.categoryId !== undefined ? updates.categoryId : existing.category_id;
     const newSortOrder = updates.sortOrder ?? existing.sort_order;
 
-    db.prepare(`
+    db().prepare(`
         UPDATE tag_definitions SET name = ?, color = ?, category_id = ?, sort_order = ? WHERE id = ?
     `).run(newName, newColor, newCategoryId, newSortOrder, id);
 
@@ -128,11 +128,11 @@ export function updateTag(id: string, updates: { name?: string; color?: string; 
 }
 
 export function deleteTag(id: string): void {
-    db.prepare('DELETE FROM tag_definitions WHERE id = ?').run(id);
+    db().prepare('DELETE FROM tag_definitions WHERE id = ?').run(id);
 }
 
 export function getTagByName(name: string): TagDefinition | null {
-    const row = db.prepare('SELECT * FROM tag_definitions WHERE name = ?').get(name) as any;
+    const row = db().prepare('SELECT * FROM tag_definitions WHERE name = ?').get(name) as any;
     if (!row) return null;
 
     return {
@@ -149,18 +149,18 @@ export function getTagByName(name: string): TagDefinition | null {
 
 export function addTagToFile(fileId: string, tagId: string): void {
     const now = Date.now();
-    db.prepare(`
+    db().prepare(`
         INSERT OR IGNORE INTO file_tags (file_id, tag_id, added_at)
         VALUES (?, ?, ?)
     `).run(fileId, tagId, now);
 }
 
 export function removeTagFromFile(fileId: string, tagId: string): void {
-    db.prepare('DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?').run(fileId, tagId);
+    db().prepare('DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?').run(fileId, tagId);
 }
 
 export function getFileTags(fileId: string): TagDefinition[] {
-    const rows = db.prepare(`
+    const rows = db().prepare(`
         SELECT td.id, td.name, td.color, td.category_id, td.sort_order, td.created_at
         FROM file_tags ft
         JOIN tag_definitions td ON ft.tag_id = td.id
@@ -179,7 +179,7 @@ export function getFileTags(fileId: string): TagDefinition[] {
 }
 
 export function getFileTagIds(fileId: string): string[] {
-    const rows = db.prepare('SELECT tag_id FROM file_tags WHERE file_id = ?').all(fileId) as { tag_id: string }[];
+    const rows = db().prepare('SELECT tag_id FROM file_tags WHERE file_id = ?').all(fileId) as { tag_id: string }[];
     return rows.map(r => r.tag_id);
 }
 
@@ -188,14 +188,14 @@ export function getFilesByTagIds(tagIds: string[], mode: 'AND' | 'OR' = 'OR'): s
 
     if (mode === 'OR') {
         const placeholders = tagIds.map(() => '?').join(', ');
-        const rows = db.prepare(`
+        const rows = db().prepare(`
             SELECT DISTINCT file_id FROM file_tags WHERE tag_id IN (${placeholders})
         `).all(...tagIds) as { file_id: string }[];
         return rows.map(r => r.file_id);
     } else {
         // AND mode: files that have ALL specified tags
         const placeholders = tagIds.map(() => '?').join(', ');
-        const rows = db.prepare(`
+        const rows = db().prepare(`
             SELECT file_id FROM file_tags 
             WHERE tag_id IN (${placeholders})
             GROUP BY file_id
@@ -209,7 +209,7 @@ export function getFilesByTagIds(tagIds: string[], mode: 'AND' | 'OR' = 'OR'): s
 
 export function initDefaultTags(): void {
     // Check if we already have tags
-    const tagCount = (db.prepare('SELECT COUNT(*) as count FROM tag_definitions').get() as { count: number }).count;
+    const tagCount = (db().prepare('SELECT COUNT(*) as count FROM tag_definitions').get() as { count: number }).count;
     if (tagCount > 0) return;
 
     const now = Date.now();
@@ -223,7 +223,7 @@ export function initDefaultTags(): void {
 
     for (let i = 0; i < categories.length; i++) {
         const cat = categories[i];
-        db.prepare(`
+        db().prepare(`
             INSERT OR IGNORE INTO tag_categories (id, name, color, sort_order, created_at)
             VALUES (?, ?, ?, ?, ?)
         `).run(cat!.id, cat!.name, cat!.color, i, now);
@@ -247,7 +247,7 @@ export function initDefaultTags(): void {
 
     for (let i = 0; i < tags.length; i++) {
         const tag = tags[i];
-        db.prepare(`
+        db().prepare(`
             INSERT OR IGNORE INTO tag_definitions (id, name, color, category_id, sort_order, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
         `).run(uuidv4(), tag!.name, 'gray', tag!.categoryId, i, now);

@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
 import { Header } from './SortMenu';
 
@@ -11,13 +12,18 @@ const CARD_GAP = 8;
 export const FileGrid = React.memo(() => {
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
+    const focusedId = useFileStore((s) => s.focusedId);
     const selectFile = useFileStore((s) => s.selectFile);
+    const selectAll = useFileStore((s) => s.selectAll);
+    const clearSelection = useFileStore((s) => s.clearSelection);
     const removeFile = useFileStore((s) => s.removeFile);
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
     const sortBy = useUIStore((s) => s.sortBy);
     const sortOrder = useUIStore((s) => s.sortOrder);
     const searchQuery = useUIStore((s) => s.searchQuery);
+    const openLightbox = useUIStore((s) => s.openLightbox);
+    const openSettingsModal = useUIStore((s) => s.openSettingsModal);
 
     // Tag filter state
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -106,6 +112,78 @@ export const FileGrid = React.memo(() => {
         overscan: 3,
     });
 
+    // 現在のフォーカスインデックスを計算
+    const focusedIndex = useMemo(() => {
+        if (!focusedId) return -1;
+        return files.findIndex((f) => f.id === focusedId);
+    }, [focusedId, files]);
+
+    // フォーカス変更時にスクロール追従
+    useEffect(() => {
+        if (focusedIndex >= 0 && rowVirtualizer) {
+            const rowIndex = Math.floor(focusedIndex / columns);
+            rowVirtualizer.scrollToIndex(rowIndex, { align: 'auto' });
+        }
+    }, [focusedIndex, columns, rowVirtualizer]);
+
+    // キーボードショートカットハンドラ
+    const moveSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
+        if (files.length === 0) return;
+
+        let currentIndex = focusedIndex >= 0 ? focusedIndex : -1;
+        let newIndex = currentIndex;
+
+        switch (direction) {
+            case 'up':
+                newIndex = Math.max(0, currentIndex - columns);
+                break;
+            case 'down':
+                newIndex = Math.min(files.length - 1, currentIndex + columns);
+                break;
+            case 'left':
+                newIndex = Math.max(0, currentIndex - 1);
+                break;
+            case 'right':
+                newIndex = Math.min(files.length - 1, currentIndex + 1);
+                break;
+        }
+
+        // 初回は最初のファイルを選択
+        if (currentIndex === -1) {
+            newIndex = 0;
+        }
+
+        const targetFile = files[newIndex];
+        if (targetFile) {
+            selectFile(targetFile.id); // 選択 & フォーカス
+        }
+    }, [files, focusedIndex, columns, selectFile]);
+
+    const openFocusedFile = useCallback(() => {
+        const file = focusedIndex >= 0 ? files[focusedIndex] : null;
+        if (file) {
+            openLightbox(file);
+        }
+    }, [focusedIndex, files, openLightbox]);
+
+    // キーボードショートカット登録
+    useKeyboardShortcuts({
+        onArrowUp: () => moveSelection('up'),
+        onArrowDown: () => moveSelection('down'),
+        onArrowLeft: () => moveSelection('left'),
+        onArrowRight: () => moveSelection('right'),
+        onEnter: openFocusedFile,
+        onSpace: openFocusedFile,
+        onEscape: clearSelection,
+        onCtrlA: selectAll,
+        onCtrlF: () => {
+            // Header内の検索フィールドにフォーカス（後で実装）
+            const searchInput = document.querySelector('[data-search-input]') as HTMLInputElement;
+            searchInput?.focus();
+        },
+        onCtrlComma: openSettingsModal,
+    });
+
     const handleSelect = useCallback((id: string, multi: boolean) => {
         selectFile(id, multi);
     }, [selectFile]);
@@ -168,6 +246,7 @@ export const FileGrid = React.memo(() => {
                                         <FileCard
                                             file={file}
                                             isSelected={selectedIds.has(file.id)}
+                                            isFocused={focusedId === file.id && !selectedIds.has(file.id)}
                                             onSelect={handleSelect}
                                         />
                                     </div>

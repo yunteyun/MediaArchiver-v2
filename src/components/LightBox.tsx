@@ -25,6 +25,7 @@ export const LightBox = React.memo(() => {
     const [fileTagIds, setFileTagIds] = useState<string[]>([]);
     const loadTags = useTagStore((s) => s.loadTags);
     const loadCategories = useTagStore((s) => s.loadCategories);
+    const tags = useTagStore((s) => s.tags);
 
     const currentIndex = files.findIndex(f => f.id === lightboxFile?.id);
 
@@ -42,6 +43,37 @@ export const LightBox = React.memo(() => {
         }
     }, [currentIndex, files]);
 
+    // クイックタグ付け（1-9キー）
+    const handleQuickTag = useCallback(async (digit: number) => {
+        if (!lightboxFile || digit < 1 || digit > 9) return;
+
+        const tagIndex = digit - 1;
+        if (tagIndex >= tags.length) {
+            return;
+        }
+
+        const targetTag = tags[tagIndex];
+        if (!targetTag) return;
+
+        const isTagged = fileTagIds.includes(targetTag.id);
+
+        try {
+            if (isTagged) {
+                await window.electronAPI.removeTagFromFile(lightboxFile.id, targetTag.id);
+                const newTagIds = fileTagIds.filter(id => id !== targetTag.id);
+                setFileTagIds(newTagIds);
+                updateFileTagCache(lightboxFile.id, newTagIds);
+            } else {
+                await window.electronAPI.addTagToFile(lightboxFile.id, targetTag.id);
+                const newTagIds = [...fileTagIds, targetTag.id];
+                setFileTagIds(newTagIds);
+                updateFileTagCache(lightboxFile.id, newTagIds);
+            }
+        } catch (err) {
+            console.error('Quick tag failed:', err);
+        }
+    }, [lightboxFile, tags, fileTagIds, updateFileTagCache]);
+
     useEffect(() => {
         if (!lightboxFile) return;
 
@@ -55,11 +87,16 @@ export const LightBox = React.memo(() => {
             }
             if (e.key === 'ArrowLeft') goToPrevious();
             if (e.key === 'ArrowRight') goToNext();
+
+            // 数字キーでクイックタグ
+            if (e.key >= '1' && e.key <= '9') {
+                handleQuickTag(parseInt(e.key, 10));
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [lightboxFile, closeLightbox, goToPrevious, goToNext, selectedArchiveImage]);
+    }, [lightboxFile, closeLightbox, goToPrevious, goToNext, selectedArchiveImage, handleQuickTag]);
 
     // Set initial volume when video loads
     useEffect(() => {

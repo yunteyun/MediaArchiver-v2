@@ -39,9 +39,10 @@ export const SearchBar = React.memo(() => {
             />
             <input
                 type="text"
-                placeholder="ファイル名で検索..."
+                placeholder="ファイル名で検索... (Ctrl+F)"
                 value={localValue}
                 onChange={(e) => setLocalValue(e.target.value)}
+                data-search-input
                 className="w-full pl-9 pr-8 py-1.5 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500 placeholder-surface-500"
             />
             {localValue && (

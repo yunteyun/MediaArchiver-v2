@@ -115,12 +115,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 動画再生時の音量設定
   - サムネイルホバー動作設定（scrub/play）
   - ヘッダーに設定ボタン追加
+
+- **Phase 6: プロファイル機能**
+  - プロファイルごとのDB分離（`databaseManager.ts`）
+    - メタDB（`profiles.db`）でプロファイル一覧管理
+    - プロファイルごとのDB（`media_xxx.db`）
+  - プロファイル管理UI（`ProfileModal.tsx`）
+    - プロファイル作成・削除・切り替え
+    - アクティブプロファイル表示
+  - サムネイルホバー時のプレビュー機能
+    - スクラブモード（マウス位置でフレーム切り替え）
+    - 再生モード（自動ループ再生）
+  - プレビューフレーム生成（`generatePreviewFrames`）
+    - 動画から均等分散で9フレーム抽出
+    - フレーム命名の柔軟な対応
+
+- **Phase 7-1: キーボードショートカット**
+  - グローバルショートカットフック（`useKeyboardShortcuts.ts`）
+  - グリッド操作
+    - 矢印キーでファイル選択・移動
+    - スクロール追従（仮想スクロール連携）
+    - Space/Enterでプレビュー表示
+    - Ctrl+Aで全選択、Escapeで選択解除
+  - グローバルショートカット
+    - Ctrl+Fで検索バーフォーカス
+    - Ctrl+,で設定モーダル
+  - LightBoxクイックタグ（1-9キーでタグ付け/解除）
+  - フォーカスインジケータ（amber枠）
+  - 入力フォームガード（INPUT/TEXTAREA内では無効化）
+
 ### Fixed
 - Preload script ESM→CJS ビルド問題
 - thumbnail_path / thumbnailPath 命名不一致によるサムネイル非表示問題
 - 既存ファイルのサムネイル再生成スキップ問題
 - scanner.ts の isMedia 判定に archive タイプが含まれていなかった問題
 - tsconfig.node.json の composite モード設定問題（noEmit → emitDeclarationOnly）
+- `tagService.ts` がプロファイルDBではなく古い `media.db` を参照していた問題（FOREIGN KEY制約エラー）
+  - `dbManager.getDb()` を使用してプロファイルごとのDBを正しく参照するように修正
 
 
 ---

@@ -1,5 +1,7 @@
 /**
  * Tag Service - タグ管理サービス
+ *
+ * プロファイルDB（dbManager）を使用してタグを管理
  */
 export interface TagCategory {
     id: string;

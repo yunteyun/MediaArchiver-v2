@@ -6,6 +6,7 @@ import { useTagStore } from './useTagStore';
 interface FileState {
     files: MediaFile[];
     selectedIds: Set<string>;
+    focusedId: string | null;
     currentFolderId: string | null;
     // ファイルごとのタグIDをキャッシュ
     fileTagsCache: Map<string, string[]>;
@@ -13,6 +14,8 @@ interface FileState {
     setFiles: (files: MediaFile[]) => void;
     setCurrentFolderId: (id: string | null) => void;
     selectFile: (id: string, multi?: boolean) => void;
+    setFocusedId: (id: string | null) => void;
+    selectAll: () => void;
     clearSelection: () => void;
     getSortedFiles: () => MediaFile[];
     getFilteredFiles: () => MediaFile[];
@@ -25,11 +28,12 @@ interface FileState {
 export const useFileStore = create<FileState>((set, get) => ({
     files: [],
     selectedIds: new Set(),
+    focusedId: null,
     currentFolderId: null,
     fileTagsCache: new Map(),
 
     setFiles: (files) => {
-        set({ files });
+        set({ files, focusedId: null });
         // ファイルが更新されたらタグキャッシュをリロード
         get().loadFileTagsCache();
     },
@@ -43,10 +47,17 @@ export const useFileStore = create<FileState>((set, get) => ({
             } else {
                 newSelected.add(id);
             }
-            return { selectedIds: newSelected };
+            return { selectedIds: newSelected, focusedId: id };
         }),
 
-    clearSelection: () => set({ selectedIds: new Set() }),
+    setFocusedId: (id) => set({ focusedId: id }),
+
+    selectAll: () =>
+        set((state) => ({
+            selectedIds: new Set(state.files.map((f) => f.id)),
+        })),
+
+    clearSelection: () => set({ selectedIds: new Set(), focusedId: null }),
 
     getSortedFiles: () => {
         const { sortBy, sortOrder } = useUIStore.getState();

@@ -9,10 +9,11 @@ import { TagBadge } from './tags';
 interface FileCardProps {
     file: MediaFile;
     isSelected: boolean;
+    isFocused?: boolean;
     onSelect: (id: string, multi: boolean) => void;
 }
 
-export const FileCard = React.memo(({ file, isSelected, onSelect }: FileCardProps) => {
+export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
     const Icon = file.type === 'video' ? Play
         : file.type === 'image' ? ImageIcon
             : file.type === 'archive' ? Archive
@@ -182,7 +183,9 @@ export const FileCard = React.memo(({ file, isSelected, onSelect }: FileCardProp
                 transition-all duration-150
                 ${isSelected
                     ? 'border-blue-500 ring-2 ring-blue-500/50'
-                    : 'border-transparent hover:border-surface-600'}
+                    : isFocused
+                        ? 'border-amber-400 ring-2 ring-amber-400/50'
+                        : 'border-transparent hover:border-surface-600'}
             `}
         >
             {/* Thumbnail Area */}
