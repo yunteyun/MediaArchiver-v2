@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+(次のリリースに向けた変更はここに記載)
+
+---
+
+## [0.9.8] - 2026-02-02
+
 ### Added
 - **Phase 1: プロジェクト基盤構築**
   - Zustand ストア (useFileStore, useUIStore, useSettingsStore)
