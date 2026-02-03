@@ -3,6 +3,7 @@ import path from 'path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dbManager } from './services/databaseManager';
+import { logger } from './services/logger';
 import { registerDatabaseHandlers } from './ipc/database';
 import { registerScannerHandlers } from './ipc/scanner';
 import { registerAppHandlers } from './ipc/app';
@@ -56,8 +57,11 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
+    logger.info('MediaArchiver starting...');
+
     // Initialize Database Manager (loads active profile)
     dbManager.initialize();
+    logger.info('Database initialized');
 
     // Register IPC Handlers
     registerDatabaseHandlers();
@@ -69,8 +73,10 @@ app.whenReady().then(() => {
     registerArchiveHandlers();
     registerTagHandlers();
     registerProfileHandlers();
+    logger.info('IPC handlers registered');
 
     createWindow();
+    logger.info('Main window created');
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -80,15 +86,17 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+    logger.info('All windows closed');
     if (process.platform !== 'darwin') {
         app.quit();
     }
 });
 
 process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
+    logger.error('Uncaught Exception:', error);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+

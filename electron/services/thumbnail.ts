@@ -5,6 +5,9 @@ import fs from 'fs';
 import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { isArchive, getArchiveThumbnail } from './archiveHandler';
+import { logger } from './logger';
+
+const log = logger.scope('Thumbnail');
 
 // Setup paths
 const THUMBNAIL_DIR = path.join(app.getPath('userData'), 'thumbnails');
@@ -42,8 +45,12 @@ export async function generateThumbnail(filePath: string): Promise<string | null
         if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) {
             return generateImageThumbnail(filePath, outputPath);
         }
+        // Audio files - アルバムアート抽出を試みる
+        if (['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'].includes(ext)) {
+            return generateAudioThumbnail(filePath, outputPath);
+        }
     } catch (e) {
-        console.error(`Failed to generate thumbnail for ${filePath}:`, e);
+        log.error(`Failed to generate thumbnail for ${filePath}:`, e);
     }
     return null;
 }
@@ -62,9 +69,30 @@ function generateVideoThumbnail(videoPath: string, filename: string, outputPath:
                 resolve(outputPath);
             })
             .on('error', (err) => {
-                console.error('Error generating video thumbnail:', err);
+                log.error('Error generating video thumbnail:', err);
                 resolve(null);
             });
+    });
+}
+
+/**
+ * 音声ファイルからアルバムアートを抽出
+ * アルバムアートがない場合はnullを返す
+ */
+function generateAudioThumbnail(audioPath: string, outputPath: string): Promise<string | null> {
+    return new Promise((resolve) => {
+        // FFmpegでアルバムアート（埋め込み画像）を抽出
+        ffmpeg(audioPath)
+            .outputOptions(['-an', '-vcodec', 'copy'])
+            .output(outputPath)
+            .on('end', () => {
+                resolve(outputPath);
+            })
+            .on('error', () => {
+                // アルバムアートがない場合はエラーになる - 正常動作
+                resolve(null);
+            })
+            .run();
     });
 }
 
@@ -140,12 +168,12 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                     }
                 })
                 .on('error', (err) => {
-                    console.error('Preview frames generation error:', err);
+                    log.error('Preview frames generation error:', err);
                     resolve(null);
                 });
         });
     } catch (e) {
-        console.error('[PreviewFrames] Exception:', e);
+        log.error('PreviewFrames exception:', e);
         return null;
     }
 }
@@ -157,7 +185,7 @@ async function generateImageThumbnail(imagePath: string, outputPath: string): Pr
             .toFile(outputPath);
         return outputPath;
     } catch (err) {
-        console.error('Error generating image thumbnail:', err);
+        log.error('Error generating image thumbnail:', err);
         return null;
     }
 }

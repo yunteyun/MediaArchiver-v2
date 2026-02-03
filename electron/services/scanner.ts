@@ -1,11 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 import * as db from './database';
+import { dbManager } from './databaseManager';
+import { logger } from './logger';
 import { generateThumbnail, getVideoDuration, generatePreviewFrames } from './thumbnail';
+
+const log = logger.scope('Scanner');
 
 const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.wmv'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
 const ARCHIVE_EXTENSIONS = ['.zip', '.cbz', '.rar', '.cbr', '.7z'];
+const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
 
 export type ScanProgressCallback = (progress: {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
@@ -32,6 +37,28 @@ export function isScanCancelled() {
 // Throttle設定（ms）
 const PROGRESS_THROTTLE_MS = 50;
 
+// バッチトランザクションサイズ
+const TRANSACTION_BATCH_SIZE = 100;
+
+// 保留中のDB書き込み操作
+interface PendingWrite {
+    fileData: Parameters<typeof db.insertFile>[0];
+}
+
+// バッチコミット関数
+function commitBatch(pendingWrites: PendingWrite[]) {
+    if (pendingWrites.length === 0) return;
+
+    const database = dbManager.getDb();
+    const transaction = database.transaction(() => {
+        pendingWrites.forEach(pw => {
+            db.insertFile(pw.fileData);
+        });
+    });
+
+    transaction();
+}
+
 // ファイル数をカウント (再帰)
 async function countFiles(dirPath: string): Promise<number> {
     if (!fs.existsSync(dirPath)) return 0;
@@ -45,8 +72,8 @@ async function countFiles(dirPath: string): Promise<number> {
                 count += await countFiles(fullPath);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
-                if (VIDEO_EXTENSIONS.includes(ext) || IMAGE_EXTENSIONS.includes(ext) || ARCHIVE_EXTENSIONS.includes(ext)) {
-                    count++;
+                if (VIDEO_EXTENSIONS.includes(ext) || IMAGE_EXTENSIONS.includes(ext) || ARCHIVE_EXTENSIONS.includes(ext) || AUDIO_EXTENSIONS.includes(ext)) {
+                    count++;;
                 }
             }
         }
@@ -66,6 +93,7 @@ async function scanDirectoryInternal(
         total: number;
         lastProgressTime: number;
         stats: { newCount: number; updateCount: number; skipCount: number };
+        pendingWrites: PendingWrite[];
     }
 ) {
     if (!fs.existsSync(dirPath)) return;
@@ -81,11 +109,12 @@ async function scanDirectoryInternal(
                 await scanDirectoryInternal(fullPath, rootFolderId, onProgress, state);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
-                let type: 'video' | 'image' | 'archive' | null = null;
+                let type: 'video' | 'image' | 'archive' | 'audio' | null = null;
 
                 if (VIDEO_EXTENSIONS.includes(ext)) type = 'video';
                 else if (IMAGE_EXTENSIONS.includes(ext)) type = 'image';
                 else if (ARCHIVE_EXTENSIONS.includes(ext)) type = 'archive';
+                else if (AUDIO_EXTENSIONS.includes(ext)) type = 'audio';
 
                 if (type) {
                     state.current++;
@@ -95,8 +124,8 @@ async function scanDirectoryInternal(
                     // Skip if size and mtime match AND thumbnail exists (if applicable)
                     // For videos, also require preview_frames to exist
 
-                    // All media types need thumbnails (video, image, archive)
-                    const isMedia = type === 'video' || type === 'image' || type === 'archive';
+                    // All media types need thumbnails (video, image, archive, audio)
+                    const isMedia = type === 'video' || type === 'image' || type === 'archive' || type === 'audio';
                     const hasThumbnail = !!existing?.thumbnail_path;
                     const hasPreviewFrames = !!existing?.preview_frames;
 
@@ -142,17 +171,17 @@ async function scanDirectoryInternal(
                             const generated = await generateThumbnail(fullPath);
                             if (generated) thumbnailPath = generated;
                         } catch (e) {
-                            console.error('Thumbnail generation failed:', e);
+                            log.error('Thumbnail generation failed:', e);
                         }
                     }
 
-                    // Generate duration if missing (video only)
+                    // Generate duration if missing (video and audio)
                     let duration = existing?.duration;
-                    if (type === 'video' && !duration) {
+                    if ((type === 'video' || type === 'audio') && !duration) {
                         try {
                             duration = await getVideoDuration(fullPath);
                         } catch (e) {
-                            console.error('Duration extraction failed:', e);
+                            log.error('Duration extraction failed:', e);
                         }
                     }
 
@@ -171,13 +200,13 @@ async function scanDirectoryInternal(
                             }
                             previewFrames = await generatePreviewFrames(fullPath, 10) || undefined;
                         } catch (e) {
-                            console.error('Preview frames generation failed:', e);
+                            log.error('Preview frames generation failed:', e);
                         }
                     }
 
-                    // Insert or Update
+                    // Insert or Update - バッチに追加
                     const isNew = !existing;
-                    db.insertFile({
+                    const fileData = {
                         name: entry.name,
                         path: fullPath,
                         size: fileStats.size,
@@ -191,7 +220,15 @@ async function scanDirectoryInternal(
                         preview_frames: previewFrames,
                         content_hash: existing?.content_hash,
                         metadata: existing?.metadata
-                    });
+                    };
+
+                    state.pendingWrites.push({ fileData });
+
+                    // バッチサイズに達したらコミット
+                    if (state.pendingWrites.length >= TRANSACTION_BATCH_SIZE) {
+                        commitBatch(state.pendingWrites);
+                        state.pendingWrites = [];
+                    }
 
                     // Update stats
                     if (isNew) {
@@ -216,7 +253,7 @@ async function scanDirectoryInternal(
                 }
             }
         } catch (err) {
-            console.error(`Failed to scan entry ${entry.name}:`, err);
+            log.error(`Failed to scan entry ${entry.name}:`, err);
         }
     }
 }
@@ -240,9 +277,16 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             current: 0,
             total,
             lastProgressTime: 0,
-            stats: { newCount: 0, updateCount: 0, skipCount: 0 }
+            stats: { newCount: 0, updateCount: 0, skipCount: 0 },
+            pendingWrites: [] as PendingWrite[]
         };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, state);
+
+        // 残りのバッチをコミット
+        if (state.pendingWrites.length > 0) {
+            commitBatch(state.pendingWrites);
+            state.pendingWrites = [];
+        }
 
         // Orphan check (simplified)
         const registeredFiles = db.getFiles(rootFolderId);

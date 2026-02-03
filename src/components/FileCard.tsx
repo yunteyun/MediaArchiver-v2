@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Play, FileText, Image as ImageIcon, Archive, Loader } from 'lucide-react';
+import { Play, FileText, Image as ImageIcon, Archive, Loader, Music } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -17,7 +17,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const Icon = file.type === 'video' ? Play
         : file.type === 'image' ? ImageIcon
             : file.type === 'archive' ? Archive
-                : FileText;
+                : file.type === 'audio' ? Music
+                    : FileText;
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const videoVolume = useSettingsStore((s) => s.videoVolume);

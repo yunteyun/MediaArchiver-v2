@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === App ===
     openExternal: (path: string) => ipcRenderer.invoke('app:openExternal', path),
     showInExplorer: (path: string) => ipcRenderer.invoke('app:showInExplorer', path),
+    getLogs: (lines?: number) => ipcRenderer.invoke('app:getLogs', lines),
+    openLogFolder: () => ipcRenderer.invoke('app:openLogFolder'),
+
+    // === File Operations ===
+    updateFileNotes: (fileId: string, notes: string) =>
+        ipcRenderer.invoke('file:updateNotes', { fileId, notes }),
 
     // === Dialog ===
     selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
@@ -69,6 +75,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getArchivePreviewFrames: (path: string, limit?: number) =>
         ipcRenderer.invoke('archive:getPreviewFrames', { path, limit }),
     cleanArchiveTemp: () => ipcRenderer.invoke('archive:cleanTemp'),
+    getArchiveAudioFiles: (archivePath: string) =>
+        ipcRenderer.invoke('archive:getAudioFiles', archivePath),
+    extractArchiveAudioFile: (archivePath: string, entryName: string) =>
+        ipcRenderer.invoke('archive:extractAudioFile', { archivePath, entryName }),
 
     // === Tags ===
     // Categories

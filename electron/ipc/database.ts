@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { getFiles } from '../services/database';
+import { getFiles, updateFileNotes } from '../services/database';
 
 export function registerDatabaseHandlers() {
     ipcMain.handle('db:getFiles', async (_event, folderId?: string) => {
@@ -20,8 +20,20 @@ export function registerDatabaseHandlers() {
             contentHash: f.content_hash,
             metadata: f.metadata,
             mtimeMs: f.mtime_ms,
+            notes: f.notes || '',
         }));
 
         return mappedFiles;
     });
+
+    ipcMain.handle('file:updateNotes', async (_event, { fileId, notes }: { fileId: string; notes: string }) => {
+        try {
+            updateFileNotes(fileId, notes);
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to update notes:', e);
+            return { success: false };
+        }
+    });
 }
+

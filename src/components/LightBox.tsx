@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Loader2, Archive } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Loader2, Archive, Check, FileText, Music } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -18,6 +18,10 @@ export const LightBox = React.memo(() => {
 
     // Archive preview state
     const [archivePreviewFrames, setArchivePreviewFrames] = useState<string[]>([]);
+    const [archiveAudioFiles, setArchiveAudioFiles] = useState<string[]>([]);
+    const [currentArchiveAudioPath, setCurrentArchiveAudioPath] = useState<string | null>(null);
+    const [currentAudioIndex, setCurrentAudioIndex] = useState<number>(-1);
+    const [autoPlayEnabled, setAutoPlayEnabled] = useState(true);
     const [archiveLoading, setArchiveLoading] = useState(false);
     const [selectedArchiveImage, setSelectedArchiveImage] = useState<string | null>(null);
 
@@ -26,6 +30,11 @@ export const LightBox = React.memo(() => {
     const loadTags = useTagStore((s) => s.loadTags);
     const loadCategories = useTagStore((s) => s.loadCategories);
     const tags = useTagStore((s) => s.tags);
+
+    // Memo state
+    const [notes, setNotes] = useState('');
+    const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const currentIndex = files.findIndex(f => f.id === lightboxFile?.id);
 
@@ -74,10 +83,48 @@ export const LightBox = React.memo(() => {
         }
     }, [lightboxFile, tags, fileTagIds, updateFileTagCache]);
 
+    // メモ保存（debounce）
+    const saveNotes = useCallback(async (value: string) => {
+        if (!lightboxFile) return;
+        setNotesSaveStatus('saving');
+        try {
+            await window.electronAPI.updateFileNotes(lightboxFile.id, value);
+            setNotesSaveStatus('saved');
+            setTimeout(() => setNotesSaveStatus('idle'), 2000);
+        } catch (err) {
+            console.error('Failed to save notes:', err);
+            setNotesSaveStatus('idle');
+        }
+    }, [lightboxFile]);
+
+    const handleNotesChange = useCallback((value: string) => {
+        setNotes(value);
+        // debounce: 1秒後に保存
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+            saveNotes(value);
+        }, 1000);
+    }, [saveNotes]);
+
+    // フォーカス外れたら即保存
+    const handleNotesBlur = useCallback(() => {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        if (lightboxFile) {
+            saveNotes(notes);
+        }
+    }, [lightboxFile, notes, saveNotes]);
+
     useEffect(() => {
         if (!lightboxFile) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
+            // テキストエリアにフォーカスがある場合は無視
+            if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
+
             if (e.key === 'Escape') {
                 if (selectedArchiveImage) {
                     setSelectedArchiveImage(null);
@@ -105,30 +152,39 @@ export const LightBox = React.memo(() => {
         }
     }, [lightboxFile, videoVolume]);
 
-    // Load archive preview frames
+    // Load archive preview frames and audio files
     useEffect(() => {
         if (lightboxFile?.type === 'archive') {
             setArchiveLoading(true);
             setArchivePreviewFrames([]);
+            setArchiveAudioFiles([]);
             setSelectedArchiveImage(null);
+            setCurrentArchiveAudioPath(null);
 
-            window.electronAPI.getArchivePreviewFrames(lightboxFile.path, 12)
-                .then((frames) => {
+            // 画像プレビューと音声ファイルリストを並行取得
+            Promise.all([
+                window.electronAPI.getArchivePreviewFrames(lightboxFile.path, 12),
+                window.electronAPI.getArchiveAudioFiles(lightboxFile.path)
+            ])
+                .then(([frames, audioFiles]) => {
                     setArchivePreviewFrames(frames);
+                    setArchiveAudioFiles(audioFiles);
                 })
                 .catch((err) => {
-                    console.error('Failed to get archive preview frames:', err);
+                    console.error('Failed to get archive contents:', err);
                 })
                 .finally(() => {
                     setArchiveLoading(false);
                 });
         } else {
             setArchivePreviewFrames([]);
+            setArchiveAudioFiles([]);
             setSelectedArchiveImage(null);
+            setCurrentArchiveAudioPath(null);
         }
     }, [lightboxFile]);
 
-    // Load file tags when lightbox opens
+    // Load file tags and notes when lightbox opens
     useEffect(() => {
         if (lightboxFile) {
             loadTags();
@@ -136,10 +192,23 @@ export const LightBox = React.memo(() => {
             window.electronAPI.getFileTagIds(lightboxFile.id)
                 .then(setFileTagIds)
                 .catch(console.error);
+            // メモを読み込み
+            setNotes(lightboxFile.notes || '');
+            setNotesSaveStatus('idle');
         } else {
             setFileTagIds([]);
+            setNotes('');
         }
     }, [lightboxFile, loadTags, loadCategories]);
+
+    // クリーンアップ
+    useEffect(() => {
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleVolumeChange = () => {
         if (videoRef.current) {
@@ -204,7 +273,7 @@ export const LightBox = React.memo(() => {
                         className="max-w-full max-h-full object-contain"
                     />
                 ) : lightboxFile.type === 'archive' ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center p-4">
                         {/* Selected image full view */}
                         {selectedArchiveImage ? (
                             <img
@@ -218,29 +287,140 @@ export const LightBox = React.memo(() => {
                                 <Loader2 className="animate-spin" size={48} />
                                 <p>書庫を読み込み中...</p>
                             </div>
-                        ) : archivePreviewFrames.length > 0 ? (
-                            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-[80vh] overflow-auto p-4">
-                                {archivePreviewFrames.map((frame, index) => (
-                                    <div
-                                        key={index}
-                                        className="aspect-square bg-surface-800 rounded overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
-                                        onClick={() => setSelectedArchiveImage(frame)}
-                                    >
-                                        <img
-                                            src={`file://${frame}`}
-                                            alt={`Page ${index + 1}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
                         ) : (
-                            <div className="flex flex-col items-center gap-4 text-white">
-                                <Archive size={64} className="text-surface-500" />
-                                <p className="text-xl">プレビューを取得できませんでした</p>
-                                <p className="text-surface-400">ダブルクリックで外部アプリケーションで開きます</p>
+                            /* コンテンツエリア: 画像と音声を横並び */
+                            <div className="flex gap-6 max-w-6xl w-full max-h-[80vh]">
+                                {/* 左側: 画像グリッド */}
+                                {archivePreviewFrames.length > 0 ? (
+                                    <div className="flex-1 min-w-0">
+                                        <div className="grid grid-cols-3 gap-2 max-h-[75vh] overflow-auto p-2">
+                                            {archivePreviewFrames.map((frame, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="aspect-square bg-surface-800 rounded overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
+                                                    onClick={() => setSelectedArchiveImage(frame)}
+                                                >
+                                                    <img
+                                                        src={`file://${frame}`}
+                                                        alt={`Page ${index + 1}`}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : archiveAudioFiles.length > 0 ? (
+                                    /* 音声のみの場合: ダミーアルバムアート */
+                                    <div className="w-48 h-48 flex-shrink-0 bg-gradient-to-br from-surface-700 to-surface-900 rounded-xl flex items-center justify-center shadow-xl">
+                                        <Music size={72} className="text-primary-400" />
+                                    </div>
+                                ) : null}
+
+                                {/* 右側: 音声ファイルリスト */}
+                                {archiveAudioFiles.length > 0 && (
+                                    <div className="flex-1 min-w-96">
+                                        <div className="bg-surface-900/80 rounded-lg p-6 h-full flex flex-col">
+                                            <p className="text-white text-lg mb-4 font-medium flex items-center gap-3">
+                                                <Music size={24} />
+                                                音声ファイル ({archiveAudioFiles.length})
+                                            </p>
+                                            <div className="flex-1 overflow-y-auto max-h-[60vh]">
+                                                {archiveAudioFiles.map((audioEntry, index) => (
+                                                    <button
+                                                        key={index}
+                                                        className={`w-full text-left px-4 py-3 text-base rounded-lg flex items-center gap-3 transition-colors mb-1 ${currentAudioIndex === index
+                                                            ? 'bg-primary-600 text-white'
+                                                            : 'text-surface-200 hover:bg-surface-700'
+                                                            }`}
+                                                        onClick={async () => {
+                                                            const extractedPath = await window.electronAPI.extractArchiveAudioFile(
+                                                                lightboxFile.path,
+                                                                audioEntry
+                                                            );
+                                                            if (extractedPath) {
+                                                                setCurrentArchiveAudioPath(extractedPath);
+                                                                setCurrentAudioIndex(index);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Music size={18} className={`flex-shrink-0 ${currentAudioIndex === index ? 'text-white' : 'text-primary-400'}`} />
+                                                        <span className="truncate">{audioEntry.split('/').pop() || audioEntry}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {/* 音声プレイヤー */}
+                                            {currentArchiveAudioPath && (
+                                                <div className="mt-3 pt-3 border-t border-surface-700">
+                                                    <audio
+                                                        src={`file://${currentArchiveAudioPath}`}
+                                                        controls
+                                                        autoPlay
+                                                        className="w-full"
+                                                        onEnded={async () => {
+                                                            if (autoPlayEnabled && currentAudioIndex < archiveAudioFiles.length - 1) {
+                                                                const nextIndex = currentAudioIndex + 1;
+                                                                const nextEntry = archiveAudioFiles[nextIndex];
+                                                                if (!nextEntry) return;
+                                                                const extractedPath = await window.electronAPI.extractArchiveAudioFile(
+                                                                    lightboxFile.path,
+                                                                    nextEntry
+                                                                );
+                                                                if (extractedPath) {
+                                                                    setCurrentArchiveAudioPath(extractedPath);
+                                                                    setCurrentAudioIndex(nextIndex);
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                    <label className="flex items-center gap-2 mt-2 text-sm text-surface-300 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={autoPlayEnabled}
+                                                            onChange={(e) => setAutoPlayEnabled(e.target.checked)}
+                                                            className="w-4 h-4 accent-primary-500"
+                                                        />
+                                                        連続再生
+                                                    </label>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 画像も音声もない場合 */}
+                                {archivePreviewFrames.length === 0 && archiveAudioFiles.length === 0 && (
+                                    <div className="flex flex-col items-center gap-4 text-white">
+                                        <Archive size={64} className="text-surface-500" />
+                                        <p className="text-xl">プレビューを取得できませんでした</p>
+                                        <p className="text-surface-400">ダブルクリックで外部アプリケーションで開きます</p>
+                                    </div>
+                                )}
                             </div>
                         )}
+                    </div>
+                ) : lightboxFile.type === 'audio' ? (
+                    <div className="flex flex-col items-center gap-6 text-white">
+                        {/* アルバムアート（サムネイルがある場合） */}
+                        {lightboxFile.thumbnailPath ? (
+                            <img
+                                src={`file://${lightboxFile.thumbnailPath}`}
+                                alt="Album Art"
+                                className="w-64 h-64 object-cover rounded-lg shadow-lg"
+                            />
+                        ) : (
+                            <div className="w-64 h-64 bg-surface-800 rounded-lg flex items-center justify-center">
+                                <Music size={80} className="text-surface-500" />
+                            </div>
+                        )}
+                        {/* オーディオプレイヤー */}
+                        <audio
+                            ref={videoRef}
+                            src={`file://${lightboxFile.path}`}
+                            controls
+                            autoPlay
+                            className="w-80"
+                            onVolumeChange={handleVolumeChange}
+                        />
                     </div>
                 ) : (
                     <div className="text-white text-center">
@@ -277,10 +457,35 @@ export const LightBox = React.memo(() => {
                         }}
                     />
                 </div>
+
+                {/* Memo Section */}
+                <div className="mt-3 border-t border-white/20 pt-2">
+                    <div className="flex items-center gap-2 mb-1">
+                        <FileText size={14} className="text-surface-400" />
+                        <span className="text-xs text-surface-400">メモ</span>
+                        {notesSaveStatus === 'saving' && (
+                            <span className="text-xs text-surface-500">保存中...</span>
+                        )}
+                        {notesSaveStatus === 'saved' && (
+                            <span className="text-xs text-green-400 flex items-center gap-1">
+                                <Check size={12} />
+                                保存済み
+                            </span>
+                        )}
+                    </div>
+                    <textarea
+                        value={notes}
+                        onChange={(e) => handleNotesChange(e.target.value)}
+                        onBlur={handleNotesBlur}
+                        placeholder="メモを入力..."
+                        className="w-full h-16 bg-black/50 text-white text-sm px-2 py-1 rounded border border-white/20 resize-none focus:outline-none focus:border-primary-500 placeholder-surface-500"
+                    />
+                </div>
             </div>
         </div>
     );
 });
 
 LightBox.displayName = 'LightBox';
+
 

@@ -1,11 +1,13 @@
 /**
- * SettingsModal - アプリケーション設定モーダル
+ * SettingsModal - アプリケーション設定モーダル（タブ式）
  */
 
-import React from 'react';
-import { X, Settings } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+
+type TabType = 'general' | 'logs';
 
 export const SettingsModal = React.memo(() => {
     const isOpen = useUIStore((s) => s.settingsModalOpen);
@@ -22,12 +24,50 @@ export const SettingsModal = React.memo(() => {
     const autoScanOnStartup = useSettingsStore((s) => s.autoScanOnStartup);
     const setAutoScanOnStartup = useSettingsStore((s) => s.setAutoScanOnStartup);
 
+    const [activeTab, setActiveTab] = useState<TabType>('general');
+    const [logs, setLogs] = useState<string[]>([]);
+    const [logFilter, setLogFilter] = useState<'all' | 'error' | 'warn' | 'info'>('all');
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+    const loadLogs = useCallback(async () => {
+        setIsLoadingLogs(true);
+        try {
+            const logLines = await window.electronAPI.getLogs(300);
+            setLogs(logLines || []);
+        } catch (e) {
+            console.error('Failed to load logs:', e);
+            setLogs(['ログの読み込みに失敗しました']);
+        }
+        setIsLoadingLogs(false);
+    }, []);
+
+    useEffect(() => {
+        if (isOpen && activeTab === 'logs') {
+            loadLogs();
+        }
+    }, [isOpen, activeTab, loadLogs]);
+
+    const filteredLogs = logs.filter(line => {
+        if (logFilter === 'all') return true;
+        if (logFilter === 'error') return line.includes('[error]');
+        if (logFilter === 'warn') return line.includes('[warn]');
+        if (logFilter === 'info') return line.includes('[info]');
+        return true;
+    });
+
+    const getLogLevelIcon = (line: string) => {
+        if (line.includes('[error]')) return <AlertCircle size={14} className="text-red-400 flex-shrink-0" />;
+        if (line.includes('[warn]')) return <AlertTriangle size={14} className="text-yellow-400 flex-shrink-0" />;
+        if (line.includes('[info]')) return <Info size={14} className="text-blue-400 flex-shrink-0" />;
+        return <Info size={14} className="text-surface-500 flex-shrink-0" />;
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
             <div
-                className="bg-surface-900 rounded-lg shadow-xl w-full max-w-md mx-4"
+                className="bg-surface-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -44,116 +84,214 @@ export const SettingsModal = React.memo(() => {
                     </button>
                 </div>
 
+                {/* Tabs */}
+                <div className="flex border-b border-surface-700">
+                    <button
+                        onClick={() => setActiveTab('general')}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'general'
+                                ? 'text-primary-400 border-b-2 border-primary-400'
+                                : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Settings size={16} />
+                            一般
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('logs')}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'logs'
+                                ? 'text-primary-400 border-b-2 border-primary-400'
+                                : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <FileText size={16} />
+                            ログ
+                        </span>
+                    </button>
+                </div>
+
                 {/* Content */}
-                <div className="px-4 py-4 space-y-6">
-                    {/* Thumbnail Size */}
-                    <div>
-                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                            サムネイルサイズ: {thumbnailSize}px
-                        </label>
-                        <input
-                            type="range"
-                            min="80"
-                            max="300"
-                            value={thumbnailSize}
-                            onChange={(e) => setThumbnailSize(Number(e.target.value))}
-                            className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                        />
-                        <div className="flex justify-between text-xs text-surface-500 mt-1">
-                            <span>80px</span>
-                            <span>300px</span>
-                        </div>
-                    </div>
-
-                    {/* Video Volume */}
-                    <div>
-                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                            動画再生時の音量: {Math.round(videoVolume * 100)}%
-                        </label>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={Math.round(videoVolume * 100)}
-                            onChange={(e) => setVideoVolume(Number(e.target.value) / 100)}
-                            className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                        />
-                        <div className="flex justify-between text-xs text-surface-500 mt-1">
-                            <span>0%</span>
-                            <span>100%</span>
-                        </div>
-                    </div>
-
-                    {/* Thumbnail Hover Action */}
-                    <div>
-                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                            サムネイルホバー時の動作
-                        </label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="thumbnailAction"
-                                    value="scrub"
-                                    checked={thumbnailAction === 'scrub'}
-                                    onChange={() => setThumbnailAction('scrub')}
-                                    className="w-4 h-4 accent-primary-500"
-                                />
-                                <span className="text-surface-200">スクラブ</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="thumbnailAction"
-                                    value="play"
-                                    checked={thumbnailAction === 'play'}
-                                    onChange={() => setThumbnailAction('play')}
-                                    className="w-4 h-4 accent-primary-500"
-                                />
-                                <span className="text-surface-200">再生</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Performance Mode */}
-                    <div>
-                        <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex-1 overflow-y-auto">
+                    {activeTab === 'general' && (
+                        <div className="px-4 py-4 space-y-6">
+                            {/* Thumbnail Size */}
                             <div>
-                                <span className="block text-sm font-medium text-surface-300">
-                                    パフォーマンスモード
-                                </span>
-                                <span className="block text-xs text-surface-500 mt-0.5">
-                                    ホバーアニメーションを無効化して軽くする
-                                </span>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    サムネイルサイズ: {thumbnailSize}px
+                                </label>
+                                <input
+                                    type="range"
+                                    min="80"
+                                    max="300"
+                                    value={thumbnailSize}
+                                    onChange={(e) => setThumbnailSize(Number(e.target.value))}
+                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                />
+                                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                    <span>80px</span>
+                                    <span>300px</span>
+                                </div>
                             </div>
-                            <input
-                                type="checkbox"
-                                checked={performanceMode}
-                                onChange={(e) => setPerformanceMode(e.target.checked)}
-                                className="w-5 h-5 accent-primary-500 rounded"
-                            />
-                        </label>
-                    </div>
 
-                    {/* Auto Scan on Startup */}
-                    <div>
-                        <label className="flex items-center justify-between cursor-pointer">
+                            {/* Video Volume */}
                             <div>
-                                <span className="block text-sm font-medium text-surface-300">
-                                    起動時に自動スキャン
-                                </span>
-                                <span className="block text-xs text-surface-500 mt-0.5">
-                                    アプリ起動時に全フォルダをスキャン
-                                </span>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    動画再生時の音量: {Math.round(videoVolume * 100)}%
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={Math.round(videoVolume * 100)}
+                                    onChange={(e) => setVideoVolume(Number(e.target.value) / 100)}
+                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                />
+                                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                    <span>0%</span>
+                                    <span>100%</span>
+                                </div>
                             </div>
-                            <input
-                                type="checkbox"
-                                checked={autoScanOnStartup}
-                                onChange={(e) => setAutoScanOnStartup(e.target.checked)}
-                                className="w-5 h-5 accent-primary-500 rounded"
-                            />
-                        </label>
-                    </div>
+
+                            {/* Thumbnail Hover Action */}
+                            <div>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    サムネイルホバー時の動作
+                                </label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="thumbnailAction"
+                                            value="scrub"
+                                            checked={thumbnailAction === 'scrub'}
+                                            onChange={() => setThumbnailAction('scrub')}
+                                            className="w-4 h-4 accent-primary-500"
+                                        />
+                                        <span className="text-surface-200">スクラブ</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="thumbnailAction"
+                                            value="play"
+                                            checked={thumbnailAction === 'play'}
+                                            onChange={() => setThumbnailAction('play')}
+                                            className="w-4 h-4 accent-primary-500"
+                                        />
+                                        <span className="text-surface-200">再生</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Performance Mode */}
+                            <div>
+                                <label className="flex items-center justify-between cursor-pointer">
+                                    <div>
+                                        <span className="block text-sm font-medium text-surface-300">
+                                            パフォーマンスモード
+                                        </span>
+                                        <span className="block text-xs text-surface-500 mt-0.5">
+                                            ホバーアニメーションを無効化して軽くする
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={performanceMode}
+                                        onChange={(e) => setPerformanceMode(e.target.checked)}
+                                        className="w-5 h-5 accent-primary-500 rounded"
+                                    />
+                                </label>
+                            </div>
+
+                            {/* Auto Scan on Startup */}
+                            <div>
+                                <label className="flex items-center justify-between cursor-pointer">
+                                    <div>
+                                        <span className="block text-sm font-medium text-surface-300">
+                                            起動時に自動スキャン
+                                        </span>
+                                        <span className="block text-xs text-surface-500 mt-0.5">
+                                            アプリ起動時に全フォルダをスキャン
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={autoScanOnStartup}
+                                        onChange={(e) => setAutoScanOnStartup(e.target.checked)}
+                                        className="w-5 h-5 accent-primary-500 rounded"
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'logs' && (
+                        <div className="p-4 space-y-4">
+                            {/* Log Controls */}
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-sm text-surface-400">フィルター:</label>
+                                    <select
+                                        value={logFilter}
+                                        onChange={(e) => setLogFilter(e.target.value as any)}
+                                        className="bg-surface-800 text-surface-200 text-sm px-2 py-1 rounded border border-surface-600 focus:outline-none focus:border-primary-500"
+                                    >
+                                        <option value="all">すべて</option>
+                                        <option value="error">エラーのみ</option>
+                                        <option value="warn">警告のみ</option>
+                                        <option value="info">情報のみ</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={loadLogs}
+                                        disabled={isLoadingLogs}
+                                        className="flex items-center gap-1 px-3 py-1 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors disabled:opacity-50"
+                                    >
+                                        <RefreshCw size={14} className={isLoadingLogs ? 'animate-spin' : ''} />
+                                        更新
+                                    </button>
+                                    <button
+                                        onClick={() => window.electronAPI.openLogFolder()}
+                                        className="flex items-center gap-1 px-3 py-1 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors"
+                                    >
+                                        <FolderOpen size={14} />
+                                        フォルダを開く
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Log Display */}
+                            <div className="bg-surface-950 rounded border border-surface-700 h-80 overflow-y-auto font-mono text-xs">
+                                {filteredLogs.length === 0 ? (
+                                    <div className="flex items-center justify-center h-full text-surface-500">
+                                        {isLoadingLogs ? '読み込み中...' : 'ログがありません'}
+                                    </div>
+                                ) : (
+                                    <div className="p-2 space-y-0.5">
+                                        {filteredLogs.map((line, idx) => (
+                                            <div
+                                                key={idx}
+                                                className={`flex items-start gap-2 py-0.5 px-1 rounded hover:bg-surface-800 ${line.includes('[error]') ? 'text-red-300' :
+                                                        line.includes('[warn]') ? 'text-yellow-300' :
+                                                            'text-surface-300'
+                                                    }`}
+                                            >
+                                                {getLogLevelIcon(line)}
+                                                <span className="break-all">{line}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <p className="text-xs text-surface-500">
+                                最新300行を表示。ログファイルは日付ごとに自動ローテーションされます。
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}

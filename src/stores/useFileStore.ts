@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
-import { useUIStore } from './useUIStore';
+import { useSettingsStore } from './useSettingsStore';
 import { useTagStore } from './useTagStore';
 
 interface FileState {
@@ -60,7 +60,7 @@ export const useFileStore = create<FileState>((set, get) => ({
     clearSelection: () => set({ selectedIds: new Set(), focusedId: null }),
 
     getSortedFiles: () => {
-        const { sortBy, sortOrder } = useUIStore.getState();
+        const { sortBy, sortOrder } = useSettingsStore.getState();
         const files = get().files;
 
         return [...files].sort((a, b) => {

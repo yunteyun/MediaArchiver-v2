@@ -4,14 +4,14 @@ import { persist } from 'zustand/middleware';
 interface SettingsState {
     activeProfileId: string;
     thumbnailAction: 'scrub' | 'play';
-    sortBy: 'name' | 'date' | 'size';
+    sortBy: 'name' | 'date' | 'size' | 'type';
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
     performanceMode: boolean; // true = アニメーション無効化
     autoScanOnStartup: boolean; // true = 起動時自動スキャン
     // アクション
     setThumbnailAction: (action: 'scrub' | 'play') => void;
-    setSortBy: (sortBy: 'name' | 'date' | 'size') => void;
+    setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
     setPerformanceMode: (enabled: boolean) => void;

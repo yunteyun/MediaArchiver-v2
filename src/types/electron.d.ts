@@ -44,6 +44,11 @@ declare global {
             // App
             openExternal: (path: string) => Promise<void>;
             showInExplorer: (path: string) => Promise<void>;
+            getLogs: (lines?: number) => Promise<string[]>;
+            openLogFolder: () => Promise<void>;
+
+            // File Operations
+            updateFileNotes: (fileId: string, notes: string) => Promise<{ success: boolean }>;
 
             // Dialog
             selectFolder: () => Promise<string | null>;
@@ -67,9 +72,13 @@ declare global {
                 fileCount: number;
                 firstImageEntry: string | null;
                 imageEntries: string[];
+                audioEntries: string[];
+                hasAudio: boolean;
             } | null>;
             getArchivePreviewFrames: (path: string, limit?: number) => Promise<string[]>;
             cleanArchiveTemp: () => Promise<{ success: boolean }>;
+            getArchiveAudioFiles: (archivePath: string) => Promise<string[]>;
+            extractArchiveAudioFile: (archivePath: string, entryName: string) => Promise<string | null>;
 
             // Tags - Categories
             getTagCategories: () => Promise<TagCategory[]>;

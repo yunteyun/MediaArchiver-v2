@@ -6,7 +6,9 @@ import { ipcMain } from 'electron';
 import {
     getArchiveMetadata,
     getArchivePreviewFrames,
-    cleanTempArchives
+    cleanTempArchives,
+    getArchiveAudioFiles,
+    extractArchiveAudioFile
 } from '../services/archiveHandler';
 
 export function registerArchiveHandlers(): void {
@@ -25,4 +27,15 @@ export function registerArchiveHandlers(): void {
         cleanTempArchives();
         return { success: true };
     });
+
+    // 書庫内音声ファイルリスト取得
+    ipcMain.handle('archive:getAudioFiles', async (_event, archivePath: string) => {
+        return getArchiveAudioFiles(archivePath);
+    });
+
+    // 書庫から音声ファイルを抽出
+    ipcMain.handle('archive:extractAudioFile', async (_event, { archivePath, entryName }: { archivePath: string; entryName: string }) => {
+        return extractArchiveAudioFile(archivePath, entryName);
+    });
 }
+

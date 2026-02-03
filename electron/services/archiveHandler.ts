@@ -12,6 +12,9 @@ import { app } from 'electron';
 import { execFile } from 'child_process';
 import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from './logger';
+
+const log = logger.scope('ArchiveHandler');
 
 const execFilePromise = util.promisify(execFile);
 
@@ -25,6 +28,9 @@ const ARCHIVE_EXTENSIONS = ['.zip', '.cbz', '.rar', '.cbr', '.7z'];
 // サポートする画像拡張子
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 
+// サポートする音声拡張子
+const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
+
 // 7za バイナリパスの解決
 function resolve7zaPath(): string {
     let resolvedPath = path7za;
@@ -36,20 +42,20 @@ function resolve7zaPath(): string {
 
     // パスが存在するか確認
     if (fs.existsSync(resolvedPath)) {
-        console.log('[ArchiveHandler] 7za binary found at:', resolvedPath);
+        log.info('7za binary found at:', resolvedPath);
         return resolvedPath;
     }
 
     // 開発環境でのフォールバック
-    console.warn('[ArchiveHandler] 7za binary not found at:', resolvedPath);
+    log.warn('7za binary not found at:', resolvedPath);
     const devPath = path.join(process.cwd(), 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe');
 
     if (fs.existsSync(devPath)) {
-        console.log('[ArchiveHandler] Found 7za in node_modules:', devPath);
+        log.info('Found 7za in node_modules:', devPath);
         return devPath;
     }
 
-    console.error('[ArchiveHandler] 7za binary not found anywhere!');
+    log.error('7za binary not found anywhere!');
     return resolvedPath; // 見つからなくても返す（エラーは後で発生）
 }
 
@@ -75,6 +81,8 @@ export interface ArchiveMetadata {
     fileCount: number;
     firstImageEntry: string | null;
     imageEntries: string[];
+    audioEntries: string[];
+    hasAudio: boolean;
 }
 
 export interface ArchiveError {
@@ -137,18 +145,30 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
             return IMAGE_EXTENSIONS.includes(ext);
         });
 
+        // 音声ファイルをフィルタリング
+        const audioEntries = entries.filter(name => {
+            const ext = path.extname(name).toLowerCase();
+            return AUDIO_EXTENSIONS.includes(ext);
+        });
+
         // 自然順ソート（1.jpg, 2.jpg, 10.jpg）
         const sortedImages = imageEntries.sort((a, b) =>
             a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
         );
 
+        const sortedAudio = audioEntries.sort((a, b) =>
+            a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+        );
+
         return {
-            fileCount: sortedImages.length,
+            fileCount: sortedImages.length + sortedAudio.length,
             firstImageEntry: sortedImages.length > 0 ? sortedImages[0] : null,
-            imageEntries: sortedImages
+            imageEntries: sortedImages,
+            audioEntries: sortedAudio,
+            hasAudio: sortedAudio.length > 0
         };
     } catch (error) {
-        console.error(`[ArchiveHandler] Failed to read archive: ${filePath}`, error);
+        log.error(`Failed to read archive: ${filePath}`, error);
         return null;
     }
 }
@@ -162,7 +182,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
     try {
         // ファイル存在確認
         if (!fs.existsSync(filePath)) {
-            console.warn(`[ArchiveHandler] File not found: ${filePath}`);
+            log.warn('File not found:', filePath);
             return null;
         }
 
@@ -174,7 +194,11 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         ]);
 
         if (!metadata || !metadata.firstImageEntry) {
-            console.warn(`[ArchiveHandler] No images in archive: ${filePath}`);
+            if (metadata?.hasAudio) {
+                log.info('Audio-only archive (no images):', filePath);
+            } else {
+                log.warn('No images or audio in archive:', filePath);
+            }
             return null;
         }
 
@@ -198,15 +222,15 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             const errorMsg = execError?.stderr || execError?.message || String(execError);
 
             if (errorMsg.includes('password') || errorMsg.includes('Wrong password')) {
-                console.warn(`[ArchiveHandler] Password protected: ${filePath}`);
+                log.warn('Password protected:', filePath);
                 return null;
             }
             if (errorMsg.includes('Cannot open') || errorMsg.includes('Unexpected end')) {
-                console.warn(`[ArchiveHandler] Corrupted archive: ${filePath}`);
+                log.warn('Corrupted archive:', filePath);
                 return null;
             }
             if (errorMsg.includes('timeout')) {
-                console.warn(`[ArchiveHandler] Extraction timeout: ${filePath}`);
+                log.warn('Extraction timeout:', filePath);
                 return null;
             }
 
@@ -232,11 +256,11 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         if (imageFile) {
             const foundPath = path.join(TEMP_DIR, imageFile);
             fs.renameSync(foundPath, outPath);
-            console.log(`[ArchiveHandler] Found image via fallback: ${imageFile}`);
+            log.info('Found image via fallback:', imageFile);
             return outPath;
         }
 
-        console.warn(`[ArchiveHandler] Extracted file not found: ${extractedPath}`);
+        log.warn('Extracted file not found:', extractedPath);
         return null;
     } catch (error: any) {
         // 詳細ログ
@@ -246,7 +270,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             code: error?.code,
             stderr: error?.stderr
         };
-        console.error('[ArchiveHandler] Failed to extract thumbnail:', errorDetail);
+        log.error('Failed to extract thumbnail:', errorDetail);
         return null;
     }
 }
@@ -303,13 +327,13 @@ export async function getArchivePreviewFrames(
                     previewPaths.push(outPath);
                 }
             } catch (e) {
-                console.warn(`[ArchiveHandler] Failed to extract preview frame: ${entryName}`, e);
+                log.warn(`Failed to extract preview frame: ${entryName}`, e);
             }
         }
 
         return previewPaths;
     } catch (error) {
-        console.error(`[ArchiveHandler] Failed to get archive previews: ${filePath}`, error);
+        log.error(`Failed to get archive previews: ${filePath}`, error);
         return [];
     }
 }
@@ -322,9 +346,63 @@ export function cleanTempArchives(): void {
         if (fs.existsSync(TEMP_DIR)) {
             fs.rmSync(TEMP_DIR, { recursive: true, force: true });
             fs.mkdirSync(TEMP_DIR, { recursive: true });
-            console.log('[ArchiveHandler] Temp archives cleaned');
+            log.info('Temp archives cleaned');
         }
     } catch (e) {
-        console.error('[ArchiveHandler] Failed to clean temp archives', e);
+        log.error('Failed to clean temp archives', e);
     }
 }
+
+/**
+ * 書庫ファイル内の音声ファイルリストを取得
+ */
+export async function getArchiveAudioFiles(archivePath: string): Promise<string[]> {
+    const metadata = await getArchiveMetadata(archivePath);
+    return metadata?.audioEntries || [];
+}
+
+/**
+ * 書庫ファイルから特定の音声ファイルを抽出し、一時ファイルパスを返す
+ */
+export async function extractArchiveAudioFile(
+    archivePath: string,
+    entryName: string
+): Promise<string | null> {
+    const extractId = uuidv4();
+    const extractDir = path.join(TEMP_DIR, 'audio', extractId);
+
+    try {
+        if (!fs.existsSync(extractDir)) {
+            fs.mkdirSync(extractDir, { recursive: true });
+        }
+
+        // 7zaで特定ファイルを抽出
+        await execFilePromise(SEVEN_ZA_PATH, [
+            'e', archivePath,
+            `-o${extractDir}`,
+            entryName,
+            '-y',
+            '-sccUTF-8'
+        ]);
+
+        // 抽出したファイルを探す
+        const extractedName = path.basename(entryName);
+        const extractedPath = path.join(extractDir, extractedName);
+
+        if (fs.existsSync(extractedPath)) {
+            return extractedPath;
+        }
+
+        // ディレクトリ内を検索
+        const files = fs.readdirSync(extractDir);
+        if (files.length > 0) {
+            return path.join(extractDir, files[0]);
+        }
+
+        return null;
+    } catch (error) {
+        log.error(`Failed to extract audio from archive: ${archivePath}`, error);
+        return null;
+    }
+}
+

@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Folder, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Folder, Plus, ChevronLeft, ChevronRight, Library } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
 import type { MediaFolder } from '../types/file';
+
+// 特殊なフォルダID
+const ALL_FILES_ID = '__all__';
 
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
@@ -40,17 +43,24 @@ export const Sidebar = React.memo(() => {
         }
     }, [loadFolders]);
 
-    const handleSelectFolder = useCallback(async (folderId: string) => {
+    const handleSelectFolder = useCallback(async (folderId: string | null) => {
         setCurrentFolderId(folderId);
         try {
-            console.log('Frontend: Requesting files for', folderId);
-            const files = await window.electronAPI.getFiles(folderId);
+            // folderId が null または ALL_FILES_ID の場合は全ファイル取得
+            const queryFolderId = folderId === ALL_FILES_ID ? undefined : folderId ?? undefined;
+            console.log('Frontend: Requesting files for', queryFolderId ?? 'all');
+            const files = await window.electronAPI.getFiles(queryFolderId);
             console.log('Frontend: Received files:', files.length);
             setFiles(files);
         } catch (e) {
             console.error('Error loading files:', e);
         }
     }, [setCurrentFolderId, setFiles]);
+
+    // 「すべてのファイル」を選択
+    const handleSelectAllFiles = useCallback(() => {
+        handleSelectFolder(ALL_FILES_ID);
+    }, [handleSelectFolder]);
 
     useEffect(() => {
         loadFolders();
@@ -66,9 +76,9 @@ export const Sidebar = React.memo(() => {
 
         const cleanupRescan = window.electronAPI.onFolderRescanComplete((folderId) => {
             console.log('Folder rescan complete:', folderId);
-            // Optionally reload files if current folder
-            if (currentFolderId === folderId) {
-                handleSelectFolder(folderId);
+            // 現在のフォルダまたは「すべて」表示中ならリロード
+            if (currentFolderId === folderId || currentFolderId === ALL_FILES_ID) {
+                handleSelectFolder(currentFolderId);
             }
         });
 
@@ -117,6 +127,32 @@ export const Sidebar = React.memo(() => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
+                {/* すべてのファイル */}
+                <div
+                    onClick={handleSelectAllFiles}
+                    className={`
+                        flex items-center gap-2 p-2 rounded cursor-pointer mb-2 transition-colors
+                        ${currentFolderId === ALL_FILES_ID
+                            ? 'bg-primary-600 text-white'
+                            : 'hover:bg-surface-800 text-surface-300'}
+                        ${sidebarCollapsed ? 'justify-center' : ''}
+                    `}
+                    title="すべてのファイル"
+                >
+                    <Library size={20} className="flex-shrink-0" />
+                    {!sidebarCollapsed && (
+                        <span className="truncate text-sm font-medium">
+                            すべてのファイル
+                        </span>
+                    )}
+                </div>
+
+                {/* セパレーター */}
+                {folders.length > 0 && (
+                    <div className="border-t border-surface-700 my-2" />
+                )}
+
+                {/* フォルダリスト */}
                 {folders.length === 0 ? (
                     !sidebarCollapsed && (
                         <p className="text-surface-500 text-sm text-center py-4">
@@ -164,3 +200,4 @@ export const Sidebar = React.memo(() => {
 });
 
 Sidebar.displayName = 'Sidebar';
+

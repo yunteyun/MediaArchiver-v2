@@ -9,6 +9,9 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from './logger';
+
+const log = logger.scope('DatabaseManager');
 
 // --- Types ---
 export interface Profile {
@@ -90,7 +93,7 @@ class DatabaseManager {
                 path TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
                 size INTEGER,
-                type TEXT CHECK(type IN ('video', 'image', 'archive')),
+                type TEXT CHECK(type IN ('video', 'image', 'archive', 'audio')),
                 created_at INTEGER,
                 duration TEXT,
                 thumbnail_path TEXT,
@@ -156,6 +159,75 @@ class DatabaseManager {
         const versionCheck = this.db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as { version: number } | undefined;
         if (!versionCheck) {
             this.db.prepare('INSERT INTO schema_version (version, description) VALUES (?, ?)').run(1, 'Initial v2 schema');
+        }
+
+        // 簡易マイグレーション: notesカラム追加 (Phase 9-4)
+        const columns = this.db.prepare('PRAGMA table_info(files)').all() as { name: string }[];
+        const hasNotes = columns.some(c => c.name === 'notes');
+        if (!hasNotes) {
+            this.db.prepare(`ALTER TABLE files ADD COLUMN notes TEXT DEFAULT ''`).run();
+            log.info('Migration: Added notes column to files table');
+        }
+
+        // マイグレーション: filesテーブルのtype CHECK制約にaudioを追加 (Phase 9-1)
+        // SQLiteではCHECK制約を変更できないため、テーブルを再作成する
+        const checkAudioMigration = this.db.prepare(
+            `SELECT version FROM schema_version WHERE description = 'Add audio type support'`
+        ).get();
+
+        if (!checkAudioMigration) {
+            log.info('Migration: Rebuilding files table with audio type support...');
+
+            // 外部キー制約を一時的に無効化
+            this.db.exec(`PRAGMA foreign_keys = OFF;`);
+
+            try {
+                this.db.exec(`
+                    -- 一時テーブルを作成（外部キー制約なし）
+                    CREATE TABLE IF NOT EXISTS files_new (
+                        id TEXT PRIMARY KEY,
+                        path TEXT UNIQUE NOT NULL,
+                        name TEXT NOT NULL,
+                        size INTEGER,
+                        type TEXT CHECK(type IN ('video', 'image', 'archive', 'audio')),
+                        created_at INTEGER,
+                        duration TEXT,
+                        thumbnail_path TEXT,
+                        preview_frames TEXT,
+                        root_folder_id TEXT,
+                        content_hash TEXT,
+                        metadata TEXT,
+                        mtime_ms INTEGER,
+                        notes TEXT DEFAULT ''
+                    );
+
+                    -- 既存データをコピー
+                    INSERT OR IGNORE INTO files_new 
+                    SELECT id, path, name, size, type, created_at, duration, thumbnail_path, 
+                           preview_frames, root_folder_id, content_hash, metadata, mtime_ms, 
+                           COALESCE(notes, '') as notes
+                    FROM files;
+
+                    -- 古いテーブルを削除
+                    DROP TABLE IF EXISTS files;
+
+                    -- 新しいテーブルをリネーム
+                    ALTER TABLE files_new RENAME TO files;
+
+                    -- インデックスを再作成
+                    CREATE INDEX IF NOT EXISTS idx_files_root_folder ON files(root_folder_id);
+                    CREATE INDEX IF NOT EXISTS idx_files_type ON files(type);
+                `);
+
+                // マイグレーションバージョンを記録
+                const nextVersion = (this.db.prepare('SELECT MAX(version) as v FROM schema_version').get() as { v: number })?.v || 0;
+                this.db.prepare('INSERT INTO schema_version (version, description) VALUES (?, ?)').run(nextVersion + 1, 'Add audio type support');
+
+                log.info('Migration: Files table rebuilt with audio type support');
+            } finally {
+                // 外部キー制約を再有効化
+                this.db.exec(`PRAGMA foreign_keys = ON;`);
+            }
         }
     }
 
@@ -250,6 +322,16 @@ class DatabaseManager {
         const dbPath = path.join(this.userDataPath, profile.dbFilename);
         if (fs.existsSync(dbPath)) {
             fs.unlinkSync(dbPath);
+        }
+
+        // サムネイルディレクトリ削除
+        const thumbnailDir = path.join(this.userDataPath, 'thumbnails', id);
+        if (fs.existsSync(thumbnailDir)) {
+            try {
+                fs.rmSync(thumbnailDir, { recursive: true, force: true });
+            } catch (e) {
+                log.error(`Failed to delete thumbnail directory: ${thumbnailDir}`, e);
+            }
         }
 
         // メタDBから削除

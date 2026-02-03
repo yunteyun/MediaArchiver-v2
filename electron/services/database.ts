@@ -6,8 +6,12 @@
  */
 
 import path from 'path';
+import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { dbManager } from './databaseManager';
+import { logger } from './logger';
+
+const log = logger.scope('Database');
 
 // --- Types (Mirrors src/types/file.ts for usage in Electron) ---
 export interface MediaFile {
@@ -15,7 +19,7 @@ export interface MediaFile {
     name: string;
     path: string;
     size: number;
-    type: 'video' | 'image' | 'archive';
+    type: 'video' | 'image' | 'archive' | 'audio';
     created_at: number;
     duration?: string;
     thumbnail_path?: string;
@@ -25,6 +29,7 @@ export interface MediaFile {
     content_hash?: string;
     metadata?: string;
     mtime_ms?: number;
+    notes?: string;
 }
 
 export interface MediaFolder {
@@ -147,6 +152,41 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
 
 export function deleteFile(id: string) {
     const db = getDb();
+
+    // 削除前にサムネイル情報を取得
+    const file = db.prepare('SELECT thumbnail_path, preview_frames FROM files WHERE id = ?')
+        .get(id) as { thumbnail_path?: string; preview_frames?: string } | undefined;
+
+    if (file) {
+        // サムネイル削除
+        if (file.thumbnail_path && fs.existsSync(file.thumbnail_path)) {
+            try {
+                fs.unlinkSync(file.thumbnail_path);
+            } catch (e) {
+                log.error(`Failed to delete thumbnail: ${file.thumbnail_path}`, e);
+            }
+        }
+
+        // プレビューフレーム削除
+        if (file.preview_frames) {
+            try {
+                const frames: string[] = JSON.parse(file.preview_frames);
+                frames.forEach(framePath => {
+                    if (fs.existsSync(framePath)) {
+                        try {
+                            fs.unlinkSync(framePath);
+                        } catch (e) {
+                            log.error(`Failed to delete preview frame: ${framePath}`, e);
+                        }
+                    }
+                });
+            } catch (e) {
+                log.error('Failed to parse/delete preview frames', e);
+            }
+        }
+    }
+
+    // DBレコード削除
     db.prepare('DELETE FROM files WHERE id = ?').run(id);
 }
 
@@ -170,6 +210,11 @@ export function updateFileAllPaths(id: string, pathVal: string, thumbPath: strin
     const db = getDb();
     db.prepare('UPDATE files SET path = ?, thumbnail_path = ?, preview_frames = ? WHERE id = ?')
         .run(pathVal, thumbPath, previewFrames, id);
+}
+
+export function updateFileNotes(id: string, notes: string) {
+    const db = getDb();
+    db.prepare('UPDATE files SET notes = ? WHERE id = ?').run(notes, id);
 }
 
 function getTags(fileId: string): string[] {
@@ -207,7 +252,16 @@ export function addFolder(folderPath: string, name?: string): MediaFolder {
 
 export function deleteFolder(id: string) {
     const db = getDb();
-    db.prepare('DELETE FROM files WHERE root_folder_id = ?').run(id);
+
+    // フォルダ内の全ファイルを取得
+    const files = getFiles(id);
+
+    // 各ファイルを削除（サムネイルも自動削除される）
+    files.forEach(file => {
+        deleteFile(file.id);
+    });
+
+    // フォルダレコード削除
     db.prepare('DELETE FROM folders WHERE id = ?').run(id);
 }
 

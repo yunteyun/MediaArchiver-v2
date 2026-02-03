@@ -2,6 +2,7 @@ import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
@@ -19,8 +20,8 @@ export const FileGrid = React.memo(() => {
     const removeFile = useFileStore((s) => s.removeFile);
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
-    const sortBy = useUIStore((s) => s.sortBy);
-    const sortOrder = useUIStore((s) => s.sortOrder);
+    const sortBy = useSettingsStore((s) => s.sortBy);
+    const sortOrder = useSettingsStore((s) => s.sortOrder);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);

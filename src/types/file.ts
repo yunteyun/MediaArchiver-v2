@@ -3,7 +3,7 @@ export interface MediaFile {
     name: string;
     path: string;
     size: number;
-    type: 'video' | 'image' | 'archive';
+    type: 'video' | 'image' | 'archive' | 'audio';
     createdAt: number;
     duration?: string;
     thumbnailPath?: string;
@@ -13,6 +13,7 @@ export interface MediaFile {
     contentHash?: string;
     metadata?: string;
     mtimeMs?: number;
+    notes?: string;
 }
 
 export interface MediaFolder {

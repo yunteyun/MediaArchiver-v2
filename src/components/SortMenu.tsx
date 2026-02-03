@@ -5,13 +5,14 @@
 import React from 'react';
 import { ArrowUp, ArrowDown, Settings } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { SearchBar } from './SearchBar';
 
 export const Header = React.memo(() => {
-    const sortBy = useUIStore((s) => s.sortBy);
-    const sortOrder = useUIStore((s) => s.sortOrder);
-    const setSortBy = useUIStore((s) => s.setSortBy);
-    const setSortOrder = useUIStore((s) => s.setSortOrder);
+    const sortBy = useSettingsStore((s) => s.sortBy);
+    const sortOrder = useSettingsStore((s) => s.sortOrder);
+    const setSortBy = useSettingsStore((s) => s.setSortBy);
+    const setSortOrder = useSettingsStore((s) => s.setSortOrder);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
 
     return (
@@ -57,3 +58,4 @@ Header.displayName = 'Header';
 
 // 後方互換性のため SortMenu もエクスポート
 export const SortMenu = Header;
+
