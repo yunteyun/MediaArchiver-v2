@@ -10,6 +10,7 @@ import path from 'path';
 import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
+import { runMigrations } from '../migrations';
 
 const log = logger.scope('DatabaseManager');
 
@@ -83,7 +84,6 @@ class DatabaseManager {
         if (!this.db) return;
 
         // マイグレーションシステムを使用
-        const { runMigrations } = require('../migrations');
         runMigrations(this.db);
     }
 

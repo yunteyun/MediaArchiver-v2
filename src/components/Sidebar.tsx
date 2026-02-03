@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Folder, Plus, ChevronLeft, ChevronRight, Library } from 'lucide-react';
+import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
@@ -191,6 +191,23 @@ export const Sidebar = React.memo(() => {
                 {!sidebarCollapsed && (
                     <TagFilterPanel onOpenManager={() => setTagManagerOpen(true)} />
                 )}
+
+                {/* 重複ファイルチェック */}
+                <div className="border-t border-surface-700 my-2" />
+                <div
+                    onClick={() => useUIStore.getState().openDuplicateView()}
+                    className={`
+                        flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
+                        hover:bg-surface-800 text-surface-300
+                        ${sidebarCollapsed ? 'justify-center' : ''}
+                    `}
+                    title="重複ファイルを検出"
+                >
+                    <Copy size={20} className="flex-shrink-0 text-primary-400" />
+                    {!sidebarCollapsed && (
+                        <span className="truncate text-sm">重複チェック</span>
+                    )}
+                </div>
             </div>
 
             {/* Tag Manager Modal */}

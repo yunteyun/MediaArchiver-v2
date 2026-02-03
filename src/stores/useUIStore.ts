@@ -27,6 +27,7 @@ interface UIState {
     settingsModalOpen: boolean;
     scanProgress: ScanProgress | null;
     toasts: ToastData[];
+    duplicateViewOpen: boolean;
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -41,6 +42,8 @@ interface UIState {
     setScanProgress: (progress: ScanProgress | null) => void;
     showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void;
     removeToast: (id: string) => void;
+    openDuplicateView: () => void;
+    closeDuplicateView: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -55,6 +58,7 @@ export const useUIStore = create<UIState>((set) => ({
     settingsModalOpen: false,
     scanProgress: null,
     toasts: [],
+    duplicateViewOpen: false,
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -73,4 +77,6 @@ export const useUIStore = create<UIState>((set) => ({
     removeToast: (id) => set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id)
     })),
+    openDuplicateView: () => set({ duplicateViewOpen: true }),
+    closeDuplicateView: () => set({ duplicateViewOpen: false }),
 }));

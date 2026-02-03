@@ -9,19 +9,15 @@
 
 import Database from 'better-sqlite3';
 import { logger } from '../services/logger';
+import type { Migration } from './types';
 import { initialSchema } from './001_initial_schema';
 // 将来のマイグレーション:
 // import { addHashColumn } from './002_add_hash_column';
 
-const log = logger.scope('Migration');
+// 型をre-export
+export type { Migration };
 
-// --- Types ---
-export interface Migration {
-    version: number;
-    description: string;
-    up: (db: Database.Database) => void;
-    down?: (db: Database.Database) => void; // オプション（開発時のみ使用）
-}
+const log = logger.scope('Migration');
 
 // --- 静的マイグレーションリスト ---
 // ★ 新しいマイグレーションはここに手動で追加
@@ -35,7 +31,17 @@ const MIGRATIONS: Migration[] = [
  * DBを最新のスキーマバージョンに更新
  */
 export function runMigrations(db: Database.Database): void {
-    // 1. schema_versionテーブル初期化
+    // 1. schema_versionテーブルの存在確認と再作成
+    // 既存のテーブル構造が異なる可能性があるため、カラムをチェック
+    const tableInfo = db.prepare("PRAGMA table_info(schema_version)").all() as { name: string }[];
+    const hasCurrentVersion = tableInfo.some(col => col.name === 'current_version');
+
+    if (tableInfo.length > 0 && !hasCurrentVersion) {
+        // 古い構造のテーブルが存在する場合、削除して再作成
+        log.info('Recreating schema_version table with new structure...');
+        db.prepare('DROP TABLE IF EXISTS schema_version').run();
+    }
+
     db.prepare(`
         CREATE TABLE IF NOT EXISTS schema_version (
             version INTEGER PRIMARY KEY CHECK (version = 1),

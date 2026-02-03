@@ -6,7 +6,7 @@
  */
 
 import Database from 'better-sqlite3';
-import type { Migration } from './index';
+import type { Migration } from './types';
 
 export const initialSchema: Migration = {
     version: 1,

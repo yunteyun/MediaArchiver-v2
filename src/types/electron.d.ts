@@ -111,7 +111,36 @@ declare global {
             getActiveProfileId: () => Promise<string>;
             switchProfile: (profileId: string) => Promise<{ success: boolean }>;
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
+
+            // Duplicate Detection
+            findDuplicates: () => Promise<{
+                groups: DuplicateGroup[];
+                stats: DuplicateStats;
+            }>;
+            cancelDuplicateSearch: () => Promise<void>;
+            deleteDuplicateFiles: (fileIds: string[]) => Promise<{ id: string; success: boolean; error?: string }[]>;
+            onDuplicateProgress: (callback: (progress: DuplicateProgress) => void) => () => void;
         };
     }
 }
 
+// Duplicate Detection types
+interface DuplicateGroup {
+    hash: string;
+    size: number;
+    files: any[];
+    count: number;
+}
+
+interface DuplicateStats {
+    totalGroups: number;
+    totalFiles: number;
+    wastedSpace: number;
+}
+
+interface DuplicateProgress {
+    phase: 'analyzing' | 'hashing' | 'complete';
+    current: number;
+    total: number;
+    currentFile?: string;
+}

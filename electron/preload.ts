@@ -130,4 +130,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('profile:switched', handler);
         return () => ipcRenderer.removeListener('profile:switched', handler);
     },
+
+    // === Duplicate Detection ===
+    findDuplicates: () => ipcRenderer.invoke('duplicate:find'),
+    cancelDuplicateSearch: () => ipcRenderer.invoke('duplicate:cancel'),
+    deleteDuplicateFiles: (fileIds: string[]) => ipcRenderer.invoke('duplicate:deleteFiles', fileIds),
+    onDuplicateProgress: (callback: (progress: any) => void) => {
+        const handler = (_event: any, progress: any) => callback(progress);
+        ipcRenderer.on('duplicate:progress', handler);
+        return () => ipcRenderer.removeListener('duplicate:progress', handler);
+    },
 });

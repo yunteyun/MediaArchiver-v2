@@ -30,6 +30,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 書庫内音声再生UIの改善（表示サイズ調整）
   - 書庫内音声の連続再生オプション
 
+- **Phase 9-2: ファイルハッシュ計算と重複検出** 🆕
+  - SHA256ハッシュ計算（ストリーム処理、EBUSY/ENOENT/EPERMエラーハンドリング）
+  - サイズ衝突戦略による高速重複検出
+  - 重複ファイル一覧表示UI（DuplicateView.tsx）
+  - スマート選択（新しい/古い/パスが短いファイルを残す）
+  - 重複ファイルの一括削除機能
+  - IPC進捗イベント間引き（50-100ms）
+
 - **Phase 9-3: 「すべてのファイル」ビュー**
   - 全フォルダ統合表示機能
   - サイドバーに「すべてのファイル」項目追加
@@ -38,6 +46,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - ファイルごとのメモ追加・編集
   - LightBox にメモ編集UI追加（自動保存機能付き）
   - データベースに `notes` カラム追加
+
+- **Phase 10-1: DBスキーママイグレーション** 🆕
+  - マイグレーションシステムの実装（migrations/index.ts）
+  - Migration型の分離（循環参照解消）
+  - 既存schema_versionテーブルとの互換性対応
+  - 初期スキーマ定義（001_initial_schema.ts）
 
 - **スキャン設定の改善**
   - プレビューフレーム数設定（0-30枚、スライダーUI）
