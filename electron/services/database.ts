@@ -217,6 +217,26 @@ export function updateFileNotes(id: string, notes: string) {
     db.prepare('UPDATE files SET notes = ? WHERE id = ?').run(notes, id);
 }
 
+export function findFileById(id: string): MediaFile | undefined {
+    const db = getDb();
+    const row = db.prepare('SELECT * FROM files WHERE id = ?').get(id) as any;
+    if (!row) return undefined;
+    return {
+        ...row,
+        tags: getTags(row.id)
+    };
+}
+
+export function updateFileThumbnail(id: string, thumbnailPath: string) {
+    const db = getDb();
+    db.prepare('UPDATE files SET thumbnail_path = ? WHERE id = ?').run(thumbnailPath, id);
+}
+
+export function updateFilePreviewFrames(id: string, previewFrames: string) {
+    const db = getDb();
+    db.prepare('UPDATE files SET preview_frames = ? WHERE id = ?').run(previewFrames, id);
+}
+
 function getTags(fileId: string): string[] {
     const db = getDb();
     const rows = db.prepare('SELECT tag FROM tags WHERE file_id = ?').all(fileId) as { tag: string }[];

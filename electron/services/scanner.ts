@@ -34,6 +34,15 @@ export function isScanCancelled() {
     return scanCancelled;
 }
 
+// プレビューフレーム数の設定（デフォルト: 10）
+let previewFrameCountSetting = 10;
+export function setPreviewFrameCount(count: number) {
+    previewFrameCountSetting = count;
+}
+export function getPreviewFrameCount() {
+    return previewFrameCountSetting;
+}
+
 // Throttle設定（ms）
 const PROGRESS_THROTTLE_MS = 50;
 
@@ -102,6 +111,9 @@ async function scanDirectoryInternal(
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
 
     for (const entry of entries) {
+        // キャンセルチェック
+        if (scanCancelled) return;
+
         try {
             const fullPath = path.join(dirPath, entry.name);
 
@@ -169,6 +181,7 @@ async function scanDirectoryInternal(
                                 });
                             }
                             const generated = await generateThumbnail(fullPath);
+                            if (scanCancelled) return;
                             if (generated) thumbnailPath = generated;
                         } catch (e) {
                             log.error('Thumbnail generation failed:', e);
@@ -187,7 +200,7 @@ async function scanDirectoryInternal(
 
                     // Generate preview frames if missing (video only, for scrub mode)
                     let previewFrames = existing?.preview_frames;
-                    if (type === 'video' && !previewFrames) {
+                    if (type === 'video' && !previewFrames && previewFrameCountSetting > 0) {
                         try {
                             if (onProgress) {
                                 onProgress({
@@ -198,7 +211,8 @@ async function scanDirectoryInternal(
                                     message: `プレビューフレーム生成中...`
                                 });
                             }
-                            previewFrames = await generatePreviewFrames(fullPath, 10) || undefined;
+                            previewFrames = await generatePreviewFrames(fullPath, previewFrameCountSetting) || undefined;
+                            if (scanCancelled) return;
                         } catch (e) {
                             log.error('Preview frames generation failed:', e);
                         }

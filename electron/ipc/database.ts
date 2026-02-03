@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { getFiles, updateFileNotes } from '../services/database';
+import { getFiles, findFileById, updateFileNotes } from '../services/database';
 
 export function registerDatabaseHandlers() {
     ipcMain.handle('db:getFiles', async (_event, folderId?: string) => {
@@ -35,5 +35,26 @@ export function registerDatabaseHandlers() {
             return { success: false };
         }
     });
-}
 
+    ipcMain.handle('db:getFileById', async (_event, fileId: string) => {
+        const file = findFileById(fileId);
+        if (!file) return null;
+        return {
+            id: file.id,
+            name: file.name,
+            path: file.path,
+            size: file.size,
+            type: file.type,
+            createdAt: file.created_at,
+            duration: file.duration,
+            thumbnailPath: file.thumbnail_path,
+            previewFrames: file.preview_frames,
+            rootFolderId: file.root_folder_id,
+            tags: file.tags,
+            contentHash: file.content_hash,
+            metadata: file.metadata,
+            mtimeMs: file.mtime_ms,
+            notes: file.notes || '',
+        };
+    });
+}

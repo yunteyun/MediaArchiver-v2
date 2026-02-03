@@ -23,6 +23,8 @@ export const SettingsModal = React.memo(() => {
     const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
     const autoScanOnStartup = useSettingsStore((s) => s.autoScanOnStartup);
     const setAutoScanOnStartup = useSettingsStore((s) => s.setAutoScanOnStartup);
+    const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
+    const setPreviewFrameCount = useSettingsStore((s) => s.setPreviewFrameCount);
 
     const [activeTab, setActiveTab] = useState<TabType>('general');
     const [logs, setLogs] = useState<string[]>([]);
@@ -89,8 +91,8 @@ export const SettingsModal = React.memo(() => {
                     <button
                         onClick={() => setActiveTab('general')}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'general'
-                                ? 'text-primary-400 border-b-2 border-primary-400'
-                                : 'text-surface-400 hover:text-surface-200'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
                             }`}
                     >
                         <span className="flex items-center gap-2">
@@ -101,8 +103,8 @@ export const SettingsModal = React.memo(() => {
                     <button
                         onClick={() => setActiveTab('logs')}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'logs'
-                                ? 'text-primary-400 border-b-2 border-primary-400'
-                                : 'text-surface-400 hover:text-surface-200'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
                             }`}
                     >
                         <span className="flex items-center gap-2">
@@ -224,6 +226,33 @@ export const SettingsModal = React.memo(() => {
                                     />
                                 </label>
                             </div>
+
+                            {/* Preview Frame Count */}
+                            <div>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    プレビューフレーム数: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="30"
+                                    step="5"
+                                    value={previewFrameCount}
+                                    onChange={(e) => {
+                                        const count = Number(e.target.value);
+                                        setPreviewFrameCount(count);
+                                        window.electronAPI.setPreviewFrameCount(count);
+                                    }}
+                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                />
+                                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                    <span>オフ</span>
+                                    <span>30枚</span>
+                                </div>
+                                <p className="text-xs text-surface-500 mt-1">
+                                    スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
+                                </p>
+                            </div>
                         </div>
                     )}
 
@@ -275,8 +304,8 @@ export const SettingsModal = React.memo(() => {
                                             <div
                                                 key={idx}
                                                 className={`flex items-start gap-2 py-0.5 px-1 rounded hover:bg-surface-800 ${line.includes('[error]') ? 'text-red-300' :
-                                                        line.includes('[warn]') ? 'text-yellow-300' :
-                                                            'text-surface-300'
+                                                    line.includes('[warn]') ? 'text-yellow-300' :
+                                                        'text-surface-300'
                                                     }`}
                                             >
                                                 {getLogLevelIcon(line)}

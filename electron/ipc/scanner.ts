@@ -56,6 +56,13 @@ export function registerScannerHandlers() {
         return;
     });
 
+    // === Set Preview Frame Count ===
+    ipcMain.handle('scanner:setPreviewFrameCount', async (_event, count: number) => {
+        const { setPreviewFrameCount } = await import('../services/scanner');
+        setPreviewFrameCount(count);
+        return;
+    });
+
     // === Auto Scan (all folders) ===
     ipcMain.handle('scanner:autoScan', async (event) => {
         const folders = getFolders();

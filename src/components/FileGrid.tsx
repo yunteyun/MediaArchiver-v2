@@ -18,6 +18,7 @@ export const FileGrid = React.memo(() => {
     const selectAll = useFileStore((s) => s.selectAll);
     const clearSelection = useFileStore((s) => s.clearSelection);
     const removeFile = useFileStore((s) => s.removeFile);
+    const refreshFile = useFileStore((s) => s.refreshFile);
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const thumbnailSize = useUIStore((s) => s.thumbnailSize);
     const sortBy = useSettingsStore((s) => s.sortBy);
@@ -25,6 +26,7 @@ export const FileGrid = React.memo(() => {
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
+    const showToast = useUIStore((s) => s.showToast);
 
     // Tag filter state
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -100,6 +102,15 @@ export const FileGrid = React.memo(() => {
         resizeObserver.observe(parentRef.current);
         return () => resizeObserver.disconnect();
     }, []);
+
+    // サムネイル再作成イベントをリッスン
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onThumbnailRegenerated((fileId: string) => {
+            refreshFile(fileId);
+            showToast('サムネイルを再作成しました', 'success');
+        });
+        return unsubscribe;
+    }, [refreshFile, showToast]);
 
     const cardWidth = thumbnailSize + CARD_GAP * 2;
     const cardHeight = thumbnailSize + 40 + CARD_GAP * 2; // 40 = info area height

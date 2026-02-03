@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
+import type { ToastData } from '../components/Toast';
 
 export interface ScanProgress {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
@@ -25,6 +26,7 @@ interface UIState {
     searchQuery: string;
     settingsModalOpen: boolean;
     scanProgress: ScanProgress | null;
+    toasts: ToastData[];
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -37,6 +39,8 @@ interface UIState {
     openSettingsModal: () => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
+    showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void;
+    removeToast: (id: string) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -50,6 +54,7 @@ export const useUIStore = create<UIState>((set) => ({
     searchQuery: '',
     settingsModalOpen: false,
     scanProgress: null,
+    toasts: [],
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -62,4 +67,10 @@ export const useUIStore = create<UIState>((set) => ({
     openSettingsModal: () => set({ settingsModalOpen: true }),
     closeSettingsModal: () => set({ settingsModalOpen: false }),
     setScanProgress: (progress) => set({ scanProgress: progress }),
+    showToast: (message, type = 'info', duration = 3000) => set((state) => ({
+        toasts: [...state.toasts, { id: Date.now().toString(), message, type, duration }]
+    })),
+    removeToast: (id) => set((state) => ({
+        toasts: state.toasts.filter((t) => t.id !== id)
+    })),
 }));

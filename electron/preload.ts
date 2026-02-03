@@ -10,6 +10,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
     // === Database ===
     getFiles: (folderId?: string) => ipcRenderer.invoke('db:getFiles', folderId),
+    getFileById: (fileId: string) => ipcRenderer.invoke('db:getFileById', fileId),
 
     // === Folder ===
     addFolder: (folderPath: string) => ipcRenderer.invoke('folder:add', folderPath),
@@ -42,6 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         };
     },
     cancelScan: () => ipcRenderer.invoke('scanner:cancel'),
+    setPreviewFrameCount: (count: number) => ipcRenderer.invoke('scanner:setPreviewFrameCount', count),
     autoScan: () => ipcRenderer.invoke('scanner:autoScan'),
 
     // === Context Menu ===
@@ -68,6 +70,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const handler = (_event: any, fileId: string) => callback(fileId);
         ipcRenderer.on('file:deleted', handler);
         return () => ipcRenderer.removeListener('file:deleted', handler);
+    },
+
+    onThumbnailRegenerated: (callback: (fileId: string) => void) => {
+        const handler = (_event: any, fileId: string) => callback(fileId);
+        ipcRenderer.on('file:thumbnailRegenerated', handler);
+        return () => ipcRenderer.removeListener('file:thumbnailRegenerated', handler);
     },
 
     // === Archive ===

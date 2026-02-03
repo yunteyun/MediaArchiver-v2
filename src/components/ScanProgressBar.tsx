@@ -91,14 +91,17 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
                 </div>
             </div>
 
-            {/* Current File / Message */}
-            {(currentFile || message) && (
-                <div className="px-4 py-2 border-t border-surface-700 bg-surface-900/50">
-                    <p className="text-xs text-surface-400 truncate" title={currentFile || message}>
-                        {message || currentFile}
+            {/* Current File / Message - 固定高さで表示 */}
+            <div className="px-4 py-2 border-t border-surface-700 bg-surface-900/50 h-14">
+                {message && (
+                    <p className="text-xs text-primary-400 mb-0.5 truncate">{message}</p>
+                )}
+                {currentFile && (
+                    <p className="text-xs text-surface-400 truncate" title={currentFile}>
+                        📄 {currentFile}
                     </p>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };

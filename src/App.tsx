@@ -6,6 +6,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { ProfileSwitcher } from './components/ProfileSwitcher';
 import { ProfileModal } from './components/ProfileModal';
 import { ScanProgressBar } from './components/ScanProgressBar';
+import { ToastContainer } from './components/Toast';
 import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
@@ -20,12 +21,17 @@ function App() {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
     const setScanProgress = useUIStore((s) => s.setScanProgress);
+    const toasts = useUIStore((s) => s.toasts);
+    const removeToast = useUIStore((s) => s.removeToast);
 
     // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
     const autoScanOnStartupRef = useRef(false);
     useEffect(() => {
         // 設定は永続化されているので、初回マウント時にstoreから読み取り
-        autoScanOnStartupRef.current = useSettingsStore.getState().autoScanOnStartup;
+        const settings = useSettingsStore.getState();
+        autoScanOnStartupRef.current = settings.autoScanOnStartup;
+        // プレビューフレーム数をメインプロセスに同期
+        window.electronAPI.setPreviewFrameCount(settings.previewFrameCount);
     }, []);
 
     // 初回ロード：プロファイル一覧を取得
@@ -96,6 +102,7 @@ function App() {
                 onClose={() => setProfileModalOpen(false)}
             />
             <ScanProgressBar onCancel={handleCancelScan} />
+            <ToastContainer toasts={toasts} onClose={removeToast} />
         </div>
     );
 }

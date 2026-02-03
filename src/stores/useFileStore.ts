@@ -20,6 +20,7 @@ interface FileState {
     getSortedFiles: () => MediaFile[];
     getFilteredFiles: () => MediaFile[];
     removeFile: (fileId: string) => void;
+    refreshFile: (fileId: string) => Promise<void>;
     // タグキャッシュ管理
     loadFileTagsCache: () => Promise<void>;
     updateFileTagCache: (fileId: string, tagIds: string[]) => void;
@@ -117,6 +118,19 @@ export const useFileStore = create<FileState>((set, get) => ({
                 fileTagsCache: newCache,
             };
         }),
+
+    refreshFile: async (fileId: string) => {
+        try {
+            const updatedFile = await window.electronAPI.getFileById(fileId);
+            if (updatedFile) {
+                set((state) => ({
+                    files: state.files.map(f => f.id === fileId ? updatedFile : f)
+                }));
+            }
+        } catch (e) {
+            console.error('Failed to refresh file:', e);
+        }
+    },
 
     loadFileTagsCache: async () => {
         const files = get().files;
