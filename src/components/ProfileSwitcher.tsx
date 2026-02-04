@@ -73,7 +73,7 @@ export const ProfileSwitcher = React.memo(({ onOpenManageModal }: ProfileSwitche
 
             {/* ドロップダウン */}
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 w-56 bg-surface-800 border border-surface-600 rounded-lg shadow-xl z-50 overflow-hidden">
+                <div className="absolute top-full left-0 mt-1 w-56 bg-surface-800 border border-surface-600 rounded-lg shadow-xl overflow-hidden" style={{ zIndex: 'var(--z-dropdown)' }}>
                     {/* プロファイル一覧 */}
                     <div className="max-h-60 overflow-y-auto">
                         {profiles.map((profile) => (

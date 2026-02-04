@@ -67,7 +67,7 @@ export const SettingsModal = React.memo(() => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60" style={{ zIndex: 'var(--z-modal)' }}>
             <div
                 className="bg-surface-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
@@ -372,6 +372,35 @@ export const SettingsModal = React.memo(() => {
                                     <li>リストアを実行するとアプリが再起動されます</li>
                                     <li>バックアップファイルは自動的に世代管理されます（最大5世代）</li>
                                 </ul>
+                            </div>
+
+                            {/* サムネイル診断 */}
+                            <div>
+                                <h3 className="text-sm font-semibold text-white mb-3">ストレージ診断</h3>
+                                <p className="text-sm text-surface-400 mb-3">
+                                    データベースに存在しない孤立サムネイルを検出します。
+                                </p>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const result = await window.electronAPI.diagnoseThumbnails();
+                                            const sizeMB = (result.totalOrphanedSize / 1024 / 1024).toFixed(2);
+                                            const message = `診断結果:\n\n` +
+                                                `総サムネイル数: ${result.totalThumbnails} 個\n` +
+                                                `孤立サムネイル: ${result.orphanedCount} 個\n` +
+                                                `無駄な容量: ${sizeMB} MB\n\n` +
+                                                (result.orphanedCount > 0
+                                                    ? `削除機能は Phase 12-6 で実装予定です。`
+                                                    : `孤立サムネイルは見つかりませんでした。`);
+                                            alert(message);
+                                        } catch (e: any) {
+                                            alert(`診断エラー: ${e.message}`);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded transition-colors"
+                                >
+                                    診断を実行
+                                </button>
                             </div>
                         </div>
                     )}

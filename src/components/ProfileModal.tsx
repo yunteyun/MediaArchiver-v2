@@ -68,7 +68,7 @@ export const ProfileModal = React.memo(({ isOpen, onClose }: ProfileModalProps) 
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60" style={{ zIndex: 'var(--z-modal)' }}>
             <div
                 className="bg-surface-900 rounded-lg shadow-xl w-full max-w-md mx-4"
                 onClick={(e) => e.stopPropagation()}

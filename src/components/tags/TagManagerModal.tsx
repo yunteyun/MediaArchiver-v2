@@ -127,7 +127,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/70" onClick={onClose} style={{ zIndex: 'var(--z-modal)' }}>
             <div
                 className="bg-surface-900 rounded-lg border border-surface-700 shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
@@ -145,8 +145,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                     <button
                         onClick={() => setActiveTab('tags')}
                         className={`flex-1 py-2 text-sm font-medium transition-colors ${activeTab === 'tags'
-                                ? 'text-primary-400 border-b-2 border-primary-400'
-                                : 'text-surface-400 hover:text-surface-200'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
                             }`}
                     >
                         <TagIcon size={16} className="inline mr-2" />
@@ -155,8 +155,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                     <button
                         onClick={() => setActiveTab('categories')}
                         className={`flex-1 py-2 text-sm font-medium transition-colors ${activeTab === 'categories'
-                                ? 'text-primary-400 border-b-2 border-primary-400'
-                                : 'text-surface-400 hover:text-surface-200'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
                             }`}
                     >
                         <FolderOpen size={16} className="inline mr-2" />

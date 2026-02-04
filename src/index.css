@@ -15,6 +15,16 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+
+    /* Z-Index 階層定義 */
+    --z-base: 0;
+    --z-sidebar: 10;
+    --z-header: 20;
+    --z-dropdown: 30;
+    --z-context-menu: 40;
+    --z-modal: 50;
+    --z-lightbox: 60;
+    --z-toast: 70;
 }
 
 body {

@@ -136,6 +136,9 @@ declare global {
             // Activity Log
             getActivityLogs: (limit?: number, offset?: number, actionFilter?: ActivityAction) => Promise<ActivityLog[]>;
             getActivityLogCount: (actionFilter?: ActivityAction) => Promise<number>;
+
+            // Thumbnail Cleanup
+            diagnoseThumbnails: () => Promise<DiagnosticResult>;
         };
     }
 }
@@ -210,4 +213,17 @@ interface ActivityLog {
     target_name: string | null;
     details: string | null;
     created_at: number;
+}
+
+// Thumbnail Cleanup types
+interface OrphanedThumbnail {
+    path: string;
+    size: number;
+}
+
+interface DiagnosticResult {
+    totalThumbnails: number;
+    orphanedCount: number;
+    totalOrphanedSize: number;
+    samples: OrphanedThumbnail[];
 }

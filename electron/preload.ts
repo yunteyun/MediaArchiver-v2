@@ -158,4 +158,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('activityLog:get', limit, offset, actionFilter),
     getActivityLogCount: (actionFilter?: string) =>
         ipcRenderer.invoke('activityLog:count', actionFilter),
+
+    // === Thumbnail Cleanup ===
+    diagnoseThumbnails: () =>
+        ipcRenderer.invoke('thumbnail:diagnose'),
 });

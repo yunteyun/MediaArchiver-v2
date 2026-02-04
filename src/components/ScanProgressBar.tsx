@@ -29,7 +29,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
     };
 
     return (
-        <div className="fixed bottom-4 right-4 w-96 bg-surface-800 border border-surface-600 rounded-lg shadow-xl z-50 overflow-hidden animate-slide-up">
+        <div className="fixed bottom-4 right-4 w-96 bg-surface-800 border border-surface-600 rounded-lg shadow-xl overflow-hidden animate-slide-up" style={{ zIndex: 'var(--z-toast)' }}>
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-surface-700">
                 <div className="flex items-center gap-2">

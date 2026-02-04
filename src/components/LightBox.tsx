@@ -219,7 +219,7 @@ export const LightBox = React.memo(() => {
     if (!lightboxFile) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/95 flex items-center justify-center" style={{ zIndex: 'var(--z-lightbox)' }}>
             {/* Close button */}
             <button
                 onClick={() => {

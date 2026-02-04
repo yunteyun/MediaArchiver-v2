@@ -90,7 +90,7 @@ export const TagSelector = React.memo(({
 
             {/* Dropdown - opens upward */}
             {isOpen && (
-                <div className="absolute z-50 bottom-full mb-1 w-64 bg-surface-800 border border-surface-700 rounded-lg shadow-xl overflow-hidden">
+                <div className="absolute bottom-full mb-1 w-64 bg-surface-800 border border-surface-700 rounded-lg shadow-xl overflow-hidden" style={{ zIndex: 'var(--z-dropdown)' }}>
                     {/* Search */}
                     <div className="p-2 border-b border-surface-700">
                         <div className="relative">

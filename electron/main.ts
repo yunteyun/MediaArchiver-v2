@@ -17,6 +17,7 @@ import { registerDuplicateHandlers } from './ipc/duplicate';
 import { registerBackupHandlers } from './ipc/backup';
 import { registerStatisticsHandlers } from './ipc/statistics';
 import { registerActivityLogHandlers } from './ipc/activityLog';
+import { registerThumbnailCleanupHandlers } from './ipc/thumbnailCleanup';
 import { pruneOldLogs } from './services/activityLogService';
 
 const require = createRequire(import.meta.url);
@@ -37,7 +38,8 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            webSecurity: false, // Allow loading local resources (file://) in dev mode
+            webSecurity: false, // ⚠️ SECURITY RISK: ローカルファイル(file://)アクセスのため無効化
+            // TODO: カスタムプロトコル (media://) の導入で解決予定 (Backlog参照)
         },
         backgroundColor: '#0f172a',
         show: false,
@@ -82,6 +84,7 @@ app.whenReady().then(() => {
     registerBackupHandlers();
     registerStatisticsHandlers();
     registerActivityLogHandlers();
+    registerThumbnailCleanupHandlers();
     logger.info('IPC handlers registered');
 
     // 古いアクティビティログを削除（30日以上前）
