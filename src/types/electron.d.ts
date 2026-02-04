@@ -132,6 +132,10 @@ declare global {
 
             // Statistics
             getLibraryStats: () => Promise<LibraryStats>;
+
+            // Activity Log
+            getActivityLogs: (limit?: number, offset?: number, actionFilter?: ActivityAction) => Promise<ActivityLog[]>;
+            getActivityLogCount: (actionFilter?: ActivityAction) => Promise<number>;
         };
     }
 }
@@ -188,4 +192,22 @@ interface LibraryStats {
     largeFiles: { id: string; name: string; path: string; type: string; size: number; thumbnailPath: string | null }[];
     extensionStats: { type: string; extension: string; count: number }[];
     resolutionStats: { resolution: string; count: number }[];
+}
+
+// Activity Log types
+type ActivityAction =
+    | 'file_add'
+    | 'file_delete'
+    | 'tag_add'
+    | 'tag_remove'
+    | 'scan_start'
+    | 'scan_end';
+
+interface ActivityLog {
+    id: number;
+    action: ActivityAction;
+    target_id: string | null;
+    target_name: string | null;
+    details: string | null;
+    created_at: number;
 }

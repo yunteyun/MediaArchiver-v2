@@ -153,10 +153,32 @@ export function addTagToFile(fileId: string, tagId: string): void {
         INSERT OR IGNORE INTO file_tags (file_id, tag_id, added_at)
         VALUES (?, ?, ?)
     `).run(fileId, tagId, now);
+
+    // アクティビティログ記録（Fire-and-Forget）
+    const file = db().prepare('SELECT name FROM files WHERE id = ?').get(fileId) as { name: string } | undefined;
+    const tag = db().prepare('SELECT name FROM tag_definitions WHERE id = ?').get(tagId) as { name: string } | undefined;
+    if (file && tag) {
+        import('./activityLogService').then(({ logActivity }) => {
+            logActivity('tag_add', fileId, tag.name, { fileName: file.name })
+                .catch(e => logger.scope('TagService').warn('Activity log failed:', e.message));
+        });
+    }
 }
 
 export function removeTagFromFile(fileId: string, tagId: string): void {
+    // 削除前に情報取得
+    const file = db().prepare('SELECT name FROM files WHERE id = ?').get(fileId) as { name: string } | undefined;
+    const tag = db().prepare('SELECT name FROM tag_definitions WHERE id = ?').get(tagId) as { name: string } | undefined;
+
     db().prepare('DELETE FROM file_tags WHERE file_id = ? AND tag_id = ?').run(fileId, tagId);
+
+    // アクティビティログ記録（Fire-and-Forget）
+    if (file && tag) {
+        import('./activityLogService').then(({ logActivity }) => {
+            logActivity('tag_remove', fileId, tag.name, { fileName: file.name })
+                .catch(e => logger.scope('TagService').warn('Activity log failed:', e.message));
+        });
+    }
 }
 
 export function getFileTags(fileId: string): TagDefinition[] {

@@ -16,6 +16,8 @@ import { registerProfileHandlers } from './ipc/profile';
 import { registerDuplicateHandlers } from './ipc/duplicate';
 import { registerBackupHandlers } from './ipc/backup';
 import { registerStatisticsHandlers } from './ipc/statistics';
+import { registerActivityLogHandlers } from './ipc/activityLog';
+import { pruneOldLogs } from './services/activityLogService';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -79,7 +81,11 @@ app.whenReady().then(() => {
     registerDuplicateHandlers();
     registerBackupHandlers();
     registerStatisticsHandlers();
+    registerActivityLogHandlers();
     logger.info('IPC handlers registered');
+
+    // 古いアクティビティログを削除（30日以上前）
+    pruneOldLogs(30);
 
     createWindow();
     logger.info('Main window created');

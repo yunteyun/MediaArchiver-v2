@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from 'recharts';
 import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
+import { ActivityLogView } from './ActivityLogView';
 
 interface LibraryStats {
     totalFiles: number;
@@ -487,6 +488,9 @@ export const StatisticsView: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Activity Log */}
+            <ActivityLogView />
         </div>
     );
 };

@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-04 12:09
+**Last Updated**: 2026-02-04 12:44
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -67,6 +67,12 @@
   - 巨大ファイル Top 10（サムネイル付きリスト）
   - 拡張子ランキング（Top 20）
   - 解像度分布（4K/FHD/HD/SD）円グラフ
+- ✅ **Phase 11-3: アクティビティログ** 🆕
+  - ファイル追加・削除履歴
+  - タグ付け履歴（追加・削除）
+  - タイムライン形式表示、フィルタ機能
+  - Fire-and-Forget方式（メイン処理を阻害しない）
+  - 30日自動削除（起動時Pruning）
 
 ## Recent Additions (2026-02-04)
 - ✅ **Phase 11-1: カテゴリ別統計表示**
@@ -79,6 +85,12 @@
   - 巨大ファイル Top 10（サイズ順）
   - 拡張子ランキング（ファイル名から抽出）
   - 解像度分布（metadata JSON解析）
+- ✅ **Phase 11-3: アクティビティログ**
+  - マイグレーション 002_activity_logs.ts
+  - activityLogService.ts: Fire-and-Forget方式のログ記録
+  - database.ts, tagService.ts: ファイル削除・タグ操作時にログ記録
+  - ActivityLogView.tsx: タイムライン形式、フィルタ機能
+  - クライアント側フィルタリング修正（すべて/ファイル/タグ/スキャン）
 
 ## Next Steps
 - [ ] Phase 11-3: アクティビティログ

@@ -152,4 +152,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // === Statistics ===
     getLibraryStats: () => ipcRenderer.invoke('statistics:get'),
+
+    // === Activity Log ===
+    getActivityLogs: (limit?: number, offset?: number, actionFilter?: string) =>
+        ipcRenderer.invoke('activityLog:get', limit, offset, actionFilter),
+    getActivityLogCount: (actionFilter?: string) =>
+        ipcRenderer.invoke('activityLog:count', actionFilter),
 });

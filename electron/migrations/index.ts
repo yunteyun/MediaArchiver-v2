@@ -11,8 +11,9 @@ import Database from 'better-sqlite3';
 import { logger } from '../services/logger';
 import type { Migration } from './types';
 import { initialSchema } from './001_initial_schema';
+import { activityLogs } from './002_activity_logs';
 // 将来のマイグレーション:
-// import { addHashColumn } from './002_add_hash_column';
+// import { addHashColumn } from './003_add_hash_column';
 
 // 型をre-export
 export type { Migration };
@@ -23,7 +24,7 @@ const log = logger.scope('Migration');
 // ★ 新しいマイグレーションはここに手動で追加
 const MIGRATIONS: Migration[] = [
     initialSchema,
-    // addHashColumn,
+    activityLogs,
 ];
 
 /**

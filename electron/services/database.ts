@@ -153,9 +153,9 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
 export function deleteFile(id: string) {
     const db = getDb();
 
-    // 削除前にサムネイル情報を取得
-    const file = db.prepare('SELECT thumbnail_path, preview_frames FROM files WHERE id = ?')
-        .get(id) as { thumbnail_path?: string; preview_frames?: string } | undefined;
+    // 削除前にサムネイル情報とファイル名を取得
+    const file = db.prepare('SELECT name, path, size, type, thumbnail_path, preview_frames FROM files WHERE id = ?')
+        .get(id) as { name: string; path: string; size: number; type: string; thumbnail_path?: string; preview_frames?: string } | undefined;
 
     if (file) {
         // サムネイル削除
@@ -188,6 +188,17 @@ export function deleteFile(id: string) {
 
     // DBレコード削除
     db.prepare('DELETE FROM files WHERE id = ?').run(id);
+
+    // アクティビティログ記録（Fire-and-Forget）
+    if (file) {
+        import('./activityLogService').then(({ logActivity }) => {
+            logActivity('file_delete', undefined, file.name, {
+                path: file.path,
+                size: file.size,
+                type: file.type
+            }).catch(e => log.warn('Activity log failed:', e.message));
+        });
+    }
 }
 
 export function updateFileLocation(id: string, newPath: string, newRootFolderId: string) {

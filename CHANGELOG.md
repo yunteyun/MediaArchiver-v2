@@ -69,6 +69,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 解像度分布（4K/FHD/HD/SD/不明、円グラフ、metadata JSON解析）
   - 動画・画像のみを対象とした解像度分類
 
+- **Phase 11-3: アクティビティログ** 🆕
+  - マイグレーション 002_activity_logs.ts（activity_logsテーブル追加）
+  - activityLogService.ts: Fire-and-Forget方式のログ記録（メイン処理を阻害しない）
+  - database.ts: ファイル削除時にログ記録
+  - tagService.ts: タグ追加・削除時にログ記録
+  - ActivityLogView.tsx: タイムライン形式表示、日付グルーピング
+  - フィルタ機能（すべて/ファイル/タグ/スキャン）
+  - クライアント側フィルタリング実装
+  - 30日以上前のログ自動削除（起動時Pruning）
+  - ページネーション対応（50件ずつ）
+
 - **スキャン設定の改善**
   - プレビューフレーム数設定（0-30枚、スライダーUI）
   - 設定値のメインプロセス同期
