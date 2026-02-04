@@ -8,6 +8,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { ScanProgressBar } from './components/ScanProgressBar';
 import { ToastContainer } from './components/Toast';
 import { DuplicateView } from './components/DuplicateView';
+import { StatisticsView } from './components/StatisticsView';
 import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
@@ -25,6 +26,7 @@ function App() {
     const toasts = useUIStore((s) => s.toasts);
     const removeToast = useUIStore((s) => s.removeToast);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
+    const mainView = useUIStore((s) => s.mainView);
 
     // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
     const autoScanOnStartupRef = useRef(false);
@@ -95,8 +97,10 @@ function App() {
                         <ProfileSwitcher onOpenManageModal={() => setProfileModalOpen(true)} />
                     </div>
                 </header>
-                {/* メインコンテンツ: 重複ビューまたはファイルグリッド */}
-                {duplicateViewOpen ? (
+                {/* メインコンテンツ: 統計 / 重複ビュー / ファイルグリッド */}
+                {mainView === 'statistics' ? (
+                    <StatisticsView />
+                ) : duplicateViewOpen ? (
                     <DuplicateView />
                 ) : (
                     <FileGrid key={`grid-${refreshKey}`} />

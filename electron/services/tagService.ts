@@ -205,6 +205,26 @@ export function getFilesByTagIds(tagIds: string[], mode: 'AND' | 'OR' = 'OR'): s
     }
 }
 
+/**
+ * 全ファイルのタグIDを一括取得
+ * パフォーマンス最適化: N回のIPC呼び出し → 1回
+ * @returns Record<fileId, tagId[]> 形式（IPC通信で安全なプレーンオブジェクト）
+ */
+export function getAllFileTagIds(): Record<string, string[]> {
+    const rows = db().prepare(`
+        SELECT file_id, tag_id FROM file_tags
+    `).all() as { file_id: string; tag_id: string }[];
+
+    const result: Record<string, string[]> = {};
+    for (const row of rows) {
+        if (!result[row.file_id]) {
+            result[row.file_id] = [];
+        }
+        result[row.file_id]!.push(row.tag_id);
+    }
+    return result;
+}
+
 // --- Initialization: Migrate default tags ---
 
 export function initDefaultTags(): void {

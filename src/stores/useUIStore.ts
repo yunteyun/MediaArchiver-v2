@@ -28,6 +28,7 @@ interface UIState {
     scanProgress: ScanProgress | null;
     toasts: ToastData[];
     duplicateViewOpen: boolean;
+    mainView: 'grid' | 'statistics';  // メインエリアの表示切り替え
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -44,6 +45,7 @@ interface UIState {
     removeToast: (id: string) => void;
     openDuplicateView: () => void;
     closeDuplicateView: () => void;
+    setMainView: (view: 'grid' | 'statistics') => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -59,6 +61,7 @@ export const useUIStore = create<UIState>((set) => ({
     scanProgress: null,
     toasts: [],
     duplicateViewOpen: false,
+    mainView: 'grid',
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -79,4 +82,5 @@ export const useUIStore = create<UIState>((set) => ({
     })),
     openDuplicateView: () => set({ duplicateViewOpen: true }),
     closeDuplicateView: () => set({ duplicateViewOpen: false }),
+    setMainView: (view) => set({ mainView: view }),
 }));

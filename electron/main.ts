@@ -14,6 +14,8 @@ import { registerArchiveHandlers } from './ipc/archive';
 import { registerTagHandlers } from './ipc/tag';
 import { registerProfileHandlers } from './ipc/profile';
 import { registerDuplicateHandlers } from './ipc/duplicate';
+import { registerBackupHandlers } from './ipc/backup';
+import { registerStatisticsHandlers } from './ipc/statistics';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -75,6 +77,8 @@ app.whenReady().then(() => {
     registerTagHandlers();
     registerProfileHandlers();
     registerDuplicateHandlers();
+    registerBackupHandlers();
+    registerStatisticsHandlers();
     logger.info('IPC handlers registered');
 
     createWindow();

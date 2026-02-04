@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-03 18:00
+**Last Updated**: 2026-02-04 12:09
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -42,7 +42,7 @@
   - 対応形式: mp3, wav, flac, m4a, ogg, aac, wma
   - アルバムアート抽出、メタデータ取得
   - 書庫内音声ファイル対応、連続再生機能
-- ✅ **Phase 9-2: ファイルハッシュ計算と重複検出** 🆕
+- ✅ **Phase 9-2: ファイルハッシュ計算と重複検出**
   - SHA256ハッシュ計算（ストリーム処理、エラーハンドリング）
   - サイズ衝突戦略による高速重複検出
   - スマート選択（新しい/古い/パスが短いファイルを残す）
@@ -52,25 +52,38 @@
 - ✅ **Phase 9-4: メモ機能**
   - ファイルごとのメモ追加・編集
   - LightBox にメモ編集UI追加（自動保存）
-- ✅ **Phase 10-1: DBスキーママイグレーション** 🆕
+- ✅ **Phase 10-1: DBスキーママイグレーション**
   - マイグレーションシステムの実装
   - 既存DBとの互換性対応
+- ✅ **Phase 11-1: カテゴリ別統計表示** 🆕
+  - ファイルタイプ別円グラフ（recharts、色分け）
+  - タグ別棒グラフ
+  - フォルダ別棒グラフ
+  - 月別登録推移（折れ線グラフ）
+  - 未整理ファイル率（ドーナツチャート）
+  - SQL GROUP BY でパフォーマンス最適化
+- ✅ **Phase 11-2: 追加統計機能** 🆕
+  - 評価分布（★1-5）棒グラフ
+  - 巨大ファイル Top 10（サムネイル付きリスト）
+  - 拡張子ランキング（Top 20）
+  - 解像度分布（4K/FHD/HD/SD）円グラフ
 
-## Recent Additions (2026-02-03)
-- ✅ **重複ファイル検出機能**
-  - hashService.ts: SHA256ハッシュ計算
-  - duplicateService.ts: サイズ衝突戦略
-  - DuplicateView.tsx: 重複ファイルUI
-  - スマート選択（mtime_ms → created_at の優先比較）
-- ✅ **DBマイグレーションシステム**
-  - migrations/types.ts, index.ts, 001_initial_schema.ts
-  - 循環参照問題の解消
-  - 既存schema_versionテーブルとの互換性対応
+## Recent Additions (2026-02-04)
+- ✅ **Phase 11-1: カテゴリ別統計表示**
+  - statisticsService.ts: SQL GROUP BY統計取得
+  - StatisticsView.tsx: recharts グラフ表示
+  - 月別登録推移、未整理ファイル率
+  - Recharts警告修正（min-w-0/min-h-0）
+- ✅ **Phase 11-2: 追加統計機能**
+  - 評価分布（cat_rating タグ集計）
+  - 巨大ファイル Top 10（サイズ順）
+  - 拡張子ランキング（ファイル名から抽出）
+  - 解像度分布（metadata JSON解析）
 
 ## Next Steps
+- [ ] Phase 11-3: アクティビティログ
 - [ ] Phase 10-2: バックアップ・リストア機能
 - [ ] Phase 10-3: パフォーマンス最適化（第2弾）
-- [ ] Phase 11: 統計・分析機能
 
 ## Known Issues
 - なし

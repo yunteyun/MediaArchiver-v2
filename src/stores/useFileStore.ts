@@ -133,26 +133,15 @@ export const useFileStore = create<FileState>((set, get) => ({
     },
 
     loadFileTagsCache: async () => {
-        const files = get().files;
-        const newCache = new Map<string, string[]>();
-
-        // 並列でタグを取得
-        const results = await Promise.all(
-            files.map(async (file) => {
-                try {
-                    const tagIds = await window.electronAPI.getFileTagIds(file.id);
-                    return { fileId: file.id, tagIds };
-                } catch {
-                    return { fileId: file.id, tagIds: [] };
-                }
-            })
-        );
-
-        results.forEach(({ fileId, tagIds }) => {
-            newCache.set(fileId, tagIds);
-        });
-
-        set({ fileTagsCache: newCache });
+        try {
+            // パフォーマンス最適化: 1回のIPC呼び出しで全タグを取得
+            const allTagsRecord = await window.electronAPI.getAllFileTagIds();
+            const newCache = new Map<string, string[]>(Object.entries(allTagsRecord));
+            set({ fileTagsCache: newCache });
+        } catch (e) {
+            console.error('Failed to load file tags cache:', e);
+            set({ fileTagsCache: new Map() });
+        }
     },
 
     updateFileTagCache: (fileId: string, tagIds: string[]) =>

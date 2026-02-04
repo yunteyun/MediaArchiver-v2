@@ -5,6 +5,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader } from 'lucide-react';
 import { useDuplicateStore } from '../stores/useDuplicateStore';
+import { useUIStore } from '../stores/useUIStore';
 
 // ファイルサイズを人間が読める形式に変換
 function formatFileSize(bytes: number): string {
@@ -41,6 +42,8 @@ export const DuplicateView: React.FC = () => {
         deleteSelectedFiles,
         reset
     } = useDuplicateStore();
+
+    const closeDuplicateView = useUIStore((s) => s.closeDuplicateView);
 
     // 進捗イベントをリッスン
     useEffect(() => {
@@ -174,7 +177,10 @@ export const DuplicateView: React.FC = () => {
                         </button>
                     )}
                     <button
-                        onClick={reset}
+                        onClick={() => {
+                            reset();
+                            closeDuplicateView();
+                        }}
                         className="p-1.5 text-surface-400 hover:text-surface-200 transition-colors"
                         title="閉じる"
                     >
@@ -226,8 +232,8 @@ export const DuplicateView: React.FC = () => {
                                         key={file.id}
                                         onClick={() => toggleFileSelection(file.id)}
                                         className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${isSelected
-                                                ? 'bg-red-900/20 hover:bg-red-900/30'
-                                                : 'hover:bg-surface-750'
+                                            ? 'bg-red-900/20 hover:bg-red-900/30'
+                                            : 'hover:bg-surface-750'
                                             }`}
                                     >
                                         {/* チェックボックス */}

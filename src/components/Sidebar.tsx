@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy } from 'lucide-react';
+import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3 } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
@@ -45,6 +45,8 @@ export const Sidebar = React.memo(() => {
 
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
         setCurrentFolderId(folderId);
+        useUIStore.getState().closeDuplicateView(); // 重複ビューを閉じる
+        useUIStore.getState().setMainView('grid');  // 統計ビューを閉じる
         try {
             // folderId が null または ALL_FILES_ID の場合は全ファイル取得
             const queryFolderId = folderId === ALL_FILES_ID ? undefined : folderId ?? undefined;
@@ -195,7 +197,11 @@ export const Sidebar = React.memo(() => {
                 {/* 重複ファイルチェック */}
                 <div className="border-t border-surface-700 my-2" />
                 <div
-                    onClick={() => useUIStore.getState().openDuplicateView()}
+                    onClick={() => {
+                        setCurrentFolderId(null);
+                        useUIStore.getState().openDuplicateView();
+                        useUIStore.getState().setMainView('grid');
+                    }}
                     className={`
                         flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
                         hover:bg-surface-800 text-surface-300
@@ -206,6 +212,27 @@ export const Sidebar = React.memo(() => {
                     <Copy size={20} className="flex-shrink-0 text-primary-400" />
                     {!sidebarCollapsed && (
                         <span className="truncate text-sm">重複チェック</span>
+                    )}
+                </div>
+
+                {/* 統計 */}
+                <div
+                    onClick={() => {
+                        useUIStore.getState().closeDuplicateView();
+                        useUIStore.getState().setMainView('statistics');
+                    }}
+                    className={`
+                        flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
+                        ${useUIStore.getState().mainView === 'statistics'
+                            ? 'bg-primary-600 text-white'
+                            : 'hover:bg-surface-800 text-surface-300'}
+                        ${sidebarCollapsed ? 'justify-center' : ''}
+                    `}
+                    title="ライブラリ統計"
+                >
+                    <BarChart3 size={20} className="flex-shrink-0 text-primary-400" />
+                    {!sidebarCollapsed && (
+                        <span className="truncate text-sm">統計</span>
                     )}
                 </div>
             </div>

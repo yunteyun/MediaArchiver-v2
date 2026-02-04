@@ -3,11 +3,11 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 
-type TabType = 'general' | 'logs';
+type TabType = 'general' | 'logs' | 'backup';
 
 export const SettingsModal = React.memo(() => {
     const isOpen = useUIStore((s) => s.settingsModalOpen);
@@ -110,6 +110,18 @@ export const SettingsModal = React.memo(() => {
                         <span className="flex items-center gap-2">
                             <FileText size={16} />
                             ログ
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('backup')}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'backup'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Database size={16} />
+                            バックアップ
                         </span>
                     </button>
                 </div>
@@ -319,6 +331,48 @@ export const SettingsModal = React.memo(() => {
                             <p className="text-xs text-surface-500">
                                 最新300行を表示。ログファイルは日付ごとに自動ローテーションされます。
                             </p>
+                        </div>
+                    )}
+
+                    {activeTab === 'backup' && (
+                        <div className="px-4 py-4 space-y-6">
+                            <div>
+                                <h3 className="text-sm font-semibold text-white mb-3">データベースバックアップ</h3>
+
+                                {/* 手動バックアップボタン */}
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const profileId = await window.electronAPI.getActiveProfileId();
+                                            const result = await window.electronAPI.createBackup(profileId);
+                                            if (result.success) {
+                                                alert('バックアップが作成されました');
+                                                // 履歴を再読み込み（簡易実装）
+                                            } else {
+                                                alert(`バックアップ失敗: ${result.error}`);
+                                            }
+                                        } catch (e: any) {
+                                            alert(`エラー: ${e.message}`);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded transition-colors"
+                                >
+                                    今すぐバックアップを作成
+                                </button>
+
+                                <p className="text-xs text-surface-500 mt-2">
+                                    現在のデータベースを安全にバックアップします（VACUUM INTO使用）
+                                </p>
+                            </div>
+
+                            <div className="text-xs text-surface-400 bg-surface-800 p-3 rounded">
+                                <p className="font-semibold mb-1">⚠️ 注意事項</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>バックアップにはDBサイズの1.5倍のディスク容量が必要です</li>
+                                    <li>リストアを実行するとアプリが再起動されます</li>
+                                    <li>バックアップファイルは自動的に世代管理されます（最大5世代）</li>
+                                </ul>
+                            </div>
                         </div>
                     )}
                 </div>

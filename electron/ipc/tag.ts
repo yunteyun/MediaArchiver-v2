@@ -17,6 +17,7 @@ import {
     getFileTags,
     getFileTagIds,
     getFilesByTagIds,
+    getAllFileTagIds,
     initDefaultTags
 } from '../services/tagService';
 
@@ -81,5 +82,10 @@ export function registerTagHandlers(): void {
 
     ipcMain.handle('tag:getFilesByTags', async (_event, { tagIds, mode }: { tagIds: string[]; mode?: 'AND' | 'OR' }) => {
         return getFilesByTagIds(tagIds, mode);
+    });
+
+    // 一括取得API（パフォーマンス最適化）
+    ipcMain.handle('tag:getAllFileTagIds', async () => {
+        return getAllFileTagIds();
     });
 }

@@ -1,11 +1,16 @@
 import fs from 'fs';
 import path from 'path';
+import pLimit from 'p-limit';
 import * as db from './database';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { generateThumbnail, getVideoDuration, generatePreviewFrames } from './thumbnail';
+import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
 
 const log = logger.scope('Scanner');
+
+// サムネイル生成の同時実行数制限（CPU負荷軽減）
+const thumbnailLimit = pLimit(3);
 
 const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.wmv'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
@@ -70,24 +75,50 @@ function commitBatch(pendingWrites: PendingWrite[]) {
 
 // ファイル数をカウント (再帰)
 async function countFiles(dirPath: string): Promise<number> {
+    // パス長チェック
+    if (!validatePathLength(dirPath)) {
+        log.warn(`Skipping path (too long): ${dirPath.substring(0, 100)}...`);
+        return 0;
+    }
     if (!fs.existsSync(dirPath)) return 0;
 
     let count = 0;
     try {
         const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
         for (const entry of entries) {
-            const fullPath = path.join(dirPath, entry.name);
-            if (entry.isDirectory()) {
-                count += await countFiles(fullPath);
-            } else if (entry.isFile()) {
-                const ext = path.extname(entry.name).toLowerCase();
-                if (VIDEO_EXTENSIONS.includes(ext) || IMAGE_EXTENSIONS.includes(ext) || ARCHIVE_EXTENSIONS.includes(ext) || AUDIO_EXTENSIONS.includes(ext)) {
-                    count++;;
+            try {
+                const fullPath = path.join(dirPath, entry.name);
+
+                // パス長チェック
+                if (!validatePathLength(fullPath)) {
+                    log.warn(`Skipping path (too long): ${entry.name}`);
+                    continue;
+                }
+
+                if (entry.isDirectory()) {
+                    count += await countFiles(fullPath);
+                } else if (entry.isFile()) {
+                    const ext = path.extname(entry.name).toLowerCase();
+                    if (VIDEO_EXTENSIONS.includes(ext) || IMAGE_EXTENSIONS.includes(ext) || ARCHIVE_EXTENSIONS.includes(ext) || AUDIO_EXTENSIONS.includes(ext)) {
+                        count++;
+                    }
+                }
+            } catch (entryErr) {
+                // エントリごとのエラーはスキップ
+                if (isSkippableError(entryErr)) {
+                    log.debug(`Skipping entry (${getErrorCode(entryErr)}): ${entry.name}`);
+                } else {
+                    log.warn(`Error processing entry ${entry.name}:`, entryErr);
                 }
             }
         }
     } catch (e) {
-        // ignore access errors
+        // ディレクトリ読み取りエラー
+        if (isSkippableError(e)) {
+            log.debug(`Cannot read directory (${getErrorCode(e)}): ${dirPath}`);
+        } else {
+            log.warn(`Error reading directory ${dirPath}:`, e);
+        }
     }
     return count;
 }
@@ -105,10 +136,25 @@ async function scanDirectoryInternal(
         pendingWrites: PendingWrite[];
     }
 ) {
+    // パス長チェック
+    if (!validatePathLength(dirPath)) {
+        log.warn(`Skipping directory (path too long): ${dirPath.substring(0, 100)}...`);
+        return;
+    }
     if (!fs.existsSync(dirPath)) return;
     if (scanCancelled) return;
 
-    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+    let entries;
+    try {
+        entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+    } catch (readErr) {
+        if (isSkippableError(readErr)) {
+            log.debug(`Cannot read directory (${getErrorCode(readErr)}): ${dirPath}`);
+        } else {
+            log.warn(`Error reading directory ${dirPath}:`, readErr);
+        }
+        return;
+    }
 
     for (const entry of entries) {
         // キャンセルチェック
@@ -116,6 +162,13 @@ async function scanDirectoryInternal(
 
         try {
             const fullPath = path.join(dirPath, entry.name);
+
+            // パス長チェック
+            if (!validatePathLength(fullPath)) {
+                log.warn(`Skipping file (path too long): ${entry.name}`);
+                state.stats.skipCount++;
+                continue;
+            }
 
             if (entry.isDirectory()) {
                 await scanDirectoryInternal(fullPath, rootFolderId, onProgress, state);
@@ -130,7 +183,19 @@ async function scanDirectoryInternal(
 
                 if (type) {
                     state.current++;
-                    const fileStats = await fs.promises.stat(fullPath);
+
+                    let fileStats;
+                    try {
+                        fileStats = await fs.promises.stat(fullPath);
+                    } catch (statErr) {
+                        if (isSkippableError(statErr)) {
+                            log.debug(`Skipping file (${getErrorCode(statErr)}): ${entry.name}`);
+                        } else {
+                            log.warn(`Cannot stat file ${entry.name}:`, statErr);
+                        }
+                        state.stats.skipCount++;
+                        continue;
+                    }
 
                     const existing = db.findFileByPath(fullPath);
                     // Skip if size and mtime match AND thumbnail exists (if applicable)
@@ -180,7 +245,8 @@ async function scanDirectoryInternal(
                                     message: `サムネイル生成中...`
                                 });
                             }
-                            const generated = await generateThumbnail(fullPath);
+                            // p-limitで同時実行数を制限（CPU負荷軽減）
+                            const generated = await thumbnailLimit(() => generateThumbnail(fullPath));
                             if (scanCancelled) return;
                             if (generated) thumbnailPath = generated;
                         } catch (e) {
@@ -211,7 +277,8 @@ async function scanDirectoryInternal(
                                     message: `プレビューフレーム生成中...`
                                 });
                             }
-                            previewFrames = await generatePreviewFrames(fullPath, previewFrameCountSetting) || undefined;
+                            // p-limitで同時実行数を制限（CPU負荷軽減）
+                            previewFrames = await thumbnailLimit(() => generatePreviewFrames(fullPath, previewFrameCountSetting)) || undefined;
                             if (scanCancelled) return;
                         } catch (e) {
                             log.error('Preview frames generation failed:', e);
@@ -267,7 +334,12 @@ async function scanDirectoryInternal(
                 }
             }
         } catch (err) {
-            log.error(`Failed to scan entry ${entry.name}:`, err);
+            if (isSkippableError(err)) {
+                log.debug(`Skipping entry (${getErrorCode(err)}): ${entry.name}`);
+                state.stats.skipCount++;
+            } else {
+                log.error(`Failed to scan entry ${entry.name}:`, err);
+            }
         }
     }
 }

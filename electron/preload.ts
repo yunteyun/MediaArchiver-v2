@@ -114,6 +114,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFileTagIds: (fileId: string) => ipcRenderer.invoke('tag:getFileTagIds', { fileId }),
     getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') =>
         ipcRenderer.invoke('tag:getFilesByTags', { tagIds, mode }),
+    getAllFileTagIds: () => ipcRenderer.invoke('tag:getAllFileTagIds') as Promise<Record<string, string[]>>,
 
     // === Profile ===
     getProfiles: () => ipcRenderer.invoke('profile:list'),
@@ -131,6 +132,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('profile:switched', handler);
     },
 
+    // === Backup ===
+    createBackup: (profileId: string) => ipcRenderer.invoke('backup:create', { profileId }),
+    getBackupHistory: (profileId: string) => ipcRenderer.invoke('backup:history', { profileId }),
+    restoreBackup: (backupPath: string) => ipcRenderer.invoke('backup:restore', { backupPath }),
+    getBackupSettings: () => ipcRenderer.invoke('backup:getSettings'),
+    setBackupSettings: (settings: any) => ipcRenderer.invoke('backup:setSettings', settings),
+    shouldAutoBackup: (profileId: string) => ipcRenderer.invoke('backup:shouldAutoBackup', { profileId }),
+
     // === Duplicate Detection ===
     findDuplicates: () => ipcRenderer.invoke('duplicate:find'),
     cancelDuplicateSearch: () => ipcRenderer.invoke('duplicate:cancel'),
@@ -140,4 +149,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('duplicate:progress', handler);
         return () => ipcRenderer.removeListener('duplicate:progress', handler);
     },
+
+    // === Statistics ===
+    getLibraryStats: () => ipcRenderer.invoke('statistics:get'),
 });

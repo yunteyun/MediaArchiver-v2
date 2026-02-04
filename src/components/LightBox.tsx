@@ -325,28 +325,39 @@ export const LightBox = React.memo(() => {
                                                 音声ファイル ({archiveAudioFiles.length})
                                             </p>
                                             <div className="flex-1 overflow-y-auto max-h-[60vh]">
-                                                {archiveAudioFiles.map((audioEntry, index) => (
-                                                    <button
-                                                        key={index}
-                                                        className={`w-full text-left px-4 py-3 text-base rounded-lg flex items-center gap-3 transition-colors mb-1 ${currentAudioIndex === index
-                                                            ? 'bg-primary-600 text-white'
-                                                            : 'text-surface-200 hover:bg-surface-700'
-                                                            }`}
-                                                        onClick={async () => {
-                                                            const extractedPath = await window.electronAPI.extractArchiveAudioFile(
-                                                                lightboxFile.path,
-                                                                audioEntry
-                                                            );
-                                                            if (extractedPath) {
-                                                                setCurrentArchiveAudioPath(extractedPath);
-                                                                setCurrentAudioIndex(index);
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Music size={18} className={`flex-shrink-0 ${currentAudioIndex === index ? 'text-white' : 'text-primary-400'}`} />
-                                                        <span className="truncate">{audioEntry.split('/').pop() || audioEntry}</span>
-                                                    </button>
-                                                ))}
+                                                {archiveAudioFiles.map((audioEntry, index) => {
+                                                    const isPlaying = currentAudioIndex === index;
+                                                    return (
+                                                        <button
+                                                            key={index}
+                                                            className={`w-full text-left px-4 py-3 text-base rounded-lg flex items-center gap-3 transition-all mb-1 ${isPlaying
+                                                                ? 'bg-primary-600 text-white shadow-lg'
+                                                                : 'text-surface-200 hover:bg-surface-700'
+                                                                }`}
+                                                            onClick={async () => {
+                                                                const extractedPath = await window.electronAPI.extractArchiveAudioFile(
+                                                                    lightboxFile.path,
+                                                                    audioEntry
+                                                                );
+                                                                if (extractedPath) {
+                                                                    setCurrentArchiveAudioPath(extractedPath);
+                                                                    setCurrentAudioIndex(index);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Music
+                                                                size={18}
+                                                                className={`flex-shrink-0 ${isPlaying
+                                                                    ? 'text-white animate-pulse'
+                                                                    : 'text-primary-400'
+                                                                    }`}
+                                                            />
+                                                            <span className={`truncate ${isPlaying ? 'font-semibold' : ''}`}>
+                                                                {audioEntry.split('/').pop() || audioEntry}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                             {/* 音声プレイヤー */}
                                             {currentArchiveAudioPath && (

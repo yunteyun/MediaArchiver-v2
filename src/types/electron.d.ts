@@ -101,6 +101,7 @@ declare global {
             getFileTags: (fileId: string) => Promise<TagDefinition[]>;
             getFileTagIds: (fileId: string) => Promise<string[]>;
             getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') => Promise<string[]>;
+            getAllFileTagIds: () => Promise<Record<string, string[]>>;
 
             // Profile
             getProfiles: () => Promise<Profile[]>;
@@ -120,6 +121,17 @@ declare global {
             cancelDuplicateSearch: () => Promise<void>;
             deleteDuplicateFiles: (fileIds: string[]) => Promise<{ id: string; success: boolean; error?: string }[]>;
             onDuplicateProgress: (callback: (progress: DuplicateProgress) => void) => () => void;
+
+            // Backup
+            createBackup: (profileId: string) => Promise<{ success: boolean; backup?: BackupInfo; error?: string }>;
+            getBackupHistory: (profileId: string) => Promise<BackupInfo[]>;
+            restoreBackup: (backupPath: string) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
+            getBackupSettings: () => Promise<BackupSettings>;
+            setBackupSettings: (settings: BackupSettings) => Promise<{ success: boolean }>;
+            shouldAutoBackup: (profileId: string) => Promise<boolean>;
+
+            // Statistics
+            getLibraryStats: () => Promise<LibraryStats>;
         };
     }
 }
@@ -143,4 +155,37 @@ interface DuplicateProgress {
     current: number;
     total: number;
     currentFile?: string;
+}
+
+// Backup types
+interface BackupInfo {
+    id: string;
+    filename: string;
+    path: string;
+    createdAt: number;
+    size: number;
+    profileId: string;
+}
+
+interface BackupSettings {
+    enabled: boolean;
+    interval: 'daily' | 'weekly';
+    maxBackups: number;
+    backupPath: string;
+}
+
+// Statistics types
+interface LibraryStats {
+    totalFiles: number;
+    totalSize: number;
+    byType: { type: string; count: number; size: number }[];
+    byTag: { tagId: string; tagName: string; tagColor: string; count: number }[];
+    byFolder: { folderId: string; folderPath: string; count: number; size: number }[];
+    recentFiles: { id: string; name: string; path: string; type: string; createdAt: number; thumbnailPath: string | null }[];
+    monthlyTrend: { month: string; count: number }[];
+    untaggedStats: { tagged: number; untagged: number };
+    ratingStats: { rating: string; count: number }[];
+    largeFiles: { id: string; name: string; path: string; type: string; size: number; thumbnailPath: string | null }[];
+    extensionStats: { type: string; extension: string; count: number }[];
+    resolutionStats: { resolution: string; count: number }[];
 }

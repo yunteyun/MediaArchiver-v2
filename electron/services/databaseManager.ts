@@ -271,6 +271,31 @@ class DatabaseManager {
     }
 
     /**
+     * 現在のDBファイルパス取得（バックアップ用）
+     */
+    getCurrentDbPath(): string {
+        if (!this.currentProfileId) {
+            throw new Error('No active profile');
+        }
+        const profile = this.getProfile(this.currentProfileId);
+        if (!profile) {
+            throw new Error('Active profile not found');
+        }
+        return path.join(this.userDataPath, profile.dbFilename);
+    }
+
+    /**
+     * DB接続を明示的に閉じる（リストア処理用）
+     */
+    closeDb(): void {
+        if (this.db && this.db.open) {
+            log.info('Closing database connection explicitly');
+            this.db.close();
+            this.db = null;
+        }
+    }
+
+    /**
      * クリーンアップ
      */
     close(): void {
