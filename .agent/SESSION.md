@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-05 14:50
+**Last Updated**: 2026-02-05 21:05
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -92,31 +92,24 @@
   - CARD_SIZES定数（UIレンダリング専用）
   - useMemoメモ化（再レンダリング抑制）
 
-## Recent Additions (2026-02-04)
-- ✅ **Phase 11-1: カテゴリ別統計表示**
-  - statisticsService.ts: SQL GROUP BY統計取得
-  - StatisticsView.tsx: recharts グラフ表示
-  - 月別登録推移、未整理ファイル率
-  - Recharts警告修正（min-w-0/min-h-0）
-- ✅ **Phase 11-2: 追加統計機能**
-  - 評価分布（cat_rating タグ集計）
-  - 巨大ファイル Top 10（サイズ順）
-  - 拡張子ランキング（ファイル名から抽出）
-  - 解像度分布（metadata JSON解析）
-- ✅ **Phase 11-3: アクティビティログ**
-  - マイグレーション 002_activity_logs.ts
-  - activityLogService.ts: Fire-and-Forget方式のログ記録
-  - database.ts, tagService.ts: ファイル削除・タグ操作時にログ記録
-  - ActivityLogView.tsx: タイムライン形式、フィルタ機能
-  - クライアント側フィルタリング修正（すべて/ファイル/タグ/スキャン）
+## Recent Additions (2026-02-05)
+- **AGENT.md 作成**: AIエージェントの行動指針、実装フロー、禁止事項を定義
+- **不具合修正の試行とリバート**:
+  - Lightbox表示問題、書庫内音声設定、書庫内複数フォルダ対応を実装
+  - 検証中にシークバー動作不良のリグレッション発生
+  - 全変更をリバートし、次回は一つずつ対処する方針を決定
 
 ## Next Steps
-- [ ] Phase 11-3: アクティビティログ
+- [ ] 🔥 緊急不具合修正（Critical Bugs）を一つずつ実施
+  - Lightbox表示問題
+  - 書庫内音声音量設定
+  - 書庫内複数フォルダ対応
 - [ ] Phase 10-2: バックアップ・リストア機能
 - [ ] Phase 10-3: パフォーマンス最適化（第2弾）
 
 ## Known Issues
-- なし
+- 動画再生時のシークバー動作不良（今回の修正試行時に発生、リバートで解消済み）
+- 書庫内音声の音量設定が保存されない（既知の不具合）
 
 ## Important Context
 - v2はv1（c:\\MediaArchiver）のリファクタリング版
