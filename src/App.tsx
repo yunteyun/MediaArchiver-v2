@@ -14,6 +14,7 @@ import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
 import { useUIStore } from './stores/useUIStore';
 import { useSettingsStore } from './stores/useSettingsStore';
+import { useToastStore } from './stores/useToastStore';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -23,8 +24,8 @@ function App() {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
     const setScanProgress = useUIStore((s) => s.setScanProgress);
-    const toasts = useUIStore((s) => s.toasts);
-    const removeToast = useUIStore((s) => s.removeToast);
+    const toasts = useToastStore((s) => s.toasts);
+    const removeToast = useToastStore((s) => s.removeToast);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
 
@@ -56,8 +57,14 @@ function App() {
 
     // スキャン進捗イベントを監視
     useEffect(() => {
+        const success = useToastStore.getState().success;
         const cleanup = window.electronAPI.onScanProgress((progress) => {
             setScanProgress(progress);
+            // スキャン完了時（progress === null）にトースト表示
+            if (progress === null) {
+                const fileCount = useFileStore.getState().files.length;
+                success(`スキャンが完了しました (${fileCount}件)`);
+            }
         });
         return cleanup;
     }, [setScanProgress]);
