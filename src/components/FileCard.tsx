@@ -5,6 +5,7 @@ import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
 import { TagBadge } from './tags';
+import { toMediaUrl } from '../utils/mediaPath';
 
 interface FileCardProps {
     file: MediaFile;
@@ -86,7 +87,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
                 const images = previewFrames.map((framePath) => {
                     const img = new Image();
-                    img.src = `file://${framePath}`;
+                    img.src = toMediaUrl(framePath);
                     return img;
                 });
                 preloadedImages.current = images;
@@ -205,7 +206,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 {/* サムネイル画像 */}
                 {displayImage ? (
                     <img
-                        src={`file://${displayImage}`}
+                        src={toMediaUrl(displayImage)}
                         alt={file.name}
                         className={`w-full h-full object-cover transition-transform duration-300 ${!shouldPlayVideo ? 'group-hover:scale-105' : ''
                             } ${shouldPlayVideo ? 'opacity-0' : 'opacity-100'}`}
@@ -219,7 +220,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 {shouldPlayVideo && file.type === 'video' && (
                     <video
                         ref={videoRef}
-                        src={`file://${file.path}`}
+                        src={toMediaUrl(file.path)}
                         className="absolute inset-0 w-full h-full object-cover"
                         muted
                         loop
@@ -247,8 +248,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 {sortedTags.length > 0 && (
                     <div
                         className={`absolute left-1 flex flex-wrap gap-0.5 opacity-0 group-hover:opacity-100 transition-all ${isTagsExpanded
-                                ? 'top-0 bottom-0 right-0 left-0 bg-black/85 p-2 z-10 content-start overflow-y-auto'
-                                : 'top-1 max-w-[90%]'
+                            ? 'top-0 bottom-0 right-0 left-0 bg-black/85 p-2 z-10 content-start overflow-y-auto'
+                            : 'top-1 max-w-[90%]'
                             }`}
                         onMouseLeave={() => setTagsExpanded(false)}
                     >

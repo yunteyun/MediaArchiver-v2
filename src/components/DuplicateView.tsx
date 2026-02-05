@@ -6,6 +6,7 @@ import React, { useEffect, useCallback } from 'react';
 import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader } from 'lucide-react';
 import { useDuplicateStore } from '../stores/useDuplicateStore';
 import { useUIStore } from '../stores/useUIStore';
+import { toMediaUrl } from '../utils/mediaPath';
 
 // ファイルサイズを人間が読める形式に変換
 function formatFileSize(bytes: number): string {
@@ -248,7 +249,7 @@ export const DuplicateView: React.FC = () => {
                                         {/* サムネイル */}
                                         {file.thumbnail_path ? (
                                             <img
-                                                src={`file://${file.thumbnail_path}`}
+                                                src={toMediaUrl(file.thumbnail_path)}
                                                 alt=""
                                                 className="w-12 h-12 object-cover rounded flex-shrink-0"
                                             />

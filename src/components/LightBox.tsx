@@ -5,6 +5,7 @@ import { useFileStore } from '../stores/useFileStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { TagSelector } from './tags';
+import { toMediaUrl } from '../utils/mediaPath';
 
 export const LightBox = React.memo(() => {
     const lightboxFile = useUIStore((s) => s.lightboxFile);
@@ -260,7 +261,7 @@ export const LightBox = React.memo(() => {
                 {lightboxFile.type === 'video' ? (
                     <video
                         ref={videoRef}
-                        src={`file://${lightboxFile.path}`}
+                        src={toMediaUrl(lightboxFile.path)}
                         controls
                         autoPlay
                         className="max-w-full max-h-full"
@@ -268,7 +269,7 @@ export const LightBox = React.memo(() => {
                     />
                 ) : lightboxFile.type === 'image' ? (
                     <img
-                        src={`file://${lightboxFile.path}`}
+                        src={toMediaUrl(lightboxFile.path)}
                         alt={lightboxFile.name}
                         className="max-w-full max-h-full object-contain"
                     />
@@ -277,7 +278,7 @@ export const LightBox = React.memo(() => {
                         {/* Selected image full view */}
                         {selectedArchiveImage ? (
                             <img
-                                src={`file://${selectedArchiveImage}`}
+                                src={toMediaUrl(selectedArchiveImage)}
                                 alt="Archive preview"
                                 className="max-w-full max-h-[80vh] object-contain cursor-pointer"
                                 onClick={() => setSelectedArchiveImage(null)}
@@ -301,7 +302,7 @@ export const LightBox = React.memo(() => {
                                                     onClick={() => setSelectedArchiveImage(frame)}
                                                 >
                                                     <img
-                                                        src={`file://${frame}`}
+                                                        src={toMediaUrl(frame)}
                                                         alt={`Page ${index + 1}`}
                                                         className="w-full h-full object-cover"
                                                     />
@@ -363,7 +364,7 @@ export const LightBox = React.memo(() => {
                                             {currentArchiveAudioPath && (
                                                 <div className="mt-3 pt-3 border-t border-surface-700">
                                                     <audio
-                                                        src={`file://${currentArchiveAudioPath}`}
+                                                        src={toMediaUrl(currentArchiveAudioPath)}
                                                         controls
                                                         autoPlay
                                                         className="w-full"
@@ -414,7 +415,7 @@ export const LightBox = React.memo(() => {
                         {/* アルバムアート（サムネイルがある場合） */}
                         {lightboxFile.thumbnailPath ? (
                             <img
-                                src={`file://${lightboxFile.thumbnailPath}`}
+                                src={toMediaUrl(lightboxFile.thumbnailPath)}
                                 alt="Album Art"
                                 className="w-64 h-64 object-cover rounded-lg shadow-lg"
                             />
@@ -426,7 +427,7 @@ export const LightBox = React.memo(() => {
                         {/* オーディオプレイヤー */}
                         <audio
                             ref={videoRef}
-                            src={`file://${lightboxFile.path}`}
+                            src={toMediaUrl(lightboxFile.path)}
                             controls
                             autoPlay
                             className="w-80"

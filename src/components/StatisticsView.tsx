@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from 'recharts';
 import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import { ActivityLogView } from './ActivityLogView';
+import { toMediaUrl } from '../utils/mediaPath';
 
 interface LibraryStats {
     totalFiles: number;
@@ -65,8 +66,14 @@ export const StatisticsView: React.FC = () => {
         setLoading(false);
     };
 
+    // Delay rendering to allow container size to be calculated
+    const [isReady, setIsReady] = useState(false);
+
     useEffect(() => {
         loadStats();
+        // Delay chart rendering to avoid size calculation issues
+        const timer = setTimeout(() => setIsReady(true), 100);
+        return () => clearTimeout(timer);
     }, []);
 
     if (loading) {
@@ -149,34 +156,32 @@ export const StatisticsView: React.FC = () => {
                 <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                     ファイルタイプ別
                 </h2>
-                <div className="flex items-center gap-6">
-                    <div className="h-48 w-48 min-w-0 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={stats.byType.map(t => ({
-                                        name: typeLabels[t.type] || t.type,
-                                        value: t.count,
-                                        color: typeColors[t.type] || '#6366f1'
-                                    }))}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={40}
-                                    outerRadius={70}
-                                    dataKey="value"
-                                    stroke="#1e293b"
-                                    strokeWidth={2}
-                                >
-                                    {stats.byType.map((t, idx) => (
-                                        <Cell key={`cell-${idx}`} fill={typeColors[t.type] || '#6366f1'} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
+                <div className="grid grid-cols-[auto_1fr] gap-6 items-center">
+                    <div className="h-48 w-48">
+                        <PieChart width={192} height={192}>
+                            <Pie
+                                data={stats.byType.map(t => ({
+                                    name: typeLabels[t.type] || t.type,
+                                    value: t.count,
+                                    color: typeColors[t.type] || '#6366f1'
+                                }))}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={70}
+                                dataKey="value"
+                                stroke="#1e293b"
+                                strokeWidth={2}
+                            >
+                                {stats.byType.map((t, idx) => (
+                                    <Cell key={`cell-${idx}`} fill={typeColors[t.type] || '#6366f1'} />
+                                ))}
+                            </Pie>
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                labelStyle={{ color: '#f1f5f9' }}
+                            />
+                        </PieChart>
                     </div>
                     <div className="flex-1 space-y-3">
                         {stats.byType.map(t => (
@@ -208,31 +213,33 @@ export const StatisticsView: React.FC = () => {
                         タグ別統計（上位20件）
                     </h2>
                     <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={stats.byTag.slice(0, 10)}
-                                layout="vertical"
-                                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                            >
-                                <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                                <YAxis
-                                    type="category"
-                                    dataKey="tagName"
-                                    stroke="#94a3b8"
-                                    fontSize={12}
-                                    width={70}
-                                />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
-                                />
-                                <Bar dataKey="count" name="ファイル数" radius={[0, 4, 4, 0]}>
-                                    {stats.byTag.slice(0, 10).map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.tagColor || '#6366f1'} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {isReady && (
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                                <BarChart
+                                    data={stats.byTag.slice(0, 10)}
+                                    layout="vertical"
+                                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                                >
+                                    <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="tagName"
+                                        stroke="#94a3b8"
+                                        fontSize={12}
+                                        width={70}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#f1f5f9' }}
+                                    />
+                                    <Bar dataKey="count" name="ファイル数" radius={[0, 4, 4, 0]}>
+                                        {stats.byTag.slice(0, 10).map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.tagColor || '#6366f1'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             )}
@@ -245,38 +252,40 @@ export const StatisticsView: React.FC = () => {
                         フォルダ別統計（ファイル数）
                     </h2>
                     <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={stats.byFolder.map(f => ({
-                                    name: f.folderPath.split('\\').pop() || f.folderPath,
-                                    fullPath: f.folderPath,
-                                    count: f.count,
-                                    size: f.size
-                                }))}
-                                layout="vertical"
-                                margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
-                            >
-                                <XAxis type="number" stroke="#94a3b8" fontSize={12} />
-                                <YAxis
-                                    type="category"
-                                    dataKey="name"
-                                    stroke="#94a3b8"
-                                    fontSize={12}
-                                    width={110}
-                                />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
-                                    formatter={(value: any, name?: string, props?: any) => {
-                                        if (name === 'count' && props) {
-                                            return [`${value.toLocaleString()}件 (${formatBytes(props.payload.size)})`, 'ファイル数'];
-                                        }
-                                        return value;
-                                    }}
-                                />
-                                <Bar dataKey="count" name="ファイル数" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {isReady && (
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                                <BarChart
+                                    data={stats.byFolder.map(f => ({
+                                        name: f.folderPath.split('\\').pop() || f.folderPath,
+                                        fullPath: f.folderPath,
+                                        count: f.count,
+                                        size: f.size
+                                    }))}
+                                    layout="vertical"
+                                    margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                                >
+                                    <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+                                    <YAxis
+                                        type="category"
+                                        dataKey="name"
+                                        stroke="#94a3b8"
+                                        fontSize={12}
+                                        width={110}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#f1f5f9' }}
+                                        formatter={(value: any, name?: string, props?: any) => {
+                                            if (name === 'count' && props) {
+                                                return [`${value.toLocaleString()}件 (${formatBytes(props.payload.size)})`, 'ファイル数'];
+                                            }
+                                            return value;
+                                        }}
+                                    />
+                                    <Bar dataKey="count" name="ファイル数" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             )}
@@ -289,18 +298,20 @@ export const StatisticsView: React.FC = () => {
                         月別登録推移（過去12ヶ月）
                     </h2>
                     <div className="h-64 min-w-0 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={stats.monthlyTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                                <YAxis stroke="#94a3b8" fontSize={12} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
-                                />
-                                <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {isReady && (
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                                <LineChart data={stats.monthlyTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#f1f5f9' }}
+                                    />
+                                    <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             )}
@@ -312,32 +323,30 @@ export const StatisticsView: React.FC = () => {
                         <AlertCircle size={16} className="text-primary-400" />
                         整理状況（タグ付け）
                     </h2>
-                    <div className="flex items-center gap-6">
-                        <div className="h-48 w-48 min-w-0 min-h-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={[
-                                            { name: 'タグあり', value: stats.untaggedStats.tagged, color: '#22c55e' },
-                                            { name: 'タグなし', value: stats.untaggedStats.untagged, color: '#ef4444' }
-                                        ]}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={40}
-                                        outerRadius={70}
-                                        dataKey="value"
-                                        stroke="#1e293b"
-                                        strokeWidth={2}
-                                    >
-                                        <Cell fill="#22c55e" />
-                                        <Cell fill="#ef4444" />
-                                    </Pie>
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
+                    <div className="grid grid-cols-[auto_1fr] gap-6 items-center">
+                        <div className="h-48 w-48">
+                            <PieChart width={192} height={192}>
+                                <Pie
+                                    data={[
+                                        { name: 'タグあり', value: stats.untaggedStats.tagged, color: '#22c55e' },
+                                        { name: 'タグなし', value: stats.untaggedStats.untagged, color: '#ef4444' }
+                                    ]}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={40}
+                                    outerRadius={70}
+                                    dataKey="value"
+                                    stroke="#1e293b"
+                                    strokeWidth={2}
+                                >
+                                    <Cell fill="#22c55e" />
+                                    <Cell fill="#ef4444" />
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                    labelStyle={{ color: '#f1f5f9' }}
+                                />
+                            </PieChart>
                         </div>
                         <div className="flex-1 space-y-3">
                             <div className="flex items-center gap-3">
@@ -369,18 +378,20 @@ export const StatisticsView: React.FC = () => {
                         評価分布（★1-5）
                     </h2>
                     <div className="h-48 min-w-0 min-h-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stats.ratingStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                <XAxis dataKey="rating" stroke="#94a3b8" fontSize={12} />
-                                <YAxis stroke="#94a3b8" fontSize={12} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
-                                />
-                                <Bar dataKey="count" name="ファイル数" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {isReady && (
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                                <BarChart data={stats.ratingStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                    <XAxis dataKey="rating" stroke="#94a3b8" fontSize={12} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#f1f5f9' }}
+                                    />
+                                    <Bar dataKey="count" name="ファイル数" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             )}
@@ -398,7 +409,7 @@ export const StatisticsView: React.FC = () => {
                                 <div className="text-surface-400 text-sm w-6">{idx + 1}</div>
                                 {file.thumbnailPath && (
                                     <img
-                                        src={`file://${file.thumbnailPath}`}
+                                        src={toMediaUrl(file.thumbnailPath)}
                                         alt={file.name}
                                         className="w-12 h-12 object-cover rounded"
                                     />
@@ -443,33 +454,31 @@ export const StatisticsView: React.FC = () => {
                         <BarChart3 size={16} className="text-cyan-400" />
                         解像度分布（動画・画像）
                     </h2>
-                    <div className="flex items-center gap-6">
-                        <div className="h-48 w-48 min-w-0 min-h-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={stats.resolutionStats}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={40}
-                                        outerRadius={70}
-                                        dataKey="count"
-                                        nameKey="resolution"
-                                        stroke="#1e293b"
-                                        strokeWidth={2}
-                                    >
-                                        <Cell fill="#06b6d4" />
-                                        <Cell fill="#3b82f6" />
-                                        <Cell fill="#8b5cf6" />
-                                        <Cell fill="#ec4899" />
-                                        <Cell fill="#64748b" />
-                                    </Pie>
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
+                    <div className="grid grid-cols-[auto_1fr] gap-6 items-center">
+                        <div className="h-48 w-48">
+                            <PieChart width={192} height={192}>
+                                <Pie
+                                    data={stats.resolutionStats}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={40}
+                                    outerRadius={70}
+                                    dataKey="count"
+                                    nameKey="resolution"
+                                    stroke="#1e293b"
+                                    strokeWidth={2}
+                                >
+                                    <Cell fill="#06b6d4" />
+                                    <Cell fill="#3b82f6" />
+                                    <Cell fill="#8b5cf6" />
+                                    <Cell fill="#ec4899" />
+                                    <Cell fill="#64748b" />
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                    labelStyle={{ color: '#f1f5f9' }}
+                                />
+                            </PieChart>
                         </div>
                         <div className="flex-1 space-y-2">
                             {stats.resolutionStats.map((res, idx) => (

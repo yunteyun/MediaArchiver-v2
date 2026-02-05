@@ -1,9 +1,10 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, protocol } from 'electron';
 import path from 'path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dbManager } from './services/databaseManager';
 import { logger } from './services/logger';
+import { registerMediaProtocol } from './protocol';
 import { registerDatabaseHandlers } from './ipc/database';
 import { registerScannerHandlers } from './ipc/scanner';
 import { registerAppHandlers } from './ipc/app';
@@ -23,6 +24,11 @@ import { pruneOldLogs } from './services/activityLogService';
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Register custom protocol scheme BEFORE app.whenReady()
+protocol.registerSchemesAsPrivileged([
+    { scheme: 'media', privileges: { stream: true, supportFetchAPI: true } }
+]);
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
     app.quit();
@@ -38,8 +44,7 @@ const createWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            webSecurity: false, // ⚠️ SECURITY RISK: ローカルファイル(file://)アクセスのため無効化
-            // TODO: カスタムプロトコル (media://) の導入で解決予定 (Backlog参照)
+            webSecurity: true, // ✅ SECURE: media:// プロトコルでローカルファイルに安全にアクセス
         },
         backgroundColor: '#0f172a',
         show: false,
@@ -65,6 +70,10 @@ const createWindow = () => {
 
 app.whenReady().then(() => {
     logger.info('MediaArchiver starting...');
+
+    // Register custom protocol handler
+    registerMediaProtocol();
+    logger.info('Custom protocol (media://) registered');
 
     // Initialize Database Manager (loads active profile)
     dbManager.initialize();
