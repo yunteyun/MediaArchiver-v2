@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Play, FileText, Image as ImageIcon, Archive, Loader, Music } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
-import { useSettingsStore } from '../stores/useSettingsStore';
+import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
 import { TagBadge } from './tags';
 import { toMediaUrl } from '../utils/mediaPath';
@@ -14,6 +14,13 @@ interface FileCardProps {
     onSelect: (id: string, multi: boolean) => void;
 }
 
+// UIレンダリング専用定数（サムネイル生成・永続化処理には使用しない）
+const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
+    small: { width: 150, height: 120 },
+    medium: { width: 200, height: 160 },
+    large: { width: 280, height: 220 }
+};
+
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
     const Icon = file.type === 'video' ? Play
         : file.type === 'image' ? ImageIcon
@@ -24,6 +31,15 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
+    // カード表示設定（Phase 12-3）
+    const cardSize = useSettingsStore((s) => s.cardSize);
+    const showFileName = useSettingsStore((s) => s.showFileName);
+    const showDuration = useSettingsStore((s) => s.showDuration);
+    const showTags = useSettingsStore((s) => s.showTags);
+    const showFileSize = useSettingsStore((s) => s.showFileSize);
+
+    // カードサイズ計算
+    const cardDimensions = CARD_SIZES[cardSize];
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
@@ -191,8 +207,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseMove}
+            style={{
+                width: `${cardDimensions.width}px`,
+                height: `${cardDimensions.height + (showFileName ? 40 : 0)}px`
+            }}
             className={`
-                w-full h-full rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
+                rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
                 transition-all duration-200 ease-out
                 ${isSelected
                     ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02]'
@@ -238,14 +258,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 )}
 
                 {/* Duration Badge */}
-                {file.duration && (
+                {showDuration && file.duration && (
                     <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
                         {file.duration}
                     </div>
                 )}
 
                 {/* Tags Overlay (on hover) */}
-                {sortedTags.length > 0 && (
+                {showTags && sortedTags.length > 0 && (
                     <div
                         className={`absolute left-1 flex flex-wrap gap-0.5 opacity-0 group-hover:opacity-100 transition-all ${isTagsExpanded
                             ? 'top-0 bottom-0 right-0 left-0 bg-black/85 p-2 z-10 content-start overflow-y-auto'
@@ -275,11 +295,18 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             </div>
 
             {/* Info Area */}
-            <div className="h-10 px-2 flex flex-col justify-center bg-surface-800">
-                <div className="text-xs text-surface-200 truncate" title={file.name}>
-                    {file.name}
+            {showFileName && (
+                <div className="h-10 px-2 flex flex-col justify-center bg-surface-800">
+                    <div className="text-xs text-surface-200 truncate" title={file.name}>
+                        {file.name}
+                    </div>
+                    {showFileSize && file.size && (
+                        <div className="text-xs text-surface-400">
+                            {(file.size / (1024 * 1024)).toFixed(1)} MB
+                        </div>
+                    )}
                 </div>
-            </div>
+            )}
         </div>
     );
 });
