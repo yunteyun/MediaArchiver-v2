@@ -80,6 +80,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 30日以上前のログ自動削除（起動時Pruning）
   - ページネーション対応（50件ずつ）
 
+- **Phase 12-1.5: 技術的負債の解消** 🆕
+  - Z-Index階層のCSS変数化（`--z-toast`, `--z-lightbox`, `--z-modal`, `--z-dropdown`）
+  - 8コンポーネント更新（Toast, LightBox, SettingsModal, ProfileModal, TagManagerModal, ProfileSwitcher, ScanProgressBar, TagSelector）
+  - webSecurity警告にコメント追加（セキュリティリスク明記、将来対応をBacklogに追加）
+  - 孤立サムネイル診断機能実装
+    - thumbnailCleanupService.ts: パス正規化対応、IPCペイロード軽量化（サンプル最大10件）
+    - 設定画面「バックアップ」タブに診断ボタン追加
+  - ROADMAP更新（SQLite FTS5、カスタムプロトコル `media://` を将来構想に追加）
+
+- **Phase 12-2: タグ表示の改善** 🆕
+  - TagBadge.tsx: categoryColor props追加、動的ボーダースタイル対応
+  - FileCard.tsx: useMemoでタグソートをメモ化（パフォーマンス最適化）
+  - FileCard.tsx: 絶対配置Pop-over方式でタグ展開（グリッドレイアウト保護）
+  - tagService.ts: カテゴリ色を含めてタグ取得（LEFT JOIN tag_categories）
+  - 型定義: Tag、TagDefinitionにcategoryColor追加
+  - セカンドオピニオンAIの技術要件を反映（絶対配置展開、動的スタイル、useMemoメモ化）
+
+
 - **スキャン設定の改善**
   - プレビューフレーム数設定（0-30枚、スライダーUI）
   - 設定値のメインプロセス同期

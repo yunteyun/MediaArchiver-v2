@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-04 12:44
+**Last Updated**: 2026-02-05 13:37
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -73,6 +73,15 @@
   - タイムライン形式表示、フィルタ機能
   - Fire-and-Forget方式（メイン処理を阻害しない）
   - 30日自動削除（起動時Pruning）
+- ✅ **Phase 12-1.5: 技術的負債の解消** 🆕
+  - Z-Index階層のCSS変数化（8コンポーネント更新）
+  - webSecurity警告にコメント追加
+  - 孤立サムネイル診断機能実装（設定画面）
+  - ROADMAP更新（SQLite FTS5、カスタムプロトコル）
+- ✅ **Phase 12-2: タグ表示の改善** 🆕
+  - タグの省略表示とPop-over展開（絶対配置でレイアウト保護）
+  - タグカテゴリ別の色分け強化（categoryColorで動的ボーダー）
+  - タグの優先順位表示（sortOrderでuseMemoソート）
 
 ## Recent Additions (2026-02-04)
 - ✅ **Phase 11-1: カテゴリ別統計表示**
