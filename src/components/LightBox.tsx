@@ -16,6 +16,7 @@ export const LightBox = React.memo(() => {
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
 
     const videoRef = useRef<HTMLVideoElement>(null);
+    const audioRef = useRef<HTMLAudioElement>(null);
 
     // Archive preview state
     const [archivePreviewFrames, setArchivePreviewFrames] = useState<string[]>([]);
@@ -118,6 +119,16 @@ export const LightBox = React.memo(() => {
             saveNotes(notes);
         }
     }, [lightboxFile, notes, saveNotes]);
+
+    // 動画・音声の音量をvideoVolumeに同期
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.volume = videoVolume;
+        }
+        if (audioRef.current) {
+            audioRef.current.volume = videoVolume;
+        }
+    }, [videoVolume, lightboxFile, currentArchiveAudioPath]);
 
     useEffect(() => {
         if (!lightboxFile) return;
@@ -264,14 +275,14 @@ export const LightBox = React.memo(() => {
                         src={toMediaUrl(lightboxFile.path)}
                         controls
                         autoPlay
-                        className="max-w-full max-h-full"
+                        style={{ maxWidth: '90vw', maxHeight: '80vh', objectFit: 'contain' }}
                         onVolumeChange={handleVolumeChange}
                     />
                 ) : lightboxFile.type === 'image' ? (
                     <img
                         src={toMediaUrl(lightboxFile.path)}
                         alt={lightboxFile.name}
-                        className="max-w-full max-h-full object-contain"
+                        style={{ maxWidth: '90vw', maxHeight: '80vh', objectFit: 'contain' }}
                     />
                 ) : lightboxFile.type === 'archive' ? (
                     <div className="w-full h-full flex items-center justify-center p-4">
@@ -280,7 +291,8 @@ export const LightBox = React.memo(() => {
                             <img
                                 src={toMediaUrl(selectedArchiveImage)}
                                 alt="Archive preview"
-                                className="max-w-full max-h-[80vh] object-contain cursor-pointer"
+                                style={{ maxWidth: '90vw', maxHeight: '80vh', objectFit: 'contain' }}
+                                className="cursor-pointer"
                                 onClick={() => setSelectedArchiveImage(null)}
                             />
                         ) : archiveLoading ? (
@@ -364,10 +376,12 @@ export const LightBox = React.memo(() => {
                                             {currentArchiveAudioPath && (
                                                 <div className="mt-3 pt-3 border-t border-surface-700">
                                                     <audio
+                                                        ref={audioRef}
                                                         src={toMediaUrl(currentArchiveAudioPath)}
                                                         controls
                                                         autoPlay
                                                         className="w-full"
+                                                        onVolumeChange={handleVolumeChange}
                                                         onEnded={async () => {
                                                             if (autoPlayEnabled && currentAudioIndex < archiveAudioFiles.length - 1) {
                                                                 const nextIndex = currentAudioIndex + 1;

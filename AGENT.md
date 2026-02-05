@@ -284,6 +284,22 @@ AIは「設計者」ではなく、
 - トランザクション処理でDB整合性を保証
 - エラーは `electron-log` で永続化
 
+## media:// プロトコルに関する重要事項
+
+- media:// プロトコルでは net.fetch を使用しない
+- <video>/<audio> のシーク対応には
+  fs.createReadStream + 手動 Range 実装が必須
+- 必ず以下を満たすこと：
+  - 206 Partial Content
+  - Content-Range
+  - Content-Length
+  - Accept-Ranges: bytes
+
+これを満たさない場合、
+再生は可能でもシークバーが機能しない。
+
+---
+
 ---
 
 ## よくある質問（FAQ）

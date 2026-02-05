@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **緊急不具合修正（2026-02-06）**
+  - Lightbox表示問題: 動画・画像・書庫内画像に `max-width: 90vw`, `max-height: 80vh`, `object-fit: contain` を適用し、画面はみ出しを修正
+  - 書庫内音声の音量設定保存: `videoVolume` を書庫内音声プレイヤーに適用し、音量変更を永続化
+  - `media://` プロトコルのRangeリクエスト対応: `fs.createReadStream` + 手動Range処理に切り替え、動画シーク機能を修正
+
 ### Added
 - **Phase 8: データ整合性の強化**
   - 8-1: サムネイル・プレビューフレームの自動削除
