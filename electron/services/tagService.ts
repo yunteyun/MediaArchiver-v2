@@ -183,9 +183,11 @@ export function removeTagFromFile(fileId: string, tagId: string): void {
 
 export function getFileTags(fileId: string): TagDefinition[] {
     const rows = db().prepare(`
-        SELECT td.id, td.name, td.color, td.category_id, td.sort_order, td.created_at
+        SELECT td.id, td.name, td.color, td.category_id, td.sort_order, td.created_at,
+               tc.color as category_color
         FROM file_tags ft
         JOIN tag_definitions td ON ft.tag_id = td.id
+        LEFT JOIN tag_categories tc ON td.category_id = tc.id
         WHERE ft.file_id = ?
         ORDER BY td.sort_order ASC, td.name ASC
     `).all(fileId) as any[];
@@ -195,6 +197,7 @@ export function getFileTags(fileId: string): TagDefinition[] {
         name: row.name,
         color: row.color,
         categoryId: row.category_id,
+        categoryColor: row.category_color || undefined,
         sortOrder: row.sort_order,
         createdAt: row.created_at
     }));

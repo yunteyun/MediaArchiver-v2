@@ -31,6 +31,7 @@ interface TagBadgeProps {
     name: string;
     color?: string;
     size?: 'sm' | 'md';
+    categoryColor?: string;  // カテゴリの色（動的ボーダー用）
     removable?: boolean;
     onClick?: () => void;
     onRemove?: () => void;
@@ -41,6 +42,7 @@ export const TagBadge = React.memo(({
     name,
     color = 'gray',
     size = 'sm',
+    categoryColor,
     removable = false,
     onClick,
     onRemove,
@@ -50,9 +52,14 @@ export const TagBadge = React.memo(({
     const sizeClass = size === 'sm' ? 'text-xs px-1.5 py-0.5' : 'text-sm px-2 py-1';
     const selectedClass = selected ? 'ring-2 ring-primary-500 ring-offset-1 ring-offset-surface-900' : '';
 
+    // カテゴリ色がある場合は左ボーダーを動的に適用
+    const hasCategoryBorder = !!categoryColor;
+    const categoryBorderClass = hasCategoryBorder ? 'border-l-4' : '';
+
     return (
         <span
-            className={`inline-flex items-center gap-1 rounded border transition-all ${colorClass} ${sizeClass} ${selectedClass} ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
+            className={`inline-flex items-center gap-1 rounded border transition-all ${colorClass} ${sizeClass} ${selectedClass} ${categoryBorderClass} ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
+            style={hasCategoryBorder ? { borderLeftColor: categoryColor } : undefined}
             onClick={onClick}
         >
             <span className="truncate max-w-[120px]">{name}</span>
@@ -72,3 +79,4 @@ export const TagBadge = React.memo(({
 });
 
 TagBadge.displayName = 'TagBadge';
+

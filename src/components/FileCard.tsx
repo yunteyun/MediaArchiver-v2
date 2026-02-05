@@ -26,6 +26,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
+    const [isTagsExpanded, setTagsExpanded] = useState(false);
 
     // Hover state
     const [isHovered, setIsHovered] = useState(false);
@@ -55,6 +56,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     name: t.name,
                     color: t.color,
                     categoryId: t.categoryId,
+                    categoryColor: t.categoryColor,  // カテゴリ色を追加
                     sortOrder: t.sortOrder,
                     createdAt: t.createdAt
                 }));
@@ -63,6 +65,11 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }).catch(console.error);
         return () => { isMounted = false; };
     }, [file.id]);
+
+    // タグをsortOrderでソート（メモ化でパフォーマンス最適化）
+    const sortedTags = useMemo(() => {
+        return [...fileTags].sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
+    }, [fileTags]);
 
     // ★ onMouseEnter でプリロード開始
     const handleMouseEnter = useCallback(() => {
@@ -237,15 +244,30 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 )}
 
                 {/* Tags Overlay (on hover) */}
-                {fileTags.length > 0 && (
-                    <div className="absolute top-1 left-1 flex flex-wrap gap-0.5 max-w-[90%] opacity-0 group-hover:opacity-100 transition-opacity">
-                        {fileTags.slice(0, 3).map(tag => (
-                            <TagBadge key={tag.id} name={tag.name} color={tag.color} size="sm" />
+                {sortedTags.length > 0 && (
+                    <div
+                        className={`absolute left-1 flex flex-wrap gap-0.5 opacity-0 group-hover:opacity-100 transition-all ${isTagsExpanded
+                                ? 'top-0 bottom-0 right-0 left-0 bg-black/85 p-2 z-10 content-start overflow-y-auto'
+                                : 'top-1 max-w-[90%]'
+                            }`}
+                        onMouseLeave={() => setTagsExpanded(false)}
+                    >
+                        {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 3)).map(tag => (
+                            <TagBadge
+                                key={tag.id}
+                                name={tag.name}
+                                color={tag.color}
+                                categoryColor={tag.categoryColor}
+                                size="sm"
+                            />
                         ))}
-                        {fileTags.length > 3 && (
-                            <span className="text-xs bg-black/70 text-white px-1 rounded">
-                                +{fileTags.length - 3}
-                            </span>
+                        {sortedTags.length > 3 && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setTagsExpanded(!isTagsExpanded); }}
+                                className="text-xs bg-black/70 hover:bg-black/90 text-white px-1.5 py-0.5 rounded transition-colors"
+                            >
+                                {isTagsExpanded ? '▲' : `+${sortedTags.length - 3}`}
+                            </button>
                         )}
                     </div>
                 )}

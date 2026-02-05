@@ -10,6 +10,7 @@ export interface Tag {
     name: string;
     color: string;
     categoryId: string | null;
+    categoryColor?: string;  // カテゴリの色（動的ボーダー用）
     sortOrder: number;
     createdAt: number;
 }
