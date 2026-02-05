@@ -93,6 +93,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - TagBadge.tsx: categoryColor props追加、動的ボーダースタイル対応
   - FileCard.tsx: useMemoでタグソートをメモ化（パフォーマンス最適化）
   - FileCard.tsx: 絶対配置Pop-over方式でタグ展開（グリッドレイアウト保護）
+
+- **Phase 12-2.5: 基盤の健全化（セキュリティ）** 🆕
+  - カスタムプロトコル `media://` 導入（file://からの移行）
+  - electron/protocol.ts: プロトコルハンドラ実装
+  - src/utils/mediaPath.ts: toMediaUrl()ユーティリティ
+  - webSecurity: true に変更（セキュリティ有効化）
+  - index.html: Content-Security-Policy設定追加
+  - StatisticsView: PieChart固定サイズ化、BarChart/LineChart遅延レンダリング
   - tagService.ts: カテゴリ色を含めてタグ取得（LEFT JOIN tag_categories）
   - 型定義: Tag、TagDefinitionにcategoryColor追加
   - セカンドオピニオンAIの技術要件を反映（絶対配置展開、動的スタイル、useMemoメモ化）
