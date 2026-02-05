@@ -105,6 +105,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - 型定義: Tag、TagDefinitionにcategoryColor追加
   - セカンドオピニオンAIの技術要件を反映（絶対配置展開、動的スタイル、useMemoメモ化）
 
+- **Phase 12-3: ファイルカード表示のカスタマイズ** 🆕
+  - useSettingsStore: cardSize, cardLayout, show* 設定追加（6項目）
+  - FileCard.tsx: CARD_SIZES定数（UIレンダリング専用）、動的サイズ、表示項目ON/OFF
+  - FileGrid.tsx: CARD_SIZES定数、useMemoメモ化、カードラッパーサイズ修正
+  - Header.tsx: サイズ切替ボタン（S/M/L）追加
+  - セカンドオピニオン反映（UI定数責務境界、再レンダリング抑制、仮想スクロール相互作用、将来拡張余地）
+
 
 - **スキャン設定の改善**
   - プレビューフレーム数設定（0-30枚、スライダーUI）
