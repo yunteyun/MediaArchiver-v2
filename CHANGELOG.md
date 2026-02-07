@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `media://` プロトコルのRangeリクエスト対応: `fs.createReadStream` + 手動Range処理に切り替え、動画シーク機能を修正
 
 ### Added
+- **Phase 12-11: 設定アイコンの視認性向上** (2026-02-07)
+  - Header右上の古い設定ボタンを削除（サイドバーに移設済み）
+  - UI整理による視認性向上
+
+- **Phase 12-15: 音声書庫アイコン改善** (2026-02-07)
+  - 音声書庫ファイルのアイコンを `FileMusic` に変更
+  - 音声ファイルと書庫ファイルの両方が視認可能に
+
 - **Phase 12-4: フォルダビュー拡張**
   - FileGridにフォルダカードを表示する機能を追加
   - フォルダごとのファイル数と整合サムネイルを表示
