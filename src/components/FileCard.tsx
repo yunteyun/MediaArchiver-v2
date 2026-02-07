@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Play, FileText, Image as ImageIcon, Archive, Loader, Music } from 'lucide-react';
+import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
@@ -29,7 +29,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         if (file.type === 'image') return ImageIcon;
         if (file.type === 'audio') return Music;
         if (file.type === 'archive') {
-            return isAudioArchive(file) ? Music : Archive;
+            return isAudioArchive(file) ? FileMusic : Archive;
         }
         return FileText;
     }, [file.type, file.metadata]);

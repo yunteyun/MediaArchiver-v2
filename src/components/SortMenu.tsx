@@ -3,8 +3,7 @@
  */
 
 import React from 'react';
-import { ArrowUp, ArrowDown, Settings } from 'lucide-react';
-import { useUIStore } from '../stores/useUIStore';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
 import { SearchBar } from './SearchBar';
 
@@ -15,7 +14,6 @@ export const Header = React.memo(() => {
     const setSortOrder = useSettingsStore((s) => s.setSortOrder);
     const cardSize = useSettingsStore((s) => s.cardSize);
     const setCardSize = useSettingsStore((s) => s.setCardSize);
-    const openSettingsModal = useUIStore((s) => s.openSettingsModal);
 
     const sizeOptions: { value: CardSize; label: string }[] = [
         { value: 'small', label: 'S' },
@@ -36,8 +34,8 @@ export const Header = React.memo(() => {
                         key={opt.value}
                         onClick={() => setCardSize(opt.value)}
                         className={`px-2 py-1 text-xs rounded transition-colors ${cardSize === opt.value
-                                ? 'bg-primary-600 text-white'
-                                : 'bg-surface-700 text-surface-300 hover:bg-surface-600'
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-surface-700 text-surface-300 hover:bg-surface-600'
                             }`}
                         title={`カードサイズ: ${opt.label}`}
                     >
@@ -67,15 +65,6 @@ export const Header = React.memo(() => {
                     {sortOrder === 'asc' ? <ArrowUp size={18} /> : <ArrowDown size={18} />}
                 </button>
             </div>
-
-            {/* Settings Button */}
-            <button
-                onClick={openSettingsModal}
-                className="p-1.5 hover:bg-surface-700 rounded transition-colors text-surface-400 hover:text-white"
-                title="設定"
-            >
-                <Settings size={18} />
-            </button>
         </div>
     );
 });
