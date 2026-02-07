@@ -3,9 +3,36 @@
  */
 
 import React, { useEffect } from 'react';
-import { Tag as TagIcon, Filter, X, Settings } from 'lucide-react';
+import { Tag as TagIcon, Filter, X, Settings, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTagStore } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
+
+interface CategoryHeaderProps {
+    categoryId: string;
+    categoryName: string;
+}
+
+const CategoryHeader = React.memo<CategoryHeaderProps>(({ categoryId, categoryName }) => {
+    const isCollapsed = useTagStore((s) => s.collapsedCategoryIds.includes(categoryId));
+    const toggleCategoryCollapse = useTagStore((s) => s.toggleCategoryCollapse);
+
+    return (
+        <button
+            onClick={() => toggleCategoryCollapse(categoryId)}
+            className="flex items-center gap-1 w-full hover:bg-surface-800 rounded px-1 py-0.5 transition-colors cursor-pointer"
+            aria-expanded={!isCollapsed}
+            aria-label={`${categoryName}カテゴリを${isCollapsed ? '展開' : '折りたたむ'}`}
+        >
+            {isCollapsed ? (
+                <ChevronRight size={12} className="text-surface-500" />
+            ) : (
+                <ChevronDown size={12} className="text-surface-500" />
+            )}
+            <span className="text-xs text-surface-500">{categoryName}</span>
+        </button>
+    );
+});
+CategoryHeader.displayName = 'CategoryHeader';
 
 interface TagFilterPanelProps {
     onOpenManager?: () => void;
@@ -16,6 +43,7 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
     const categories = useTagStore((s) => s.categories);
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
     const filterMode = useTagStore((s) => s.filterMode);
+    const collapsedCategoryIds = useTagStore((s) => s.collapsedCategoryIds);
     const toggleTagFilter = useTagStore((s) => s.toggleTagFilter);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
     const setFilterMode = useTagStore((s) => s.setFilterMode);
@@ -106,22 +134,36 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
                 )}
 
                 {/* By Category */}
-                {categorizedGroups.map(({ category, tags }) => (
-                    <div key={category.id}>
-                        <div className="text-xs text-surface-500 mb-1">{category.name}</div>
-                        <div className="flex flex-wrap gap-1">
-                            {tags.map(tag => (
-                                <TagBadge
-                                    key={tag.id}
-                                    name={tag.name}
-                                    color={tag.color}
-                                    selected={selectedTagIds.includes(tag.id)}
-                                    onClick={() => toggleTagFilter(tag.id)}
-                                />
-                            ))}
+                {categorizedGroups.map(({ category, tags }) => {
+                    const hasSelectedTags = tags.some(t => selectedTagIds.includes(t.id));
+                    const isCollapsed = collapsedCategoryIds.includes(category.id);
+                    const visibleTags = isCollapsed
+                        ? tags.filter(t => selectedTagIds.includes(t.id))
+                        : tags;
+
+                    return (
+                        <div key={category.id}>
+                            <CategoryHeader
+                                categoryId={category.id}
+                                categoryName={category.name}
+                            />
+
+                            {(!isCollapsed || hasSelectedTags) && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                    {visibleTags.map(tag => (
+                                        <TagBadge
+                                            key={tag.id}
+                                            name={tag.name}
+                                            color={tag.color}
+                                            selected={selectedTagIds.includes(tag.id)}
+                                            onClick={() => toggleTagFilter(tag.id)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
                 {tags.length === 0 && (
                     <div className="text-center text-surface-500 text-sm py-4">

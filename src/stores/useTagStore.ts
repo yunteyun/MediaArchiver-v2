@@ -30,6 +30,7 @@ interface TagState {
     selectedTagIds: string[];      // For filtering
     filterMode: 'AND' | 'OR';
     isLoading: boolean;
+    collapsedCategoryIds: string[];  // For category collapse/expand
 
     // Actions
     setTags: (tags: Tag[]) => void;
@@ -38,6 +39,7 @@ interface TagState {
     clearTagFilter: () => void;
     setFilterMode: (mode: 'AND' | 'OR') => void;
     setLoading: (loading: boolean) => void;
+    toggleCategoryCollapse: (categoryId: string) => void;
 
     // Async actions
     loadTags: () => Promise<void>;
@@ -62,6 +64,7 @@ export const useTagStore = create<TagState>((set, get) => ({
     selectedTagIds: [],
     filterMode: 'OR',
     isLoading: false,
+    collapsedCategoryIds: [],
 
     // Basic setters
     setTags: (tags) => set({ tags }),
@@ -74,6 +77,11 @@ export const useTagStore = create<TagState>((set, get) => ({
     clearTagFilter: () => set({ selectedTagIds: [] }),
     setFilterMode: (mode) => set({ filterMode: mode }),
     setLoading: (loading) => set({ isLoading: loading }),
+    toggleCategoryCollapse: (categoryId) => set((state) => ({
+        collapsedCategoryIds: state.collapsedCategoryIds.includes(categoryId)
+            ? state.collapsedCategoryIds.filter(id => id !== categoryId)
+            : [...state.collapsedCategoryIds, categoryId]
+    })),
 
     // Async actions
     loadTags: async () => {
