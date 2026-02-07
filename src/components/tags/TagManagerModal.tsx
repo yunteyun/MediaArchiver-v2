@@ -3,9 +3,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2 } from 'lucide-react';
 import { useTagStore, Tag, TagCategory } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
+import { AutoTagRulesTab } from '../AutoTagRulesTab';
 
 // Color options for tags
 const COLOR_OPTIONS = [
@@ -20,7 +21,7 @@ interface TagManagerModalProps {
 }
 
 export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalProps) => {
-    const [activeTab, setActiveTab] = useState<'tags' | 'categories'>('tags');
+    const [activeTab, setActiveTab] = useState<'tags' | 'categories' | 'autoRules'>('tags');
     const [editingTag, setEditingTag] = useState<Tag | null>(null);
     const [editingCategory, setEditingCategory] = useState<TagCategory | null>(null);
     const [newTagName, setNewTagName] = useState('');
@@ -172,6 +173,16 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                         <FolderOpen size={16} className="inline mr-2" />
                         カテゴリ ({categories.length})
                     </button>
+                    <button
+                        onClick={() => setActiveTab('autoRules')}
+                        className={`flex-1 py-2 text-sm font-medium transition-colors ${activeTab === 'autoRules'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <Wand2 size={16} className="inline mr-2" />
+                        自動割り当て
+                    </button>
                 </div>
 
                 {/* Content */}
@@ -286,7 +297,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                 )}
                             </div>
                         </div>
-                    ) : (
+                    ) : activeTab === 'categories' ? (
                         <div className="space-y-4">
                             {/* New Category Form */}
                             <div className="p-3 bg-surface-800 rounded-lg space-y-3">
@@ -369,7 +380,9 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                 )}
                             </div>
                         </div>
-                    )}
+                    ) : activeTab === 'autoRules' ? (
+                        <AutoTagRulesTab />
+                    ) : null}
                 </div>
             </div>
         </div>

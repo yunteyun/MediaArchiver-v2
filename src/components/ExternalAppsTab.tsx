@@ -3,7 +3,7 @@
  * Phase 12-7: 外部アプリ複数設定機能
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2, FolderOpen, Check, X } from 'lucide-react';
 import { useSettingsStore, ExternalApp } from '../stores/useSettingsStore';
 import { useToastStore } from '../stores/useToastStore';
@@ -24,11 +24,6 @@ export const ExternalAppsTab = React.memo(() => {
     // 編集モード
     const [editingAppId, setEditingAppId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ name: '', path: '', extensions: '' });
-
-    // 外部アプリキャッシュを Main プロセスに同期
-    useEffect(() => {
-        window.electronAPI.setExternalApps(externalApps);
-    }, [externalApps]);
 
     // 拡張子パース
     const parseExtensions = (input: string): string[] => {

@@ -8,7 +8,9 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
 import { FolderCard } from './FolderCard';
 import { Header } from './SortMenu';
+import { GroupHeader } from './GroupHeader';
 import type { GridItem } from '../types/grid';
+import { groupFiles } from '../utils/groupFiles';
 
 const CARD_GAP = 8;
 
@@ -36,6 +38,7 @@ export const FileGrid = React.memo(() => {
     const sortOrder = useSettingsStore((s) => s.sortOrder);
     const cardSize = useSettingsStore((s) => s.cardSize);
     const showFileName = useSettingsStore((s) => s.showFileName);
+    const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
@@ -110,6 +113,11 @@ export const FileGrid = React.memo(() => {
 
         return filtered;
     }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery]);
+
+    // グループ化されたファイル（Phase 12-10）
+    const groupedFiles = useMemo(() => {
+        return groupFiles(files, groupBy, sortBy, sortOrder);
+    }, [files, groupBy, sortBy, sortOrder]);
 
     // GridItem統合リスト生成（Phase 12-4）
     const gridItems = useMemo((): GridItem[] => {
@@ -291,6 +299,60 @@ export const FileGrid = React.memo(() => {
         );
     }
 
+    // グループ化モード（Phase 12-10）
+    if (groupBy !== 'none') {
+        return (
+            <div className="flex flex-col h-full">
+                <Header />
+                <div
+                    ref={parentRef}
+                    className="flex-1 overflow-y-auto bg-surface-950"
+                >
+                    {groupedFiles.map((group) => (
+                        <div key={group.key}>
+                            {/* グループヘッダー */}
+                            {group.label && <GroupHeader group={group} />}
+
+                            {/* グループ内のファイルグリッド */}
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: `repeat(${columns}, 1fr)`,
+                                    gap: `${CARD_GAP}px`,
+                                    padding: `${CARD_GAP}px`,
+                                }}
+                            >
+                                {group.files.map((file) => {
+                                    const size = CARD_SIZES[cardSize];
+                                    const cardW = size.width;
+                                    const cardH = size.height + (showFileName ? 40 : 0);
+
+                                    return (
+                                        <div
+                                            key={file.id}
+                                            style={{
+                                                width: `${cardW}px`,
+                                                height: `${cardH}px`,
+                                            }}
+                                        >
+                                            <FileCard
+                                                file={file}
+                                                isSelected={selectedIds.has(file.id)}
+                                                isFocused={focusedId === file.id && !selectedIds.has(file.id)}
+                                                onSelect={handleSelect}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // 通常モード（グループ化なし）
     return (
         <div className="flex flex-col h-full">
             <Header />

@@ -5,6 +5,9 @@ import { persist } from 'zustand/middleware';
 export type CardSize = 'small' | 'medium' | 'large';
 export type CardLayout = 'grid' | 'list';
 
+// グループ化型定義（Phase 12-10）
+export type GroupBy = 'none' | 'date' | 'size' | 'type';
+
 // 外部アプリ型定義（Phase 12-7）
 export interface ExternalApp {
     id: string;
@@ -35,6 +38,9 @@ interface SettingsState {
     // 外部アプリ設定（Phase 12-7）
     externalApps: ExternalApp[];
 
+    // グループ化設定（Phase 12-10）
+    groupBy: GroupBy;
+
     // アクション
     setThumbnailAction: (action: 'scrub' | 'play') => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
@@ -54,6 +60,8 @@ interface SettingsState {
     addExternalApp: (name: string, path: string, extensions: string[]) => void;
     updateExternalApp: (id: string, updates: Partial<Omit<ExternalApp, 'id' | 'createdAt'>>) => void;
     deleteExternalApp: (id: string) => void;
+    // グループ化アクション（Phase 12-10）
+    setGroupBy: (groupBy: GroupBy) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -78,6 +86,9 @@ export const useSettingsStore = create<SettingsState>()(
 
             // 外部アプリ設定（Phase 12-7）
             externalApps: [],
+
+            // グループ化設定（Phase 12-10）
+            groupBy: 'none',
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setSortBy: (sortBy) => set({ sortBy }),
@@ -120,6 +131,8 @@ export const useSettingsStore = create<SettingsState>()(
                     externalApps: state.externalApps.filter(app => app.id !== id)
                 }));
             },
+            // グループ化アクション（Phase 12-10）
+            setGroupBy: (groupBy) => set({ groupBy }),
         }),
         {
             name: 'settings-storage',

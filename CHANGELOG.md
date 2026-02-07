@@ -21,6 +21,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - マイグレーション 003 でDB拡張（icon, description列追加）
   - TagBadge、TagFilterPanel、TagManagerModal、FileCard を更新
 
+- **Phase 12-8 フェーズ2: 自動タグ割り当て機能 (MVP)** (2026-02-07)
+  - ファイル名・フォルダ名に基づく自動タグ付与ルール作成機能
+  - ルール管理UI（タグ管理モーダル内）の実装
+  - ヘッダーへの「自動タグ適用」ボタン追加（選択/全ファイル一括適用）
+  - トースト通知による適用結果表示
+  - `auto_tag_rules` テーブル追加 (Migration 004)
+
 - **Phase 12-11: 設定アイコンの視認性向上** (2026-02-07)
   - Header右上の古い設定ボタンを削除（サイドバーに移設済み）
   - UI整理による視認性向上

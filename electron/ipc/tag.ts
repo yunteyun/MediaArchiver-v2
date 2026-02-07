@@ -20,6 +20,7 @@ import {
     getAllFileTagIds,
     initDefaultTags
 } from '../services/tagService';
+import * as autoTagService from '../services/autoTagService';
 
 export function registerTagHandlers(): void {
     // Initialize default tags on first run
@@ -87,5 +88,43 @@ export function registerTagHandlers(): void {
     // 一括取得API（パフォーマンス最適化）
     ipcMain.handle('tag:getAllFileTagIds', async () => {
         return getAllFileTagIds();
+    });
+
+    // === Auto Tag Rules (Phase 12-8 フェーズ2) ===
+    ipcMain.handle('autoTag:getAllRules', async () => {
+        return autoTagService.getAllRules();
+    });
+
+    ipcMain.handle('autoTag:createRule', async (_event, { tagId, keywords, target, matchMode }: {
+        tagId: string;
+        keywords: string[];
+        target: autoTagService.MatchTarget;
+        matchMode: autoTagService.MatchMode;
+    }) => {
+        return autoTagService.createRule(tagId, keywords, target, matchMode);
+    });
+
+    ipcMain.handle('autoTag:updateRule', async (_event, { id, updates }: {
+        id: string;
+        updates: Partial<autoTagService.AutoTagRule>;
+    }) => {
+        autoTagService.updateRule(id, updates);
+        return { success: true };
+    });
+
+    ipcMain.handle('autoTag:deleteRule', async (_event, { id }: { id: string }) => {
+        autoTagService.deleteRule(id);
+        return { success: true };
+    });
+
+    ipcMain.handle('autoTag:previewRule', async (_event, { rule, files }: {
+        rule: autoTagService.AutoTagRule;
+        files: Array<{ id: string; name: string; path: string }>;
+    }) => {
+        return autoTagService.previewRule(rule, files);
+    });
+
+    ipcMain.handle('autoTag:applyToFiles', async (_event, { fileIds }: { fileIds: string[] }) => {
+        return autoTagService.applyRulesToFiles(fileIds);
     });
 }

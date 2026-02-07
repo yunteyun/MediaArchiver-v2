@@ -28,6 +28,7 @@ function App() {
     const removeToast = useToastStore((s) => s.removeToast);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
+    const externalApps = useSettingsStore((s) => s.externalApps);
 
     // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
     const autoScanOnStartupRef = useRef(false);
@@ -38,6 +39,11 @@ function App() {
         // プレビューフレーム数をメインプロセスに同期
         window.electronAPI.setPreviewFrameCount(settings.previewFrameCount);
     }, []);
+
+    // 外部アプリ設定を Electron 側に同期（起動時および変更時）
+    useEffect(() => {
+        window.electronAPI.setExternalApps(externalApps);
+    }, [externalApps]);
 
     // 初回ロード：プロファイル一覧を取得
     useEffect(() => {

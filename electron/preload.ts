@@ -167,4 +167,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === Thumbnail Cleanup ===
     diagnoseThumbnails: () =>
         ipcRenderer.invoke('thumbnail:diagnose'),
+
+    // === Auto Tag Rules (Phase 12-8 フェーズ2) ===
+    getAllAutoTagRules: () =>
+        ipcRenderer.invoke('autoTag:getAllRules'),
+    createAutoTagRule: (tagId: string, keywords: string[], target: string, matchMode: string) =>
+        ipcRenderer.invoke('autoTag:createRule', { tagId, keywords, target, matchMode }),
+    updateAutoTagRule: (id: string, updates: any) =>
+        ipcRenderer.invoke('autoTag:updateRule', { id, updates }),
+    deleteAutoTagRule: (id: string) =>
+        ipcRenderer.invoke('autoTag:deleteRule', { id }),
+    previewAutoTagRule: (rule: any, files: any[]) =>
+        ipcRenderer.invoke('autoTag:previewRule', { rule, files }),
+    applyAutoTagsToFiles: (fileIds: string[]) =>
+        ipcRenderer.invoke('autoTag:applyToFiles', { fileIds }),
 });

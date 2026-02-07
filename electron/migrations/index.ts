@@ -13,8 +13,9 @@ import type { Migration } from './types';
 import { initialSchema } from './001_initial_schema';
 import { activityLogs } from './002_activity_logs';
 import { addTagFields } from './003_add_tag_fields';
+import { addAutoTagRules } from './004_add_auto_tag_rules';
 // 将来のマイグレーション:
-// import { addHashColumn } from './004_add_hash_column';
+// import { xxx } from './005_xxx';
 
 // 型をre-export
 export type { Migration };
@@ -27,6 +28,7 @@ const MIGRATIONS: Migration[] = [
     initialSchema,
     activityLogs,
     addTagFields,
+    addAutoTagRules,
 ];
 
 /**

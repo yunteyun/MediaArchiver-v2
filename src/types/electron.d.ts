@@ -147,8 +147,44 @@ declare global {
 
             // Thumbnail Cleanup
             diagnoseThumbnails: () => Promise<DiagnosticResult>;
+
+            // Auto Tag Rules (Phase 12-8 フェーズ2)
+            getAllAutoTagRules: () => Promise<AutoTagRule[]>;
+            createAutoTagRule: (tagId: string, keywords: string[], target: MatchTarget, matchMode: MatchMode) => Promise<AutoTagRule>;
+            updateAutoTagRule: (id: string, updates: Partial<AutoTagRule>) => Promise<{ success: boolean }>;
+            deleteAutoTagRule: (id: string) => Promise<{ success: boolean }>;
+            previewAutoTagRule: (rule: AutoTagRule, files: Array<{ id: string; name: string; path: string }>) => Promise<PreviewMatch[]>;
+            applyAutoTagsToFiles: (fileIds: string[]) => Promise<ApplyResult>;
         };
     }
+}
+
+// Auto Tag Rule types (Phase 12-8 フェーズ2)
+type MatchTarget = 'filename' | 'foldername' | 'both';
+type MatchMode = 'partial' | 'exact';
+
+interface AutoTagRule {
+    id: string;
+    tagId: string;
+    keywords: string[];
+    target: MatchTarget;
+    matchMode: MatchMode;
+    enabled: boolean;
+    sortOrder: number;
+    createdAt: number;
+}
+
+interface PreviewMatch {
+    fileId: string;
+    fileName: string;
+    matchedKeywords: string[];
+}
+
+interface ApplyResult {
+    success: boolean;
+    filesProcessed: number;
+    filesUpdated: number;
+    tagsAssigned: number;
 }
 
 // Duplicate Detection types

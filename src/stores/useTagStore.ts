@@ -25,6 +25,21 @@ export interface TagCategory {
     createdAt: number;
 }
 
+// Auto Tag Rule types (Phase 12-8 フェーズ2)
+export type MatchTarget = 'filename' | 'foldername' | 'both';
+export type MatchMode = 'partial' | 'exact';
+
+export interface AutoTagRule {
+    id: string;
+    tagId: string;
+    keywords: string[];
+    target: MatchTarget;
+    matchMode: MatchMode;
+    enabled: boolean;
+    sortOrder: number;
+    createdAt: number;
+}
+
 interface TagState {
     // State
     tags: Tag[];
@@ -34,6 +49,7 @@ interface TagState {
     isLoading: boolean;
     collapsedCategoryIds: string[];  // For category collapse/expand
     searchQuery: string;  // For tag search
+    autoTagRules: AutoTagRule[];  // Phase 12-8 フェーズ2
 
     // Actions
     setTags: (tags: Tag[]) => void;
@@ -60,6 +76,12 @@ interface TagState {
     getTagById: (id: string) => Tag | undefined;
     getTagsByCategory: (categoryId: string | null) => Tag[];
     getCategoryById: (id: string) => TagCategory | undefined;
+
+    // Auto Tag Rules (Phase 12-8 フェーズ2)
+    loadAutoTagRules: () => Promise<void>;
+    createAutoTagRule: (tagId: string, keywords: string[], target: MatchTarget, matchMode: MatchMode) => Promise<AutoTagRule>;
+    updateAutoTagRule: (id: string, updates: Partial<AutoTagRule>) => Promise<void>;
+    deleteAutoTagRule: (id: string) => Promise<void>;
 }
 
 export const useTagStore = create<TagState>((set, get) => ({
@@ -71,6 +93,7 @@ export const useTagStore = create<TagState>((set, get) => ({
     isLoading: false,
     collapsedCategoryIds: [],
     searchQuery: '',
+    autoTagRules: [],
 
     // Basic setters
     setTags: (tags) => set({ tags }),
@@ -170,4 +193,32 @@ export const useTagStore = create<TagState>((set, get) => ({
     getTagById: (id) => get().tags.find(tag => tag.id === id),
     getTagsByCategory: (categoryId) => get().tags.filter(tag => tag.categoryId === categoryId),
     getCategoryById: (id) => get().categories.find(cat => cat.id === id),
+
+    // Auto Tag Rules (Phase 12-8 フェーズ2)
+    loadAutoTagRules: async () => {
+        const rules = await window.electronAPI.getAllAutoTagRules();
+        set({ autoTagRules: rules });
+    },
+
+    createAutoTagRule: async (tagId, keywords, target, matchMode) => {
+        const newRule = await window.electronAPI.createAutoTagRule(tagId, keywords, target, matchMode);
+        set((state) => ({ autoTagRules: [...state.autoTagRules, newRule] }));
+        return newRule;
+    },
+
+    updateAutoTagRule: async (id, updates) => {
+        await window.electronAPI.updateAutoTagRule(id, updates);
+        set((state) => ({
+            autoTagRules: state.autoTagRules.map(rule =>
+                rule.id === id ? { ...rule, ...updates } : rule
+            )
+        }));
+    },
+
+    deleteAutoTagRule: async (id) => {
+        await window.electronAPI.deleteAutoTagRule(id);
+        set((state) => ({
+            autoTagRules: state.autoTagRules.filter(rule => rule.id !== id)
+        }));
+    },
 }));
