@@ -9,6 +9,8 @@ interface TagDefinition {
     categoryColor?: string;  // カテゴリの色（動的ボーダー用）
     sortOrder: number;
     createdAt: number;
+    icon: string;
+    description: string;
 }
 
 interface TagCategory {
@@ -97,8 +99,8 @@ declare global {
 
             // Tags - Definitions
             getAllTags: () => Promise<TagDefinition[]>;
-            createTag: (name: string, color?: string, categoryId?: string) => Promise<TagDefinition>;
-            updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number }) => Promise<TagDefinition | null>;
+            createTag: (name: string, color?: string, categoryId?: string, icon?: string, description?: string) => Promise<TagDefinition>;
+            updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number; icon?: string; description?: string }) => Promise<TagDefinition | null>;
             deleteTag: (id: string) => Promise<{ success: boolean }>;
 
             // Tags - File Operations

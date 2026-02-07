@@ -12,8 +12,9 @@ import { logger } from '../services/logger';
 import type { Migration } from './types';
 import { initialSchema } from './001_initial_schema';
 import { activityLogs } from './002_activity_logs';
+import { addTagFields } from './003_add_tag_fields';
 // 将来のマイグレーション:
-// import { addHashColumn } from './003_add_hash_column';
+// import { addHashColumn } from './004_add_hash_column';
 
 // 型をre-export
 export type { Migration };
@@ -25,6 +26,7 @@ const log = logger.scope('Migration');
 const MIGRATIONS: Migration[] = [
     initialSchema,
     activityLogs,
+    addTagFields,
 ];
 
 /**

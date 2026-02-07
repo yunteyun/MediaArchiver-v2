@@ -13,6 +13,8 @@ export interface Tag {
     categoryColor?: string;  // カテゴリの色（動的ボーダー用）
     sortOrder: number;
     createdAt: number;
+    icon: string;
+    description: string;
 }
 
 export interface TagCategory {
@@ -31,6 +33,7 @@ interface TagState {
     filterMode: 'AND' | 'OR';
     isLoading: boolean;
     collapsedCategoryIds: string[];  // For category collapse/expand
+    searchQuery: string;  // For tag search
 
     // Actions
     setTags: (tags: Tag[]) => void;
@@ -41,12 +44,13 @@ interface TagState {
     setLoading: (loading: boolean) => void;
     toggleCategoryCollapse: (categoryId: string) => void;
     setCollapsedCategories: (categoryIds: string[]) => void;
+    setSearchQuery: (query: string) => void;
 
     // Async actions
     loadTags: () => Promise<void>;
     loadCategories: () => Promise<void>;
-    createTag: (name: string, color?: string, categoryId?: string) => Promise<Tag>;
-    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null }) => Promise<void>;
+    createTag: (name: string, color?: string, categoryId?: string, icon?: string, description?: string) => Promise<Tag>;
+    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; icon?: string; description?: string }) => Promise<void>;
     deleteTag: (id: string) => Promise<void>;
     createCategory: (name: string, color?: string) => Promise<TagCategory>;
     updateCategory: (id: string, updates: { name?: string; color?: string }) => Promise<void>;
@@ -66,6 +70,7 @@ export const useTagStore = create<TagState>((set, get) => ({
     filterMode: 'OR',
     isLoading: false,
     collapsedCategoryIds: [],
+    searchQuery: '',
 
     // Basic setters
     setTags: (tags) => set({ tags }),
@@ -95,6 +100,7 @@ export const useTagStore = create<TagState>((set, get) => ({
         }
     }),
     setCollapsedCategories: (categoryIds) => set({ collapsedCategoryIds: categoryIds }),
+    setSearchQuery: (query) => set({ searchQuery: query }),
 
     // Async actions
     loadTags: async () => {
@@ -115,8 +121,8 @@ export const useTagStore = create<TagState>((set, get) => ({
         }
     },
 
-    createTag: async (name, color, categoryId) => {
-        const newTag = await window.electronAPI.createTag(name, color, categoryId);
+    createTag: async (name, color, categoryId, icon, description) => {
+        const newTag = await window.electronAPI.createTag(name, color, categoryId, icon, description);
         set((state) => ({ tags: [...state.tags, newTag] }));
         return newTag;
     },

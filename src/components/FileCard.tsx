@@ -82,7 +82,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     categoryId: t.categoryId,
                     categoryColor: t.categoryColor,  // カテゴリ色を追加
                     sortOrder: t.sortOrder,
-                    createdAt: t.createdAt
+                    createdAt: t.createdAt,
+                    icon: t.icon || '',
+                    description: t.description || ''
                 }));
                 setFileTags(mappedTags);
             }
@@ -301,6 +303,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                 color={tag.color}
                                 categoryColor={tag.categoryColor}
                                 size="sm"
+                                icon={tag.icon}
+                                description={tag.description}
                             />
                         ))}
                         {sortedTags.length > 3 && (

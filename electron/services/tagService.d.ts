@@ -17,6 +17,8 @@ export interface TagDefinition {
     categoryId: string | null;
     sortOrder: number;
     createdAt: number;
+    icon: string;
+    description: string;
 }
 export declare function getAllCategories(): TagCategory[];
 export declare function createCategory(name: string, color?: string): TagCategory;
@@ -27,12 +29,14 @@ export declare function updateCategory(id: string, updates: {
 }): TagCategory | null;
 export declare function deleteCategory(id: string): void;
 export declare function getAllTags(): TagDefinition[];
-export declare function createTag(name: string, color?: string, categoryId?: string | null): TagDefinition;
+export declare function createTag(name: string, color?: string, categoryId?: string | null, icon?: string, description?: string): TagDefinition;
 export declare function updateTag(id: string, updates: {
     name?: string;
     color?: string;
     categoryId?: string | null;
     sortOrder?: number;
+    icon?: string;
+    description?: string;
 }): TagDefinition | null;
 export declare function deleteTag(id: string): void;
 export declare function getTagByName(name: string): TagDefinition | null;

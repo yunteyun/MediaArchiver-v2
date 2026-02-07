@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 
 // Color mapping for tag colors
 const colorClasses: Record<string, string> = {
@@ -36,6 +37,8 @@ interface TagBadgeProps {
     onClick?: () => void;
     onRemove?: () => void;
     selected?: boolean;
+    icon?: string;  // lucide-react アイコン名
+    description?: string;  // ツールチップ用説明文
 }
 
 export const TagBadge = React.memo(({
@@ -47,6 +50,8 @@ export const TagBadge = React.memo(({
     onClick,
     onRemove,
     selected = false,
+    icon,
+    description,
 }: TagBadgeProps) => {
     const colorClass = colorClasses[color] || colorClasses.gray;
     const sizeClass = size === 'sm' ? 'text-xs px-1.5 py-0.5' : 'text-sm px-2 py-1';
@@ -56,12 +61,17 @@ export const TagBadge = React.memo(({
     const hasCategoryBorder = !!categoryColor;
     const categoryBorderClass = hasCategoryBorder ? 'border-l-4' : '';
 
+    // アイコンコンポーネントを動的に取得
+    const IconComponent = icon ? (LucideIcons[icon as keyof typeof LucideIcons] as React.ComponentType<{ size?: number; className?: string }>) : null;
+
     return (
         <span
             className={`inline-flex items-center gap-1 rounded border transition-all ${colorClass} ${sizeClass} ${selectedClass} ${categoryBorderClass} ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
             style={hasCategoryBorder ? { borderLeftColor: categoryColor } : undefined}
             onClick={onClick}
+            title={description && description.trim() ? description : undefined}  // ツールチップ
         >
+            {IconComponent && <IconComponent size={size === 'sm' ? 12 : 14} />}
             <span className="truncate max-w-[120px]">{name}</span>
             {removable && onRemove && (
                 <button

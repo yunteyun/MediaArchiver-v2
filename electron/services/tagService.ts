@@ -28,6 +28,8 @@ export interface TagDefinition {
     categoryId: string | null;
     sortOrder: number;
     createdAt: number;
+    icon: string;
+    description: string;
 }
 
 // --- Category Operations ---
@@ -84,7 +86,7 @@ export function deleteCategory(id: string): void {
 
 export function getAllTags(): TagDefinition[] {
     const rows = db().prepare(`
-        SELECT id, name, color, category_id, sort_order, created_at 
+        SELECT id, name, color, category_id, sort_order, created_at, icon, description
         FROM tag_definitions 
         ORDER BY sort_order ASC, name ASC
     `).all() as any[];
@@ -95,24 +97,42 @@ export function getAllTags(): TagDefinition[] {
         color: row.color,
         categoryId: row.category_id,
         sortOrder: row.sort_order,
-        createdAt: row.created_at
+        createdAt: row.created_at,
+        icon: row.icon || '',
+        description: row.description || ''
     }));
 }
 
-export function createTag(name: string, color: string = 'gray', categoryId: string | null = null): TagDefinition {
+export function createTag(
+    name: string,
+    color: string = 'gray',
+    categoryId: string | null = null,
+    icon: string = '',
+    description: string = ''
+): TagDefinition {
     const id = uuidv4();
     const now = Date.now();
     const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM tag_definitions').get() as any)?.max || 0;
 
     db().prepare(`
-        INSERT INTO tag_definitions (id, name, color, category_id, sort_order, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, name, color, categoryId, maxOrder + 1, now);
+        INSERT INTO tag_definitions (id, name, color, category_id, sort_order, created_at, icon, description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, name, color, categoryId, maxOrder + 1, now, icon, description);
 
-    return { id, name, color, categoryId, sortOrder: maxOrder + 1, createdAt: now };
+    return { id, name, color, categoryId, sortOrder: maxOrder + 1, createdAt: now, icon, description };
 }
 
-export function updateTag(id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number }): TagDefinition | null {
+export function updateTag(
+    id: string,
+    updates: {
+        name?: string;
+        color?: string;
+        categoryId?: string | null;
+        sortOrder?: number;
+        icon?: string;
+        description?: string;
+    }
+): TagDefinition | null {
     const existing = db().prepare('SELECT * FROM tag_definitions WHERE id = ?').get(id) as any;
     if (!existing) return null;
 
@@ -120,12 +140,25 @@ export function updateTag(id: string, updates: { name?: string; color?: string; 
     const newColor = updates.color ?? existing.color;
     const newCategoryId = updates.categoryId !== undefined ? updates.categoryId : existing.category_id;
     const newSortOrder = updates.sortOrder ?? existing.sort_order;
+    const newIcon = updates.icon !== undefined ? updates.icon : (existing.icon || '');
+    const newDescription = updates.description !== undefined ? updates.description : (existing.description || '');
 
     db().prepare(`
-        UPDATE tag_definitions SET name = ?, color = ?, category_id = ?, sort_order = ? WHERE id = ?
-    `).run(newName, newColor, newCategoryId, newSortOrder, id);
+        UPDATE tag_definitions 
+        SET name = ?, color = ?, category_id = ?, sort_order = ?, icon = ?, description = ?
+        WHERE id = ?
+    `).run(newName, newColor, newCategoryId, newSortOrder, newIcon, newDescription, id);
 
-    return { id, name: newName, color: newColor, categoryId: newCategoryId, sortOrder: newSortOrder, createdAt: existing.created_at };
+    return {
+        id,
+        name: newName,
+        color: newColor,
+        categoryId: newCategoryId,
+        sortOrder: newSortOrder,
+        createdAt: existing.created_at,
+        icon: newIcon,
+        description: newDescription
+    };
 }
 
 export function deleteTag(id: string): void {
@@ -142,7 +175,9 @@ export function getTagByName(name: string): TagDefinition | null {
         color: row.color,
         categoryId: row.category_id,
         sortOrder: row.sort_order,
-        createdAt: row.created_at
+        createdAt: row.created_at,
+        icon: row.icon || '',
+        description: row.description || ''
     };
 }
 
@@ -185,7 +220,7 @@ export function removeTagFromFile(fileId: string, tagId: string): void {
 export function getFileTags(fileId: string): TagDefinition[] {
     const rows = db().prepare(`
         SELECT td.id, td.name, td.color, td.category_id, td.sort_order, td.created_at,
-               tc.color as category_color
+               td.icon, td.description, tc.color as category_color
         FROM file_tags ft
         JOIN tag_definitions td ON ft.tag_id = td.id
         LEFT JOIN tag_categories tc ON td.category_id = tc.id
@@ -200,7 +235,9 @@ export function getFileTags(fileId: string): TagDefinition[] {
         categoryId: row.category_id,
         categoryColor: row.category_color || undefined,
         sortOrder: row.sort_order,
-        createdAt: row.created_at
+        createdAt: row.created_at,
+        icon: row.icon || '',
+        description: row.description || ''
     }));
 }
 

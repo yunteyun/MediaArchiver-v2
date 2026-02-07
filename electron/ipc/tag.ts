@@ -48,12 +48,12 @@ export function registerTagHandlers(): void {
         return getAllTags();
     });
 
-    ipcMain.handle('tag:create', async (_event, { name, color, categoryId }: { name: string; color?: string; categoryId?: string }) => {
-        return createTag(name, color, categoryId || null);
+    ipcMain.handle('tag:create', async (_event, { name, color, categoryId, icon, description }: { name: string; color?: string; categoryId?: string; icon?: string; description?: string }) => {
+        return createTag(name, color, categoryId || null, icon, description);
     });
 
-    ipcMain.handle('tag:update', async (_event, { id, name, color, categoryId, sortOrder }: { id: string; name?: string; color?: string; categoryId?: string | null; sortOrder?: number }) => {
-        return updateTag(id, { name, color, categoryId, sortOrder });
+    ipcMain.handle('tag:update', async (_event, { id, name, color, categoryId, sortOrder, icon, description }: { id: string; name?: string; color?: string; categoryId?: string | null; sortOrder?: number; icon?: string; description?: string }) => {
+        return updateTag(id, { name, color, categoryId, sortOrder, icon, description });
     });
 
     ipcMain.handle('tag:delete', async (_event, { id }: { id: string }) => {

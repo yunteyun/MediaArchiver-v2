@@ -2,8 +2,8 @@
  * TagFilterPanel - サイドバー用タグフィルターパネル
  */
 
-import React, { useEffect } from 'react';
-import { Tag as TagIcon, Filter, X, Settings, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useEffect, useMemo } from 'react';
+import { Tag as TagIcon, Filter, X, Settings, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { useTagStore } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
 
@@ -44,9 +44,11 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
     const filterMode = useTagStore((s) => s.filterMode);
     const collapsedCategoryIds = useTagStore((s) => s.collapsedCategoryIds);
+    const searchQuery = useTagStore((s) => s.searchQuery);
     const toggleTagFilter = useTagStore((s) => s.toggleTagFilter);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
     const setFilterMode = useTagStore((s) => s.setFilterMode);
+    const setSearchQuery = useTagStore((s) => s.setSearchQuery);
     const loadTags = useTagStore((s) => s.loadTags);
     const loadCategories = useTagStore((s) => s.loadCategories);
 
@@ -56,12 +58,22 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
         loadCategories();
     }, [loadTags, loadCategories]);
 
+    // Filter tags by search query
+    const filteredTags = useMemo(() => {
+        if (!searchQuery.trim()) return tags;
+        const query = searchQuery.toLowerCase();
+        return tags.filter(t =>
+            t.name.toLowerCase().includes(query) ||
+            (t.description && t.description.toLowerCase().includes(query))
+        );
+    }, [tags, searchQuery]);
+
     // Group tags by category
-    const uncategorizedTags = tags.filter(t => !t.categoryId);
+    const uncategorizedTags = filteredTags.filter(t => !t.categoryId);
     const categorizedGroups = categories
         .map(cat => ({
             category: cat,
-            tags: tags.filter(t => t.categoryId === cat.id)
+            tags: filteredTags.filter(t => t.categoryId === cat.id)
         }))
         .filter(g => g.tags.length > 0);
 
@@ -97,6 +109,18 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
                 </div>
             </div>
 
+            {/* Search Bar */}
+            <div className="mb-3 relative">
+                <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-surface-500" />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="タグを検索..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-surface-800 border border-surface-700 rounded focus:outline-none focus:border-primary-500 text-surface-200 placeholder-surface-500"
+                />
+            </div>
+
             {/* Filter Mode Toggle */}
             {selectedTagIds.length > 1 && (
                 <div className="flex items-center gap-2 mb-3 text-xs">
@@ -128,6 +152,8 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
                                 color={tag.color}
                                 selected={selectedTagIds.includes(tag.id)}
                                 onClick={() => toggleTagFilter(tag.id)}
+                                icon={tag.icon}
+                                description={tag.description}
                             />
                         ))}
                     </div>
@@ -157,6 +183,8 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
                                             color={tag.color}
                                             selected={selectedTagIds.includes(tag.id)}
                                             onClick={() => toggleTagFilter(tag.id)}
+                                            icon={tag.icon}
+                                            description={tag.description}
                                         />
                                     ))}
                                 </div>

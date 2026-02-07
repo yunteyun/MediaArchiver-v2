@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `media://` プロトコルのRangeリクエスト対応: `fs.createReadStream` + 手動Range処理に切り替え、動画シーク機能を修正
 
 ### Added
+- **Phase 12-8 フェーズ1: タグ管理機能の拡張** (2026-02-07)
+  - タグにアイコンと説明文を追加
+  - lucide-react アイコンの動的レンダリング
+  - タグフィルターパネルに検索機能を実装（名前・説明文で検索）
+  - ツールチップで説明文を表示
+  - マイグレーション 003 でDB拡張（icon, description列追加）
+  - TagBadge、TagFilterPanel、TagManagerModal、FileCard を更新
+
 - **Phase 12-11: 設定アイコンの視認性向上** (2026-02-07)
   - Header右上の古い設定ボタンを削除（サイドバーに移設済み）
   - UI整理による視認性向上

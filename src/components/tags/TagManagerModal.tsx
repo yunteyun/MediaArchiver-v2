@@ -26,6 +26,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     const [newTagName, setNewTagName] = useState('');
     const [newTagColor, setNewTagColor] = useState('gray');
     const [newTagCategoryId, setNewTagCategoryId] = useState<string | null>(null);
+    const [newTagIcon, setNewTagIcon] = useState('');
+    const [newTagDescription, setNewTagDescription] = useState('');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newCategoryColor, setNewCategoryColor] = useState('gray');
 
@@ -63,10 +65,12 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     // === Tag CRUD ===
     const handleCreateTag = async () => {
         if (!newTagName.trim()) return;
-        await createTag(newTagName.trim(), newTagColor, newTagCategoryId || undefined);
+        await createTag(newTagName.trim(), newTagColor, newTagCategoryId || undefined, newTagIcon, newTagDescription);
         setNewTagName('');
         setNewTagColor('gray');
         setNewTagCategoryId(null);
+        setNewTagIcon('');
+        setNewTagDescription('');
     };
 
     const handleUpdateTag = async () => {
@@ -74,12 +78,16 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         await updateTag(editingTag.id, {
             name: newTagName.trim(),
             color: newTagColor,
-            categoryId: newTagCategoryId
+            categoryId: newTagCategoryId,
+            icon: newTagIcon,
+            description: newTagDescription
         });
         setEditingTag(null);
         setNewTagName('');
         setNewTagColor('gray');
         setNewTagCategoryId(null);
+        setNewTagIcon('');
+        setNewTagDescription('');
     };
 
     const handleDeleteTag = async (tag: Tag) => {
@@ -93,6 +101,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         setNewTagName(tag.name);
         setNewTagColor(tag.color);
         setNewTagCategoryId(tag.categoryId);
+        setNewTagIcon(tag.icon || '');
+        setNewTagDescription(tag.description || '');
     };
 
     // === Category CRUD ===
@@ -204,6 +214,20 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                         ))}
                                     </div>
                                 </div>
+                                <input
+                                    type="text"
+                                    placeholder="アイコン名 (例: Star, Heart)"
+                                    value={newTagIcon}
+                                    onChange={(e) => setNewTagIcon(e.target.value)}
+                                    className="w-full px-3 py-2 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
+                                />
+                                <textarea
+                                    placeholder="説明文 (オプション)"
+                                    value={newTagDescription}
+                                    onChange={(e) => setNewTagDescription(e.target.value)}
+                                    rows={2}
+                                    className="w-full px-3 py-2 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500 resize-none"
+                                />
                                 <button
                                     onClick={editingTag ? handleUpdateTag : handleCreateTag}
                                     className="w-full py-2 bg-primary-600 hover:bg-primary-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
@@ -218,6 +242,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                             setNewTagName('');
                                             setNewTagColor('gray');
                                             setNewTagCategoryId(null);
+                                            setNewTagIcon('');
+                                            setNewTagDescription('');
                                         }}
                                         className="w-full py-1 text-sm text-surface-400 hover:text-surface-200"
                                     >
