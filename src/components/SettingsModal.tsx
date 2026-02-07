@@ -26,6 +26,18 @@ export const SettingsModal = React.memo(() => {
     const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
     const setPreviewFrameCount = useSettingsStore((s) => s.setPreviewFrameCount);
 
+    // カード表示設定（Phase 12-3）
+    const cardSize = useSettingsStore((s) => s.cardSize);
+    const setCardSize = useSettingsStore((s) => s.setCardSize);
+    const showFileName = useSettingsStore((s) => s.showFileName);
+    const setShowFileName = useSettingsStore((s) => s.setShowFileName);
+    const showDuration = useSettingsStore((s) => s.showDuration);
+    const setShowDuration = useSettingsStore((s) => s.setShowDuration);
+    const showTags = useSettingsStore((s) => s.showTags);
+    const setShowTags = useSettingsStore((s) => s.setShowTags);
+    const showFileSize = useSettingsStore((s) => s.showFileSize);
+    const setShowFileSize = useSettingsStore((s) => s.setShowFileSize);
+
     const [activeTab, setActiveTab] = useState<TabType>('general');
     const [logs, setLogs] = useState<string[]>([]);
     const [logFilter, setLogFilter] = useState<'all' | 'error' | 'warn' | 'info'>('all');
@@ -217,6 +229,75 @@ export const SettingsModal = React.memo(() => {
                                         className="w-5 h-5 accent-primary-500 rounded"
                                     />
                                 </label>
+                            </div>
+
+                            {/* Card Size */}
+                            <div>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    カードサイズ
+                                </label>
+                                <div className="flex gap-2">
+                                    {(['small', 'medium', 'large'] as const).map((size) => (
+                                        <button
+                                            key={size}
+                                            onClick={() => {
+                                                // 連打防止: 同値更新ガード（仮想スクロール多重再計算防止）
+                                                if (cardSize !== size) setCardSize(size);
+                                            }}
+                                            className={`px-4 py-2 rounded transition-colors ${cardSize === size
+                                                ? 'bg-primary-600 text-white'
+                                                : 'bg-surface-700 text-surface-300 hover:bg-surface-600'
+                                                }`}
+                                        >
+                                            {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Display Options */}
+                            <div>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    表示項目
+                                </label>
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={showFileName}
+                                            onChange={(e) => setShowFileName(e.target.checked)}
+                                            className="w-4 h-4 accent-primary-500 rounded"
+                                        />
+                                        <span className="text-surface-200 text-sm">ファイル名</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={showDuration}
+                                            onChange={(e) => setShowDuration(e.target.checked)}
+                                            className="w-4 h-4 accent-primary-500 rounded"
+                                        />
+                                        <span className="text-surface-200 text-sm">再生時間</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={showTags}
+                                            onChange={(e) => setShowTags(e.target.checked)}
+                                            className="w-4 h-4 accent-primary-500 rounded"
+                                        />
+                                        <span className="text-surface-200 text-sm">タグ</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={showFileSize}
+                                            onChange={(e) => setShowFileSize(e.target.checked)}
+                                            className="w-4 h-4 accent-primary-500 rounded"
+                                        />
+                                        <span className="text-surface-200 text-sm">ファイルサイズ</span>
+                                    </label>
+                                </div>
                             </div>
 
                             {/* Auto Scan on Startup */}

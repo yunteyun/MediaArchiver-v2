@@ -9,7 +9,7 @@ export interface MediaFile {
     name: string;
     path: string;
     size: number;
-    type: 'video' | 'image' | 'archive';
+    type: 'video' | 'image' | 'archive' | 'audio';
     created_at: number;
     duration?: string;
     thumbnail_path?: string;
@@ -19,6 +19,7 @@ export interface MediaFile {
     content_hash?: string;
     metadata?: string;
     mtime_ms?: number;
+    notes?: string;
 }
 export interface MediaFolder {
     id: string;
@@ -39,8 +40,23 @@ export declare function updateFileLocation(id: string, newPath: string, newRootF
 export declare function updateFileHash(id: string, hash: string): void;
 export declare function updateFileMetadata(id: string, metadataJson: string): void;
 export declare function updateFileAllPaths(id: string, pathVal: string, thumbPath: string, previewFrames: string): void;
+export declare function updateFileNotes(id: string, notes: string): void;
+export declare function findFileById(id: string): MediaFile | undefined;
+export declare function updateFileThumbnail(id: string, thumbnailPath: string): void;
+export declare function updateFilePreviewFrames(id: string, previewFrames: string): void;
 export declare function getFolders(): MediaFolder[];
 export declare function getFolderByPath(folderPath: string): MediaFolder | undefined;
 export declare function addFolder(folderPath: string, name?: string): MediaFolder;
 export declare function deleteFolder(id: string): void;
+/**
+ * フォルダごとのファイル数を一括取得（Phase 12-4）
+ * N+1問題を回避するため、一括取得
+ */
+export declare function getFolderFileCounts(): Record<string, number>;
+/**
+ * フォルダごとの代表サムネイルパスを一括取得（Phase 12-4）
+ * 各フォルダの最初のファイルのサムネイルを取得
+ * N+1問題を回避するため、一括取得
+ */
+export declare function getFolderThumbnails(): Record<string, string>;
 export declare function initDB(): void;

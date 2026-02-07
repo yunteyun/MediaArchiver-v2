@@ -6,6 +6,7 @@ import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
 import { TagBadge } from './tags';
 import { toMediaUrl } from '../utils/mediaPath';
+import { isAudioArchive } from '../utils/fileHelpers';
 
 interface FileCardProps {
     file: MediaFile;
@@ -22,11 +23,17 @@ const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
 };
 
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
-    const Icon = file.type === 'video' ? Play
-        : file.type === 'image' ? ImageIcon
-            : file.type === 'archive' ? Archive
-                : file.type === 'audio' ? Music
-                    : FileText;
+    // アイコン選択ロジック
+    const Icon = useMemo(() => {
+        if (file.type === 'video') return Play;
+        if (file.type === 'image') return ImageIcon;
+        if (file.type === 'audio') return Music;
+        if (file.type === 'archive') {
+            return isAudioArchive(file) ? Music : Archive;
+        }
+        return FileText;
+    }, [file.type, file.metadata]);
+
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const videoVolume = useSettingsStore((s) => s.videoVolume);
@@ -254,6 +261,20 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
                         <Loader size={10} className="animate-spin" />
                         <span>Loading...</span>
+                    </div>
+                )}
+
+                {/* スクラブモードシークバー（Phase 12-5a） */}
+                {isHovered && thumbnailAction === 'scrub' && preloadState === 'ready' && previewFrames.length > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+                        <div
+                            className="h-full bg-cyan-400 transition-all duration-100"
+                            style={{
+                                width: `${previewFrames.length > 1
+                                    ? (scrubIndex / (previewFrames.length - 1)) * 100
+                                    : 0}%`
+                            }}
+                        />
                     </div>
                 )}
 

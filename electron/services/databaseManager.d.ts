@@ -28,6 +28,7 @@ declare class DatabaseManager {
     private createDefaultProfile;
     /**
      * メディアDB初期化（プロファイルごと）
+     * マイグレーションシステムを使用してスキーマを管理
      */
     private initMediaDb;
     /**
@@ -76,6 +77,14 @@ declare class DatabaseManager {
      * 現在のプロファイルID取得
      */
     getCurrentProfileId(): string | null;
+    /**
+     * 現在のDBファイルパス取得（バックアップ用）
+     */
+    getCurrentDbPath(): string;
+    /**
+     * DB接続を明示的に閉じる（リストア処理用）
+     */
+    closeDb(): void;
     /**
      * クリーンアップ
      */

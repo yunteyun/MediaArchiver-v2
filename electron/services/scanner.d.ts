@@ -12,4 +12,6 @@ export type ScanProgressCallback = (progress: {
 }) => void;
 export declare function cancelScan(): void;
 export declare function isScanCancelled(): boolean;
+export declare function setPreviewFrameCount(count: number): void;
+export declare function getPreviewFrameCount(): number;
 export declare function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback): Promise<void>;

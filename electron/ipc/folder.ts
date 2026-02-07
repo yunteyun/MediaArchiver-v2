@@ -1,5 +1,5 @@
 import { ipcMain, Menu, shell, BrowserWindow } from 'electron';
-import { deleteFolder } from '../services/database';
+import { deleteFolder, getFolderFileCounts, getFolderThumbnails } from '../services/database';
 import { scanDirectory } from '../services/scanner';
 
 export function registerFolderHandlers() {
@@ -54,5 +54,15 @@ export function registerFolderHandlers() {
         if (win) {
             menu.popup({ window: win });
         }
+    });
+
+    /**
+     * フォルダメタデータ一括取得（Phase 12-4）
+     * フォルダごとのファイル数とサムネイルパスを返す
+     */
+    ipcMain.handle('folder:getMetadata', async () => {
+        const fileCounts = getFolderFileCounts();
+        const thumbnails = getFolderThumbnails();
+        return { fileCounts, thumbnails };
     });
 }

@@ -13,6 +13,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - `media://` プロトコルのRangeリクエスト対応: `fs.createReadStream` + 手動Range処理に切り替え、動画シーク機能を修正
 
 ### Added
+- **Phase 12-4: フォルダビュー拡張**
+  - FileGridにフォルダカードを表示する機能を追加
+  - フォルダごとのファイル数と整合サムネイルを表示
+  - フォルダクリックでナビゲーション可能に
+  - データ取得の最適化（N+1問題対策済み）
+
+- **Phase 12-5a: スクラブモードシークバー**
+  - スクラブモード時に現在位置を示すシークバーを表示
+  - マウス位置に応じてシークバーの幅が変化
+  - 段階的実装戦略（視認性優先→デザイン調整）で成功
+  - シアン色で視認性を確保
+
+### Added
 - **Phase 12-1: トースト通知システム** 🆕
   - `useToastStore` の作成（addToast, removeToast, success, error, info）
   - `App.tsx` への `ToastContainer` 統合
@@ -124,6 +137,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - FileGrid.tsx: CARD_SIZES定数、useMemoメモ化、カードラッパーサイズ修正
   - Header.tsx: サイズ切替ボタン（S/M/L）追加
   - セカンドオピニオン反映（UI定数責務境界、再レンダリング抑制、仮想スクロール相互作用、将来拡張余地）
+
+- **Phase 12-14a: スキャン進捗表示の挙動修正** 🆕
+  - UIStoreでの表示状態管理（`isScanProgressVisible`）
+  - 最小化ボタンの実装（スキャン継続したまま非表示）
+  - サイドバーへのスキャンインジケーター追加
+  - 完了後の自動非表示ロジック改善
+
+- **Phase 12-14b: スキャン進捗表示のアニメーション改善** 🆕
+  - シマーアニメーション追加（進捗バーの光沢エフェクト）
+  - スライドイン/アウトアニメーション（左サイドバー付近）
+  - 等幅フォント適用による数値表示の安定化
+  - 位置調整と×ボタンのアニメーション実装
 
 
 - **スキャン設定の改善**

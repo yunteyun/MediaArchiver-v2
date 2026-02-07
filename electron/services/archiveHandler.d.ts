@@ -8,6 +8,8 @@ export interface ArchiveMetadata {
     fileCount: number;
     firstImageEntry: string | null;
     imageEntries: string[];
+    audioEntries: string[];
+    hasAudio: boolean;
 }
 export interface ArchiveError {
     code: 'NO_IMAGES' | 'EXTRACTION_FAILED' | 'PASSWORD_PROTECTED' | 'CORRUPTED' | 'UNKNOWN';
@@ -35,3 +37,11 @@ export declare function getArchivePreviewFrames(filePath: string, limit?: number
  * 一時ディレクトリをクリーンアップ
  */
 export declare function cleanTempArchives(): void;
+/**
+ * 書庫ファイル内の音声ファイルリストを取得
+ */
+export declare function getArchiveAudioFiles(archivePath: string): Promise<string[]>;
+/**
+ * 書庫ファイルから特定の音声ファイルを抽出し、一時ファイルパスを返す
+ */
+export declare function extractArchiveAudioFile(archivePath: string, entryName: string): Promise<string | null>;

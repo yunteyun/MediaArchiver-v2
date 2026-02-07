@@ -6,6 +6,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { dbManager } from './databaseManager';
+import { logger } from './logger';
 
 // 毎回現在のプロファイルDBを取得（dbは実際には関数呼び出し）
 const db = () => dbManager.getDb();

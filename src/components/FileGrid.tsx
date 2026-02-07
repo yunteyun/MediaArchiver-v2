@@ -6,7 +6,9 @@ import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
+import { FolderCard } from './FolderCard';
 import { Header } from './SortMenu';
+import type { GridItem } from '../types/grid';
 
 const CARD_GAP = 8;
 
@@ -27,6 +29,9 @@ export const FileGrid = React.memo(() => {
     const removeFile = useFileStore((s) => s.removeFile);
     const refreshFile = useFileStore((s) => s.refreshFile);
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
+    const currentFolderId = useFileStore((s) => s.currentFolderId);
+    const setFolderMetadata = useFileStore((s) => s.setFolderMetadata);
+    const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const sortBy = useSettingsStore((s) => s.sortBy);
     const sortOrder = useSettingsStore((s) => s.sortOrder);
     const cardSize = useSettingsStore((s) => s.cardSize);
@@ -39,6 +44,26 @@ export const FileGrid = React.memo(() => {
     // Tag filter state
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
     const filterMode = useTagStore((s) => s.filterMode);
+
+    // Folders state (Phase 12-4)
+    const [folders, setFolders] = React.useState<import('../types/file').MediaFolder[]>([]);
+
+    // Load folders and folder metadata (Phase 12-4)
+    useEffect(() => {
+        const loadFoldersAndMetadata = async () => {
+            try {
+                const [folderList, metadata] = await Promise.all([
+                    window.electronAPI.getFolders(),
+                    window.electronAPI.getFolderMetadata()
+                ]);
+                setFolders(folderList);
+                setFolderMetadata(metadata);
+            } catch (e) {
+                console.error('Failed to load folders/metadata:', e);
+            }
+        };
+        loadFoldersAndMetadata();
+    }, [setFolderMetadata]);
 
     // Sort and filter files in component using useMemo
     const files = useMemo(() => {
@@ -86,6 +111,30 @@ export const FileGrid = React.memo(() => {
         return filtered;
     }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery]);
 
+    // GridItem統合リスト生成（Phase 12-4）
+    const gridItems = useMemo((): GridItem[] => {
+        const items: GridItem[] = [];
+        const folderFileCounts = useFileStore.getState().folderFileCounts;
+        const folderThumbnails = useFileStore.getState().folderThumbnails;
+
+        // 「すべてのファイル」表示時はフォルダカードを先頭に表示
+        if (currentFolderId === '__all__' || currentFolderId === null) {
+            folders.forEach(folder => {
+                items.push({
+                    type: 'folder',
+                    folder,
+                    fileCount: folderFileCounts[folder.id] || 0,
+                    thumbnailPath: folderThumbnails[folder.id]
+                });
+            });
+        }
+
+        // ファイルをGridItemに変換
+        files.forEach(file => items.push({ type: 'file', file }));
+
+        return items;
+    }, [files, folders, currentFolderId]);
+
     const parentRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = React.useState(1000);
 
@@ -128,9 +177,9 @@ export const FileGrid = React.memo(() => {
         const cardW = size.width + CARD_GAP * 2;
         const h = size.height + infoHeight + CARD_GAP * 2;
         const cols = Math.max(1, Math.floor(containerWidth / cardW));
-        const r = Math.ceil(files.length / cols);
+        const r = Math.ceil(gridItems.length / cols);
         return { cardHeight: h, columns: cols, rows: r };
-    }, [cardSize, showFileName, containerWidth, files.length]);
+    }, [cardSize, showFileName, containerWidth, gridItems.length]);
 
     const rowVirtualizer = useVirtualizer({
         count: rows,
@@ -139,11 +188,13 @@ export const FileGrid = React.memo(() => {
         overscan: 3,
     });
 
-    // 現在のフォーカスインデックスを計算
+    // 現在のフォーカスインデックスを計算（Phase 12-4: gridItems対応）
     const focusedIndex = useMemo(() => {
         if (!focusedId) return -1;
-        return files.findIndex((f) => f.id === focusedId);
-    }, [focusedId, files]);
+        return gridItems.findIndex((item) =>
+            item.type === 'file' && item.file.id === focusedId
+        );
+    }, [focusedId, gridItems]);
 
     // フォーカス変更時にスクロール追従
     useEffect(() => {
@@ -153,9 +204,9 @@ export const FileGrid = React.memo(() => {
         }
     }, [focusedIndex, columns, rowVirtualizer]);
 
-    // キーボードショートカットハンドラ
+    // キーボードショートカットハンドラ（Phase 12-4: gridItems対応）
     const moveSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
-        if (files.length === 0) return;
+        if (gridItems.length === 0) return;
 
         let currentIndex = focusedIndex >= 0 ? focusedIndex : -1;
         let newIndex = currentIndex;
@@ -165,33 +216,44 @@ export const FileGrid = React.memo(() => {
                 newIndex = Math.max(0, currentIndex - columns);
                 break;
             case 'down':
-                newIndex = Math.min(files.length - 1, currentIndex + columns);
+                newIndex = Math.min(gridItems.length - 1, currentIndex + columns);
                 break;
             case 'left':
                 newIndex = Math.max(0, currentIndex - 1);
                 break;
             case 'right':
-                newIndex = Math.min(files.length - 1, currentIndex + 1);
+                newIndex = Math.min(gridItems.length - 1, currentIndex + 1);
                 break;
         }
 
-        // 初回は最初のファイルを選択
+        // 初回は最初のアイテムを選択
         if (currentIndex === -1) {
             newIndex = 0;
         }
 
-        const targetFile = files[newIndex];
-        if (targetFile) {
-            selectFile(targetFile.id); // 選択 & フォーカス
+        const targetItem = gridItems[newIndex];
+        if (targetItem && targetItem.type === 'file') {
+            selectFile(targetItem.file.id); // 選択 & フォーカス
         }
-    }, [files, focusedIndex, columns, selectFile]);
+    }, [gridItems, focusedIndex, columns, selectFile]);
 
     const openFocusedFile = useCallback(() => {
-        const file = focusedIndex >= 0 ? files[focusedIndex] : null;
-        if (file) {
-            openLightbox(file);
+        const item = focusedIndex >= 0 ? gridItems[focusedIndex] : null;
+        if (item && item.type === 'file') {
+            openLightbox(item.file);
         }
-    }, [focusedIndex, files, openLightbox]);
+    }, [focusedIndex, gridItems, openLightbox]);
+
+    // フォルダナビゲーションハンドラー（Phase 12-4）
+    const handleFolderNavigate = useCallback(async (folderId: string) => {
+        setCurrentFolderId(folderId);
+        try {
+            const files = await window.electronAPI.getFiles(folderId);
+            useFileStore.getState().setFiles(files);
+        } catch (e) {
+            console.error('Failed to navigate to folder:', e);
+        }
+    }, [setCurrentFolderId]);
 
     // キーボードショートカット登録
     useKeyboardShortcuts({
@@ -215,7 +277,7 @@ export const FileGrid = React.memo(() => {
         selectFile(id, multi);
     }, [selectFile]);
 
-    if (files.length === 0) {
+    if (gridItems.length === 0) {
         return (
             <div className="flex-1 flex flex-col h-full">
                 <Header />
@@ -245,7 +307,7 @@ export const FileGrid = React.memo(() => {
                 >
                     {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                         const startIndex = virtualRow.index * columns;
-                        const rowFiles = files.slice(startIndex, startIndex + columns);
+                        const rowItems = gridItems.slice(startIndex, startIndex + columns);
 
                         return (
                             <div
@@ -262,13 +324,30 @@ export const FileGrid = React.memo(() => {
                                     padding: `${CARD_GAP / 2}px`,
                                 }}
                             >
-                                {rowFiles.map((file) => {
+                                {rowItems.map((item) => {
                                     const size = CARD_SIZES[cardSize];
                                     const cardW = size.width;
                                     const cardH = size.height + (showFileName ? 40 : 0);
-                                    return (
+
+                                    return item.type === 'folder' ? (
                                         <div
-                                            key={file.id}
+                                            key={item.folder.id}
+                                            style={{
+                                                width: `${cardW}px`,
+                                                height: `${cardH}px`,
+                                                flexShrink: 0,
+                                            }}
+                                        >
+                                            <FolderCard
+                                                folder={item.folder}
+                                                thumbnailPath={item.thumbnailPath}
+                                                fileCount={item.fileCount}
+                                                onNavigate={handleFolderNavigate}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div
+                                            key={item.file.id}
                                             style={{
                                                 width: `${cardW}px`,
                                                 height: `${cardH}px`,
@@ -276,9 +355,9 @@ export const FileGrid = React.memo(() => {
                                             }}
                                         >
                                             <FileCard
-                                                file={file}
-                                                isSelected={selectedIds.has(file.id)}
-                                                isFocused={focusedId === file.id && !selectedIds.has(file.id)}
+                                                file={item.file}
+                                                isSelected={selectedIds.has(item.file.id)}
+                                                isFocused={focusedId === item.file.id && !selectedIds.has(item.file.id)}
                                                 onSelect={handleSelect}
                                             />
                                         </div>

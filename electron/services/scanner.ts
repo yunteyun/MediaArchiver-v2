@@ -6,6 +6,7 @@ import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { generateThumbnail, getVideoDuration, generatePreviewFrames } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
+import * as archiveHandler from './archiveHandler';
 
 const log = logger.scope('Scanner');
 
@@ -285,6 +286,26 @@ async function scanDirectoryInternal(
                         }
                     }
 
+                    // Generate archive metadata if missing (archive only)
+                    let metadata = existing?.metadata;
+                    if (type === 'archive' && !metadata) {
+                        try {
+                            if (onProgress) {
+                                onProgress({
+                                    phase: 'scanning',
+                                    current: state.current,
+                                    total: state.total,
+                                    currentFile: entry.name,
+                                    message: `書庫メタデータ取得中...`
+                                });
+                            }
+                            const meta = await archiveHandler.getArchiveMetadata(fullPath);
+                            metadata = JSON.stringify(meta);
+                        } catch (e) {
+                            log.error('Archive metadata extraction failed:', e);
+                        }
+                    }
+
                     // Insert or Update - バッチに追加
                     const isNew = !existing;
                     const fileData = {
@@ -300,7 +321,7 @@ async function scanDirectoryInternal(
                         thumbnail_path: thumbnailPath,
                         preview_frames: previewFrames,
                         content_hash: existing?.content_hash,
-                        metadata: existing?.metadata
+                        metadata: metadata
                     };
 
                     state.pendingWrites.push({ fileData });

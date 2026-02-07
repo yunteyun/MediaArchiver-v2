@@ -39,6 +39,7 @@ declare global {
             addFolder: (folderPath: string) => Promise<any>;
             getFolders: () => Promise<any[]>;
             deleteFolder: (folderId: string) => Promise<void>;
+            getFolderMetadata: () => Promise<{ fileCounts: Record<string, number>; thumbnails: Record<string, string> }>;
 
             // Scanner
             scanFolder: (folderPath: string) => Promise<void>;

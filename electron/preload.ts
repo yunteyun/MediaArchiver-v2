@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addFolder: (folderPath: string) => ipcRenderer.invoke('folder:add', folderPath),
     getFolders: () => ipcRenderer.invoke('folder:list'),
     deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
+    getFolderMetadata: () => ipcRenderer.invoke('folder:getMetadata'),
 
     // === Scanner ===
     scanFolder: (folderPath: string) => ipcRenderer.invoke('scanner:start', folderPath),

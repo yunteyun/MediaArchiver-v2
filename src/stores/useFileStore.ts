@@ -10,6 +10,9 @@ interface FileState {
     currentFolderId: string | null;
     // ファイルごとのタグIDをキャッシュ
     fileTagsCache: Map<string, string[]>;
+    // フォルダメタデータ（Phase 12-4）
+    folderFileCounts: Record<string, number>;
+    folderThumbnails: Record<string, string>;
     // アクション
     setFiles: (files: MediaFile[]) => void;
     setCurrentFolderId: (id: string | null) => void;
@@ -24,6 +27,8 @@ interface FileState {
     // タグキャッシュ管理
     loadFileTagsCache: () => Promise<void>;
     updateFileTagCache: (fileId: string, tagIds: string[]) => void;
+    // フォルダメタデータ管理（Phase 12-4）
+    setFolderMetadata: (metadata: { fileCounts: Record<string, number>; thumbnails: Record<string, string> }) => void;
 }
 
 export const useFileStore = create<FileState>((set, get) => ({
@@ -32,6 +37,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     focusedId: null,
     currentFolderId: null,
     fileTagsCache: new Map(),
+    folderFileCounts: {},
+    folderThumbnails: {},
 
     setFiles: (files) => {
         set({ files, focusedId: null });
@@ -149,6 +156,12 @@ export const useFileStore = create<FileState>((set, get) => ({
             const newCache = new Map(state.fileTagsCache);
             newCache.set(fileId, tagIds);
             return { fileTagsCache: newCache };
+        }),
+
+    setFolderMetadata: (metadata) =>
+        set({
+            folderFileCounts: metadata.fileCounts,
+            folderThumbnails: metadata.thumbnails,
         }),
 }));
 

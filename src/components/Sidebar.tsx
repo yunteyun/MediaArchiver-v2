@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3 } from 'lucide-react';
+import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2 } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
@@ -15,6 +15,8 @@ export const Sidebar = React.memo(() => {
 
     const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
     const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+    const scanProgress = useUIStore((s) => s.scanProgress);
+    const isScanProgressVisible = useUIStore((s) => s.isScanProgressVisible);
 
     const [folders, setFolders] = useState<MediaFolder[]>([]);
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
@@ -235,6 +237,40 @@ export const Sidebar = React.memo(() => {
                         <span className="truncate text-sm">統計</span>
                     )}
                 </div>
+
+                {/* 設定 */}
+                <div
+                    onClick={() => useUIStore.getState().openSettingsModal()}
+                    className={`
+                        flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
+                        hover:bg-surface-800 text-surface-300
+                        ${sidebarCollapsed ? 'justify-center' : ''}
+                    `}
+                    title="設定"
+                >
+                    <Settings size={20} className="flex-shrink-0 text-primary-400" />
+                    {!sidebarCollapsed && (
+                        <span className="truncate text-sm">設定</span>
+                    )}
+                </div>
+
+                {/* スキャンインジケーター（スキャン中 & 非表示の場合のみ） */}
+                {scanProgress && scanProgress.phase !== 'complete' && scanProgress.phase !== 'error' && !isScanProgressVisible && (
+                    <div
+                        onClick={() => useUIStore.getState().setScanProgressVisible(true)}
+                        className={`
+                            flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
+                            hover:bg-surface-800 text-blue-400
+                            ${sidebarCollapsed ? 'justify-center' : ''}
+                        `}
+                        title="スキャン中 - クリックで表示"
+                    >
+                        <Loader2 size={20} className="flex-shrink-0 animate-spin" />
+                        {!sidebarCollapsed && (
+                            <span className="truncate text-sm">スキャン中...</span>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Tag Manager Modal */}

@@ -9,8 +9,7 @@ import {
     findDuplicates,
     cancelDuplicateSearch,
     getDuplicateStats,
-    DuplicateProgress,
-    DuplicateGroup
+    DuplicateProgress
 } from '../services/duplicateService';
 
 // 進捗スロットリング用の状態

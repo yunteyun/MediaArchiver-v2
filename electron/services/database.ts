@@ -296,6 +296,58 @@ export function deleteFolder(id: string) {
     db.prepare('DELETE FROM folders WHERE id = ?').run(id);
 }
 
+/**
+ * フォルダごとのファイル数を一括取得（Phase 12-4）
+ * N+1問題を回避するため、一括取得
+ */
+export function getFolderFileCounts(): Record<string, number> {
+    const db = getDb();
+    const rows = db.prepare(`
+        SELECT root_folder_id, COUNT(*) as count
+        FROM files
+        WHERE root_folder_id IS NOT NULL
+        GROUP BY root_folder_id
+    `).all() as { root_folder_id: string; count: number }[];
+
+    const result: Record<string, number> = {};
+    for (const row of rows) {
+        result[row.root_folder_id] = row.count;
+    }
+    return result;
+}
+
+/**
+ * フォルダごとの代表サムネイルパスを一括取得（Phase 12-4）
+ * 各フォルダの最初のファイルのサムネイルを取得
+ * N+1問題を回避するため、一括取得
+ */
+export function getFolderThumbnails(): Record<string, string> {
+    const db = getDb();
+
+    // 各フォルダの最初のファイル（created_atが最小）のサムネイルを取得
+    const rows = db.prepare(`
+        SELECT 
+            f1.root_folder_id,
+            f1.thumbnail_path
+        FROM files f1
+        INNER JOIN (
+            SELECT root_folder_id, MIN(created_at) as min_created
+            FROM files
+            WHERE root_folder_id IS NOT NULL
+              AND thumbnail_path IS NOT NULL
+            GROUP BY root_folder_id
+        ) f2 ON f1.root_folder_id = f2.root_folder_id 
+            AND f1.created_at = f2.min_created
+        WHERE f1.thumbnail_path IS NOT NULL
+    `).all() as { root_folder_id: string; thumbnail_path: string }[];
+
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+        result[row.root_folder_id] = row.thumbnail_path;
+    }
+    return result;
+}
+
 // --- Legacy initDB (no longer needed, kept for compatibility) ---
 export function initDB() {
     // Now handled by dbManager.initialize()

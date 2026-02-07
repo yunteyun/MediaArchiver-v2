@@ -41,4 +41,10 @@ export declare function removeTagFromFile(fileId: string, tagId: string): void;
 export declare function getFileTags(fileId: string): TagDefinition[];
 export declare function getFileTagIds(fileId: string): string[];
 export declare function getFilesByTagIds(tagIds: string[], mode?: 'AND' | 'OR'): string[];
+/**
+ * 全ファイルのタグIDを一括取得
+ * パフォーマンス最適化: N回のIPC呼び出し → 1回
+ * @returns Record<fileId, tagId[]> 形式（IPC通信で安全なプレーンオブジェクト）
+ */
+export declare function getAllFileTagIds(): Record<string, string[]>;
 export declare function initDefaultTags(): void;

@@ -46,6 +46,8 @@ interface UIState {
     openDuplicateView: () => void;
     closeDuplicateView: () => void;
     setMainView: (view: 'grid' | 'statistics') => void;
+    isScanProgressVisible: boolean;
+    setScanProgressVisible: (visible: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -62,6 +64,7 @@ export const useUIStore = create<UIState>((set) => ({
     toasts: [],
     duplicateViewOpen: false,
     mainView: 'grid',
+    isScanProgressVisible: false,
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -73,7 +76,14 @@ export const useUIStore = create<UIState>((set) => ({
     setSearchQuery: (query) => set({ searchQuery: query }),
     openSettingsModal: () => set({ settingsModalOpen: true }),
     closeSettingsModal: () => set({ settingsModalOpen: false }),
-    setScanProgress: (progress) => set({ scanProgress: progress }),
+    setScanProgress: (progress) => set((state) => ({
+        scanProgress: progress,
+        // NOTE:
+        // スキャン開始時のみ UX 向上のため自動表示する。
+        // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
+        isScanProgressVisible: progress?.phase === 'counting' ? true : state.isScanProgressVisible
+    })),
+    setScanProgressVisible: (visible) => set({ isScanProgressVisible: visible }),
     showToast: (message, type = 'info', duration = 3000) => set((state) => ({
         toasts: [...state.toasts, { id: Date.now().toString(), message, type, duration }]
     })),
