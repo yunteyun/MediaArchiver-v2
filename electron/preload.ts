@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showInExplorer: (path: string) => ipcRenderer.invoke('app:showInExplorer', path),
     getLogs: (lines?: number) => ipcRenderer.invoke('app:getLogs', lines),
     openLogFolder: () => ipcRenderer.invoke('app:openLogFolder'),
+    selectFile: () => ipcRenderer.invoke('app:selectFile'),
+    validatePath: (appPath: string) => ipcRenderer.invoke('app:validatePath', appPath),
+    setExternalApps: (apps: any[]) => ipcRenderer.invoke('app:setExternalApps', apps),
+    openWithApp: (filePath: string, appPath: string) => ipcRenderer.invoke('app:openWithApp', filePath, appPath),
 
     // === File Operations ===
     updateFileNotes: (fileId: string, notes: string) =>

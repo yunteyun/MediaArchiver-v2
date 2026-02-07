@@ -49,6 +49,10 @@ declare global {
             showInExplorer: (path: string) => Promise<void>;
             getLogs: (lines?: number) => Promise<string[]>;
             openLogFolder: () => Promise<void>;
+            selectFile: () => Promise<string | null>;
+            validatePath: (appPath: string) => Promise<boolean>;
+            setExternalApps: (apps: any[]) => Promise<void>;
+            openWithApp: (filePath: string, appPath: string) => Promise<void>;
 
             // File Operations
             updateFileNotes: (fileId: string, notes: string) => Promise<{ success: boolean }>;
