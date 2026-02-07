@@ -14,6 +14,11 @@ interface ExternalApp {
 }
 let cachedExternalApps: ExternalApp[] = [];
 
+// file.ts から参照するための getter
+export function getCachedExternalApps(): ExternalApp[] {
+    return cachedExternalApps;
+}
+
 export function registerAppHandlers() {
     // ファイルをデフォルトアプリで開く
     ipcMain.handle('app:openExternal', async (_event, filePath: string) => {

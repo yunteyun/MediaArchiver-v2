@@ -5,27 +5,12 @@ import { getPreviewFrameCount } from '../services/scanner';
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-
-// 外部アプリのキャッシュを参照
-interface ExternalApp {
-    id: string;
-    name: string;
-    path: string;
-    extensions: string[];
-    createdAt: number;
-}
-
-// app.ts からキャッシュを取得するためのヘルパー
-let getExternalApps: () => ExternalApp[] = () => [];
-
-export function setExternalAppsGetter(getter: () => ExternalApp[]) {
-    getExternalApps = getter;
-}
+import { getCachedExternalApps } from './app';
 
 export function registerFileHandlers() {
     ipcMain.handle('file:showContextMenu', async (event, { fileId, filePath }) => {
         const ext = path.extname(filePath).toLowerCase().substring(1);
-        const cachedApps = getExternalApps();
+        const cachedApps = getCachedExternalApps();
 
         // 対応する外部アプリをフィルタリング
         const compatibleApps = cachedApps.filter(app =>
