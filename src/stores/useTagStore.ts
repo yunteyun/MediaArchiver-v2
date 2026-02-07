@@ -40,6 +40,7 @@ interface TagState {
     setFilterMode: (mode: 'AND' | 'OR') => void;
     setLoading: (loading: boolean) => void;
     toggleCategoryCollapse: (categoryId: string) => void;
+    setCollapsedCategories: (categoryIds: string[]) => void;
 
     // Async actions
     loadTags: () => Promise<void>;
@@ -77,11 +78,23 @@ export const useTagStore = create<TagState>((set, get) => ({
     clearTagFilter: () => set({ selectedTagIds: [] }),
     setFilterMode: (mode) => set({ filterMode: mode }),
     setLoading: (loading) => set({ isLoading: loading }),
-    toggleCategoryCollapse: (categoryId) => set((state) => ({
-        collapsedCategoryIds: state.collapsedCategoryIds.includes(categoryId)
-            ? state.collapsedCategoryIds.filter(id => id !== categoryId)
-            : [...state.collapsedCategoryIds, categoryId]
-    })),
+    toggleCategoryCollapse: (categoryId) => set((state) => {
+        const isCurrentlyCollapsed = state.collapsedCategoryIds.includes(categoryId);
+
+        if (isCurrentlyCollapsed) {
+            // 展開する場合：他のカテゴリを閉じて、このカテゴリだけ開く
+            const allCategoryIds = state.categories.map(c => c.id);
+            return {
+                collapsedCategoryIds: allCategoryIds.filter(id => id !== categoryId)
+            };
+        } else {
+            // 閉じる場合：このカテゴリを閉じる
+            return {
+                collapsedCategoryIds: [...state.collapsedCategoryIds, categoryId]
+            };
+        }
+    }),
+    setCollapsedCategories: (categoryIds) => set({ collapsedCategoryIds: categoryIds }),
 
     // Async actions
     loadTags: async () => {
