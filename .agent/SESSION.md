@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-07 23:20
+**Last Updated**: 2026-02-08 22:15
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -138,6 +138,9 @@
   - 表示モードシステム、WhiteBrowser風表示などを計画
 
 ## Next Steps
+- [ ] **Phase 12-6: ストレージクリーンアップ（再挑戦）**
+  - Backend再実装（設計確認済み）
+  - Frontend UI実装（エンコーディング注意）
 - [ ] Phase 12-B: データ操作含むUI改善
 - [ ] Phase 10-2: バックアップ・リストア機能
 - [ ] Phase 10-3: パフォーマンス最適化（第2弾）
