@@ -5,6 +5,9 @@ import { persist } from 'zustand/middleware';
 export type CardSize = 'small' | 'medium' | 'large';
 export type CardLayout = 'grid' | 'list';
 
+// 表示モード型定義（Phase 14）
+export type DisplayMode = 'standard' | 'manga' | 'video';
+
 // グループ化型定義（Phase 12-10）
 export type GroupBy = 'none' | 'date' | 'size' | 'type';
 
@@ -36,6 +39,9 @@ interface SettingsState {
     showTags: boolean;
     showFileSize: boolean;
 
+    // 表示モード設定（Phase 14）
+    displayMode: DisplayMode;
+
     // 外部アプリ設定（Phase 12-7）
     externalApps: ExternalApp[];
 
@@ -58,6 +64,8 @@ interface SettingsState {
     setShowDuration: (show: boolean) => void;
     setShowTags: (show: boolean) => void;
     setShowFileSize: (show: boolean) => void;
+    // 表示モードアクション（Phase 14）
+    setDisplayMode: (mode: DisplayMode) => void;
     // 外部アプリアクション（Phase 12-7）
     addExternalApp: (name: string, path: string, extensions: string[]) => void;
     updateExternalApp: (id: string, updates: Partial<Omit<ExternalApp, 'id' | 'createdAt'>>) => void;
@@ -87,6 +95,9 @@ export const useSettingsStore = create<SettingsState>()(
             showTags: true,
             showFileSize: false,
 
+            // 表示モード設定デフォルト値（Phase 14）
+            displayMode: 'standard',
+
             // 外部アプリ設定（Phase 12-7）
             externalApps: [],
 
@@ -108,6 +119,8 @@ export const useSettingsStore = create<SettingsState>()(
             setShowDuration: (showDuration) => set({ showDuration }),
             setShowTags: (showTags) => set({ showTags }),
             setShowFileSize: (showFileSize) => set({ showFileSize }),
+            // 表示モード設定セッター（Phase 14）
+            setDisplayMode: (displayMode) => set({ displayMode }),
             // 外部アプリアクション（Phase 12-7）
             addExternalApp: (name, path, extensions) => {
                 const newApp: ExternalApp = {

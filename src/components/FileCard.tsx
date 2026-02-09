@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
-import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
+import { useSettingsStore, type CardSize, type DisplayMode } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
 import { TagBadge } from './tags';
 import { toMediaUrl } from '../utils/mediaPath';
@@ -26,6 +26,37 @@ const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
 
 // FileCard専用のタグ表示数制限（settings昇格を避け、影響範囲を限定）
 const FILE_CARD_MAX_VISIBLE_TAGS = 5;
+
+// Phase 14: 表示モード別の定数定義（Phase 13実測値ベース）
+const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
+    aspectRatio: string;
+    cardWidth: number;
+    thumbnailHeight: number;
+    infoAreaHeight: number;
+    totalHeight: number;
+}> = {
+    standard: {
+        aspectRatio: '1/1',
+        cardWidth: 200,
+        thumbnailHeight: 160,
+        infoAreaHeight: 48,
+        totalHeight: 208
+    },
+    manga: {
+        aspectRatio: '2/3',
+        cardWidth: 160,
+        thumbnailHeight: 240,
+        infoAreaHeight: 48,
+        totalHeight: 288
+    },
+    video: {
+        aspectRatio: '16/9',
+        cardWidth: 280,
+        thumbnailHeight: 158,
+        infoAreaHeight: 48,
+        totalHeight: 206
+    }
+};
 
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
     // アイコン選択ロジック
