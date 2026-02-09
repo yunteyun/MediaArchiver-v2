@@ -25,7 +25,7 @@ const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
 };
 
 // FileCard専用のタグ表示数制限（settings昇格を避け、影響範囲を限定）
-const FILE_CARD_MAX_VISIBLE_TAGS = 3;
+const FILE_CARD_MAX_VISIBLE_TAGS = 5;
 
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
     // アイコン選択ロジック
@@ -292,44 +292,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     </div>
                 )}
 
-                {/* Tags Overlay (on hover) */}
-                {showTags && sortedTags.length > 0 && (() => {
-                    const { visible, hiddenCount } = getVisibleTags(sortedTags, FILE_CARD_MAX_VISIBLE_TAGS);
-                    return (
-                        <div
-                            className={`absolute left-1 flex flex-wrap gap-0.5 opacity-0 group-hover:opacity-100 transition-all ${isTagsExpanded
-                                ? 'top-0 bottom-0 right-0 left-0 bg-black/85 p-2 z-10 content-start overflow-y-auto'
-                                : 'top-1 max-w-[90%]'
-                                }`}
-                            onMouseLeave={() => setTagsExpanded(false)}
-                        >
-                            {(isTagsExpanded ? sortedTags : visible).map(tag => (
-                                <TagBadge
-                                    key={tag.id}
-                                    name={tag.name}
-                                    color={tag.color}
-                                    categoryColor={tag.categoryColor}
-                                    size="sm"
-                                    icon={tag.icon}
-                                    description={tag.description}
-                                />
-                            ))}
-                            {hiddenCount > 0 && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); setTagsExpanded(!isTagsExpanded); }}
-                                    className="text-xs bg-black/70 hover:bg-black/90 text-white px-1.5 py-0.5 rounded transition-colors"
-                                >
-                                    {isTagsExpanded ? '▲' : `+${hiddenCount}`}
-                                </button>
-                            )}
-                        </div>
-                    );
-                })()}
+
             </div>
 
             {/* Info Area - TODO: Phase 14でFileCardMetaコンポーネントに切り出す（論理的境界を明示） */}
             {showFileName && (
-                <div className="min-h-12 px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0.5">
+                <div className="min-h-12 px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0">
                     {/* フォルダ名（親フォルダのみ） */}
                     <div className="text-xs text-surface-400 truncate leading-tight">
                         {getDisplayFolderName(file.path)}
@@ -338,6 +306,35 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     <div className="text-xs text-surface-200 truncate leading-tight" title={file.name}>
                         {file.name}
                     </div>
+
+                    {/* タグ表示（Phase 13.5: 常時表示化） */}
+                    {showTags && sortedTags.length > 0 && (() => {
+                        const { visible, hiddenCount } = getVisibleTags(sortedTags, FILE_CARD_MAX_VISIBLE_TAGS);
+                        return (
+                            <div className="flex flex-wrap gap-1 items-center">
+                                {(isTagsExpanded ? sortedTags : visible).map(tag => (
+                                    <TagBadge
+                                        key={tag.id}
+                                        name={tag.name}
+                                        color={tag.color}
+                                        categoryColor={tag.categoryColor}
+                                        size="sm"
+                                        icon={tag.icon}
+                                        description={tag.description}
+                                    />
+                                ))}
+                                {hiddenCount > 0 && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setTagsExpanded(!isTagsExpanded); }}
+                                        className="text-xs bg-surface-700 hover:bg-surface-600 text-surface-200 px-1.5 py-0.5 rounded transition-colors"
+                                    >
+                                        {isTagsExpanded ? '▲' : `+${hiddenCount}`}
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })()}
+
                     {showFileSize && file.size && (
                         <div className="text-xs text-surface-400 leading-tight">
                             {(file.size / (1024 * 1024)).toFixed(1)} MB
