@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { Toaster } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
 import { LightBox } from './components/LightBox';
@@ -127,6 +128,7 @@ function App() {
             />
             <ScanProgressBar onCancel={handleCancelScan} />
             <ToastContainer toasts={toasts} onClose={removeToast} />
+            <Toaster position="bottom-right" richColors />
         </div>
     );
 }

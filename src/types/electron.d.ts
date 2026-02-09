@@ -147,6 +147,7 @@ declare global {
 
             // Thumbnail Cleanup
             diagnoseThumbnails: () => Promise<DiagnosticResult>;
+            cleanupOrphanedThumbnails: () => Promise<CleanupResult>;
 
             // Auto Tag Rules (Phase 12-8 フェーズ2)
             getAllAutoTagRules: () => Promise<AutoTagRule[]>;
@@ -269,5 +270,21 @@ interface DiagnosticResult {
     totalThumbnails: number;
     orphanedCount: number;
     totalOrphanedSize: number;
+    orphanedFiles: string[];
     samples: OrphanedThumbnail[];
+}
+
+interface CleanupResult {
+    success: boolean;
+    deletedCount: number;
+    freedBytes: number;
+    errors: string[];
+}
+
+// File Operation types
+interface DeleteFileResult {
+    success: boolean;
+    method: 'trash' | 'permanent' | 'none';
+    cancelled?: boolean;
+    error?: string;
 }

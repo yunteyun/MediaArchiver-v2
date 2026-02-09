@@ -167,6 +167,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === Thumbnail Cleanup ===
     diagnoseThumbnails: () =>
         ipcRenderer.invoke('thumbnail:diagnose'),
+    cleanupOrphanedThumbnails: () =>
+        ipcRenderer.invoke('thumbnail:cleanup'),
 
     // === Auto Tag Rules (Phase 12-8 フェーズ2) ===
     getAllAutoTagRules: () =>

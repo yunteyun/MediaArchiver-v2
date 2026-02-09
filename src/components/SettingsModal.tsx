@@ -3,12 +3,13 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow } from 'lucide-react';
+import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
+import { StorageCleanupSection } from './settings/StorageCleanupSection';
 
-type TabType = 'general' | 'apps' | 'logs' | 'backup';
+type TabType = 'general' | 'thumbnails' | 'apps' | 'logs' | 'backup';
 
 export const SettingsModal = React.memo(() => {
     const isOpen = useUIStore((s) => s.settingsModalOpen);
@@ -114,6 +115,18 @@ export const SettingsModal = React.memo(() => {
                         </span>
                     </button>
                     <button
+                        onClick={() => setActiveTab('thumbnails')}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'thumbnails'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Image size={16} />
+                            サムネイル
+                        </span>
+                    </button>
+                    <button
                         onClick={() => setActiveTab('apps')}
                         className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'apps'
                             ? 'text-primary-400 border-b-2 border-primary-400'
@@ -155,24 +168,6 @@ export const SettingsModal = React.memo(() => {
                 <div className="flex-1 overflow-y-auto">
                     {activeTab === 'general' && (
                         <div className="px-4 py-4 space-y-6">
-                            {/* Thumbnail Size */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    サムネイルサイズ: {thumbnailSize}px
-                                </label>
-                                <input
-                                    type="range"
-                                    min="80"
-                                    max="300"
-                                    value={thumbnailSize}
-                                    onChange={(e) => setThumbnailSize(Number(e.target.value))}
-                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                />
-                                <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                    <span>80px</span>
-                                    <span>300px</span>
-                                </div>
-                            </div>
 
                             {/* Video Volume */}
                             <div>
@@ -193,36 +188,6 @@ export const SettingsModal = React.memo(() => {
                                 </div>
                             </div>
 
-                            {/* Thumbnail Hover Action */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    サムネイルホバー時の動作
-                                </label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="thumbnailAction"
-                                            value="scrub"
-                                            checked={thumbnailAction === 'scrub'}
-                                            onChange={() => setThumbnailAction('scrub')}
-                                            className="w-4 h-4 accent-primary-500"
-                                        />
-                                        <span className="text-surface-200">スクラブ</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="thumbnailAction"
-                                            value="play"
-                                            checked={thumbnailAction === 'play'}
-                                            onChange={() => setThumbnailAction('play')}
-                                            className="w-4 h-4 accent-primary-500"
-                                        />
-                                        <span className="text-surface-200">再生</span>
-                                    </label>
-                                </div>
-                            </div>
 
                             {/* Performance Mode */}
                             <div>
@@ -333,31 +298,101 @@ export const SettingsModal = React.memo(() => {
                                 </label>
                             </div>
 
-                            {/* Preview Frame Count */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    プレビューフレーム数: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="30"
-                                    step="5"
-                                    value={previewFrameCount}
-                                    onChange={(e) => {
-                                        const count = Number(e.target.value);
-                                        setPreviewFrameCount(count);
-                                        window.electronAPI.setPreviewFrameCount(count);
-                                    }}
-                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                />
-                                <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                    <span>オフ</span>
-                                    <span>30枚</span>
+                        </div>
+                    )}
+
+                    {activeTab === 'thumbnails' && (
+                        <div className="px-4 py-4 space-y-6">
+                            {/* サムネイル設定セクション */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
+                                    サムネイル設定
+                                </h3>
+
+                                {/* Thumbnail Size */}
+                                <div>
+                                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                                        サムネイルサイズ: {thumbnailSize}px
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="80"
+                                        max="300"
+                                        value={thumbnailSize}
+                                        onChange={(e) => setThumbnailSize(Number(e.target.value))}
+                                        className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                    />
+                                    <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                        <span>80px</span>
+                                        <span>300px</span>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-surface-500 mt-1">
-                                    スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
-                                </p>
+
+                                {/* Thumbnail Hover Action */}
+                                <div>
+                                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                                        サムネイルホバー時の動作
+                                    </label>
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="thumbnailAction"
+                                                value="scrub"
+                                                checked={thumbnailAction === 'scrub'}
+                                                onChange={() => setThumbnailAction('scrub')}
+                                                className="w-4 h-4 accent-primary-500"
+                                            />
+                                            <span className="text-surface-200">スクラブ</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="thumbnailAction"
+                                                value="play"
+                                                checked={thumbnailAction === 'play'}
+                                                onChange={() => setThumbnailAction('play')}
+                                                className="w-4 h-4 accent-primary-500"
+                                            />
+                                            <span className="text-surface-200">再生</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Preview Frame Count */}
+                                <div>
+                                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                                        プレビューフレーム数: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="30"
+                                        step="5"
+                                        value={previewFrameCount}
+                                        onChange={(e) => {
+                                            const count = Number(e.target.value);
+                                            setPreviewFrameCount(count);
+                                            window.electronAPI.setPreviewFrameCount(count);
+                                        }}
+                                        className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                    />
+                                    <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                        <span>オフ</span>
+                                        <span>30枚</span>
+                                    </div>
+                                    <p className="text-xs text-surface-500 mt-1">
+                                        スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* サムネイル管理セクション */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
+                                    サムネイル管理
+                                </h3>
+                                <StorageCleanupSection />
                             </div>
                         </div>
                     )}
@@ -470,35 +505,6 @@ export const SettingsModal = React.memo(() => {
                                     <li>リストアを実行するとアプリが再起動されます</li>
                                     <li>バックアップファイルは自動的に世代管理されます（最大5世代）</li>
                                 </ul>
-                            </div>
-
-                            {/* サムネイル診断 */}
-                            <div>
-                                <h3 className="text-sm font-semibold text-white mb-3">ストレージ診断</h3>
-                                <p className="text-sm text-surface-400 mb-3">
-                                    データベースに存在しない孤立サムネイルを検出します。
-                                </p>
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            const result = await window.electronAPI.diagnoseThumbnails();
-                                            const sizeMB = (result.totalOrphanedSize / 1024 / 1024).toFixed(2);
-                                            const message = `診断結果:\n\n` +
-                                                `総サムネイル数: ${result.totalThumbnails} 個\n` +
-                                                `孤立サムネイル: ${result.orphanedCount} 個\n` +
-                                                `無駄な容量: ${sizeMB} MB\n\n` +
-                                                (result.orphanedCount > 0
-                                                    ? `削除機能は Phase 12-6 で実装予定です。`
-                                                    : `孤立サムネイルは見つかりませんでした。`);
-                                            alert(message);
-                                        } catch (e: any) {
-                                            alert(`診断エラー: ${e.message}`);
-                                        }
-                                    }}
-                                    className="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded transition-colors"
-                                >
-                                    診断を実行
-                                </button>
                             </div>
                         </div>
                     )}

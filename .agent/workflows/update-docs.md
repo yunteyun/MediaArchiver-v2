@@ -50,7 +50,7 @@ description: 開発状況に合わせてドキュメント（SESSION.md, ROADMAP
 ### 6. Gitコミット
 // turbo
 ```powershell
-git add -A; git commit -m "docs: 開発状況に合わせてドキュメント更新"
+git add -A; git commit -m "docs: 開発状況に合わせてドキュメント更新"; git push origin main
 ```
 
 ## 更新タイミング

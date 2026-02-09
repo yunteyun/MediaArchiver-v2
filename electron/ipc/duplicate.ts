@@ -57,6 +57,7 @@ export function registerDuplicateHandlers() {
     ipcMain.handle('duplicate:deleteFiles', async (_event, fileIds: string[]) => {
         const fs = await import('fs');
         const { findFileById, deleteFile } = await import('../services/database');
+        const { deleteFileSafe } = await import('../services/fileOperationService');
 
         const results: { id: string; success: boolean; error?: string }[] = [];
 
@@ -68,9 +69,13 @@ export function registerDuplicateHandlers() {
                     continue;
                 }
 
-                // ファイルシステムから削除
+                // ファイルシステムから削除（安全のため強制的にゴミ箱へ移動）
                 if (fs.existsSync(file.path)) {
-                    fs.unlinkSync(file.path);
+                    const result = await deleteFileSafe(file.path, true);
+                    if (!result.success) {
+                        results.push({ id: fileId, success: false, error: result.error });
+                        continue;
+                    }
                 }
 
                 // DBから削除

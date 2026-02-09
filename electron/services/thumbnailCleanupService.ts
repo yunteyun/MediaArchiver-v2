@@ -24,16 +24,27 @@ export interface DiagnosticResult {
     totalThumbnails: number;
     orphanedCount: number;
     totalOrphanedSize: number;
+    orphanedFiles: string[]; // 全孤立ファイルのパス
     samples: OrphanedThumbnail[]; // 最大10件のサンプル
 }
+
+export interface CleanupResult {
+    success: boolean;
+    deletedCount: number;
+    freedBytes: number;
+    errors: string[];
+}
+
 
 // --- Helper Functions ---
 
 /**
  * サムネイルディレクトリのパスを取得
+ * Note: サムネイルは thumbnails/ 直下に保存される（プロファイル別サブディレクトリは使用しない）
  */
 function getThumbnailDir(profileId: string): string {
-    return path.join(app.getPath('userData'), 'thumbnails', profileId);
+    // profileId は将来の拡張用に引数として残すが、現状は使用しない
+    return path.join(app.getPath('userData'), 'thumbnails');
 }
 
 /**
@@ -81,28 +92,29 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
     log.debug(`Found ${allThumbnails.length} thumbnail files`);
 
     // 2. DBから登録済みサムネイルパスを取得
-    const registeredPaths = db.prepare(`
-        SELECT thumbnail_path FROM files WHERE thumbnail_path IS NOT NULL
-        UNION
-        SELECT preview_frames FROM files WHERE preview_frames IS NOT NULL
+    const registeredFiles = db.prepare(`
+        SELECT thumbnail_path, preview_frames FROM files 
+        WHERE thumbnail_path IS NOT NULL OR preview_frames IS NOT NULL
     `).all() as Array<{ thumbnail_path?: string; preview_frames?: string }>;
+
+    log.debug(`Found ${registeredFiles.length} files with thumbnails or preview frames`);
 
     // パスを正規化してSetに格納（高速検索のため）
     const registeredPathSet = new Set<string>();
 
-    for (const row of registeredPaths) {
+    for (const row of registeredFiles) {
         if (row.thumbnail_path) {
             registeredPathSet.add(path.normalize(path.resolve(row.thumbnail_path)));
         }
         if (row.preview_frames) {
-            try {
-                const frames: string[] = JSON.parse(row.preview_frames);
-                frames.forEach(framePath => {
-                    registeredPathSet.add(path.normalize(path.resolve(framePath)));
-                });
-            } catch (e) {
-                // JSON parse error - skip
-            }
+            // preview_framesはカンマ区切り文字列（例: "path1,path2,path3"）
+            const frames = row.preview_frames.split(',').filter(f => f.trim().length > 0);
+            log.debug(`Parsed ${frames.length} preview frames from DB`);
+            frames.forEach(framePath => {
+                const normalizedPath = path.normalize(path.resolve(framePath.trim()));
+                registeredPathSet.add(normalizedPath);
+                log.debug(`Registered preview frame: ${normalizedPath}`);
+            });
         }
     }
 
@@ -135,6 +147,82 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
         totalThumbnails: allThumbnails.length,
         orphanedCount: orphanedThumbnails.length,
         totalOrphanedSize,
+        orphanedFiles: orphanedThumbnails.map(t => t.path),
         samples
     };
+}
+
+/**
+ * 孤立サムネイルをクリーンアップ（削除）
+ * Phase 12-6: ストレージクリーンアップ機能
+ */
+export async function cleanupOrphanedThumbnails(profileId: string): Promise<CleanupResult> {
+    const result: CleanupResult = {
+        success: true,
+        deletedCount: 0,
+        freedBytes: 0,
+        errors: []
+    };
+
+    try {
+        log.info(`Starting cleanup for profile: ${profileId}`);
+        const diagnostic = await diagnoseThumbnails(profileId);
+
+        if (diagnostic.orphanedCount === 0) {
+            log.info('No orphaned thumbnails to clean up');
+            return result;
+        }
+
+        log.info(`Cleaning up ${diagnostic.orphanedCount} orphaned thumbnails...`);
+
+        for (const filePath of diagnostic.orphanedFiles) {
+            try {
+                // ファイルが存在するか確認
+                if (!fs.existsSync(filePath)) {
+                    log.debug(`File already deleted: ${filePath}`);
+                    continue;
+                }
+
+                // ファイルサイズを取得してから削除
+                const stats = fs.statSync(filePath);
+                const fileSize = stats.size;
+
+                fs.unlinkSync(filePath);
+                result.deletedCount++;
+                result.freedBytes += fileSize;
+                log.debug(`Deleted: ${filePath} (${fileSize} bytes)`);
+            } catch (error: any) {
+                // エラーハンドリング
+                if (error.code === 'ENOENT') {
+                    log.debug(`File not found (already deleted): ${filePath}`);
+                    continue;
+                } else if (error.code === 'EBUSY' || error.code === 'EPERM') {
+                    const errorMsg = `ロック中: ${filePath}`;
+                    log.warn(errorMsg);
+                    result.errors.push(errorMsg);
+                } else {
+                    const errorMsg = `${filePath}: ${error.message || String(error)}`;
+                    log.error(`Failed to delete thumbnail: ${errorMsg}`);
+                    result.errors.push(errorMsg);
+                }
+            }
+        }
+
+        if (result.errors.length > 0) {
+            result.success = false;
+            log.warn(`Cleanup completed with ${result.errors.length} errors`);
+        } else {
+            log.info(`Cleanup completed successfully: ${result.deletedCount} files deleted, ${(result.freedBytes / 1024 / 1024).toFixed(2)} MB freed`);
+        }
+
+        return result;
+    } catch (error: any) {
+        log.error('Cleanup failed:', error);
+        return {
+            success: false,
+            deletedCount: 0,
+            freedBytes: 0,
+            errors: [error.message || String(error)]
+        };
+    }
 }
