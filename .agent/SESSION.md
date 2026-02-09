@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-08 22:15
+**Last Updated**: 2026-02-09 11:15
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -78,7 +78,13 @@
   - webSecurity警告にコメント追加
   - 孤立サムネイル診断機能実装（設定画面）
   - ROADMAP更新（SQLite FTS5、カスタムプロトコル）
-- ✅ **Phase 12-2: タグ表示の改善** 🆕
+- ✅ **Phase 12-6: ストレージクリーンアップ（Orphaned Thumbnail GC）**
+  - Backend: 診断・削除ロジック、IPC、Preload API
+  - Frontend: サムネイル管理UI、確認ダイアログ
+  - バグ修正: サムネイルディレクトリパスの不整合解消
+- ✅ **Phase 12-7: 設定UI改善**
+  - `SettingsModal` に独立した「サムネイルタブ」を作成
+  - 一般・バックアップタブから関連設定を移動・整理 🆕
   - タグの省略表示とPop-over展開（絶対配置でレイアウト保護）
   - タグカテゴリ別の色分け強化（categoryColorで動的ボーダー）
   - タグの優先順位表示（sortOrderでuseMemoソート）
