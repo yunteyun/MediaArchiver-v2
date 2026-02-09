@@ -25,32 +25,32 @@ export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
     aspectRatio: string;
     cardWidth: number;
     thumbnailHeight: number;
-    infoAreaHeight?: number;  // 自動調整の場合は省略
-    totalHeight?: number;     // 自動調整の場合は省略
+    infoAreaHeight: number;
+    totalHeight: number;
 }> = {
     // 標準モード: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
     standard: {
         aspectRatio: '1/1',
         cardWidth: 300,
         thumbnailHeight: 240,
-        // infoAreaHeight: 自動調整（padding 14px + 3行）
-        // totalHeight: 自動調整
+        infoAreaHeight: 70,  // 3行レイアウト用の固定高さ
+        totalHeight: 310
     },
     // 漫画モード: 縦長アスペクト比
     manga: {
         aspectRatio: '2/3',
         cardWidth: 200,
         thumbnailHeight: 300,
-        // infoAreaHeight: 自動調整
-        // totalHeight: 自動調整
+        infoAreaHeight: 70,
+        totalHeight: 370
     },
     // 動画モード: 横長アスペクト比
     video: {
         aspectRatio: '16/9',
         cardWidth: 350,
         thumbnailHeight: 197,
-        // infoAreaHeight: 自動調整
-        // totalHeight: 自動調整
+        infoAreaHeight: 70,
+        totalHeight: 267
     },
     // Compactモード: ファイル表示量が多い形式（2行レイアウト）
     compact: {
@@ -382,13 +382,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     </div>
                 ) : (
                     // Standard/Manga/Videoモード: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
-                    <div className="p-3.5">
+                    <div
+                        className="px-3.5 py-2 flex flex-col justify-start bg-surface-800"
+                        style={{ height: `${config.infoAreaHeight}px` }}
+                    >
                         {/* 1行目: ファイル名（最優先） */}
                         <h3 className="text-xs font-semibold truncate text-surface-200 hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
                             {file.name}
                         </h3>
                         {/* 2行目: フォルダ名（控えめ） */}
-                        <div className="text-[10px] text-surface-500 truncate leading-tight mb-1.5">
+                        <div className="text-[10px] text-surface-500 truncate leading-tight mb-1">
                             {getDisplayFolderName(file.path)}
                         </div>
                         {/* 3行目: サイズ（左）＆タグ（右） */}
