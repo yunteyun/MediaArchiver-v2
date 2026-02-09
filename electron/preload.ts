@@ -83,6 +83,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('file:thumbnailRegenerated', handler);
     },
 
+    // === File Delete Dialog (Phase 12-17B) ===
+    confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) =>
+        ipcRenderer.invoke('file:confirmDelete', { fileId, filePath, permanentDelete }),
+    onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) => {
+        const listener = (_: any, data: any) => callback(data);
+        ipcRenderer.on('file:showDeleteDialog', listener);
+        return () => ipcRenderer.removeListener('file:showDeleteDialog', listener);
+    },
+
     // === Archive ===
     getArchiveMetadata: (path: string) => ipcRenderer.invoke('archive:getMetadata', path),
     getArchivePreviewFrames: (path: string, limit?: number) =>

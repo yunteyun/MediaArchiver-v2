@@ -29,6 +29,9 @@ interface UIState {
     toasts: ToastData[];
     duplicateViewOpen: boolean;
     mainView: 'grid' | 'statistics';  // メインエリアの表示切り替え
+    deleteDialogOpen: boolean;
+    deleteDialogFilePath: string | null;
+    deleteDialogFileId: string | null;
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -48,6 +51,8 @@ interface UIState {
     setMainView: (view: 'grid' | 'statistics') => void;
     isScanProgressVisible: boolean;
     setScanProgressVisible: (visible: boolean) => void;
+    openDeleteDialog: (fileId: string, filePath: string) => void;
+    closeDeleteDialog: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -65,6 +70,9 @@ export const useUIStore = create<UIState>((set) => ({
     duplicateViewOpen: false,
     mainView: 'grid',
     isScanProgressVisible: false,
+    deleteDialogOpen: false,
+    deleteDialogFilePath: null,
+    deleteDialogFileId: null,
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -93,4 +101,6 @@ export const useUIStore = create<UIState>((set) => ({
     openDuplicateView: () => set({ duplicateViewOpen: true }),
     closeDuplicateView: () => set({ duplicateViewOpen: false }),
     setMainView: (view) => set({ mainView: view }),
+    openDeleteDialog: (fileId, filePath) => set({ deleteDialogOpen: true, deleteDialogFileId: fileId, deleteDialogFilePath: filePath }),
+    closeDeleteDialog: () => set({ deleteDialogOpen: false, deleteDialogFileId: null, deleteDialogFilePath: null }),
 }));

@@ -75,10 +75,23 @@ export function registerFileHandlers() {
                         const videoExts = ['.mp4', '.mov', '.avi', '.mkv', '.wmv', '.webm', '.flv', '.m4v', '.mpeg', '.mpg', '.3gp'];
                         if (videoExts.includes(fileExt)) {
                             const frameCount = getPreviewFrameCount();
-                            if (frameCount > 0) {
-                                const previewFrames = await generatePreviewFrames(filePath, frameCount);
-                                if (previewFrames) {
-                                    updateFilePreviewFrames(fileId, previewFrames);
+
+                            // ✅ 設定が0の場合はスキップ
+                            if (frameCount === 0) {
+                                console.log('[Thumbnail Regeneration] Preview frame count is 0, skipping generation');
+                            } else {
+                                // ✅ 既存のプレビューフレーム数を確認
+                                const existingFrames = file.preview_frames?.split(',').filter(Boolean) || [];
+
+                                // ✅ 既に設定値と同じ数のフレームがある場合はスキップ
+                                if (existingFrames.length === frameCount) {
+                                    console.log(`[Thumbnail Regeneration] Preview frames already exist (${frameCount} frames), skipping regeneration`);
+                                } else {
+                                    console.log(`[Thumbnail Regeneration] Regenerating preview frames (existing: ${existingFrames.length}, target: ${frameCount})`);
+                                    const previewFrames = await generatePreviewFrames(filePath, frameCount);
+                                    if (previewFrames) {
+                                        updateFilePreviewFrames(fileId, previewFrames);
+                                    }
                                 }
                             }
                         }
@@ -94,76 +107,8 @@ export function registerFileHandlers() {
             {
                 label: 'ファイルを削除',
                 click: async () => {
-                    // 確認ダイアログ
-                    const { response } = await dialog.showMessageBox({
-                        type: 'warning',
-                        title: 'ファイルの削除',
-                        message: 'このファイルを削除しますか？',
-                        detail: filePath,
-                        buttons: [
-                            'ゴミ箱に移動',      // index: 0
-                            '完全に削除',        // index: 1
-                            'キャンセル'         // index: 2
-                        ],
-                        defaultId: 0,         // デフォルト: ゴミ箱に移動
-                        cancelId: 2,          // ESC キー: キャンセル
-                        noLink: true
-                    });
-
-                    // キャンセルの場合
-                    if (response === 2) {
-                        return;
-                    }
-
-                    // 完全削除を選択した場合は二重確認
-                    if (response === 1) {
-                        const { response: confirmResponse } = await dialog.showMessageBox({
-                            type: 'warning',
-                            title: '完全削除の確認',
-                            message: '本当に完全に削除しますか？',
-                            detail: 'この操作は取り消せません。ファイルはゴミ箱に移動せず、完全に削除されます。',
-                            buttons: ['完全に削除', 'キャンセル'],
-                            defaultId: 1,  // デフォルト: キャンセル
-                            cancelId: 1
-                        });
-
-                        if (confirmResponse === 1) {
-                            return;
-                        }
-                    }
-
-                    try {
-                        const { deleteFileSafe } = await import('../services/fileOperationService');
-
-                        // 削除実行
-                        const moveToTrash = response === 0;
-                        const result = await deleteFileSafe(filePath, moveToTrash);
-
-                        if (!result.success) {
-                            // エラーダイアログ
-                            await dialog.showMessageBox({
-                                type: 'error',
-                                title: '削除エラー',
-                                message: '削除に失敗しました',
-                                detail: result.error || '不明なエラー'
-                            });
-                            return;
-                        }
-
-                        // DB からファイル情報を削除
-                        deleteFile(fileId);
-
-                        // Notify renderer
-                        event.sender.send('file:deleted', fileId);
-                    } catch (e) {
-                        console.error('Failed to delete file:', e);
-                        await dialog.showMessageBox({
-                            type: 'error',
-                            title: '削除エラー',
-                            message: '削除に失敗しました',
-                            detail: e instanceof Error ? e.message : String(e)
-                        });
-                    }
+                    // Rendererにダイアログ表示を通知（Phase 12-17B）
+                    event.sender.send('file:showDeleteDialog', { fileId, filePath });
                 }
             }
         );
@@ -173,6 +118,50 @@ export function registerFileHandlers() {
         const win = BrowserWindow.fromWebContents(event.sender);
         if (win) {
             menu.popup({ window: win });
+        }
+    });
+
+    // === File Delete Confirmation Handler (Phase 12-17B) ===
+    ipcMain.handle('file:confirmDelete', async (event, { fileId, filePath, permanentDelete }) => {
+        // 完全削除の場合は二重確認
+        if (permanentDelete) {
+            const { response } = await dialog.showMessageBox({
+                type: 'warning',
+                title: '完全削除の確認',
+                message: '本当に完全に削除しますか？',
+                detail: 'この操作は取り消せません。ファイルはゴミ箱に移動せず、完全に削除されます。',
+                buttons: ['完全に削除', 'キャンセル'],
+                defaultId: 1,  // デフォルト: キャンセル
+                cancelId: 1
+            });
+
+            if (response === 1) {
+                return { success: false, cancelled: true };
+            }
+        }
+
+        try {
+            const { deleteFileSafe } = await import('../services/fileOperationService');
+
+            // 削除実行
+            const moveToTrash = !permanentDelete;
+            const result = await deleteFileSafe(filePath, moveToTrash);
+
+            if (!result.success) {
+                return { success: false, error: result.error };
+            }
+
+            // DB削除
+            deleteFile(fileId);
+            event.sender.send('file:deleted', fileId);
+
+            return { success: true };
+        } catch (e) {
+            console.error('Failed to delete file:', e);
+            return {
+                success: false,
+                error: e instanceof Error ? e.message : String(e)
+            };
         }
     });
 }

@@ -78,6 +78,10 @@ declare global {
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
 
+            // File Delete Dialog (Phase 12-17B)
+            confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
+            onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) => () => void;
+
             // Archive
             getArchiveMetadata: (path: string) => Promise<{
                 fileCount: number;

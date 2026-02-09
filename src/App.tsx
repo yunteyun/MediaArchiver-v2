@@ -16,6 +16,7 @@ import { useTagStore } from './stores/useTagStore';
 import { useUIStore } from './stores/useUIStore';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
+import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -30,6 +31,11 @@ function App() {
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
     const externalApps = useSettingsStore((s) => s.externalApps);
+    const deleteDialogOpen = useUIStore((s) => s.deleteDialogOpen);
+    const deleteDialogFilePath = useUIStore((s) => s.deleteDialogFilePath);
+    const deleteDialogFileId = useUIStore((s) => s.deleteDialogFileId);
+    const openDeleteDialog = useUIStore((s) => s.openDeleteDialog);
+    const closeDeleteDialog = useUIStore((s) => s.closeDeleteDialog);
 
     // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
     const autoScanOnStartupRef = useRef(false);
@@ -98,6 +104,37 @@ function App() {
         }
     }, []);
 
+    // 削除ダイアログイベントリスナー（Phase 12-17B）
+    useEffect(() => {
+        const cleanup = window.electronAPI.onShowDeleteDialog((data) => {
+            openDeleteDialog(data.fileId, data.filePath);
+        });
+        return cleanup;
+    }, [openDeleteDialog]);
+
+    // 削除確認ハンドラー（Phase 12-17B）
+    const handleDeleteConfirm = useCallback(async (permanentDelete: boolean) => {
+        if (!deleteDialogFileId || !deleteDialogFilePath) return;
+
+        try {
+            const result = await window.electronAPI.confirmDelete(
+                deleteDialogFileId,
+                deleteDialogFilePath,
+                permanentDelete
+            );
+
+            if (result.success) {
+                closeDeleteDialog();
+                useToastStore.getState().success('ファイルを削除しました');
+            } else if (!result.cancelled) {
+                useToastStore.getState().error(`削除に失敗しました: ${result.error}`);
+            }
+        } catch (e) {
+            console.error('Delete failed:', e);
+            useToastStore.getState().error('削除に失敗しました');
+        }
+    }, [deleteDialogFileId, deleteDialogFilePath, closeDeleteDialog]);
+
     return (
         <div className="flex h-screen w-screen bg-surface-950 text-white overflow-hidden">
             <Sidebar key={`sidebar-${refreshKey}`} />
@@ -129,6 +166,12 @@ function App() {
             <ScanProgressBar onCancel={handleCancelScan} />
             <ToastContainer toasts={toasts} onClose={removeToast} />
             <Toaster position="bottom-right" richColors />
+            <DeleteConfirmDialog
+                isOpen={deleteDialogOpen}
+                filePath={deleteDialogFilePath || ''}
+                onConfirm={handleDeleteConfirm}
+                onCancel={closeDeleteDialog}
+            />
         </div>
     );
 }
