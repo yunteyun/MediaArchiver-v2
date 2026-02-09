@@ -7,6 +7,8 @@ import type { Tag } from '../stores/useTagStore';
 import { TagBadge } from './tags';
 import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
+import { getDisplayFolderName } from '../utils/path';
+import { getVisibleTags } from '../utils/tag';
 
 interface FileCardProps {
     file: MediaFile;
@@ -21,6 +23,9 @@ const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
     medium: { width: 200, height: 160 },
     large: { width: 280, height: 220 }
 };
+
+// FileCard専用のタグ表示数制限（settings昇格を避け、影響範囲を限定）
+const FILE_CARD_MAX_VISIBLE_TAGS = 3;
 
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
     // アイコン選択ロジック
@@ -218,7 +223,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             onMouseMove={handleMouseMove}
             style={{
                 width: `${cardDimensions.width}px`,
-                height: `${cardDimensions.height + (showFileName ? 40 : 0)}px`
+                height: `${cardDimensions.height + (showFileName ? 48 : 0)}px`
             }}
             className={`
                 rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
@@ -231,7 +236,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             `}
         >
             {/* Thumbnail Area */}
-            <div className="flex-1 relative bg-surface-900 flex items-center justify-center overflow-hidden group min-h-0">
+            <div className="flex-1 relative bg-surface-900 flex items-center justify-center overflow-hidden group min-h-0 max-h-full">
                 {/* サムネイル画像 */}
                 {displayImage ? (
                     <img
@@ -288,45 +293,53 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 )}
 
                 {/* Tags Overlay (on hover) */}
-                {showTags && sortedTags.length > 0 && (
-                    <div
-                        className={`absolute left-1 flex flex-wrap gap-0.5 opacity-0 group-hover:opacity-100 transition-all ${isTagsExpanded
-                            ? 'top-0 bottom-0 right-0 left-0 bg-black/85 p-2 z-10 content-start overflow-y-auto'
-                            : 'top-1 max-w-[90%]'
-                            }`}
-                        onMouseLeave={() => setTagsExpanded(false)}
-                    >
-                        {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 3)).map(tag => (
-                            <TagBadge
-                                key={tag.id}
-                                name={tag.name}
-                                color={tag.color}
-                                categoryColor={tag.categoryColor}
-                                size="sm"
-                                icon={tag.icon}
-                                description={tag.description}
-                            />
-                        ))}
-                        {sortedTags.length > 3 && (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setTagsExpanded(!isTagsExpanded); }}
-                                className="text-xs bg-black/70 hover:bg-black/90 text-white px-1.5 py-0.5 rounded transition-colors"
-                            >
-                                {isTagsExpanded ? '▲' : `+${sortedTags.length - 3}`}
-                            </button>
-                        )}
-                    </div>
-                )}
+                {showTags && sortedTags.length > 0 && (() => {
+                    const { visible, hiddenCount } = getVisibleTags(sortedTags, FILE_CARD_MAX_VISIBLE_TAGS);
+                    return (
+                        <div
+                            className={`absolute left-1 flex flex-wrap gap-0.5 opacity-0 group-hover:opacity-100 transition-all ${isTagsExpanded
+                                ? 'top-0 bottom-0 right-0 left-0 bg-black/85 p-2 z-10 content-start overflow-y-auto'
+                                : 'top-1 max-w-[90%]'
+                                }`}
+                            onMouseLeave={() => setTagsExpanded(false)}
+                        >
+                            {(isTagsExpanded ? sortedTags : visible).map(tag => (
+                                <TagBadge
+                                    key={tag.id}
+                                    name={tag.name}
+                                    color={tag.color}
+                                    categoryColor={tag.categoryColor}
+                                    size="sm"
+                                    icon={tag.icon}
+                                    description={tag.description}
+                                />
+                            ))}
+                            {hiddenCount > 0 && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setTagsExpanded(!isTagsExpanded); }}
+                                    className="text-xs bg-black/70 hover:bg-black/90 text-white px-1.5 py-0.5 rounded transition-colors"
+                                >
+                                    {isTagsExpanded ? '▲' : `+${hiddenCount}`}
+                                </button>
+                            )}
+                        </div>
+                    );
+                })()}
             </div>
 
-            {/* Info Area */}
+            {/* Info Area - TODO: Phase 14でFileCardMetaコンポーネントに切り出す（論理的境界を明示） */}
             {showFileName && (
-                <div className="h-10 px-2 flex flex-col justify-center bg-surface-800">
-                    <div className="text-xs text-surface-200 truncate" title={file.name}>
+                <div className="min-h-12 px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0.5">
+                    {/* フォルダ名（親フォルダのみ） */}
+                    <div className="text-xs text-surface-400 truncate leading-tight">
+                        {getDisplayFolderName(file.path)}
+                    </div>
+                    {/* ファイル名 */}
+                    <div className="text-xs text-surface-200 truncate leading-tight" title={file.name}>
                         {file.name}
                     </div>
                     {showFileSize && file.size && (
-                        <div className="text-xs text-surface-400">
+                        <div className="text-xs text-surface-400 leading-tight">
                             {(file.size / (1024 * 1024)).toFixed(1)} MB
                         </div>
                     )}
