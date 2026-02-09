@@ -1,12 +1,13 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-09 22:00
+**Last Updated**: 2026-02-10 00:41
 
-- **Current Focus**: Phase 14: 表示モードシステム (MVP: 基盤整備 & 標準モード)
-- **Current Status**: Phase 13 & 13.5 完了。Phase 14の実装計画（MVP優先）を策定し、開発開始。
+- **Current Focus**: Phase 14: 表示モードシステム (MVP完了 / 拡張検討)
+- **Current Status**: Phase 14 (FileCardレイアウト改善) 完了。次のフェーズへ移行準備中。
 - **Recent Achievements**: 
   - Phase 13: FileCard基礎設計完了（is_animated, utils分離, レイアウト刷新）
   - Phase 13.5: タグ視認性改善（常時表示・不透明化）完了
+  - Phase 14: FileCardレイアウト改善（3行レイアウト、Compactモード、タグ展開機能）完了
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
