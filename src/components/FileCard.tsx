@@ -19,7 +19,7 @@ interface FileCardProps {
 
 
 // FileCard専用のタグ表示数制限（settings昇格を避け、影響範囲を限定）
-const FILE_CARD_MAX_VISIBLE_TAGS = 5;
+const FILE_CARD_MAX_VISIBLE_TAGS = 4;
 
 // Phase 14: 表示モード別の定数定義（Phase 13実測値ベース）
 export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
@@ -334,11 +334,11 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     style={{ height: `${config.infoAreaHeight}px` }}
                 >
                     {/* フォルダ名（親フォルダのみ） */}
-                    <div className="text-xs text-surface-400 truncate leading-tight">
+                    <div className="text-[10px] text-surface-400 truncate leading-tight">
                         {getDisplayFolderName(file.path)}
                     </div>
-                    {/* ファイル名 */}
-                    <div className="text-xs text-surface-200 truncate leading-tight" title={file.name}>
+                    {/* ファイル名 - 優先度高 */}
+                    <div className="text-xs text-surface-100 truncate leading-tight font-medium" title={file.name}>
                         {file.name}
                     </div>
 
@@ -346,7 +346,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     {showTags && sortedTags.length > 0 && (() => {
                         const { visible, hiddenCount } = getVisibleTags(sortedTags, FILE_CARD_MAX_VISIBLE_TAGS);
                         return (
-                            <div className="flex flex-wrap gap-1 items-center">
+                            <div className="flex flex-wrap gap-0.5 items-center">
                                 {(isTagsExpanded ? sortedTags : visible).map(tag => (
                                     <TagBadge
                                         key={tag.id}
