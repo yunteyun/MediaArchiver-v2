@@ -2,10 +2,10 @@ import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
-import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
+import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { FileCard } from './FileCard';
+import { FileCard, DISPLAY_MODE_CONFIGS } from './FileCard';
 import { FolderCard } from './FolderCard';
 import { Header } from './SortMenu';
 import { GroupHeader } from './GroupHeader';
@@ -14,12 +14,7 @@ import { groupFiles } from '../utils/groupFiles';
 
 const CARD_GAP = 8;
 
-// UIレンダリング専用定数（サムネイル生成・永続化処理には使用しない）
-const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
-    small: { width: 150, height: 120 },
-    medium: { width: 200, height: 160 },
-    large: { width: 280, height: 220 }
-};
+
 
 export const FileGrid = React.memo(() => {
     const rawFiles = useFileStore((s) => s.files);
@@ -36,8 +31,10 @@ export const FileGrid = React.memo(() => {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const sortBy = useSettingsStore((s) => s.sortBy);
     const sortOrder = useSettingsStore((s) => s.sortOrder);
-    const cardSize = useSettingsStore((s) => s.cardSize);
     const showFileName = useSettingsStore((s) => s.showFileName);
+    // Phase 14: 表示モード取得
+    const displayMode = useSettingsStore((s) => s.displayMode);
+    const config = DISPLAY_MODE_CONFIGS[displayMode];
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);
@@ -177,17 +174,14 @@ export const FileGrid = React.memo(() => {
         return unsubscribe;
     }, [refreshFile, showToast]);
 
-    // カードサイズ計算（useMemoでメモ化、cardSize変更時のみ再計算）
+    // Phase 14: カードサイズ計算（displayMode対応）
     const { cardHeight, columns, rows } = useMemo(() => {
-        const size = CARD_SIZES[cardSize];
-        // Info area の高さを showFileName に応じて調整（固定高さで仮想スクロール対応）
-        const infoHeight = showFileName ? 40 : 0;
-        const cardW = size.width + CARD_GAP * 2;
-        const h = size.height + infoHeight + CARD_GAP * 2;
+        const cardW = config.cardWidth + CARD_GAP * 2;
+        const h = config.totalHeight + CARD_GAP * 2;
         const cols = Math.max(1, Math.floor(containerWidth / cardW));
         const r = Math.ceil(gridItems.length / cols);
         return { cardHeight: h, columns: cols, rows: r };
-    }, [cardSize, showFileName, containerWidth, gridItems.length]);
+    }, [config, containerWidth, gridItems.length]);
 
     const rowVirtualizer = useVirtualizer({
         count: rows,
@@ -323,9 +317,8 @@ export const FileGrid = React.memo(() => {
                                 }}
                             >
                                 {group.files.map((file) => {
-                                    const size = CARD_SIZES[cardSize];
-                                    const cardW = size.width;
-                                    const cardH = size.height + (showFileName ? 40 : 0);
+                                    const cardW = config.cardWidth;
+                                    const cardH = config.totalHeight;
 
                                     return (
                                         <div
@@ -387,9 +380,8 @@ export const FileGrid = React.memo(() => {
                                 }}
                             >
                                 {rowItems.map((item) => {
-                                    const size = CARD_SIZES[cardSize];
-                                    const cardW = size.width;
-                                    const cardH = size.height + (showFileName ? 40 : 0);
+                                    const cardW = config.cardWidth;
+                                    const cardH = config.totalHeight;
 
                                     return item.type === 'folder' ? (
                                         <div

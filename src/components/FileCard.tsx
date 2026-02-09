@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
-import { useSettingsStore, type CardSize, type DisplayMode } from '../stores/useSettingsStore';
+import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
 import { TagBadge } from './tags';
 import { toMediaUrl } from '../utils/mediaPath';
@@ -17,12 +17,6 @@ interface FileCardProps {
     onSelect: (id: string, multi: boolean) => void;
 }
 
-// UIレンダリング専用定数（サムネイル生成・永続化処理には使用しない）
-const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
-    small: { width: 150, height: 120 },
-    medium: { width: 200, height: 160 },
-    large: { width: 280, height: 220 }
-};
 
 // FileCard専用のタグ表示数制限（settings昇格を避け、影響範囲を限定）
 const FILE_CARD_MAX_VISIBLE_TAGS = 5;
@@ -75,14 +69,15 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     // カード表示設定（Phase 12-3）
-    const cardSize = useSettingsStore((s) => s.cardSize);
     const showFileName = useSettingsStore((s) => s.showFileName);
     const showDuration = useSettingsStore((s) => s.showDuration);
     const showTags = useSettingsStore((s) => s.showTags);
     const showFileSize = useSettingsStore((s) => s.showFileSize);
+    // Phase 14: 表示モード取得
+    const displayMode = useSettingsStore((s) => s.displayMode);
+    const config = DISPLAY_MODE_CONFIGS[displayMode];
 
-    // カードサイズ計算
-    const cardDimensions = CARD_SIZES[cardSize];
+
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
@@ -253,8 +248,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseMove}
             style={{
-                width: `${cardDimensions.width}px`,
-                height: `${cardDimensions.height + (showFileName ? 48 : 0)}px`
+                width: `${config.cardWidth}px`,
+                height: `${config.totalHeight}px`
             }}
             className={`
                 rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
@@ -266,8 +261,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         : 'border-transparent hover:border-surface-500 hover:shadow-md hover:shadow-black/30'}
             `}
         >
-            {/* Thumbnail Area */}
-            <div className="flex-1 relative bg-surface-900 flex items-center justify-center overflow-hidden group min-h-0 max-h-full">
+            {/* Thumbnail Area - Phase 14: 固定高さ */}
+            <div
+                className="relative bg-surface-900 flex items-center justify-center overflow-hidden group"
+                style={{
+                    height: `${config.thumbnailHeight}px`,
+                    aspectRatio: config.aspectRatio
+                }}
+            >
                 {/* サムネイル画像 */}
                 {displayImage ? (
                     <img
@@ -326,9 +327,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
             </div>
 
-            {/* Info Area - TODO: Phase 14でFileCardMetaコンポーネントに切り出す（論理的境界を明示） */}
+            {/* 情報エリア - Phase 14: 固定高さ */}
             {showFileName && (
-                <div className="min-h-12 px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0">
+                <div
+                    className="px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0"
+                    style={{ height: `${config.infoAreaHeight}px` }}
+                >
                     {/* フォルダ名（親フォルダのみ） */}
                     <div className="text-xs text-surface-400 truncate leading-tight">
                         {getDisplayFolderName(file.path)}
