@@ -24,6 +24,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - サムネイルサイズ、ホバー動作、プレビュー枚数設定を集約
   - クリーンアップ機能を統合し「サムネイル管理」セクション化
 
+- **Phase 13-1: 画像属性の拡張 (is_animated)**
+  - DBスキーマに `is_animated` カラムを追加
+  - スキャナーにGIF/WebPのアニメーション判定ロジックを実装
+  - 静止画とアニメーション画像を区別可能に（将来のAPNG/AVIF対応含む）
+
+- **Phase 13-2: UIユーティリティ基盤**
+  - `src/utils/path.ts`: フォルダ名表示ロジックをUI層に分離
+  - `src/utils/tag.ts`: タグの省略表示ロジックを共通化
+  - `src/index.css`: ファイル種別バッジの配色をCSS変数化（デザイントークン）
+
 - **Phase 12-17B: カスタム削除ダイアログ実装** (2026-02-09)
   - `DeleteConfirmDialog.tsx` コンポーネント実装
   - チェックボックス付きUI（ゴミ箱 / 完全削除の選択）
