@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film } from 'lucide-react';
+import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2 } from 'lucide-react';
 import { useSettingsStore, type CardSize, type GroupBy, type DisplayMode } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useToastStore } from '../stores/useToastStore';
@@ -113,10 +113,12 @@ export const Header = React.memo(() => {
                     {displayMode === 'standard' && <Grid size={14} />}
                     {displayMode === 'manga' && <LayoutGrid size={14} />}
                     {displayMode === 'video' && <Film size={14} />}
+                    {displayMode === 'compact' && <Minimize2 size={14} />}
                     <span>
                         {displayMode === 'standard' && '標準'}
                         {displayMode === 'manga' && '漫画'}
                         {displayMode === 'video' && '動画'}
+                        {displayMode === 'compact' && 'コンパクト'}
                     </span>
                 </button>
 
@@ -145,6 +147,14 @@ export const Header = React.memo(() => {
                         >
                             <Film size={16} />
                             <span>動画</span>
+                        </button>
+                        <button
+                            onClick={() => { setDisplayMode('compact'); setIsModeMenuOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'compact' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
+                                }`}
+                        >
+                            <Minimize2 size={16} />
+                            <span>コンパクト</span>
                         </button>
                     </div>
                 )}

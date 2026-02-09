@@ -6,7 +6,7 @@ export type CardSize = 'small' | 'medium' | 'large';
 export type CardLayout = 'grid' | 'list';
 
 // 表示モード型定義（Phase 14）
-export type DisplayMode = 'standard' | 'manga' | 'video';
+export type DisplayMode = 'standard' | 'manga' | 'video' | 'compact';
 
 // グループ化型定義（Phase 12-10）
 export type GroupBy = 'none' | 'date' | 'size' | 'type';

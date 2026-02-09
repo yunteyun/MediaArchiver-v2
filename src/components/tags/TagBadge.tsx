@@ -54,7 +54,7 @@ export const TagBadge = React.memo(({
     description,
 }: TagBadgeProps) => {
     const colorClass = colorClasses[color] || colorClasses.gray;
-    const sizeClass = size === 'sm' ? 'text-xs px-1.5 py-0.5' : 'text-sm px-2 py-1';
+    const sizeClass = size === 'sm' ? 'text-[10px] px-1 py-0.5' : 'text-sm px-2 py-1';
     const selectedClass = selected ? 'ring-2 ring-primary-500 ring-offset-1 ring-offset-surface-900' : '';
 
     // カテゴリ色がある場合は左ボーダーを動的に適用

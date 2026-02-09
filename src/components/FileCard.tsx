@@ -4,11 +4,11 @@ import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
-import { TagBadge } from './tags';
+
 import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
 import { getDisplayFolderName } from '../utils/path';
-import { getVisibleTags } from '../utils/tag';
+
 
 interface FileCardProps {
     file: MediaFile;
@@ -18,37 +18,47 @@ interface FileCardProps {
 }
 
 
-// FileCard専用のタグ表示数制限（settings昇格を避け、影響範囲を限定）
-const FILE_CARD_MAX_VISIBLE_TAGS = 4;
+
 
 // Phase 14: 表示モード別の定数定義（Phase 13実測値ベース）
 export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
     aspectRatio: string;
     cardWidth: number;
     thumbnailHeight: number;
-    infoAreaHeight: number;
-    totalHeight: number;
+    infoAreaHeight?: number;  // 自動調整の場合は省略
+    totalHeight?: number;     // 自動調整の場合は省略
 }> = {
+    // 標準モード: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
     standard: {
+        aspectRatio: '1/1',
+        cardWidth: 300,
+        thumbnailHeight: 240,
+        // infoAreaHeight: 自動調整（padding 14px + 3行）
+        // totalHeight: 自動調整
+    },
+    // 漫画モード: 縦長アスペクト比
+    manga: {
+        aspectRatio: '2/3',
+        cardWidth: 200,
+        thumbnailHeight: 300,
+        // infoAreaHeight: 自動調整
+        // totalHeight: 自動調整
+    },
+    // 動画モード: 横長アスペクト比
+    video: {
+        aspectRatio: '16/9',
+        cardWidth: 350,
+        thumbnailHeight: 197,
+        // infoAreaHeight: 自動調整
+        // totalHeight: 自動調整
+    },
+    // Compactモード: ファイル表示量が多い形式（2行レイアウト）
+    compact: {
         aspectRatio: '1/1',
         cardWidth: 200,
         thumbnailHeight: 160,
-        infoAreaHeight: 60,
-        totalHeight: 220
-    },
-    manga: {
-        aspectRatio: '2/3',
-        cardWidth: 160,
-        thumbnailHeight: 240,
-        infoAreaHeight: 60,
-        totalHeight: 300
-    },
-    video: {
-        aspectRatio: '16/9',
-        cardWidth: 280,
-        thumbnailHeight: 158,
-        infoAreaHeight: 60,
-        totalHeight: 218
+        infoAreaHeight: 48,
+        totalHeight: 208
     }
 };
 
@@ -81,7 +91,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
-    const [isTagsExpanded, setTagsExpanded] = useState(false);
+
 
     // Hover state
     const [isHovered, setIsHovered] = useState(false);
@@ -327,55 +337,92 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
             </div>
 
-            {/* 情報エリア - Phase 14: 固定高さ */}
+            {/* 情報エリア - Phase 14: モード別レイアウト */}
             {showFileName && (
-                <div
-                    className="px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0"
-                    style={{ height: `${config.infoAreaHeight}px` }}
-                >
-                    {/* フォルダ名（親フォルダのみ） */}
-                    <div className="text-[10px] text-surface-400 truncate leading-tight">
-                        {getDisplayFolderName(file.path)}
-                    </div>
-                    {/* ファイル名 - 優先度高 */}
-                    <div className="text-xs text-surface-100 truncate leading-tight font-medium" title={file.name}>
-                        {file.name}
-                    </div>
-
-                    {/* タグ表示（Phase 13.5: 常時表示化） */}
-                    {showTags && sortedTags.length > 0 && (() => {
-                        const { visible, hiddenCount } = getVisibleTags(sortedTags, FILE_CARD_MAX_VISIBLE_TAGS);
-                        return (
-                            <div className="flex flex-wrap gap-0.5 items-center">
-                                {(isTagsExpanded ? sortedTags : visible).map(tag => (
-                                    <TagBadge
-                                        key={tag.id}
-                                        name={tag.name}
-                                        color={tag.color}
-                                        categoryColor={tag.categoryColor}
-                                        size="sm"
-                                        icon={tag.icon}
-                                        description={tag.description}
-                                    />
-                                ))}
-                                {hiddenCount > 0 && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setTagsExpanded(!isTagsExpanded); }}
-                                        className="text-xs bg-surface-700 hover:bg-surface-600 text-surface-200 px-1.5 py-0.5 rounded transition-colors"
-                                    >
-                                        {isTagsExpanded ? '▲' : `+${hiddenCount}`}
-                                    </button>
-                                )}
-                            </div>
-                        );
-                    })()}
-
-                    {showFileSize && file.size && (
-                        <div className="text-xs text-surface-400 leading-tight">
-                            {(file.size / (1024 * 1024)).toFixed(1)} MB
+                displayMode === 'compact' ? (
+                    // Compactモード: 2行レイアウト（ファイル名 + サイズ＆タグ）
+                    <div
+                        className="px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0"
+                        style={{ height: `${config.infoAreaHeight}px` }}
+                    >
+                        {/* ファイル名 */}
+                        <div className="text-xs text-surface-100 truncate leading-tight font-medium mb-0.5" title={file.name}>
+                            {file.name}
                         </div>
-                    )}
-                </div>
+                        {/* サイズ＆タグ */}
+                        <div className="flex items-center justify-between gap-1">
+                            {showFileSize && file.size && (
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                    {(file.size / (1024 * 1024)).toFixed(1)} MB
+                                </span>
+                            )}
+                            {showTags && sortedTags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 max-h-5 overflow-hidden">
+                                    {sortedTags.slice(0, 2).map(tag => (
+                                        <span
+                                            key={tag.id}
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
+                                            style={{
+                                                backgroundColor: tag.categoryColor || tag.color,
+                                                color: '#FFFFFF',
+                                                borderColor: tag.categoryColor || tag.color
+                                            }}
+                                        >
+                                            #{tag.name}
+                                        </span>
+                                    ))}
+                                    {sortedTags.length > 2 && (
+                                        <span className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
+                                            +{sortedTags.length - 2}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    // Standard/Manga/Videoモード: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
+                    <div className="p-3.5">
+                        {/* 1行目: ファイル名（最優先） */}
+                        <h3 className="text-xs font-semibold truncate text-surface-200 hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
+                            {file.name}
+                        </h3>
+                        {/* 2行目: フォルダ名（控えめ） */}
+                        <div className="text-[10px] text-surface-500 truncate leading-tight mb-1.5">
+                            {getDisplayFolderName(file.path)}
+                        </div>
+                        {/* 3行目: サイズ（左）＆タグ（右） */}
+                        <div className="flex items-center justify-between gap-1">
+                            {showFileSize && file.size && (
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                    {(file.size / (1024 * 1024)).toFixed(1)} MB
+                                </span>
+                            )}
+                            {showTags && sortedTags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 max-h-5 overflow-hidden">
+                                    {sortedTags.slice(0, 3).map(tag => (
+                                        <span
+                                            key={tag.id}
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
+                                            style={{
+                                                backgroundColor: tag.categoryColor || tag.color,
+                                                color: '#FFFFFF',
+                                                borderColor: tag.categoryColor || tag.color
+                                            }}
+                                        >
+                                            #{tag.name}
+                                        </span>
+                                    ))}
+                                    {sortedTags.length > 3 && (
+                                        <span className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
+                                            +{sortedTags.length - 3}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )
             )}
         </div>
     );
