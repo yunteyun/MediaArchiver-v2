@@ -2,9 +2,9 @@
  * Header - 検索バーとソートメニューを含むヘッダー
  */
 
-import React, { useState } from 'react';
-import { ArrowUp, ArrowDown, Wand2 } from 'lucide-react';
-import { useSettingsStore, type CardSize, type GroupBy } from '../stores/useSettingsStore';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film } from 'lucide-react';
+import { useSettingsStore, type CardSize, type GroupBy, type DisplayMode } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useToastStore } from '../stores/useToastStore';
 import { SearchBar } from './SearchBar';
@@ -18,6 +18,24 @@ export const Header = React.memo(() => {
     const setCardSize = useSettingsStore((s) => s.setCardSize);
     const groupBy = useSettingsStore((s) => s.groupBy);
     const setGroupBy = useSettingsStore((s) => s.setGroupBy);
+    // Phase 14: 表示モード状態
+    const displayMode = useSettingsStore((s) => s.displayMode);
+    const setDisplayMode = useSettingsStore((s) => s.setDisplayMode);
+    const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
+    const modeMenuRef = useRef<HTMLDivElement>(null);
+
+    // ドロップダウンのクリックアウトサイドハンドラー
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (modeMenuRef.current && !modeMenuRef.current.contains(event.target as Node)) {
+                setIsModeMenuOpen(false);
+            }
+        };
+        if (isModeMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isModeMenuOpen]);
 
     const files = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
@@ -82,6 +100,54 @@ export const Header = React.memo(() => {
                         {opt.label}
                     </button>
                 ))}
+            </div>
+
+            {/* Display Mode Controls (Phase 14-6) */}
+            <div ref={modeMenuRef} className="relative flex gap-1 items-center">
+                <span className="text-surface-400 text-sm whitespace-nowrap mr-1">表示:</span>
+                <button
+                    onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
+                    className="flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors bg-surface-700 text-surface-300 hover:bg-surface-600"
+                    title="表示モードを切り替え"
+                >
+                    {displayMode === 'standard' && <Grid size={14} />}
+                    {displayMode === 'manga' && <LayoutGrid size={14} />}
+                    {displayMode === 'video' && <Film size={14} />}
+                    <span>
+                        {displayMode === 'standard' && '標準'}
+                        {displayMode === 'manga' && '漫画'}
+                        {displayMode === 'video' && '動画'}
+                    </span>
+                </button>
+
+                {isModeMenuOpen && (
+                    <div className="absolute top-full mt-1 right-0 bg-surface-800 rounded shadow-lg border border-surface-700 py-1 z-50 min-w-[120px]">
+                        <button
+                            onClick={() => { setDisplayMode('standard'); setIsModeMenuOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'standard' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
+                                }`}
+                        >
+                            <Grid size={16} />
+                            <span>標準</span>
+                        </button>
+                        <button
+                            onClick={() => { setDisplayMode('manga'); setIsModeMenuOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'manga' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
+                                }`}
+                        >
+                            <LayoutGrid size={16} />
+                            <span>漫画</span>
+                        </button>
+                        <button
+                            onClick={() => { setDisplayMode('video'); setIsModeMenuOpen(false); }}
+                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'video' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
+                                }`}
+                        >
+                            <Film size={16} />
+                            <span>動画</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Sort Controls */}

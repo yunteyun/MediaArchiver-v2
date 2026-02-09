@@ -22,7 +22,7 @@ interface FileCardProps {
 const FILE_CARD_MAX_VISIBLE_TAGS = 5;
 
 // Phase 14: 表示モード別の定数定義（Phase 13実測値ベース）
-const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
+export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
     aspectRatio: string;
     cardWidth: number;
     thumbnailHeight: number;
