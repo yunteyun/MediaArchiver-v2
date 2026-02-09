@@ -63,6 +63,13 @@ export function registerScannerHandlers() {
         return;
     });
 
+    // === Set Scan Throttle Delay ===
+    ipcMain.handle('scanner:setScanThrottleMs', async (_event, ms: number) => {
+        const { setScanThrottleMs } = await import('../services/scanner');
+        setScanThrottleMs(ms);
+        return;
+    });
+
     // === Auto Scan (all folders) ===
     ipcMain.handle('scanner:autoScan', async (event) => {
         const folders = getFolders();

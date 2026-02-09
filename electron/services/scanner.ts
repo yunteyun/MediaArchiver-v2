@@ -4,7 +4,7 @@ import pLimit from 'p-limit';
 import * as db from './database';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { generateThumbnail, getVideoDuration, generatePreviewFrames } from './thumbnail';
+import { generateThumbnail, getVideoDuration, generatePreviewFrames, checkIsAnimated } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
 import * as archiveHandler from './archiveHandler';
 
@@ -47,6 +47,15 @@ export function setPreviewFrameCount(count: number) {
 }
 export function getPreviewFrameCount() {
     return previewFrameCountSetting;
+}
+
+// スキャン速度抑制（ファイル間待機時間 ms）
+let scanThrottleMsSetting = 0;
+export function setScanThrottleMs(ms: number) {
+    scanThrottleMsSetting = ms;
+}
+export function getScanThrottleMs() {
+    return scanThrottleMsSetting;
 }
 
 // Throttle設定（ms）
@@ -205,11 +214,24 @@ async function scanDirectoryInternal(
                     // All media types need thumbnails (video, image, archive, audio)
                     const isMedia = type === 'video' || type === 'image' || type === 'archive' || type === 'audio';
                     const hasThumbnail = !!existing?.thumbnail_path;
-                    const hasPreviewFrames = !!existing?.preview_frames;
 
-                    // Videos require both thumbnail and preview frames
+                    // Check if preview frames actually exist on disk (not just in DB)
+                    let hasPreviewFrames = false;
+                    if (existing?.preview_frames) {
+                        const framePaths = existing.preview_frames.split(',').filter(Boolean);
+                        // Check if at least one frame file exists
+                        hasPreviewFrames = framePaths.length > 0 && framePaths.some(framePath => {
+                            try {
+                                return fs.existsSync(framePath);
+                            } catch {
+                                return false;
+                            }
+                        });
+                    }
+
+                    // Videos require both thumbnail and preview frames (only if setting > 0)
                     const isComplete = type === 'video'
-                        ? (hasThumbnail && hasPreviewFrames)
+                        ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0))
                         : (!isMedia || hasThumbnail);
 
                     if (existing &&
@@ -265,9 +287,31 @@ async function scanDirectoryInternal(
                         }
                     }
 
+
                     // Generate preview frames if missing (video only, for scrub mode)
                     let previewFrames = existing?.preview_frames;
-                    if (type === 'video' && !previewFrames && previewFrameCountSetting > 0) {
+
+                    // Check if preview frames actually exist on disk
+                    let needsPreviewFrames = false;
+                    if (type === 'video' && previewFrameCountSetting > 0) {
+                        if (!previewFrames) {
+                            // No DB record at all
+                            needsPreviewFrames = true;
+                        } else {
+                            // DB record exists, check if files actually exist
+                            const framePaths = previewFrames.split(',').filter(Boolean);
+                            const anyFileExists = framePaths.some(framePath => {
+                                try {
+                                    return fs.existsSync(framePath);
+                                } catch {
+                                    return false;
+                                }
+                            });
+                            needsPreviewFrames = !anyFileExists;
+                        }
+                    }
+
+                    if (needsPreviewFrames) {
                         try {
                             if (onProgress) {
                                 onProgress({
@@ -280,6 +324,12 @@ async function scanDirectoryInternal(
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
                             previewFrames = await thumbnailLimit(() => generatePreviewFrames(fullPath, previewFrameCountSetting)) || undefined;
+
+                            // スキャン速度抑制（コイル鳴き対策）
+                            if (scanThrottleMsSetting > 0) {
+                                await new Promise(resolve => setTimeout(resolve, scanThrottleMsSetting));
+                            }
+
                             if (scanCancelled) return;
                         } catch (e) {
                             log.error('Preview frames generation failed:', e);
@@ -306,6 +356,16 @@ async function scanDirectoryInternal(
                         }
                     }
 
+                    // Check if image is animated (GIF/WebP)
+                    let isAnimated: boolean | undefined = undefined;
+                    if (type === 'image') {
+                        try {
+                            isAnimated = await checkIsAnimated(fullPath);
+                        } catch (e) {
+                            log.error('Animation check failed:', e);
+                        }
+                    }
+
                     // Insert or Update - バッチに追加
                     const isNew = !existing;
                     const fileData = {
@@ -321,7 +381,8 @@ async function scanDirectoryInternal(
                         thumbnail_path: thumbnailPath,
                         preview_frames: previewFrames,
                         content_hash: existing?.content_hash,
-                        metadata: metadata
+                        metadata: metadata,
+                        is_animated: isAnimated ? 1 : 0  // SQLiteはbooleanをINTEGERとして保存
                     };
 
                     state.pendingWrites.push({ fileData });

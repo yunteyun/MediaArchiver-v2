@@ -45,6 +45,8 @@ function App() {
         autoScanOnStartupRef.current = settings.autoScanOnStartup;
         // プレビューフレーム数をメインプロセスに同期
         window.electronAPI.setPreviewFrameCount(settings.previewFrameCount);
+        // スキャン速度抑制をメインプロセスに同期
+        window.electronAPI.setScanThrottleMs(settings.scanThrottleMs);
     }, []);
 
     // 外部アプリ設定を Electron 側に同期（起動時および変更時）
@@ -71,12 +73,21 @@ function App() {
     // スキャン進捗イベントを監視
     useEffect(() => {
         const success = useToastStore.getState().success;
+        const error = useToastStore.getState().error;
         const cleanup = window.electronAPI.onScanProgress((progress) => {
             setScanProgress(progress);
             // スキャン完了時（progress === null）にトースト表示
             if (progress === null) {
                 const fileCount = useFileStore.getState().files.length;
                 success(`スキャンが完了しました (${fileCount}件)`);
+            }
+            // サムネイル再生成完了時にトースト表示
+            else if (progress.phase === 'complete' && progress.message === 'サムネイル再生成完了') {
+                success('サムネイルを再生成しました');
+            }
+            // エラー時にトースト表示
+            else if (progress.phase === 'error' && progress.message?.includes('サムネイル再生成')) {
+                error('サムネイルの再生成に失敗しました');
             }
         });
         return cleanup;

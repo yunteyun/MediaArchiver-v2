@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     cancelScan: () => ipcRenderer.invoke('scanner:cancel'),
     setPreviewFrameCount: (count: number) => ipcRenderer.invoke('scanner:setPreviewFrameCount', count),
+    setScanThrottleMs: (ms: number) => ipcRenderer.invoke('scanner:setScanThrottleMs', ms),
     autoScan: () => ipcRenderer.invoke('scanner:autoScan'),
 
     // === Context Menu ===

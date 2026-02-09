@@ -66,6 +66,7 @@ declare global {
             onScanProgress: (callback: (progress: any) => void) => () => void;
             cancelScan: () => Promise<void>;
             setPreviewFrameCount: (count: number) => Promise<void>;
+            setScanThrottleMs: (ms: number) => Promise<void>;
             autoScan: () => Promise<void>;
 
             // Context Menu

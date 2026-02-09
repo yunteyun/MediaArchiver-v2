@@ -136,6 +136,7 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
 
         return new Promise((resolve) => {
             ffmpeg(videoPath)
+                .outputOptions(['-threads', '1'])  // スレッド数を1に制限してコイル鳴きを軽減
                 .screenshots({
                     count: frameCount,
                     folder: frameDir,

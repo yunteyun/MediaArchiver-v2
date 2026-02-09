@@ -30,6 +30,7 @@ export interface MediaFile {
     metadata?: string;
     mtime_ms?: number;
     notes?: string;
+    is_animated?: number; // SQLiteはbooleanをINTEGERとして保存 (0 or 1)
 }
 
 export interface MediaFolder {
@@ -98,7 +99,8 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
                 thumbnail_path = COALESCE(?, thumbnail_path),
                 preview_frames = COALESCE(?, preview_frames),
                 metadata = COALESCE(?, metadata),
-                type = COALESCE(?, type)
+                type = COALESCE(?, type),
+                is_animated = COALESCE(?, is_animated)
             WHERE id = ?
         `);
 
@@ -111,6 +113,7 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
             fileData.preview_frames,
             fileData.metadata,
             fileData.type,
+            fileData.is_animated,
             existing.id
         );
 
@@ -121,8 +124,8 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
             INSERT INTO files (
                 id, name, path, size, type, created_at, 
                 duration, thumbnail_path, preview_frames, 
-                root_folder_id, content_hash, metadata, mtime_ms
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                root_folder_id, content_hash, metadata, mtime_ms, is_animated
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
@@ -138,7 +141,8 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
             fileData.root_folder_id,
             fileData.content_hash,
             fileData.metadata,
-            fileData.mtime_ms
+            fileData.mtime_ms,
+            fileData.is_animated
         );
 
         return {

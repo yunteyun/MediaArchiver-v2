@@ -25,6 +25,17 @@
     --z-modal: 50;
     --z-lightbox: 60;
     --z-toast: 70;
+
+    /* File type badges
+       Themeable - 将来的にdark/light/customテーマに切り出す前提
+       NOTE: 種類追加時はPhase単位で設計見直しすること（つい色を足す事故防止） */
+    --badge-video: #3b82f6;
+    --badge-image: #10b981;
+    --badge-audio: #f59e0b;
+    --badge-archive: #8b5cf6;
+
+    /* タグ・バッジの控えめ表示 */
+    --badge-opacity: 0.8;
 }
 
 body {

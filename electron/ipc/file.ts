@@ -64,6 +64,15 @@ export function registerFileHandlers() {
                         const file = findFileById(fileId);
                         if (!file) return;
 
+                        // 開始通知
+                        event.sender.send('scanner:progress', {
+                            phase: 'scanning',
+                            current: 0,
+                            total: 1,
+                            currentFile: path.basename(filePath),
+                            message: 'サムネイル生成中...'
+                        });
+
                         // サムネイル生成
                         const thumbnailPath = await generateThumbnail(filePath);
                         if (thumbnailPath) {
@@ -76,30 +85,47 @@ export function registerFileHandlers() {
                         if (videoExts.includes(fileExt)) {
                             const frameCount = getPreviewFrameCount();
 
-                            // ✅ 設定が0の場合はスキップ
+                            // 設定つ0の場合はスキップ
                             if (frameCount === 0) {
                                 console.log('[Thumbnail Regeneration] Preview frame count is 0, skipping generation');
                             } else {
-                                // ✅ 既存のプレビューフレーム数を確認
-                                const existingFrames = file.preview_frames?.split(',').filter(Boolean) || [];
+                                // プレビューフレーム生成中の通知
+                                event.sender.send('scanner:progress', {
+                                    phase: 'scanning',
+                                    current: 0,
+                                    total: 1,
+                                    currentFile: path.basename(filePath),
+                                    message: 'プレビューフレーム生成中...'
+                                });
 
-                                // ✅ 既に設定値と同じ数のフレームがある場合はスキップ
-                                if (existingFrames.length === frameCount) {
-                                    console.log(`[Thumbnail Regeneration] Preview frames already exist (${frameCount} frames), skipping regeneration`);
+                                console.log(`[Thumbnail Regeneration] Regenerating preview frames (target: ${frameCount} frames)`);
+                                const previewFrames = await generatePreviewFrames(filePath, frameCount);
+                                if (previewFrames) {
+                                    updateFilePreviewFrames(fileId, previewFrames);
+                                    console.log('[Thumbnail Regeneration] Preview frames regenerated successfully');
                                 } else {
-                                    console.log(`[Thumbnail Regeneration] Regenerating preview frames (existing: ${existingFrames.length}, target: ${frameCount})`);
-                                    const previewFrames = await generatePreviewFrames(filePath, frameCount);
-                                    if (previewFrames) {
-                                        updateFilePreviewFrames(fileId, previewFrames);
-                                    }
+                                    console.log('[Thumbnail Regeneration] Preview frames generation failed');
                                 }
                             }
                         }
 
-                        // 完了を通知
+                        // 完了通知
+                        event.sender.send('scanner:progress', {
+                            phase: 'complete',
+                            current: 1,
+                            total: 1,
+                            message: 'サムネイル再生成完了'
+                        });
+
+                        // ファイル更新を通知
                         event.sender.send('file:thumbnailRegenerated', fileId);
                     } catch (e) {
                         console.error('Failed to regenerate thumbnail:', e);
+                        // エラー通知
+                        event.sender.send('scanner:progress', {
+                            phase: 'error',
+                            message: 'サムネイル再生成に失敗しました'
+                        });
                     }
                 }
             },

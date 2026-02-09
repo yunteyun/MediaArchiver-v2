@@ -26,6 +26,7 @@ interface SettingsState {
     performanceMode: boolean; // true = アニメーション無効化
     autoScanOnStartup: boolean; // true = 起動時自動スキャン
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
+    scanThrottleMs: number; // スキャン速度抑制（ファイル間待機時間 ms）
 
     // カード表示設定（Phase 12-3）
     cardSize: CardSize;
@@ -49,6 +50,7 @@ interface SettingsState {
     setPerformanceMode: (enabled: boolean) => void;
     setAutoScanOnStartup: (enabled: boolean) => void;
     setPreviewFrameCount: (count: number) => void;
+    setScanThrottleMs: (ms: number) => void;
     // カード設定アクション
     setCardSize: (size: CardSize) => void;
     setCardLayout: (layout: CardLayout) => void;
@@ -75,6 +77,7 @@ export const useSettingsStore = create<SettingsState>()(
             performanceMode: false,
             autoScanOnStartup: false,
             previewFrameCount: 10,
+            scanThrottleMs: 0,
 
             // カード表示設定デフォルト値
             cardSize: 'medium',
@@ -97,6 +100,7 @@ export const useSettingsStore = create<SettingsState>()(
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
             setAutoScanOnStartup: (autoScanOnStartup) => set({ autoScanOnStartup }),
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
+            setScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             // カード設定セッター
             setCardSize: (cardSize) => set({ cardSize }),
             setCardLayout: (cardLayout) => set({ cardLayout }),
