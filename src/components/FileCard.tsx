@@ -91,6 +91,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
+    const [isTagsExpanded, setTagsExpanded] = useState(false);
 
 
     // Hover state
@@ -358,7 +359,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             )}
                             {showTags && sortedTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 max-h-5 overflow-hidden">
-                                    {sortedTags.slice(0, 2).map(tag => (
+                                    {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 2)).map(tag => (
                                         <span
                                             key={tag.id}
                                             className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded"
@@ -371,10 +372,21 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             #{tag.name}
                                         </span>
                                     ))}
-                                    {sortedTags.length > 2 && (
-                                        <span className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
+                                    {!isTagsExpanded && sortedTags.length > 2 && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(true); }}
+                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                        >
                                             +{sortedTags.length - 2}
-                                        </span>
+                                        </button>
+                                    )}
+                                    {isTagsExpanded && sortedTags.length > 2 && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(false); }}
+                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                        >
+                                            ▲
+                                        </button>
                                     )}
                                 </div>
                             )}
@@ -403,7 +415,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             )}
                             {showTags && sortedTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1 max-h-5 overflow-hidden">
-                                    {sortedTags.slice(0, 3).map(tag => (
+                                    {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 3)).map(tag => (
                                         <span
                                             key={tag.id}
                                             className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded"
@@ -416,10 +428,21 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             #{tag.name}
                                         </span>
                                     ))}
-                                    {sortedTags.length > 3 && (
-                                        <span className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
+                                    {!isTagsExpanded && sortedTags.length > 3 && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(true); }}
+                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                        >
                                             +{sortedTags.length - 3}
-                                        </span>
+                                        </button>
+                                    )}
+                                    {isTagsExpanded && sortedTags.length > 3 && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(false); }}
+                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                        >
+                                            ▲
+                                        </button>
                                     )}
                                 </div>
                             )}
