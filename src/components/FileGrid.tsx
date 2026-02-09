@@ -177,7 +177,9 @@ export const FileGrid = React.memo(() => {
     // Phase 14: カードサイズ計算（displayMode対応）
     const { cardHeight, columns, rows } = useMemo(() => {
         const cardW = config.cardWidth + CARD_GAP * 2;
-        const h = config.totalHeight + CARD_GAP * 2;
+        // totalHeightが未定義の場合は、サムネイル高さ + 情報エリア推定高さ（70px）を使用
+        const totalH = config.totalHeight || (config.thumbnailHeight + 70);
+        const h = totalH + CARD_GAP * 2;
         const cols = Math.max(1, Math.floor(containerWidth / cardW));
         const r = Math.ceil(gridItems.length / cols);
         return { cardHeight: h, columns: cols, rows: r };
