@@ -33,22 +33,22 @@ export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
         aspectRatio: '1/1',
         cardWidth: 200,
         thumbnailHeight: 160,
-        infoAreaHeight: 48,
-        totalHeight: 208
+        infoAreaHeight: 60,
+        totalHeight: 220
     },
     manga: {
         aspectRatio: '2/3',
         cardWidth: 160,
         thumbnailHeight: 240,
-        infoAreaHeight: 48,
-        totalHeight: 288
+        infoAreaHeight: 60,
+        totalHeight: 300
     },
     video: {
         aspectRatio: '16/9',
         cardWidth: 280,
         thumbnailHeight: 158,
-        infoAreaHeight: 48,
-        totalHeight: 206
+        infoAreaHeight: 60,
+        totalHeight: 218
     }
 };
 
