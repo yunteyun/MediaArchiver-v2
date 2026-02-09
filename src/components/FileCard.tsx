@@ -32,9 +32,9 @@ export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
     standard: {
         aspectRatio: '1/1',
         cardWidth: 300,
-        thumbnailHeight: 240,
+        thumbnailHeight: 192,  // 240pxから2割削減
         infoAreaHeight: 70,  // 3行レイアウト用の固定高さ
-        totalHeight: 310
+        totalHeight: 262  // 192 + 70
     },
     // 漫画モード: 縦長アスペクト比
     manga: {
@@ -350,9 +350,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             {file.name}
                         </div>
                         {/* サイズ＆タグ */}
-                        <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-[3px] rounded flex-shrink-0">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
@@ -361,7 +361,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {sortedTags.slice(0, 2).map(tag => (
                                         <span
                                             key={tag.id}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
+                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded"
                                             style={{
                                                 backgroundColor: tag.categoryColor || tag.color,
                                                 color: '#FFFFFF',
@@ -372,7 +372,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                         </span>
                                     ))}
                                     {sortedTags.length > 2 && (
-                                        <span className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
+                                        <span className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
                                             +{sortedTags.length - 2}
                                         </span>
                                     )}
@@ -395,9 +395,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             {getDisplayFolderName(file.path)}
                         </div>
                         {/* 3行目: サイズ（左）＆タグ（右） */}
-                        <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-[3px] rounded flex-shrink-0">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
@@ -406,7 +406,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {sortedTags.slice(0, 3).map(tag => (
                                         <span
                                             key={tag.id}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
+                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded"
                                             style={{
                                                 backgroundColor: tag.categoryColor || tag.color,
                                                 color: '#FFFFFF',
@@ -417,7 +417,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                         </span>
                                     ))}
                                     {sortedTags.length > 3 && (
-                                        <span className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
+                                        <span className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 text-surface-300">
                                             +{sortedTags.length - 3}
                                         </span>
                                     )}
