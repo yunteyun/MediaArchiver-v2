@@ -353,7 +353,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         {/* サイズ＆タグ */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight flex-shrink-0">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
@@ -409,7 +409,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         {/* 3行目: サイズ（左）＆タグ（右） */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight flex-shrink-0">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
