@@ -353,16 +353,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         {/* サイズ＆タグ */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-[3px] rounded flex-shrink-0">
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
                             {showTags && sortedTags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 max-h-5 overflow-hidden">
+                                <div className="flex flex-wrap gap-1">
                                     {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 2)).map(tag => (
                                         <span
                                             key={tag.id}
-                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded"
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
                                             style={{
                                                 backgroundColor: tag.categoryColor || tag.color,
                                                 color: '#FFFFFF',
@@ -375,7 +375,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {!isTagsExpanded && sortedTags.length > 2 && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setTagsExpanded(true); }}
-                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             +{sortedTags.length - 2}
                                         </button>
@@ -383,7 +383,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {isTagsExpanded && sortedTags.length > 2 && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setTagsExpanded(false); }}
-                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             ▲
                                         </button>
@@ -409,16 +409,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         {/* 3行目: サイズ（左）＆タグ（右） */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-[3px] rounded flex-shrink-0">
+                                <span className="text-[10px] text-surface-500 font-mono tracking-tight bg-surface-800/50 px-1.5 py-0.5 rounded flex-shrink-0">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
                             {showTags && sortedTags.length > 0 && (
-                                <div className="flex flex-wrap gap-1 max-h-5 overflow-hidden">
+                                <div className="flex flex-wrap gap-1">
                                     {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 3)).map(tag => (
                                         <span
                                             key={tag.id}
-                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded"
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
                                             style={{
                                                 backgroundColor: tag.categoryColor || tag.color,
                                                 color: '#FFFFFF',
@@ -431,7 +431,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {!isTagsExpanded && sortedTags.length > 3 && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setTagsExpanded(true); }}
-                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             +{sortedTags.length - 3}
                                         </button>
@@ -439,7 +439,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {isTagsExpanded && sortedTags.length > 3 && (
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setTagsExpanded(false); }}
-                                            className="px-1.5 py-[3px] text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             ▲
                                         </button>
