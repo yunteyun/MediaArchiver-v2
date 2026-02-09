@@ -403,7 +403,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             {file.name}
                         </h3>
                         {/* 2行目: フォルダ名（控えめ） */}
-                        <div className="text-[10px] text-surface-500 truncate leading-tight mb-1">
+                        <div className="text-[11px] text-surface-500 truncate leading-tight mb-1">
                             {getDisplayFolderName(file.path)}
                         </div>
                         {/* 3行目: サイズ（左）＆タグ（右） */}
