@@ -24,15 +24,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - サムネイルサイズ、ホバー動作、プレビュー枚数設定を集約
   - クリーンアップ機能を統合し「サムネイル管理」セクション化
 
-- **Phase 13-1: 画像属性の拡張 (is_animated)**
-  - DBスキーマに `is_animated` カラムを追加
-  - スキャナーにGIF/WebPのアニメーション判定ロジックを実装
-  - 静止画とアニメーション画像を区別可能に（将来のAPNG/AVIF対応含む）
+## [Unreleased] - Phase 13 & 13.5 (FileCard基礎設計 & 視認性改善)
 
-- **Phase 13-2: UIユーティリティ基盤**
-  - `src/utils/path.ts`: フォルダ名表示ロジックをUI層に分離
-  - `src/utils/tag.ts`: タグの省略表示ロジックを共通化
-  - `src/index.css`: ファイル種別バッジの配色をCSS変数化（デザイントークン）
+### Added
+- **Database**: `files` テーブルに `is_animated` カラムを追加 (Migration 005)
+- **Scanner**: GIF/WebPのアニメーション判定ロジック実装
+- **FileCard**: フォルダ名表示機能 (`utils/path.ts`)
+- **FileCard**: タグの常時表示と省略表記 (`utils/tag.ts`)
+
+### Changed
+- **FileCard**: 情報エリアのレイアウトを下寄せ・縦積み構造に刷新 (Virtual Scroll対応)
+- **FileCard**: タグ表示をサムネイル上から下段情報エリアに移動し、視認性を向上 (Phase 13.5)
+- **UI**: タグ・ファイル種別バッジを完全不透明化し、配色をCSS変数（デザイントークン）化
 
 - **Phase 12-17B: カスタム削除ダイアログ実装** (2026-02-09)
   - `DeleteConfirmDialog.tsx` コンポーネント実装
