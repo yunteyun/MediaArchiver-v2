@@ -31,10 +31,10 @@ export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
     // 標準モード: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
     standard: {
         aspectRatio: '1/1',
-        cardWidth: 300,
-        thumbnailHeight: 192,  // 240pxから2割削減
+        cardWidth: 250,  // Phase 14-6: 表示密度向上のため縮小
+        thumbnailHeight: 160,  // 250 * (192/300) ≈ 160
         infoAreaHeight: 70,  // 3行レイアウト用の固定高さ
-        totalHeight: 262  // 192 + 70
+        totalHeight: 230  // 160 + 70
     },
     // 漫画モード: 縦長アスペクト比
     manga: {
@@ -259,8 +259,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseMove}
             style={{
-                width: `${config.cardWidth}px`,
-                height: `${config.totalHeight}px`
+                width: '100%',
+                height: '100%'
             }}
             className={`
                 rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
@@ -403,13 +403,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             {file.name}
                         </h3>
                         {/* 2行目: フォルダ名（控えめ） */}
-                        <div className="text-[11px] text-surface-500 truncate leading-tight mb-1">
+                        <div className="text-[11px] text-surface-400 font-medium truncate leading-tight mb-1">
                             {getDisplayFolderName(file.path)}
                         </div>
                         {/* 3行目: サイズ（左）＆タグ（右） */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-xs text-surface-500 font-mono tracking-tight flex-shrink-0">
+                                <span className="text-xs text-surface-400 font-semibold tracking-tight flex-shrink-0">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}

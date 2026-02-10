@@ -174,15 +174,36 @@ export const FileGrid = React.memo(() => {
         return unsubscribe;
     }, [refreshFile, showToast]);
 
-    // Phase 14: カードサイズ計算（displayMode対応）
-    const { cardHeight, columns, rows } = useMemo(() => {
-        const cardW = config.cardWidth + CARD_GAP * 2;
-        // totalHeightが未定義の場合は、サムネイル高さ + 情報エリア推定高さ（70px）を使用
-        const totalH = config.totalHeight || (config.thumbnailHeight + 70);
+    // Phase 14-6: レスポンシブカードサイズ計算
+    const { cardHeight, columns, rows, effectiveCardWidth, effectiveThumbnailHeight } = useMemo(() => {
+        // コンテナのパディング（p-4 = 16px * 2）
+        const containerPadding = 32;
+        const availableWidth = containerWidth - containerPadding;
+
+        // 最小カード幅として config.cardWidth を使用
+        const minCardWidth = config.cardWidth;
+        const cols = Math.max(1, Math.floor((availableWidth + CARD_GAP) / (minCardWidth + CARD_GAP)));
+
+        // コンテナ幅を均等分配（ギャップを考慮）
+        const totalGapWidth = (cols - 1) * CARD_GAP;
+        const effectiveCardW = Math.floor((availableWidth - totalGapWidth) / cols);
+
+        // アスペクト比を維持してサムネイル高さを再計算
+        const aspectRatio = config.thumbnailHeight / config.cardWidth;
+        const effectiveThumbnailH = Math.floor(effectiveCardW * aspectRatio);
+
+        // totalHeight を再計算
+        const totalH = effectiveThumbnailH + config.infoAreaHeight;
         const h = totalH + CARD_GAP * 2;
-        const cols = Math.max(1, Math.floor(containerWidth / cardW));
         const r = Math.ceil(gridItems.length / cols);
-        return { cardHeight: h, columns: cols, rows: r };
+
+        return {
+            cardHeight: h,
+            columns: cols,
+            rows: r,
+            effectiveCardWidth: effectiveCardW,
+            effectiveThumbnailHeight: effectiveThumbnailH
+        };
     }, [config, containerWidth, gridItems.length]);
 
     const rowVirtualizer = useVirtualizer({
@@ -313,14 +334,14 @@ export const FileGrid = React.memo(() => {
                             <div
                                 style={{
                                     display: 'grid',
-                                    gridTemplateColumns: `repeat(${columns}, 1fr)`,
+                                    gridTemplateColumns: `repeat(${columns}, ${effectiveCardWidth}px)`,
                                     gap: `${CARD_GAP}px`,
                                     padding: `${CARD_GAP}px`,
                                 }}
                             >
                                 {group.files.map((file) => {
-                                    const cardW = config.cardWidth;
-                                    const cardH = config.totalHeight;
+                                    const cardW = effectiveCardWidth;
+                                    const cardH = effectiveThumbnailHeight + config.infoAreaHeight;
 
                                     return (
                                         <div
@@ -382,8 +403,8 @@ export const FileGrid = React.memo(() => {
                                 }}
                             >
                                 {rowItems.map((item) => {
-                                    const cardW = config.cardWidth;
-                                    const cardH = config.totalHeight;
+                                    const cardW = effectiveCardWidth;
+                                    const cardH = effectiveThumbnailHeight + config.infoAreaHeight;
 
                                     return item.type === 'folder' ? (
                                         <div

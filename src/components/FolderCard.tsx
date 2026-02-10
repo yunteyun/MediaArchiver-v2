@@ -31,8 +31,8 @@ export const FolderCard = React.memo(({ folder, thumbnailPath, fileCount, onNavi
         <div
             onClick={handleClick}
             style={{
-                width: `${cardDimensions.width}px`,
-                height: `${cardDimensions.height + (showFileName ? 40 : 0)}px`
+                width: '100%',
+                height: '100%'
             }}
             className="
                 bg-surface-800 rounded-lg overflow-hidden cursor-pointer
