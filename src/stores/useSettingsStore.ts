@@ -11,6 +11,9 @@ export type DisplayMode = 'standard' | 'manga' | 'video' | 'compact';
 // グループ化型定義（Phase 12-10）
 export type GroupBy = 'none' | 'date' | 'size' | 'type';
 
+// タグポップオーバートリガー型定義（Phase 14-8）
+export type TagPopoverTrigger = 'click' | 'hover';
+
 // 外部アプリ型定義（Phase 12-7）
 export interface ExternalApp {
     id: string;
@@ -48,6 +51,9 @@ interface SettingsState {
     // グループ化設定（Phase 12-10）
     groupBy: GroupBy;
 
+    // タグポップオーバー設定（Phase 14-8）
+    tagPopoverTrigger: TagPopoverTrigger;
+
     // アクション
     setThumbnailAction: (action: 'scrub' | 'play') => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
@@ -72,6 +78,8 @@ interface SettingsState {
     deleteExternalApp: (id: string) => void;
     // グループ化アクション（Phase 12-10）
     setGroupBy: (groupBy: GroupBy) => void;
+    // タグポップオーバーアクション（Phase 14-8）
+    setTagPopoverTrigger: (trigger: TagPopoverTrigger) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -103,6 +111,9 @@ export const useSettingsStore = create<SettingsState>()(
 
             // グループ化設定（Phase 12-10）
             groupBy: 'none',
+
+            // タグポップオーバー設定（Phase 14-8）
+            tagPopoverTrigger: 'click',
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setSortBy: (sortBy) => set({ sortBy }),
@@ -150,6 +161,8 @@ export const useSettingsStore = create<SettingsState>()(
             },
             // グループ化アクション（Phase 12-10）
             setGroupBy: (groupBy) => set({ groupBy }),
+            // タグポップオーバーアクション（Phase 14-8）
+            setTagPopoverTrigger: (tagPopoverTrigger) => set({ tagPopoverTrigger }),
         }),
         {
             name: 'settings-storage',

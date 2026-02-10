@@ -87,6 +87,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     // Phase 14: 表示モード取得
     const displayMode = useSettingsStore((s) => s.displayMode);
     const config = DISPLAY_MODE_CONFIGS[displayMode];
+    // Phase 14-8: タグポップオーバートリガー設定
+    const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
 
 
 
@@ -96,6 +98,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const [showTagPopover, setShowTagPopover] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
+    // Phase 14-8: タグポップオーバー hover タイムアウト制御
+    const tagHoverTimeoutRef = useRef<number | null>(null);
 
 
     // Hover state
@@ -143,8 +147,33 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return [...fileTags].sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
     }, [fileTags]);
 
-    // Phase 14-7: Click-outside handler for tag popover
+    // Phase 14-8: タグポップオーバー hover 制御
+    const openPopover = useCallback(() => {
+        if (tagHoverTimeoutRef.current) {
+            clearTimeout(tagHoverTimeoutRef.current);
+            tagHoverTimeoutRef.current = null;
+        }
+        setShowTagPopover(true);
+    }, []);
+
+    const closePopoverWithDelay = useCallback(() => {
+        tagHoverTimeoutRef.current = window.setTimeout(() => {
+            setShowTagPopover(false);
+        }, 150);
+    }, []);
+
+    // Phase 14-8: タグポップオーバー hover timeout クリーンアップ
     useEffect(() => {
+        return () => {
+            if (tagHoverTimeoutRef.current) {
+                clearTimeout(tagHoverTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    // Phase 14-7: Click-outside handler for tag popover (Phase 14-8: click モード限定)
+    useEffect(() => {
+        if (tagPopoverTrigger !== 'click') return;  // click モード限定
         if (!showTagPopover) return;
         const handleClickOutside = (e: MouseEvent) => {
             // ポップオーバーと+Nボタン両方を判定対象に含める
@@ -157,7 +186,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showTagPopover]);
+    }, [showTagPopover, tagPopoverTrigger]);
+
 
     // ★ onMouseEnter でプリロード開始
     const handleMouseEnter = useCallback(() => {
@@ -397,7 +427,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {sortedTags.length > 2 && (
                                         <button
                                             ref={triggerRef}
-                                            onClick={(e) => { e.stopPropagation(); setShowTagPopover(!showTagPopover); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
+                                            }}
+                                            onMouseEnter={() => {
+                                                if (tagPopoverTrigger === 'hover') openPopover();
+                                            }}
+                                            onMouseLeave={() => {
+                                                if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
+                                            }}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             +{sortedTags.length - 2}
@@ -446,7 +485,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {sortedTags.length > 3 && (
                                         <button
                                             ref={triggerRef}
-                                            onClick={(e) => { e.stopPropagation(); setShowTagPopover(!showTagPopover); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
+                                            }}
+                                            onMouseEnter={() => {
+                                                if (tagPopoverTrigger === 'hover') openPopover();
+                                            }}
+                                            onMouseLeave={() => {
+                                                if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
+                                            }}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             +{sortedTags.length - 3}
@@ -463,6 +511,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             {showTagPopover && triggerRef.current && createPortal(
                 <div
                     ref={popoverRef}
+                    onMouseEnter={() => {
+                        if (tagPopoverTrigger === 'hover') openPopover();
+                    }}
+                    onMouseLeave={() => {
+                        if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
+                    }}
                     className="bg-surface-800 border border-surface-600
                                rounded-lg shadow-2xl p-3 min-w-[200px] max-w-[300px]"
                     style={{
