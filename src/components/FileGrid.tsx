@@ -176,9 +176,10 @@ export const FileGrid = React.memo(() => {
 
     // Phase 14-6: レスポンシブカードサイズ計算
     const { cardHeight, columns, rows, effectiveCardWidth, effectiveThumbnailHeight } = useMemo(() => {
-        // コンテナのパディング（p-4 = 16px * 2）
-        const containerPadding = 32;
-        const availableWidth = containerWidth - containerPadding;
+        // ⚠️ containerWidth は ResizeObserver.contentRect.width で取得済み（p-4 パディング除外済み）
+        // ここでは仮想行の padding（CARD_GAP/2 * 左右 = CARD_GAP）のみ差し引く
+        const rowPadding = CARD_GAP; // 各行の左右パディング合計
+        const availableWidth = containerWidth - rowPadding;
 
         // 最小カード幅として config.cardWidth を使用
         const minCardWidth = config.cardWidth;
