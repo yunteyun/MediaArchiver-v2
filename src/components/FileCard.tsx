@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
@@ -91,7 +92,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
-    const [isTagsExpanded, setTagsExpanded] = useState(false);
+    // Phase 14-7: タグポップオーバー
+    const [showTagPopover, setShowTagPopover] = useState(false);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
 
 
     // Hover state
@@ -138,6 +142,22 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const sortedTags = useMemo(() => {
         return [...fileTags].sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
     }, [fileTags]);
+
+    // Phase 14-7: Click-outside handler for tag popover
+    useEffect(() => {
+        if (!showTagPopover) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            // ポップオーバーと+Nボタン両方を判定対象に含める
+            if (
+                popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+                triggerRef.current && !triggerRef.current.contains(e.target as Node)
+            ) {
+                setShowTagPopover(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showTagPopover]);
 
     // ★ onMouseEnter でプリロード開始
     const handleMouseEnter = useCallback(() => {
@@ -262,6 +282,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 width: '100%',
                 height: '100%'
             }}
+            // ⚠️ overflow-hidden を削除するとサムネイルの角丸やレイアウトが崩れる。
+            // カード外に要素を表示する場合は React Portal (createPortal) を使用すること。
             className={`
                 rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
                 transition-all duration-200 ease-out
@@ -359,7 +381,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             )}
                             {showTags && sortedTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
-                                    {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 2)).map(tag => (
+                                    {sortedTags.slice(0, 2).map(tag => (
                                         <span
                                             key={tag.id}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
@@ -372,20 +394,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             #{tag.name}
                                         </span>
                                     ))}
-                                    {!isTagsExpanded && sortedTags.length > 2 && (
+                                    {sortedTags.length > 2 && (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(true); }}
+                                            ref={triggerRef}
+                                            onClick={(e) => { e.stopPropagation(); setShowTagPopover(!showTagPopover); }}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             +{sortedTags.length - 2}
-                                        </button>
-                                    )}
-                                    {isTagsExpanded && sortedTags.length > 2 && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(false); }}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
-                                        >
-                                            ▲
                                         </button>
                                     )}
                                 </div>
@@ -415,7 +430,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             )}
                             {showTags && sortedTags.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
-                                    {(isTagsExpanded ? sortedTags : sortedTags.slice(0, 3)).map(tag => (
+                                    {sortedTags.slice(0, 3).map(tag => (
                                         <span
                                             key={tag.id}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
@@ -428,20 +443,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             #{tag.name}
                                         </span>
                                     ))}
-                                    {!isTagsExpanded && sortedTags.length > 3 && (
+                                    {sortedTags.length > 3 && (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(true); }}
+                                            ref={triggerRef}
+                                            onClick={(e) => { e.stopPropagation(); setShowTagPopover(!showTagPopover); }}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
                                         >
                                             +{sortedTags.length - 3}
-                                        </button>
-                                    )}
-                                    {isTagsExpanded && sortedTags.length > 3 && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setTagsExpanded(false); }}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
-                                        >
-                                            ▲
                                         </button>
                                     )}
                                 </div>
@@ -449,6 +457,52 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         </div>
                     </div>
                 )
+            )}
+
+            {/* Phase 14-7: タグポップオーバー (Portal) */}
+            {showTagPopover && triggerRef.current && createPortal(
+                <div
+                    ref={popoverRef}
+                    className="bg-surface-800 border border-surface-600
+                               rounded-lg shadow-2xl p-3 min-w-[200px] max-w-[300px]"
+                    style={{
+                        position: 'fixed',
+                        top: `${triggerRef.current.getBoundingClientRect().bottom + 4}px`,
+                        left: `${triggerRef.current.getBoundingClientRect().left}px`,
+                        zIndex: 9999
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-surface-200">
+                            タグ ({sortedTags.length})
+                        </span>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowTagPopover(false);
+                            }}
+                            className="text-surface-400 hover:text-surface-200 text-sm"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                        {sortedTags.map(tag => (
+                            <span
+                                key={tag.id}
+                                className="px-2 py-1 text-[10px] font-bold whitespace-nowrap rounded"
+                                style={{
+                                    backgroundColor: tag.categoryColor || tag.color,
+                                    color: '#FFF'
+                                }}
+                            >
+                                #{tag.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );
