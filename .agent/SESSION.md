@@ -1,13 +1,16 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-11 10:25
+**Last Updated**: 2026-02-11 14:20
 
-- **Current Focus**: Phase 14: 表示モードシステム (MVP完了 / 拡張検討)
-- **Current Status**: Phase 14 (FileCardレイアウト改善) 完了。次のフェーズへ移行準備中。
+- **Current Focus**: 次期フェーズ検討・UI詳細ブラッシュアップ
+- **Current Status**: Phase 15 (アニメーションバッジ修正 & UI改善) 完了。
 - **Recent Achievements**: 
-  - Phase 13: FileCard基礎設計完了（is_animated, utils分離, レイアウト刷新）
-  - Phase 13.5: タグ視認性改善（常時表示・不透明化）完了
-  - Phase 14: FileCardレイアウト改善（3行レイアウト、Compactモード、タグ展開機能）完了
+  - Phase 14: FileCardレイアウト改善（Compact/Standardモード）完了
+  - **Phase 15: アニメーションバッジ修正 & UI改善完了**
+    - アニメーションバッジの表示バグ修正 & アイコン化
+    - ファイルサイズ表示修正（1MB未満の0.0MB問題を解決）
+    - バッジデザイン刷新（半透明ダーク系で視認性向上）
+    - タグ色視認性改善（黄色系タグのコントラスト確保）
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -154,10 +157,14 @@
   - Phase 14-2: 標準モード確立（3行レイアウト）
   - Phase 14-6: UI切り替え実装（Compactモード、タグ展開機能）
 
-- ✅ **Phase 15: アニメーションバッジ修正** 🆕
-  - IPC層のデータマッピングバグ修正（`isAnimated`フィールド欠落）
-  - バッジ表示名を「GIF」から「ANIM」に変更（GIF/WebP両対応）
-  - アニメーション検出ロジックの検証（`checkIsAnimated`正常動作確認）
+- ✅ **Phase 15: アニメーションバッジ修正 & UI改善** 🆕
+  - IPC層のマッピングバグ修正（isAnimated）
+  - バッジ表示名を「ANIM」アイコン（Clapperboard）に変更
+  - **UI磨き込み**:
+    - ファイルサイズ表示修正（formatFileSize適用）
+    - 作成日時表示の追加（Standardモード）
+    - バッジ配色の洗練（半透明ダーク系）
+    - タグ配色の視認性確保（黄色系タグの黒文字化、カラーピッカー修正）
 
 - **Phase 14: 表示モードシステム** (進行中 - MVP)
   - Phase 14-1: 基盤整備（設定ストア、定数定義）
