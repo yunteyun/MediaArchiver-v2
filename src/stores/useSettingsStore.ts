@@ -12,6 +12,9 @@ export type GroupBy = 'none' | 'date' | 'size' | 'type';
 // タグポップオーバートリガー型定義（Phase 14-8）
 export type TagPopoverTrigger = 'click' | 'hover';
 
+// タグ表示スタイル型定義
+export type TagDisplayStyle = 'filled' | 'border';
+
 // 外部アプリ型定義（Phase 12-7）
 export interface ExternalApp {
     id: string;
@@ -54,6 +57,9 @@ interface SettingsState {
     // タグポップオーバー設定（Phase 14-8）
     tagPopoverTrigger: TagPopoverTrigger;
 
+    // タグ表示スタイル設定
+    tagDisplayStyle: TagDisplayStyle;
+
     // アクション
     setThumbnailAction: (action: 'scrub' | 'play') => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
@@ -80,6 +86,8 @@ interface SettingsState {
     setGroupBy: (groupBy: GroupBy) => void;
     // タグポップオーバーアクション（Phase 14-8）
     setTagPopoverTrigger: (trigger: TagPopoverTrigger) => void;
+    // タグ表示スタイルアクション
+    setTagDisplayStyle: (style: TagDisplayStyle) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -116,6 +124,9 @@ export const useSettingsStore = create<SettingsState>()(
 
             // タグポップオーバー設定（Phase 14-8）
             tagPopoverTrigger: 'click',
+
+            // タグ表示スタイル設定
+            tagDisplayStyle: 'filled' as TagDisplayStyle,
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setSortBy: (sortBy) => set({ sortBy }),
@@ -165,6 +176,8 @@ export const useSettingsStore = create<SettingsState>()(
             setGroupBy: (groupBy) => set({ groupBy }),
             // タグポップオーバーアクション（Phase 14-8）
             setTagPopoverTrigger: (tagPopoverTrigger) => set({ tagPopoverTrigger }),
+            // タグ表示スタイルアクション
+            setTagDisplayStyle: (tagDisplayStyle) => set({ tagDisplayStyle }),
         }),
         {
             name: 'settings-storage',

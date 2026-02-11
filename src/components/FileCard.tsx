@@ -125,6 +125,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const config = DISPLAY_MODE_CONFIGS[displayMode];
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
+    // タグ表示スタイル設定
+    const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
+    const isTagBorderMode = tagDisplayStyle === 'border';
 
 
     // Phase 15-2: サムネイルバッジの計算（メモ化）
@@ -512,8 +515,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {sortedTags.slice(0, 2).map(tag => (
                                         <span
                                             key={tag.id}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
-                                            style={{
+                                            className={`px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
+                                            style={isTagBorderMode ? {
+                                                backgroundColor: 'rgba(55, 65, 81, 0.9)',
+                                                color: '#e5e7eb',
+                                                borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                                                opacity: 0.85
+                                            } : {
                                                 backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
                                                 color: getTagTextColor(tag.categoryColor || tag.color || ''),
                                                 borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
@@ -581,8 +589,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {sortedTags.slice(0, 3).map(tag => (
                                         <span
                                             key={tag.id}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
-                                            style={{
+                                            className={`px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
+                                            style={isTagBorderMode ? {
+                                                backgroundColor: 'rgba(55, 65, 81, 0.9)',
+                                                color: '#e5e7eb',
+                                                borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                                                opacity: 0.85
+                                            } : {
                                                 backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
                                                 color: getTagTextColor(tag.categoryColor || tag.color || ''),
                                                 borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
@@ -655,8 +668,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         {sortedTags.map(tag => (
                             <span
                                 key={tag.id}
-                                className="px-2 py-1 text-[10px] font-bold whitespace-nowrap rounded"
-                                style={{
+                                className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-3' : ''}`}
+                                style={isTagBorderMode ? {
+                                    backgroundColor: 'rgba(55, 65, 81, 0.9)',
+                                    color: '#e5e7eb',
+                                    borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || '')
+                                } : {
                                     backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
                                     color: getTagTextColor(tag.categoryColor || tag.color || '')
                                 }}

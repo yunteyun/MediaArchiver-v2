@@ -42,6 +42,9 @@ export const SettingsModal = React.memo(() => {
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
     const setTagPopoverTrigger = useSettingsStore((s) => s.setTagPopoverTrigger);
+    // タグ表示スタイル設定
+    const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
+    const setTagDisplayStyle = useSettingsStore((s) => s.setTagDisplayStyle);
 
     const [activeTab, setActiveTab] = useState<TabType>('general');
     const [logs, setLogs] = useState<string[]>([]);
@@ -258,6 +261,20 @@ export const SettingsModal = React.memo(() => {
                                             >
                                                 <option value="click">クリック</option>
                                                 <option value="hover">ホバー</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                    {/* タグ表示スタイル設定 */}
+                                    {showTags && (
+                                        <div className="ml-6 mt-1">
+                                            <label className="block text-xs text-surface-400 mb-1">タグ表示スタイル</label>
+                                            <select
+                                                value={tagDisplayStyle}
+                                                onChange={(e) => setTagDisplayStyle(e.target.value as 'filled' | 'border')}
+                                                className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                                            >
+                                                <option value="filled">塗りつぶし（フル背景色）</option>
+                                                <option value="border">左端ライン（ダーク背景）</option>
                                             </select>
                                         </div>
                                     )}
