@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 #### Added
 - FileCard: 作成日時表示の追加（Standardモード、YY/MM/DD形式）
 - FileCard: `getTagBackgroundColor` ヘルパー関数（色名→CSS hex値マッピング）
+- **タグ表示スタイル切替オプション**（塗りつぶし/左端ライン）: 設定画面で選択可能に
 
 #### Changed
 - アニメーションバッジを「GIF」ラベルから Clapperboard アイコン（「ANIM」）に変更
@@ -33,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 #### Fixed
 - IPC層（`ipc/database.ts`）で `isAnimated` フィールドが欠落していた問題
 - FileCard インラインタグで色名文字列（`"amber"` 等）が無効なCSS値として適用されていた問題
+- ポップオーバー内のタグ色が表示されない問題（Tailwindクラス修正、型安全性向上）
 
 ---
 

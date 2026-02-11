@@ -1,16 +1,14 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-11 14:20
+**Last Updated**: 2026-02-11 19:58
 
-- **Current Focus**: 次期フェーズ検討・UI詳細ブラッシュアップ
-- **Current Status**: Phase 15 (アニメーションバッジ修正 & UI改善) 完了。
+- **Current Focus**: FileCard インタラクション修正（Phase 16）
+- **Current Status**: Phase 15 完了。タグ表示スタイル切替機能実装済み。ROADMAP/CHANGELOG整理完了。
 - **Recent Achievements**: 
-  - Phase 14: FileCardレイアウト改善（Compact/Standardモード）完了
-  - **Phase 15: アニメーションバッジ修正 & UI改善完了**
-    - アニメーションバッジの表示バグ修正 & アイコン化
-    - ファイルサイズ表示修正（1MB未満の0.0MB問題を解決）
-    - バッジデザイン刷新（半透明ダーク系で視認性向上）
-    - タグ色視認性改善（黄色系タグのコントラスト確保）
+  - Phase 15: タグ表示スタイル切替機能（塗りつぶし/左端ライン）実装
+  - ポップオーバーのタグ色表示バグ修正
+  - ROADMAP/不具合リストの整合性確保（Phase 16/17 追加）
+  - アニメーションバッジ修正 & UI改善完了
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -184,10 +182,13 @@
   - 設定UI整理（サムネイルタブ作成）
 
 ## Next Steps
-- [ ] Phase 14-1: 基盤整備
-- [ ] Phase 14-2: 標準モード確立
-- [ ] Phase 14-6: UI切り替え
-- [ ] Phase 14-3/4/5: 拡張モード（MVP後）
+- [ ] **Phase 16: FileCard インタラクション修正**
+  - クリック挙動改善（サムネイルのみ Lightbox）
+  - 複数選択機能の修復
+- [ ] **Phase 17: メディア管理の拡張**
+  - 再生回数カウント、ソート
+  - 動画途中再生
+- [ ] Phase 14-3/4/5: 拡張モード（漫画/動画/WhiteBrowser風）
 
 ## Known Issues
 なし（現在確認されている重大な不具合はありません）
