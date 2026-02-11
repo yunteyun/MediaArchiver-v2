@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic } from 'lucide-react';
+import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
@@ -9,6 +9,7 @@ import type { Tag } from '../stores/useTagStore';
 import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
 import { getDisplayFolderName } from '../utils/path';
+import { formatFileSize } from '../utils/groupFiles';
 
 
 interface FileCardProps {
@@ -103,10 +104,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         badges.extension = ext;
 
         // 属性バッジ（左上）
-        // 1. アニメーションバッジ
-        if (file.isAnimated) {
-            badges.attributes.push({ label: 'ANIM', color: 'bg-pink-600' });
-        }
+        // 1. アニメーションバッジ（右上に移設したのでここでは追加しない）
+        // if (file.isAnimated) {
+        //     badges.attributes.push({ label: 'ANIM', color: 'bg-pink-600' });
+        // }
 
         // 2. 縦長画像バッジ
         try {
@@ -427,23 +428,28 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     </div>
                 )}
 
-                {/* Phase 15-2: 拡張子バッジ（右上） */}
-                {thumbnailBadges.extension && (
-                    <div className={`absolute top-1 right-1 text-[9px] font-bold px-1 rounded-sm opacity-90 text-white uppercase ${extensionColor} z-10`}>
-                        {thumbnailBadges.extension}
-                    </div>
-                )}
+                {/* Phase 15: バッジ（右上） - アニメーション + 属性 + 拡張子 */}
+                <div className="absolute top-1 right-1 flex gap-1 z-10">
+                    {/* アニメーションバッジ（アイコン） */}
+                    {file.isAnimated && !isSelected && (
+                        <div className="bg-pink-600 rounded-sm p-0.5 opacity-90">
+                            <Clapperboard size={12} className="text-white" strokeWidth={2.5} />
+                        </div>
+                    )}
+                    {/* 属性バッジ（TALL等） */}
+                    {!isSelected && thumbnailBadges.attributes.filter(b => b.label !== 'ANIM').map((badge, i) => (
+                        <span key={i} className={`text-[10px] font-bold text-white px-1.5 py-0.5 rounded-sm opacity-90 ${badge.color}`}>
+                            {badge.label}
+                        </span>
+                    ))}
+                    {/* 拡張子バッジ */}
+                    {thumbnailBadges.extension && (
+                        <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm opacity-90 text-white uppercase ${extensionColor}`}>
+                            {thumbnailBadges.extension}
+                        </div>
+                    )}
+                </div>
 
-                {/* Phase 15-2: 属性バッジ（左上） */}
-                {thumbnailBadges.attributes.length > 0 && !isSelected && (
-                    <div className="absolute top-1 left-1 flex gap-1 z-10 pointer-events-none">
-                        {thumbnailBadges.attributes.map((badge, i) => (
-                            <span key={i} className={`text-[9px] font-bold text-white px-1 rounded-sm opacity-90 ${badge.color}`}>
-                                {badge.label}
-                            </span>
-                        ))}
-                    </div>
-                )}
 
             </div>
 
@@ -463,7 +469,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
                                 <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
-                                    {(file.size / (1024 * 1024)).toFixed(1)} MB
+                                    {formatFileSize(file.size)}
                                 </span>
                             )}
                             {showTags && sortedTags.length > 0 && (
@@ -514,15 +520,25 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         <h3 className="text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
                             {file.name}
                         </h3>
-                        {/* 2行目: フォルダ名（控えめ） */}
+                        {/* 2行目: フォルダ名 · 作成日時（控えめ） */}
                         <div className="text-[10px] text-surface-500 truncate leading-tight mb-1">
                             {getDisplayFolderName(file.path)}
+                            {file.createdAt && (
+                                <>
+                                    {' · '}
+                                    {new Date(file.createdAt).toLocaleDateString('ja-JP', {
+                                        year: '2-digit',
+                                        month: '2-digit',
+                                        day: '2-digit'
+                                    }).replace(/\//g, '/')}
+                                </>
+                            )}
                         </div>
                         {/* 3行目: サイズ（左）＆タグ（右） */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
                                 <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
-                                    {(file.size / (1024 * 1024)).toFixed(1)} MB
+                                    {formatFileSize(file.size)}
                                 </span>
                             )}
                             {showTags && sortedTags.length > 0 && (
