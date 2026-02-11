@@ -667,22 +667,26 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         </button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                        {sortedTags.map(tag => (
-                            <span
-                                key={tag.id}
-                                className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-3' : ''}`}
-                                style={isTagBorderMode ? {
-                                    backgroundColor: 'rgba(55, 65, 81, 0.9)',
-                                    color: '#e5e7eb',
-                                    borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || '')
-                                } : {
-                                    backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                    color: getTagTextColor(tag.categoryColor || tag.color || '')
-                                }}
-                            >
-                                #{tag.name}
-                            </span>
-                        ))}
+                        {sortedTags.map(tag => {
+                            // デバッグ: タグの色情報を確認
+                            console.log('[FileCard Popover] Tag:', tag.name, 'color:', tag.color, 'categoryColor:', tag.categoryColor);
+                            return (
+                                <span
+                                    key={tag.id}
+                                    className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-4' : ''}`}
+                                    style={isTagBorderMode ? {
+                                        backgroundColor: 'rgba(55, 65, 81, 0.9)',
+                                        color: '#e5e7eb',
+                                        borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || '')
+                                    } : {
+                                        backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                                        color: getTagTextColor(tag.categoryColor || tag.color || '')
+                                    }}
+                                >
+                                    #{tag.name}
+                                </span>
+                            );
+                        })}
                     </div>
                 </div>,
                 document.body
