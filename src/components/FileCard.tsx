@@ -22,7 +22,8 @@ function getTagTextColor(bgColor: string): string {
 }
 
 // 色名文字列を実際のCSS色値にマッピング（TagBadge.tsxと一致）
-function getTagBackgroundColor(colorName: string): string {
+function getTagBackgroundColor(colorName: string | undefined): string {
+    if (!colorName) return '#4b5563'; // gray-600
     const colorMap: Record<string, string> = {
         gray: '#4b5563',      // gray-600
         red: '#dc2626',       // red-600
@@ -43,7 +44,8 @@ function getTagBackgroundColor(colorName: string): string {
         pink: '#db2777',      // pink-600
         rose: '#e11d48',      // rose-600
     };
-    return colorMap[colorName] || colorName; // フォールバック: そのまま返す
+    const color = colorMap[colorName];
+    return color !== undefined ? color : (colorMap.gray as string); // フォールバック: gray
 }
 
 
