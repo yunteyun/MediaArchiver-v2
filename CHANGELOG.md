@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Fixed
+- **Phase 15: アニメーションバッジ表示修正** (2026-02-11)
+  - IPC層（`ipc/database.ts`）のデータマッピングで`isAnimated`フィールドが欠落していた問題を修正
+  - `getFiles`と`getFileById`の両方のレスポンスに`isAnimated`を追加
+  - GIF/WebPファイルのアニメーションバッジが表示されない問題を解決
+
+### Changed
+- **アニメーションバッジの表示名変更** (2026-02-11)
+  - バッジラベルを「GIF」から「ANIM」に変更
+  - GIF/WebP両方のアニメーション画像に対応した汎用的な名称に統一
+
 ### Added
 - **ファイル削除の安全性向上（ゴミ箱機能）** (2026-02-09)
   - `fileOperationService` の実装（削除ロジックの一元化）

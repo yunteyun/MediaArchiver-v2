@@ -1,7 +1,7 @@
 import React from 'react';
 import { Folder } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
-import { useSettingsStore, type CardSize } from '../stores/useSettingsStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { toMediaUrl } from '../utils/mediaPath';
 
 interface FolderCardProps {
@@ -11,17 +11,8 @@ interface FolderCardProps {
     onNavigate: (folderId: string) => void;
 }
 
-// FileCardと同じサイズ定義を使用（仮想スクロール対応）
-const CARD_SIZES: Record<CardSize, { width: number; height: number }> = {
-    small: { width: 150, height: 120 },
-    medium: { width: 200, height: 160 },
-    large: { width: 280, height: 220 }
-};
-
 export const FolderCard = React.memo(({ folder, thumbnailPath, fileCount, onNavigate }: FolderCardProps) => {
-    const cardSize = useSettingsStore((s) => s.cardSize);
     const showFileName = useSettingsStore((s) => s.showFileName);
-    const cardDimensions = CARD_SIZES[cardSize];
 
     const handleClick = () => {
         onNavigate(folder.id);

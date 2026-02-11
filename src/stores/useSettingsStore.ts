@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// カードサイズ型定義
-export type CardSize = 'small' | 'medium' | 'large';
 export type CardLayout = 'grid' | 'list';
 
 // 表示モード型定義（Phase 14）
@@ -34,8 +32,10 @@ interface SettingsState {
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
     scanThrottleMs: number; // スキャン速度抑制（ファイル間待機時間 ms）
 
+    // サムネイル生成解像度（Phase 14整理）
+    thumbnailResolution: number; // 生成時の幅px（160〜480）
+
     // カード表示設定（Phase 12-3）
-    cardSize: CardSize;
     cardLayout: CardLayout;
     showFileName: boolean;
     showDuration: boolean;
@@ -63,8 +63,8 @@ interface SettingsState {
     setAutoScanOnStartup: (enabled: boolean) => void;
     setPreviewFrameCount: (count: number) => void;
     setScanThrottleMs: (ms: number) => void;
+    setThumbnailResolution: (resolution: number) => void;
     // カード設定アクション
-    setCardSize: (size: CardSize) => void;
     setCardLayout: (layout: CardLayout) => void;
     setShowFileName: (show: boolean) => void;
     setShowDuration: (show: boolean) => void;
@@ -95,13 +95,15 @@ export const useSettingsStore = create<SettingsState>()(
             previewFrameCount: 10,
             scanThrottleMs: 0,
 
+            // サムネイル生成解像度（Phase 14整理）
+            thumbnailResolution: 320,
+
             // カード表示設定デフォルト値
-            cardSize: 'medium',
             cardLayout: 'grid',
             showFileName: true,
             showDuration: true,
             showTags: true,
-            showFileSize: false,
+            showFileSize: true,
 
             // 表示モード設定デフォルト値（Phase 14）
             displayMode: 'standard',
@@ -123,8 +125,8 @@ export const useSettingsStore = create<SettingsState>()(
             setAutoScanOnStartup: (autoScanOnStartup) => set({ autoScanOnStartup }),
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
             setScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
+            setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
             // カード設定セッター
-            setCardSize: (cardSize) => set({ cardSize }),
             setCardLayout: (cardLayout) => set({ cardLayout }),
             setShowFileName: (showFileName) => set({ showFileName }),
             setShowDuration: (showDuration) => set({ showDuration }),

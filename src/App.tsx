@@ -47,6 +47,8 @@ function App() {
         window.electronAPI.setPreviewFrameCount(settings.previewFrameCount);
         // スキャン速度抑制をメインプロセスに同期
         window.electronAPI.setScanThrottleMs(settings.scanThrottleMs);
+        // サムネイル解像度をメインプロセスに同期
+        window.electronAPI.setThumbnailResolution(settings.thumbnailResolution);
     }, []);
 
     // 外部アプリ設定を Electron 側に同期（起動時および変更時）

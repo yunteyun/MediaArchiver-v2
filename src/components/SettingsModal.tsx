@@ -14,8 +14,6 @@ type TabType = 'general' | 'thumbnails' | 'apps' | 'logs' | 'backup';
 export const SettingsModal = React.memo(() => {
     const isOpen = useUIStore((s) => s.settingsModalOpen);
     const closeModal = useUIStore((s) => s.closeSettingsModal);
-    const thumbnailSize = useUIStore((s) => s.thumbnailSize);
-    const setThumbnailSize = useUIStore((s) => s.setThumbnailSize);
 
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
@@ -29,10 +27,10 @@ export const SettingsModal = React.memo(() => {
     const setPreviewFrameCount = useSettingsStore((s) => s.setPreviewFrameCount);
     const scanThrottleMs = useSettingsStore((s) => s.scanThrottleMs);
     const setScanThrottleMs = useSettingsStore((s) => s.setScanThrottleMs);
+    const thumbnailResolution = useSettingsStore((s) => s.thumbnailResolution);
+    const setThumbnailResolution = useSettingsStore((s) => s.setThumbnailResolution);
 
-    // カード表示設定（Phase 12-3）
-    const cardSize = useSettingsStore((s) => s.cardSize);
-    const setCardSize = useSettingsStore((s) => s.setCardSize);
+
     const showFileName = useSettingsStore((s) => s.showFileName);
     const setShowFileName = useSettingsStore((s) => s.setShowFileName);
     const showDuration = useSettingsStore((s) => s.showDuration);
@@ -214,29 +212,7 @@ export const SettingsModal = React.memo(() => {
                                 </label>
                             </div>
 
-                            {/* Card Size */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    カードサイズ
-                                </label>
-                                <div className="flex gap-2">
-                                    {(['small', 'medium', 'large'] as const).map((size) => (
-                                        <button
-                                            key={size}
-                                            onClick={() => {
-                                                // 連打防止: 同値更新ガード（仮想スクロール多重再計算防止）
-                                                if (cardSize !== size) setCardSize(size);
-                                            }}
-                                            className={`px-4 py-2 rounded transition-colors ${cardSize === size
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-surface-700 text-surface-300 hover:bg-surface-600'
-                                                }`}
-                                        >
-                                            {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+
 
                             {/* Display Options */}
                             <div>
@@ -328,23 +304,31 @@ export const SettingsModal = React.memo(() => {
                                     サムネイル設定
                                 </h3>
 
-                                {/* Thumbnail Size */}
+                                {/* Thumbnail Resolution */}
                                 <div>
                                     <label className="block text-sm font-medium text-surface-300 mb-2">
-                                        サムネイルサイズ: {thumbnailSize}px
+                                        サムネイル解像度: {thumbnailResolution}px
                                     </label>
                                     <input
                                         type="range"
-                                        min="80"
-                                        max="300"
-                                        value={thumbnailSize}
-                                        onChange={(e) => setThumbnailSize(Number(e.target.value))}
+                                        min="160"
+                                        max="480"
+                                        step="40"
+                                        value={thumbnailResolution}
+                                        onChange={(e) => {
+                                            const resolution = Number(e.target.value);
+                                            setThumbnailResolution(resolution);
+                                            window.electronAPI.setThumbnailResolution(resolution);
+                                        }}
                                         className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
                                     />
                                     <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                        <span>80px</span>
-                                        <span>300px</span>
+                                        <span>160px</span>
+                                        <span>480px</span>
                                     </div>
+                                    <p className="text-xs text-surface-500 mt-1">
+                                        次回スキャンから反映。拡大表示時や高DPI環境で効果が出ます。
+                                    </p>
                                 </div>
 
                                 {/* Thumbnail Hover Action */}

@@ -70,6 +70,13 @@ export function registerScannerHandlers() {
         return;
     });
 
+    // === Set Thumbnail Resolution ===
+    ipcMain.handle('scanner:setThumbnailResolution', async (_event, resolution: number) => {
+        const { setThumbnailResolution } = await import('../services/scanner');
+        setThumbnailResolution(resolution);
+        return;
+    });
+
     // === Auto Scan (all folders) ===
     ipcMain.handle('scanner:autoScan', async (event) => {
         const folders = getFolders();

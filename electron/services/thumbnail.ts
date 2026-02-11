@@ -27,7 +27,7 @@ if (ffprobePath) {
     ffmpeg.setFfprobePath(ffprobePath.replace('app.asar', 'app.asar.unpacked'));
 }
 
-export async function generateThumbnail(filePath: string): Promise<string | null> {
+export async function generateThumbnail(filePath: string, resolution: number = 320): Promise<string | null> {
     const ext = path.extname(filePath).toLowerCase();
     const filename = `${uuidv4()}.png`;
     const outputPath = path.join(THUMBNAIL_DIR, filename);
@@ -39,11 +39,11 @@ export async function generateThumbnail(filePath: string): Promise<string | null
         }
         // Video files
         if (['.mp4', '.webm', '.mov', '.avi', '.mkv'].includes(ext)) {
-            return generateVideoThumbnail(filePath, filename, outputPath);
+            return generateVideoThumbnail(filePath, filename, outputPath, resolution);
         }
         // Image files
         if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) {
-            return generateImageThumbnail(filePath, outputPath);
+            return generateImageThumbnail(filePath, outputPath, resolution);
         }
         // Audio files - アルバムアート抽出を試みる
         if (['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'].includes(ext)) {
@@ -55,14 +55,14 @@ export async function generateThumbnail(filePath: string): Promise<string | null
     return null;
 }
 
-function generateVideoThumbnail(videoPath: string, filename: string, outputPath: string): Promise<string | null> {
+function generateVideoThumbnail(videoPath: string, filename: string, outputPath: string, resolution: number = 320): Promise<string | null> {
     return new Promise((resolve) => {
         ffmpeg(videoPath)
             .screenshots({
                 count: 1,
                 folder: THUMBNAIL_DIR,
                 filename: filename,
-                size: '320x?', // maintain aspect ratio, width 320
+                size: `${resolution}x?`, // maintain aspect ratio
                 timemarks: ['10%'] // take screenshot at 10% duration
             })
             .on('end', () => {
@@ -179,10 +179,10 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
     }
 }
 
-async function generateImageThumbnail(imagePath: string, outputPath: string): Promise<string | null> {
+async function generateImageThumbnail(imagePath: string, outputPath: string, resolution: number = 320): Promise<string | null> {
     try {
         await sharp(imagePath)
-            .resize(320, null, { fit: 'inside', withoutEnlargement: true })
+            .resize(resolution, null, { fit: 'inside', withoutEnlargement: true })
             .toFile(outputPath);
         return outputPath;
     } catch (err) {

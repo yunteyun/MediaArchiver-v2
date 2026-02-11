@@ -31,6 +31,14 @@ export interface MediaFile {
     mtime_ms?: number;
     notes?: string;
     is_animated?: number; // SQLiteはbooleanをINTEGERとして保存 (0 or 1)
+    // Phase 15-2: フロントエンド用 camelCase エイリアス
+    isAnimated?: boolean;
+    thumbnailPath?: string;
+    previewFrames?: string;
+    rootFolderId?: string;
+    contentHash?: string;
+    createdAt?: number;
+    mtimeMs?: number;
 }
 
 export interface MediaFolder {
@@ -45,7 +53,35 @@ function getDb() {
     return dbManager.getDb();
 }
 
-// --- File Operations ---
+// snake_case DB row → camelCase MediaFile 変換ヘルパー
+function mapRow(f: any): MediaFile {
+    return {
+        id: f.id,
+        name: f.name,
+        path: f.path,
+        size: f.size,
+        type: f.type,
+        created_at: f.created_at,
+        duration: f.duration,
+        thumbnail_path: f.thumbnail_path,
+        preview_frames: f.preview_frames,
+        root_folder_id: f.root_folder_id,
+        content_hash: f.content_hash,
+        metadata: f.metadata,
+        mtime_ms: f.mtime_ms,
+        notes: f.notes,
+        is_animated: f.is_animated,
+        // Phase 15-2: フロントエンド用 camelCase フィールド
+        isAnimated: f.is_animated === 1,
+        thumbnailPath: f.thumbnail_path,
+        previewFrames: f.preview_frames,
+        rootFolderId: f.root_folder_id,
+        contentHash: f.content_hash,
+        createdAt: f.created_at,
+        mtimeMs: f.mtime_ms,
+        tags: [],
+    };
+}
 
 export function getFiles(rootFolderId?: string): MediaFile[] {
     const db = getDb();
@@ -61,7 +97,7 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
 
     const files = db.prepare(query).all(...params) as any[];
     return files.map(f => ({
-        ...f,
+        ...mapRow(f),
         tags: getTags(f.id)
     }));
 }
@@ -70,7 +106,7 @@ export function findFileByPath(filePath: string): MediaFile | undefined {
     const db = getDb();
     const file = db.prepare('SELECT * FROM files WHERE path = ?').get(filePath) as any;
     if (file) {
-        return { ...file, tags: getTags(file.id) };
+        return { ...mapRow(file), tags: getTags(file.id) };
     }
     return undefined;
 }
@@ -79,7 +115,7 @@ export function findFileByHash(hash: string): MediaFile | undefined {
     const db = getDb();
     const file = db.prepare('SELECT * FROM files WHERE content_hash = ?').get(hash) as any;
     if (file) {
-        return { ...file, tags: getTags(file.id) };
+        return { ...mapRow(file), tags: getTags(file.id) };
     }
     return undefined;
 }
@@ -237,7 +273,7 @@ export function findFileById(id: string): MediaFile | undefined {
     const row = db.prepare('SELECT * FROM files WHERE id = ?').get(id) as any;
     if (!row) return undefined;
     return {
-        ...row,
+        ...mapRow(row),
         tags: getTags(row.id)
     };
 }

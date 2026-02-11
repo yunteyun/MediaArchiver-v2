@@ -67,6 +67,7 @@ declare global {
             cancelScan: () => Promise<void>;
             setPreviewFrameCount: (count: number) => Promise<void>;
             setScanThrottleMs: (ms: number) => Promise<void>;
+            setThumbnailResolution: (resolution: number) => Promise<void>;
             autoScan: () => Promise<void>;
 
             // Context Menu

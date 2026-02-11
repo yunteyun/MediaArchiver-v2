@@ -58,6 +58,15 @@ export function getScanThrottleMs() {
     return scanThrottleMsSetting;
 }
 
+// サムネイル生成解像度（幅px、デフォルト: 320）
+let thumbnailResolutionSetting = 320;
+export function setThumbnailResolution(resolution: number) {
+    thumbnailResolutionSetting = resolution;
+}
+export function getThumbnailResolution() {
+    return thumbnailResolutionSetting;
+}
+
 // Throttle設定（ms）
 const PROGRESS_THROTTLE_MS = 50;
 
@@ -230,9 +239,13 @@ async function scanDirectoryInternal(
                     }
 
                     // Videos require both thumbnail and preview frames (only if setting > 0)
+                    // Phase 15-2: 画像はメタデータ(width/height)も必要
+                    const hasMetadata = !!existing?.metadata;
                     const isComplete = type === 'video'
                         ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0))
-                        : (!isMedia || hasThumbnail);
+                        : type === 'image'
+                            ? (hasThumbnail && hasMetadata)
+                            : (!isMedia || hasThumbnail);
 
                     if (existing &&
                         existing.size === fileStats.size &&
@@ -269,7 +282,7 @@ async function scanDirectoryInternal(
                                 });
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
-                            const generated = await thumbnailLimit(() => generateThumbnail(fullPath));
+                            const generated = await thumbnailLimit(() => generateThumbnail(fullPath, thumbnailResolutionSetting));
                             if (scanCancelled) return;
                             if (generated) thumbnailPath = generated;
                         } catch (e) {
@@ -356,13 +369,35 @@ async function scanDirectoryInternal(
                         }
                     }
 
+                    // Phase 15-2: 画像メタデータ抽出（width/height）
+                    if (type === 'image' && !metadata) {
+                        try {
+                            const sharp = (await import('sharp')).default;
+                            const imgMeta = await sharp(fullPath).metadata();
+                            if (imgMeta.width && imgMeta.height) {
+                                metadata = JSON.stringify({
+                                    width: imgMeta.width,
+                                    height: imgMeta.height,
+                                    format: imgMeta.format
+                                });
+                            }
+                        } catch (e) {
+                            log.error('Image metadata extraction failed:', e);
+                        }
+                    }
+
                     // Check if image is animated (GIF/WebP)
                     let isAnimated: boolean | undefined = undefined;
                     if (type === 'image') {
-                        try {
-                            isAnimated = await checkIsAnimated(fullPath);
-                        } catch (e) {
-                            log.error('Animation check failed:', e);
+                        // 既存ファイルで is_animated が未設定(0)の場合も再チェック
+                        if (!existing || existing.is_animated === undefined || existing.is_animated === 0) {
+                            try {
+                                isAnimated = await checkIsAnimated(fullPath);
+                            } catch (e) {
+                                log.error('Animation check failed:', e);
+                            }
+                        } else {
+                            isAnimated = existing.is_animated === 1;
                         }
                     }
 

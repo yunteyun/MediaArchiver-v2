@@ -21,6 +21,7 @@ export function registerDatabaseHandlers() {
             metadata: f.metadata,
             mtimeMs: f.mtime_ms,
             notes: f.notes || '',
+            isAnimated: f.isAnimated ?? (f.is_animated === 1),
         }));
 
         return mappedFiles;
@@ -55,6 +56,7 @@ export function registerDatabaseHandlers() {
             metadata: file.metadata,
             mtimeMs: file.mtime_ms,
             notes: file.notes || '',
+            isAnimated: file.isAnimated ?? (file.is_animated === 1),
         };
     });
 }

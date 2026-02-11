@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useMemo, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
-import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard, DISPLAY_MODE_CONFIGS } from './FileCard';
@@ -31,7 +31,6 @@ export const FileGrid = React.memo(() => {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const sortBy = useSettingsStore((s) => s.sortBy);
     const sortOrder = useSettingsStore((s) => s.sortOrder);
-    const showFileName = useSettingsStore((s) => s.showFileName);
     // Phase 14: 表示モード取得
     const displayMode = useSettingsStore((s) => s.displayMode);
     const config = DISPLAY_MODE_CONFIGS[displayMode];
@@ -140,8 +139,15 @@ export const FileGrid = React.memo(() => {
         return items;
     }, [files, folders, currentFolderId]);
 
-    const parentRef = useRef<HTMLDivElement>(null);
-    const [containerWidth, setContainerWidth] = React.useState(1000);
+    const parentRef = useRef<HTMLDivElement | null>(null);
+    const [containerWidth, setContainerWidth] = React.useState(0);
+
+    // Callback ref: DOMノードが条件分岐で切り替わってもResizeObserverを再設定
+    const [observedElement, setObservedElement] = React.useState<HTMLDivElement | null>(null);
+    const scrollContainerRef = React.useCallback((node: HTMLDivElement | null) => {
+        parentRef.current = node;
+        setObservedElement(node);
+    }, []);
 
     // File deletion listener
     useEffect(() => {
@@ -155,15 +161,17 @@ export const FileGrid = React.memo(() => {
 
     // ResizeObserver for responsive columns
     React.useEffect(() => {
-        if (!parentRef.current) return;
+        if (!observedElement) return;
+        // 初回接続時にすぐにサイズを取得
+        setContainerWidth(observedElement.clientWidth);
         const resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 setContainerWidth(entry.contentRect.width);
             }
         });
-        resizeObserver.observe(parentRef.current);
+        resizeObserver.observe(observedElement);
         return () => resizeObserver.disconnect();
-    }, []);
+    }, [observedElement]);
 
     // サムネイル再作成イベントをリッスン
     useEffect(() => {
@@ -307,7 +315,7 @@ export const FileGrid = React.memo(() => {
         return (
             <div className="flex-1 flex flex-col h-full">
                 <Header />
-                <div className="flex-1 flex items-center justify-center text-surface-500">
+                <div ref={scrollContainerRef} className="flex-1 flex items-center justify-center text-surface-500">
                     <div className="text-center">
                         <p className="text-lg">ファイルがありません</p>
                         <p className="text-sm mt-2">サイドバーからフォルダを選択してください</p>
@@ -323,7 +331,7 @@ export const FileGrid = React.memo(() => {
             <div className="flex flex-col h-full">
                 <Header />
                 <div
-                    ref={parentRef}
+                    ref={scrollContainerRef}
                     className="flex-1 overflow-y-auto bg-surface-950"
                 >
                     {groupedFiles.map((group) => (
@@ -374,7 +382,7 @@ export const FileGrid = React.memo(() => {
         <div className="flex flex-col h-full">
             <Header />
             <div
-                ref={parentRef}
+                ref={scrollContainerRef}
                 className="flex-1 overflow-y-auto bg-surface-950 p-4"
             >
                 <div

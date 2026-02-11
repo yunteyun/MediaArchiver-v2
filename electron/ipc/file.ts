@@ -1,7 +1,7 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
 import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames } from '../services/database';
 import { generateThumbnail, generatePreviewFrames } from '../services/thumbnail';
-import { getPreviewFrameCount } from '../services/scanner';
+import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
 import { spawn } from 'child_process';
 import { getCachedExternalApps } from './app';
@@ -74,7 +74,7 @@ export function registerFileHandlers() {
                         });
 
                         // サムネイル生成
-                        const thumbnailPath = await generateThumbnail(filePath);
+                        const thumbnailPath = await generateThumbnail(filePath, getThumbnailResolution());
                         if (thumbnailPath) {
                             updateFileThumbnail(fileId, thumbnailPath);
                         }

@@ -91,6 +91,46 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
 
 
+    // Phase 15-2: サムネイルバッジの計算（メモ化）
+    const thumbnailBadges = useMemo(() => {
+        const badges = { attributes: [] as Array<{ label: string; color: string }>, extension: '' };
+
+        // Compactモード時はバッジ非表示
+        if (displayMode === 'compact') return badges;
+
+        // 拡張子バッジ（右上）
+        const ext = file.name.split('.').pop()?.toUpperCase() || '';
+        badges.extension = ext;
+
+        // 属性バッジ（左上）
+        // 1. アニメーションバッジ
+        if (file.isAnimated) {
+            badges.attributes.push({ label: 'ANIM', color: 'bg-pink-600' });
+        }
+
+        // 2. 縦長画像バッジ
+        try {
+            const meta = file.metadata ? JSON.parse(file.metadata) : null;
+            if (meta?.width && meta?.height && meta.height > meta.width * 1.3) {
+                badges.attributes.push({ label: 'TALL', color: 'bg-indigo-600' });
+            }
+        } catch {
+            // JSON parse error - silent fail
+        }
+
+        return badges;
+    }, [file.name, file.isAnimated, file.metadata, displayMode]);
+
+    // 拡張子の色分け
+    const extensionColor = useMemo(() => {
+        const ext = file.name.split('.').pop()?.toUpperCase() || '';
+        if (['MP4', 'MOV', 'WEBM', 'AVI', 'MKV'].includes(ext)) return 'bg-blue-600';
+        if (['ZIP', 'RAR', 'CBZ', '7Z', 'TAR', 'GZ'].includes(ext)) return 'bg-orange-600';
+        if (['MP3', 'WAV', 'FLAC', 'AAC', 'OGG'].includes(ext)) return 'bg-purple-600';
+        return 'bg-emerald-600'; // Default: images
+    }, [file.name]);
+
+
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
@@ -315,13 +355,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             // ⚠️ overflow-hidden を削除するとサムネイルの角丸やレイアウトが崩れる。
             // カード外に要素を表示する場合は React Portal (createPortal) を使用すること。
             className={`
-                rounded-lg overflow-hidden border-2 flex flex-col bg-surface-800 cursor-pointer
+                rounded-lg overflow-hidden border-2 flex flex-col cursor-pointer
                 transition-all duration-200 ease-out
                 ${isSelected
-                    ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02]'
+                    ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02] bg-surface-800'
                     : isFocused
-                        ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-400/20'
-                        : 'border-transparent hover:border-surface-500 hover:shadow-md hover:shadow-black/30'}
+                        ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-400/20 bg-surface-800'
+                        : 'border-surface-700/40 bg-surface-800 hover:border-cyan-500/40 hover:bg-surface-750 hover:shadow-md hover:shadow-black/30'}
             `}
         >
             {/* Thumbnail Area - Phase 14: 固定高さ */}
@@ -387,6 +427,23 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     </div>
                 )}
 
+                {/* Phase 15-2: 拡張子バッジ（右上） */}
+                {thumbnailBadges.extension && (
+                    <div className={`absolute top-1 right-1 text-[9px] font-bold px-1 rounded-sm opacity-90 text-white uppercase ${extensionColor} z-10`}>
+                        {thumbnailBadges.extension}
+                    </div>
+                )}
+
+                {/* Phase 15-2: 属性バッジ（左上） */}
+                {thumbnailBadges.attributes.length > 0 && !isSelected && (
+                    <div className="absolute top-1 left-1 flex gap-1 z-10 pointer-events-none">
+                        {thumbnailBadges.attributes.map((badge, i) => (
+                            <span key={i} className={`text-[9px] font-bold text-white px-1 rounded-sm opacity-90 ${badge.color}`}>
+                                {badge.label}
+                            </span>
+                        ))}
+                    </div>
+                )}
 
             </div>
 
@@ -399,13 +456,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         style={{ height: `${config.infoAreaHeight}px` }}
                     >
                         {/* ファイル名 */}
-                        <div className="text-xs text-surface-100 truncate leading-tight font-medium mb-0.5" title={file.name}>
+                        <div className="text-xs text-white truncate leading-tight font-semibold mb-0.5" title={file.name}>
                             {file.name}
                         </div>
                         {/* サイズ＆タグ */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-xs text-surface-500 font-mono tracking-tight flex-shrink-0">
+                                <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
@@ -418,7 +475,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             style={{
                                                 backgroundColor: tag.categoryColor || tag.color,
                                                 color: '#FFFFFF',
-                                                borderColor: tag.categoryColor || tag.color
+                                                borderColor: tag.categoryColor || tag.color,
+                                                opacity: 0.85
                                             }}
                                         >
                                             #{tag.name}
@@ -453,17 +511,17 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         style={{ height: `${config.infoAreaHeight}px` }}
                     >
                         {/* 1行目: ファイル名（最優先） */}
-                        <h3 className="text-xs font-semibold truncate text-surface-200 hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
+                        <h3 className="text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
                             {file.name}
                         </h3>
                         {/* 2行目: フォルダ名（控えめ） */}
-                        <div className="text-[11px] text-surface-400 font-medium truncate leading-tight mb-1">
+                        <div className="text-[10px] text-surface-500 truncate leading-tight mb-1">
                             {getDisplayFolderName(file.path)}
                         </div>
                         {/* 3行目: サイズ（左）＆タグ（右） */}
                         <div className="flex items-start justify-between gap-1">
                             {showFileSize && file.size && (
-                                <span className="text-xs text-surface-400 font-semibold tracking-tight flex-shrink-0">
+                                <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
                                     {(file.size / (1024 * 1024)).toFixed(1)} MB
                                 </span>
                             )}
@@ -476,7 +534,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             style={{
                                                 backgroundColor: tag.categoryColor || tag.color,
                                                 color: '#FFFFFF',
-                                                borderColor: tag.categoryColor || tag.color
+                                                borderColor: tag.categoryColor || tag.color,
+                                                opacity: 0.85
                                             }}
                                         >
                                             #{tag.name}

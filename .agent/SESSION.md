@@ -1,6 +1,6 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-10 00:41
+**Last Updated**: 2026-02-11 10:25
 
 - **Current Focus**: Phase 14: 表示モードシステム (MVP完了 / 拡張検討)
 - **Current Status**: Phase 14 (FileCardレイアウト改善) 完了。次のフェーズへ移行準備中。
@@ -149,6 +149,15 @@
   - **Phase 13.5: タグ視認性改善**（常時表示、完全不透明化）
   - デザイントークン化（配色ルール）
 
+- ✅ **Phase 14: 表示モードシステム** 🆕
+  - Phase 14-1: 基盤整備（設定ストア、定数定義）
+  - Phase 14-2: 標準モード確立（3行レイアウト）
+  - Phase 14-6: UI切り替え実装（Compactモード、タグ展開機能）
+
+- ✅ **Phase 15: アニメーションバッジ修正** 🆕
+  - IPC層のデータマッピングバグ修正（`isAnimated`フィールド欠落）
+  - バッジ表示名を「GIF」から「ANIM」に変更（GIF/WebP両対応）
+  - アニメーション検出ロジックの検証（`checkIsAnimated`正常動作確認）
 
 - **Phase 14: 表示モードシステム** (進行中 - MVP)
   - Phase 14-1: 基盤整備（設定ストア、定数定義）
