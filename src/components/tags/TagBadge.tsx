@@ -10,10 +10,10 @@ import * as LucideIcons from 'lucide-react';
 const colorClasses: Record<string, string> = {
     gray: 'bg-gray-600 text-gray-100 border-gray-500',
     red: 'bg-red-600 text-red-100 border-red-500',
-    orange: 'bg-orange-600 text-orange-100 border-orange-500',
-    amber: 'bg-amber-600 text-amber-100 border-amber-500',
-    yellow: 'bg-yellow-600 text-yellow-100 border-yellow-500',
-    lime: 'bg-lime-600 text-lime-100 border-lime-500',
+    orange: 'bg-orange-600 text-gray-900 border-orange-500',   // 濃いオレンジには黒文字
+    amber: 'bg-amber-600 text-gray-900 border-amber-500',      // 濃いamberで視認性向上
+    yellow: 'bg-amber-500 text-gray-900 border-amber-400',     // yellowもamber寄りに統一
+    lime: 'bg-lime-600 text-gray-900 border-lime-500',         // limeも濃く
     green: 'bg-green-600 text-green-100 border-green-500',
     emerald: 'bg-emerald-600 text-emerald-100 border-emerald-500',
     teal: 'bg-teal-600 text-teal-100 border-teal-500',

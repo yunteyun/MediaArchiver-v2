@@ -213,16 +213,22 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs text-surface-500">色:</span>
                                     <div className="flex flex-wrap gap-1">
-                                        {COLOR_OPTIONS.map(color => (
-                                            <button
-                                                key={color}
-                                                onClick={() => setNewTagColor(color)}
-                                                className={`w-5 h-5 rounded transition-all ${newTagColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-800' : ''
-                                                    }`}
-                                                style={{ backgroundColor: `var(--color-${color}-500, ${color})` }}
-                                                title={color}
-                                            />
-                                        ))}
+                                        {COLOR_OPTIONS.map(color => {
+                                            // TagBadge.tsxと一致: amber=600, yellow=amber-500, lime=600
+                                            const bgClass = color === 'amber' ? 'bg-amber-600'
+                                                : color === 'yellow' ? 'bg-amber-500'
+                                                    : color === 'lime' ? 'bg-lime-600'
+                                                        : `bg-${color}-600`;
+                                            return (
+                                                <button
+                                                    key={color}
+                                                    onClick={() => setNewTagColor(color)}
+                                                    className={`w-5 h-5 rounded transition-all ${bgClass} ${newTagColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-800' : ''
+                                                        }`}
+                                                    title={color}
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </div>
                                 <input
@@ -311,16 +317,22 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs text-surface-500">色:</span>
                                     <div className="flex flex-wrap gap-1">
-                                        {COLOR_OPTIONS.map(color => (
-                                            <button
-                                                key={color}
-                                                onClick={() => setNewCategoryColor(color)}
-                                                className={`w-5 h-5 rounded transition-all ${newCategoryColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-800' : ''
-                                                    }`}
-                                                style={{ backgroundColor: `var(--color-${color}-500, ${color})` }}
-                                                title={color}
-                                            />
-                                        ))}
+                                        {COLOR_OPTIONS.map(color => {
+                                            // TagBadge.tsxと一致: amber=600, yellow=amber-500, lime=600
+                                            const bgClass = color === 'amber' ? 'bg-amber-600'
+                                                : color === 'yellow' ? 'bg-amber-500'
+                                                    : color === 'lime' ? 'bg-lime-600'
+                                                        : `bg-${color}-600`;
+                                            return (
+                                                <button
+                                                    key={color}
+                                                    onClick={() => setNewCategoryColor(color)}
+                                                    className={`w-5 h-5 rounded transition-all ${bgClass} ${newCategoryColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-800' : ''
+                                                        }`}
+                                                    title={color}
+                                                />
+                                            );
+                                        })}
                                     </div>
                                 </div>
                                 <button
@@ -353,8 +365,11 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                         <div key={cat.id} className="flex items-center justify-between p-2 hover:bg-surface-800 rounded group">
                                             <div className="flex items-center gap-2">
                                                 <div
-                                                    className="w-3 h-3 rounded"
-                                                    style={{ backgroundColor: `var(--color-${cat.color}-500, ${cat.color})` }}
+                                                    className={`w-3 h-3 rounded ${cat.color === 'amber' ? 'bg-amber-600'
+                                                            : cat.color === 'yellow' ? 'bg-amber-500'
+                                                                : cat.color === 'lime' ? 'bg-lime-600'
+                                                                    : `bg-${cat.color}-600`
+                                                        }`}
                                                 />
                                                 <span className="text-sm text-surface-200">{cat.name}</span>
                                                 <span className="text-xs text-surface-500">

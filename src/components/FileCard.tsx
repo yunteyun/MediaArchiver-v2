@@ -11,6 +11,41 @@ import { isAudioArchive } from '../utils/fileHelpers';
 import { getDisplayFolderName } from '../utils/path';
 import { formatFileSize } from '../utils/groupFiles';
 
+// 明るい背景色のタグで暗い文字色を使うためのヘルパー
+function getTagTextColor(bgColor: string): string {
+    // CSS名前付き色やTailwind色名から明るさを判定
+    // orange, yellow, amber, lime は暗い文字色
+    const lightColors = ['orange', 'yellow', 'amber', 'lime'];
+    const colorLower = bgColor.toLowerCase();
+    if (lightColors.some(c => colorLower.includes(c))) return '#1a1a2e';
+    return '#FFFFFF';
+}
+
+// 色名文字列を実際のCSS色値にマッピング（TagBadge.tsxと一致）
+function getTagBackgroundColor(colorName: string): string {
+    const colorMap: Record<string, string> = {
+        gray: '#4b5563',      // gray-600
+        red: '#dc2626',       // red-600
+        orange: '#ea580c',    // orange-600
+        amber: '#d97706',     // amber-600
+        yellow: '#f59e0b',    // amber-500 (yellowはamber-500に統一)
+        lime: '#65a30d',      // lime-600
+        green: '#16a34a',     // green-600
+        emerald: '#059669',   // emerald-600
+        teal: '#0d9488',      // teal-600
+        cyan: '#0891b2',      // cyan-600
+        sky: '#0284c7',       // sky-600
+        blue: '#2563eb',      // blue-600
+        indigo: '#4f46e5',    // indigo-600
+        violet: '#7c3aed',    // violet-600
+        purple: '#9333ea',    // purple-600
+        fuchsia: '#c026d3',   // fuchsia-600
+        pink: '#db2777',      // pink-600
+        rose: '#e11d48',      // rose-600
+    };
+    return colorMap[colorName] || colorName; // フォールバック: そのまま返す
+}
+
 
 interface FileCardProps {
     file: MediaFile;
@@ -113,7 +148,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         try {
             const meta = file.metadata ? JSON.parse(file.metadata) : null;
             if (meta?.width && meta?.height && meta.height > meta.width * 1.3) {
-                badges.attributes.push({ label: 'TALL', color: 'bg-indigo-600' });
+                badges.attributes.push({ label: 'TALL', color: 'bg-indigo-800/80' });
             }
         } catch {
             // JSON parse error - silent fail
@@ -122,13 +157,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return badges;
     }, [file.name, file.isAnimated, file.metadata, displayMode]);
 
-    // 拡張子の色分け
+    // 拡張子の色分け（半透明ダーク系で洗練された印象に）
     const extensionColor = useMemo(() => {
         const ext = file.name.split('.').pop()?.toUpperCase() || '';
-        if (['MP4', 'MOV', 'WEBM', 'AVI', 'MKV'].includes(ext)) return 'bg-blue-600';
-        if (['ZIP', 'RAR', 'CBZ', '7Z', 'TAR', 'GZ'].includes(ext)) return 'bg-orange-600';
-        if (['MP3', 'WAV', 'FLAC', 'AAC', 'OGG'].includes(ext)) return 'bg-purple-600';
-        return 'bg-emerald-600'; // Default: images
+        if (['MP4', 'MOV', 'WEBM', 'AVI', 'MKV'].includes(ext)) return 'bg-blue-800/80';
+        if (['ZIP', 'RAR', 'CBZ', '7Z', 'TAR', 'GZ'].includes(ext)) return 'bg-orange-800/80';
+        if (['MP3', 'WAV', 'FLAC', 'AAC', 'OGG'].includes(ext)) return 'bg-purple-800/80';
+        return 'bg-emerald-800/80'; // Default: images
     }, [file.name]);
 
 
@@ -432,7 +467,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 <div className="absolute top-1 right-1 flex gap-1 z-10">
                     {/* アニメーションバッジ（アイコン） */}
                     {file.isAnimated && !isSelected && (
-                        <div className="bg-pink-600 rounded-sm p-0.5 opacity-90">
+                        <div className="bg-pink-800/80 rounded-sm p-0.5 opacity-90">
                             <Clapperboard size={12} className="text-white" strokeWidth={2.5} />
                         </div>
                     )}
@@ -479,9 +514,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             key={tag.id}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
                                             style={{
-                                                backgroundColor: tag.categoryColor || tag.color,
-                                                color: '#FFFFFF',
-                                                borderColor: tag.categoryColor || tag.color,
+                                                backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                                                color: getTagTextColor(tag.categoryColor || tag.color || ''),
+                                                borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
                                                 opacity: 0.85
                                             }}
                                         >
@@ -548,9 +583,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                             key={tag.id}
                                             className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded"
                                             style={{
-                                                backgroundColor: tag.categoryColor || tag.color,
-                                                color: '#FFFFFF',
-                                                borderColor: tag.categoryColor || tag.color,
+                                                backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                                                color: getTagTextColor(tag.categoryColor || tag.color || ''),
+                                                borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
                                                 opacity: 0.85
                                             }}
                                         >
@@ -622,8 +657,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                 key={tag.id}
                                 className="px-2 py-1 text-[10px] font-bold whitespace-nowrap rounded"
                                 style={{
-                                    backgroundColor: tag.categoryColor || tag.color,
-                                    color: '#FFF'
+                                    backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                                    color: getTagTextColor(tag.categoryColor || tag.color || '')
                                 }}
                             >
                                 #{tag.name}
