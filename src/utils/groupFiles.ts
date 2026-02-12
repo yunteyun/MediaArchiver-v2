@@ -122,11 +122,18 @@ function sortFiles(
                 comparison = (a.accessCount || 0) - (b.accessCount || 0);
                 break;
             case 'lastAccessed': // Phase 17: 直近アクセスソート
-                // null は最後に
-                if (a.lastAccessedAt === null && b.lastAccessedAt === null) comparison = 0;
-                else if (a.lastAccessedAt === null) comparison = 1;
-                else if (b.lastAccessedAt === null) comparison = -1;
-                else comparison = a.lastAccessedAt - b.lastAccessedAt;
+                // null は常に最後に（降順・昇順どちらでも）
+                if (a.lastAccessedAt === null && b.lastAccessedAt === null) {
+                    comparison = 0;
+                } else if (a.lastAccessedAt === null) {
+                    // a が null の場合、降順でも昇順でも a を後ろに
+                    comparison = sortOrder === 'asc' ? 1 : 1;
+                } else if (b.lastAccessedAt === null) {
+                    // b が null の場合、降順でも昇順でも b を後ろに
+                    comparison = sortOrder === 'asc' ? -1 : -1;
+                } else {
+                    comparison = a.lastAccessedAt - b.lastAccessedAt;
+                }
                 break;
         }
         return sortOrder === 'asc' ? comparison : -comparison;
