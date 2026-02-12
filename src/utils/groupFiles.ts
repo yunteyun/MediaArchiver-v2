@@ -126,11 +126,11 @@ function sortFiles(
                 if (a.lastAccessedAt === null && b.lastAccessedAt === null) {
                     comparison = 0;
                 } else if (a.lastAccessedAt === null) {
-                    // a が null の場合、降順でも昇順でも a を後ろに
-                    comparison = sortOrder === 'asc' ? 1 : 1;
+                    // a が null の場合、常に a を後ろに（sortOrder の反転を後で無効化）
+                    return 1;
                 } else if (b.lastAccessedAt === null) {
-                    // b が null の場合、降順でも昇順でも b を後ろに
-                    comparison = sortOrder === 'asc' ? -1 : -1;
+                    // b が null の場合、常に b を後ろに（sortOrder の反転を後で無効化）
+                    return -1;
                 } else {
                     comparison = a.lastAccessedAt - b.lastAccessedAt;
                 }
