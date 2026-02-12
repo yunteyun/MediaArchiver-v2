@@ -105,11 +105,6 @@ export const FileGrid = React.memo(() => {
             }
             const result = sortOrder === 'asc' ? comparison : -comparison;
 
-            // デバッグ: 最初の数件のみログ出力
-            if (sortBy === 'lastAccessed' && (a.lastAccessedAt !== null || b.lastAccessedAt !== null)) {
-                console.log(`[Sort] ${a.name} (${a.lastAccessedAt}) vs ${b.name} (${b.lastAccessedAt}): comparison=${comparison}, result=${result}, order=${sortOrder}`);
-            }
-
             return result;
         });
 
@@ -139,17 +134,7 @@ export const FileGrid = React.memo(() => {
 
     // グループ化されたファイル（Phase 12-10）
     const groupedFiles = useMemo(() => {
-        const grouped = groupFiles(files, groupBy, sortBy, sortOrder);
-
-        // デバッグ: 直近アクセスソート時の最初の5件を表示
-        if (sortBy === 'lastAccessed' && grouped.length > 0 && grouped[0].files.length > 0) {
-            console.log('[Grouped] Sort order:', sortOrder);
-            grouped[0].files.slice(0, 5).forEach((f, i) => {
-                console.log(`  ${i + 1}. ${f.name}: ${f.lastAccessedAt}`);
-            });
-        }
-
-        return grouped;
+        return groupFiles(files, groupBy, sortBy, sortOrder);
     }, [files, groupBy, sortBy, sortOrder]);
 
     // GridItem統合リスト生成（Phase 12-4）
