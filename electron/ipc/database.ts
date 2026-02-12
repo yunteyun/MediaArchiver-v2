@@ -22,6 +22,9 @@ export function registerDatabaseHandlers() {
             mtimeMs: f.mtime_ms,
             notes: f.notes || '',
             isAnimated: f.isAnimated ?? (f.is_animated === 1),
+            // Phase 17: アクセストラッキング
+            accessCount: f.accessCount ?? 0,
+            lastAccessedAt: f.lastAccessedAt ?? null,
         }));
 
         return mappedFiles;
@@ -57,6 +60,9 @@ export function registerDatabaseHandlers() {
             mtimeMs: file.mtime_ms,
             notes: file.notes || '',
             isAnimated: file.isAnimated ?? (file.is_animated === 1),
+            // Phase 17: アクセストラッキング
+            accessCount: file.accessCount ?? 0,
+            lastAccessedAt: file.lastAccessedAt ?? null,
         };
     });
 }

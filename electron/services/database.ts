@@ -102,6 +102,7 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
     query += ' ORDER BY created_at DESC';
 
     const files = db.prepare(query).all(...params) as any[];
+
     return files.map(f => ({
         ...mapRow(f),
         tags: getTags(f.id)
