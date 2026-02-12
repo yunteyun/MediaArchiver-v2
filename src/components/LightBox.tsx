@@ -12,6 +12,7 @@ export const LightBox = React.memo(() => {
     const closeLightbox = useUIStore((s) => s.closeLightbox);
     const files = useFileStore((s) => s.files);
     const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
+    const incrementAccessCount = useFileStore((s) => s.incrementAccessCount); // Phase 17
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
 
@@ -212,6 +213,20 @@ export const LightBox = React.memo(() => {
             setNotes('');
         }
     }, [lightboxFile, loadTags, loadCategories]);
+
+    // Phase 17: Lightbox表示時にアクセスカウント（全ファイルタイプ対応）
+    useEffect(() => {
+        if (!lightboxFile) return;
+
+        const countAccess = async () => {
+            const result = await window.electronAPI.incrementAccessCount(lightboxFile.id);
+            if (result.success && result.lastAccessedAt) {
+                incrementAccessCount(lightboxFile.id, result.lastAccessedAt);
+            }
+        };
+
+        countAccess();
+    }, [lightboxFile?.id, incrementAccessCount]);
 
     // クリーンアップ
     useEffect(() => {

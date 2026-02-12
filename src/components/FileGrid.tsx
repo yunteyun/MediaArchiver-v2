@@ -20,7 +20,10 @@ export const FileGrid = React.memo(() => {
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const focusedId = useFileStore((s) => s.focusedId);
+    const anchorId = useFileStore((s) => s.anchorId);
     const selectFile = useFileStore((s) => s.selectFile);
+    const toggleSelection = useFileStore((s) => s.toggleSelection);
+    const selectRange = useFileStore((s) => s.selectRange);
     const selectAll = useFileStore((s) => s.selectAll);
     const clearSelection = useFileStore((s) => s.clearSelection);
     const removeFile = useFileStore((s) => s.removeFile);
@@ -307,9 +310,34 @@ export const FileGrid = React.memo(() => {
         onCtrlComma: openSettingsModal,
     });
 
-    const handleSelect = useCallback((id: string, multi: boolean) => {
-        selectFile(id, multi);
-    }, [selectFile]);
+    // Phase 16: パフォーマンス最適化 - 表示順のファイルIDリストを事前計算
+    const orderedFileIds = useMemo(() => {
+        return gridItems
+            .filter(item => item.type === 'file')
+            .map(item => item.file.id);
+    }, [gridItems]);
+
+    const handleSelect = useCallback((id: string, mode: 'single' | 'toggle' | 'range') => {
+        if (mode === 'single') {
+            selectFile(id);
+        } else if (mode === 'toggle') {
+            toggleSelection(id);
+        } else if (mode === 'range') {
+            // anchorId から指定位置までの範囲を計算
+            const anchorIndex = orderedFileIds.indexOf(anchorId || '');
+            const targetIndex = orderedFileIds.indexOf(id);
+
+            if (anchorIndex >= 0 && targetIndex >= 0) {
+                const start = Math.min(anchorIndex, targetIndex);
+                const end = Math.max(anchorIndex, targetIndex);
+                const rangeIds = orderedFileIds.slice(start, end + 1);
+                selectRange(rangeIds);
+            } else if (targetIndex >= 0) {
+                // anchor が見つからない場合は単一選択にフォールバック
+                selectFile(id);
+            }
+        }
+    }, [selectFile, toggleSelection, selectRange, orderedFileIds, anchorId]);
 
     if (gridItems.length === 0) {
         return (

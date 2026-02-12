@@ -162,6 +162,14 @@ declare global {
             deleteAutoTagRule: (id: string) => Promise<{ success: boolean }>;
             previewAutoTagRule: (rule: AutoTagRule, files: Array<{ id: string; name: string; path: string }>) => Promise<PreviewMatch[]>;
             applyAutoTagsToFiles: (fileIds: string[]) => Promise<ApplyResult>;
+
+            // Phase 17: Access Count
+            incrementAccessCount: (fileId: string) => Promise<{
+                success: boolean;
+                accessCount?: number;
+                lastAccessedAt?: number;
+                error?: string;
+            }>;
         };
     }
 }

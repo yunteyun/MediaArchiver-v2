@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard } from 'lucide-react';
+import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard, Eye } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
@@ -48,12 +48,35 @@ function getTagBackgroundColor(colorName: string | undefined): string {
     return color !== undefined ? color : (colorMap.gray as string); // フォールバック: gray
 }
 
+// Phase 17-3: ランダムジャンプ再生の定数
+const SAFE_MARGIN_RATIO = 0.1; // 先頭・末尾10%除外
+const SEQUENTIAL_SEGMENTS = 5; // sequential モードのセグメント数
+const SEQUENTIAL_MIN_DURATION = 8; // sequential モード最小動画長（秒）
+
+// Phase 17-3: 安全なランダム位置計算
+const getRandomSafeTime = (duration: number, currentTime?: number): number => {
+    const safeStart = duration * SAFE_MARGIN_RATIO;
+    const safeEnd = duration * (1 - SAFE_MARGIN_RATIO);
+    let nextTime = safeStart + Math.random() * (safeEnd - safeStart);
+
+    // 直前位置と近すぎる場合は再抽選（10%以上離す）
+    if (currentTime !== undefined) {
+        const minGap = duration * 0.1;
+        if (Math.abs(nextTime - currentTime) < minGap) {
+            nextTime = safeStart + Math.random() * (safeEnd - safeStart);
+        }
+    }
+
+    return nextTime;
+};
+
+
 
 interface FileCardProps {
     file: MediaFile;
     isSelected: boolean;
     isFocused?: boolean;
-    onSelect: (id: string, multi: boolean) => void;
+    onSelect: (id: string, mode: 'single' | 'toggle' | 'range') => void;
 }
 
 
@@ -191,9 +214,29 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const hoverTimeoutRef = useRef<number | null>(null);
 
     // Play mode state
-    const [shouldPlayVideo, setShouldPlayVideo] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const playDelayRef = useRef<number | null>(null);
+    const jumpIntervalRef = useRef<NodeJS.Timeout | null>(null); // Phase 17-3: interval 管理
+
+    // Phase 17-3: 同時再生制御
+    const hoveredPreviewId = useUIStore((s) => s.hoveredPreviewId);
+    const setHoveredPreview = useUIStore((s) => s.setHoveredPreview);
+
+    // Phase 17-3: playMode 設定を取得
+    const playMode = useSettingsStore((s) => s.playMode);
+
+    // Phase 17-3: shouldPlayVideo を計算
+    const shouldPlayVideo = useMemo(() => {
+        return hoveredPreviewId === file.id && thumbnailAction === 'play' && file.type === 'video';
+    }, [hoveredPreviewId, file.id, file.type, thumbnailAction]);
+
+    // Phase 17-3: interval クリーンアップヘルパー
+    const clearJumpInterval = useCallback(() => {
+        if (jumpIntervalRef.current) {
+            clearInterval(jumpIntervalRef.current);
+            jumpIntervalRef.current = null;
+        }
+    }, []);
 
     // プレビューフレームのパスをパース
     const previewFrames = useMemo(() => {
@@ -272,6 +315,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // ★ onMouseEnter でプリロード開始
     const handleMouseEnter = useCallback(() => {
+        // Phase 17-3: 同時再生制御
+        setHoveredPreview(file.id);
+
         // パフォーマンスモードではホバーアニメーション無効
         if (performanceMode) return;
 
@@ -298,7 +344,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 )).then(() => setPreloadState('ready'));
             }
         }, 100);
-    }, [thumbnailAction, file.type, previewFrames, preloadState, performanceMode]);
+    }, [thumbnailAction, file.type, file.id, previewFrames, preloadState, performanceMode, setHoveredPreview]);
 
     const handleMouseLeave = useCallback(() => {
         if (hoverTimeoutRef.current) {
@@ -311,8 +357,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }
         setIsHovered(false);
         setScrubIndex(0);
-        setShouldPlayVideo(false);
-    }, []);
+
+        // Phase 17-3: 同時再生制御
+        setHoveredPreview(null);
+    }, [setHoveredPreview]);
 
     // Scrub: マウス位置からフレームインデックスを計算
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -325,32 +373,91 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         setScrubIndex(Math.max(0, Math.min(index, previewFrames.length - 1)));
     }, [thumbnailAction, preloadState, previewFrames.length]);
 
-    // Play モード: 300ms後に再生開始
+    // Phase 17-3: Video 要素の制御（3モード対応 + interval管理強化）
     useEffect(() => {
-        if (thumbnailAction !== 'play' || file.type !== 'video') return;
+        const shouldPlay = hoveredPreviewId === file.id && thumbnailAction === 'play' && file.type === 'video';
 
-        if (isHovered) {
-            playDelayRef.current = window.setTimeout(() => {
-                setShouldPlayVideo(true);
-            }, 300);
+        if (!shouldPlay || !videoRef.current) {
+            clearJumpInterval();
+            return;
+        }
+
+        const video = videoRef.current;
+        let cancelled = false;
+        let currentSegment = 0;
+
+        const startPlayback = async () => {
+            if (cancelled) return;
+            const duration = video.duration;
+
+            // 初期位置設定
+            if (duration && duration > 2) {
+                // sequential ガード: 短い動画は light にフォールバック
+                const effectiveJumpType =
+                    playMode.jumpType === 'sequential' && duration < SEQUENTIAL_MIN_DURATION
+                        ? 'light'
+                        : playMode.jumpType;
+
+                if (effectiveJumpType === 'random') {
+                    video.currentTime = getRandomSafeTime(duration);
+                } else if (effectiveJumpType === 'sequential') {
+                    const safeStart = duration * SAFE_MARGIN_RATIO;
+                    video.currentTime = safeStart;
+                    currentSegment = 0;
+                }
+                // 'light' の場合は currentTime = 0 のまま
+            }
+
+            video.muted = true;
+            video.volume = 0;
+
+            try {
+                await video.play();
+            } catch {
+                return;
+            }
+
+            // ジャンプループ（light モードではスキップ）
+            const effectiveJumpType =
+                playMode.jumpType === 'sequential' && video.duration < SEQUENTIAL_MIN_DURATION
+                    ? 'light'
+                    : playMode.jumpType;
+
+            if (effectiveJumpType !== 'light') {
+                jumpIntervalRef.current = setInterval(() => {
+                    if (!video.duration || isNaN(video.duration)) return;
+
+                    if (effectiveJumpType === 'random') {
+                        video.currentTime = getRandomSafeTime(video.duration, video.currentTime);
+                    } else if (effectiveJumpType === 'sequential') {
+                        const safeStart = video.duration * SAFE_MARGIN_RATIO;
+                        const safeEnd = video.duration * (1 - SAFE_MARGIN_RATIO);
+                        const segmentDuration = (safeEnd - safeStart) / SEQUENTIAL_SEGMENTS;
+
+                        currentSegment = (currentSegment + 1) % SEQUENTIAL_SEGMENTS;
+                        video.currentTime = safeStart + (currentSegment * segmentDuration);
+                    }
+                }, playMode.jumpInterval);
+            }
+        };
+
+        const handleLoadedMetadata = () => {
+            startPlayback();
+        };
+
+        if (video.readyState >= 1) {
+            startPlayback();
         } else {
-            setShouldPlayVideo(false);
+            video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
         }
 
         return () => {
-            if (playDelayRef.current) {
-                clearTimeout(playDelayRef.current);
-            }
+            cancelled = true;
+            clearJumpInterval();
+            video.pause();
+            video.currentTime = 0;
         };
-    }, [isHovered, thumbnailAction, file.type]);
-
-    // Video 要素の制御
-    useEffect(() => {
-        if (shouldPlayVideo && videoRef.current) {
-            videoRef.current.volume = videoVolume;
-            videoRef.current.play().catch(() => { });
-        }
-    }, [shouldPlayVideo, videoVolume]);
+    }, [hoveredPreviewId, file.id, file.type, thumbnailAction, playMode.jumpType, playMode.jumpInterval, clearJumpInterval]);
 
     // 表示する画像を決定
     const displayImage = useMemo(() => {
@@ -360,12 +467,22 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return file.thumbnailPath;
     }, [isHovered, preloadState, previewFrames, scrubIndex, file.thumbnailPath, thumbnailAction]);
 
-    const handleClick = (e: React.MouseEvent) => {
-        if (e.ctrlKey || e.metaKey) {
-            onSelect(file.id, true);
+    const handleCardClick = (e: React.MouseEvent) => {
+        // ダブルクリック時の click イベント重複発火を防ぐ
+        if (e.detail === 2) return;
+
+        if (e.shiftKey) {
+            onSelect(file.id, 'range');
+        } else if (e.ctrlKey || e.metaKey) {
+            onSelect(file.id, 'toggle');
         } else {
-            openLightbox(file);
+            onSelect(file.id, 'single');
         }
+    };
+
+    const handleThumbnailClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        openLightbox(file);
     };
 
     const handleDoubleClick = async () => {
@@ -383,7 +500,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     return (
         <div
-            onClick={handleClick}
+            onClick={handleCardClick}
             onDoubleClick={handleDoubleClick}
             onContextMenu={handleContextMenu}
             onMouseEnter={handleMouseEnter}
@@ -407,6 +524,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         >
             {/* Thumbnail Area - Phase 14: 固定高さ */}
             <div
+                onClick={handleThumbnailClick}
                 className="relative bg-surface-900 flex items-center justify-center overflow-hidden group"
                 style={{
                     height: `${config.thumbnailHeight}px`,
@@ -565,7 +683,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         <h3 className="text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
                             {file.name}
                         </h3>
-                        {/* 2行目: フォルダ名 · 作成日時（控えめ） */}
+                        {/* 2行目: フォルダ名 · 作成日時 · アクセス回数（控えめ） */}
                         <div className="text-[10px] text-surface-500 truncate leading-tight mb-1">
                             {getDisplayFolderName(file.path)}
                             {file.createdAt && (
@@ -576,6 +694,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                         month: '2-digit',
                                         day: '2-digit'
                                     }).replace(/\//g, '/')}
+                                </>
+                            )}
+                            {/* Phase 17: アクセス回数（1回以上） */}
+                            {file.accessCount > 0 && (
+                                <>
+                                    {' · '}
+                                    <Eye size={9} className="inline-block" style={{ verticalAlign: 'text-top' }} />
+                                    {' '}{file.accessCount}回
                                 </>
                             )}
                         </div>

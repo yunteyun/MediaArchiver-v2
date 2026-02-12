@@ -7,6 +7,7 @@ interface FileState {
     files: MediaFile[];
     selectedIds: Set<string>;
     focusedId: string | null;
+    anchorId: string | null;  // 範囲選択の起点
     currentFolderId: string | null;
     // ファイルごとのタグIDをキャッシュ
     fileTagsCache: Map<string, string[]>;
@@ -16,7 +17,9 @@ interface FileState {
     // アクション
     setFiles: (files: MediaFile[]) => void;
     setCurrentFolderId: (id: string | null) => void;
-    selectFile: (id: string, multi?: boolean) => void;
+    selectFile: (id: string) => void;                  // 単一選択（置き換え + anchor更新）
+    toggleSelection: (id: string) => void;             // 選択トグル（Ctrl+クリック + anchor更新）
+    selectRange: (fileIds: string[]) => void;          // 範囲選択（置き換え、anchor維持）
     setFocusedId: (id: string | null) => void;
     selectAll: () => void;
     clearSelection: () => void;
@@ -29,12 +32,15 @@ interface FileState {
     updateFileTagCache: (fileId: string, tagIds: string[]) => void;
     // フォルダメタデータ管理（Phase 12-4）
     setFolderMetadata: (metadata: { fileCounts: Record<string, number>; thumbnails: Record<string, string> }) => void;
+    // Phase 17: アクセストラッキング
+    incrementAccessCount: (fileId: string, lastAccessedAt: number) => void;
 }
 
 export const useFileStore = create<FileState>((set, get) => ({
     files: [],
     selectedIds: new Set(),
     focusedId: null,
+    anchorId: null,
     currentFolderId: null,
     fileTagsCache: new Map(),
     folderFileCounts: {},
@@ -47,16 +53,37 @@ export const useFileStore = create<FileState>((set, get) => ({
     },
     setCurrentFolderId: (id) => set({ currentFolderId: id }),
 
-    selectFile: (id, multi = false) =>
+    // Phase 16: 単一選択（置き換え + anchor更新）
+    selectFile: (id) =>
+        set({
+            selectedIds: new Set([id]),
+            focusedId: id,
+            anchorId: id,
+        }),
+
+    // Phase 16: 選択トグル（Ctrl+クリック + anchor更新）
+    toggleSelection: (id) =>
         set((state) => {
-            const newSelected = multi ? new Set<string>(state.selectedIds) : new Set<string>();
+            const newSelected = new Set(state.selectedIds);
             if (newSelected.has(id)) {
                 newSelected.delete(id);
             } else {
                 newSelected.add(id);
             }
-            return { selectedIds: newSelected, focusedId: id };
+            return {
+                selectedIds: newSelected,
+                focusedId: id,
+                anchorId: id,
+            };
         }),
+
+    // Phase 16: 範囲選択（置き換え、anchor維持）
+    selectRange: (fileIds) =>
+        set((state) => ({
+            selectedIds: new Set(fileIds),
+            focusedId: fileIds[fileIds.length - 1] || state.focusedId,
+            // anchorId は維持
+        })),
 
     setFocusedId: (id) => set({ focusedId: id }),
 
@@ -65,7 +92,7 @@ export const useFileStore = create<FileState>((set, get) => ({
             selectedIds: new Set(state.files.map((f) => f.id)),
         })),
 
-    clearSelection: () => set({ selectedIds: new Set(), focusedId: null }),
+    clearSelection: () => set({ selectedIds: new Set(), focusedId: null, anchorId: null }),
 
     getSortedFiles: () => {
         const { sortBy, sortOrder } = useSettingsStore.getState();
@@ -85,6 +112,16 @@ export const useFileStore = create<FileState>((set, get) => ({
                     break;
                 case 'type':
                     comparison = a.type.localeCompare(b.type);
+                    break;
+                case 'accessCount': // Phase 17: アクセス回数ソート
+                    comparison = a.accessCount - b.accessCount;
+                    break;
+                case 'lastAccessed': // Phase 17: 直近アクセスソート
+                    // null は最後に
+                    if (a.lastAccessedAt === null && b.lastAccessedAt === null) comparison = 0;
+                    else if (a.lastAccessedAt === null) comparison = 1;
+                    else if (b.lastAccessedAt === null) comparison = -1;
+                    else comparison = a.lastAccessedAt - b.lastAccessedAt;
                     break;
             }
             return sortOrder === 'asc' ? comparison : -comparison;
@@ -163,5 +200,18 @@ export const useFileStore = create<FileState>((set, get) => ({
             folderFileCounts: metadata.fileCounts,
             folderThumbnails: metadata.thumbnails,
         }),
-}));
 
+    // Phase 17: アクセス回数をインクリメント（即時UI反映）
+    incrementAccessCount: (fileId: string, lastAccessedAt: number) =>
+        set((state) => ({
+            files: state.files.map(file =>
+                file.id === fileId
+                    ? {
+                        ...file,
+                        accessCount: (file.accessCount || 0) + 1,
+                        lastAccessedAt
+                    }
+                    : file
+            )
+        })),
+}));

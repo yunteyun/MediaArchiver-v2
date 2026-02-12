@@ -15,6 +15,10 @@ export type TagPopoverTrigger = 'click' | 'hover';
 // タグ表示スタイル型定義
 export type TagDisplayStyle = 'filled' | 'border';
 
+// Phase 17-3: Playモード詳細設定型定義
+export type PlayModeJumpType = 'light' | 'random' | 'sequential';
+export type PlayModeJumpInterval = 1000 | 2000 | 3000 | 5000;
+
 // 外部アプリ型定義（Phase 12-7）
 export interface ExternalApp {
     id: string;
@@ -27,7 +31,7 @@ export interface ExternalApp {
 interface SettingsState {
     activeProfileId: string;
     thumbnailAction: 'scrub' | 'play';
-    sortBy: 'name' | 'date' | 'size' | 'type';
+    sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
     performanceMode: boolean; // true = アニメーション無効化
@@ -60,6 +64,12 @@ interface SettingsState {
     // タグ表示スタイル設定
     tagDisplayStyle: TagDisplayStyle;
 
+    // Phase 17-3: Playモード詳細設定
+    playMode: {
+        jumpType: PlayModeJumpType;
+        jumpInterval: PlayModeJumpInterval;
+    };
+
     // アクション
     setThumbnailAction: (action: 'scrub' | 'play') => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
@@ -88,6 +98,9 @@ interface SettingsState {
     setTagPopoverTrigger: (trigger: TagPopoverTrigger) => void;
     // タグ表示スタイルアクション
     setTagDisplayStyle: (style: TagDisplayStyle) => void;
+    // Phase 17-3: Playモード詳細設定アクション
+    setPlayModeJumpType: (type: PlayModeJumpType) => void;
+    setPlayModeJumpInterval: (interval: PlayModeJumpInterval) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -127,6 +140,12 @@ export const useSettingsStore = create<SettingsState>()(
 
             // タグ表示スタイル設定
             tagDisplayStyle: 'filled' as TagDisplayStyle,
+
+            // Phase 17-3: Playモード詳細設定
+            playMode: {
+                jumpType: 'random' as PlayModeJumpType,
+                jumpInterval: 2000 as PlayModeJumpInterval
+            },
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setSortBy: (sortBy) => set({ sortBy }),
@@ -178,6 +197,13 @@ export const useSettingsStore = create<SettingsState>()(
             setTagPopoverTrigger: (tagPopoverTrigger) => set({ tagPopoverTrigger }),
             // タグ表示スタイルアクション
             setTagDisplayStyle: (tagDisplayStyle) => set({ tagDisplayStyle }),
+            // Phase 17-3: Playモード詳細設定アクション
+            setPlayModeJumpType: (jumpType) => set((state) => ({
+                playMode: { ...state.playMode, jumpType }
+            })),
+            setPlayModeJumpInterval: (jumpInterval) => set((state) => ({
+                playMode: { ...state.playMode, jumpInterval }
+            })),
         }),
         {
             name: 'settings-storage',

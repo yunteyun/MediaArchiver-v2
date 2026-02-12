@@ -15,8 +15,9 @@ import { activityLogs } from './002_activity_logs';
 import { addTagFields } from './003_add_tag_fields';
 import { addAutoTagRules } from './004_add_auto_tag_rules';
 import { addIsAnimated } from './005_add_is_animated';
+import { accessTracking } from './006_access_tracking';
 // 将来のマイグレーション:
-// import { xxx } from './006_xxx';
+// import { xxx } from './007_xxx';
 
 // 型をre-export
 export type { Migration };
@@ -31,6 +32,7 @@ const MIGRATIONS: Migration[] = [
     addTagFields,
     addAutoTagRules,
     addIsAnimated,
+    accessTracking,
 ];
 
 /**

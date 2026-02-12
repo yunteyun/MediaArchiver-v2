@@ -28,25 +28,27 @@ interface UIState {
     toasts: ToastData[];
     duplicateViewOpen: boolean;
     mainView: 'grid' | 'statistics';  // メインエリアの表示切り替え
+    hoveredPreviewId: string | null;  // Phase 17-3: 同時再生制御用
     deleteDialogOpen: boolean;
     deleteDialogFilePath: string | null;
     deleteDialogFileId: string | null;
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
+    setViewMode: (mode: 'grid' | 'list') => void;
     openLightbox: (file: MediaFile) => void;
     closeLightbox: () => void;
-    setSortBy: (sortBy: UIState['sortBy']) => void;
-    setSortOrder: (order: UIState['sortOrder']) => void;
+    setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
+    setSortOrder: (order: 'asc' | 'desc') => void;
     setSearchQuery: (query: string) => void;
     openSettingsModal: () => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
-    showToast: (message: string, type?: 'success' | 'error' | 'info', duration?: number) => void;
+    addToast: (toast: Omit<ToastData, 'id'>) => void;
     removeToast: (id: string) => void;
-    openDuplicateView: () => void;
-    closeDuplicateView: () => void;
+    setDuplicateViewOpen: (open: boolean) => void;
     setMainView: (view: 'grid' | 'statistics') => void;
+    setHoveredPreview: (id: string | null) => void;  // Phase 17-3
     isScanProgressVisible: boolean;
     setScanProgressVisible: (visible: boolean) => void;
     openDeleteDialog: (fileId: string, filePath: string) => void;
@@ -66,6 +68,7 @@ export const useUIStore = create<UIState>((set) => ({
     toasts: [],
     duplicateViewOpen: false,
     mainView: 'grid',
+    hoveredPreviewId: null,  // Phase 17-3
     isScanProgressVisible: false,
     deleteDialogOpen: false,
     deleteDialogFilePath: null,
@@ -98,5 +101,8 @@ export const useUIStore = create<UIState>((set) => ({
     closeDuplicateView: () => set({ duplicateViewOpen: false }),
     setMainView: (view) => set({ mainView: view }),
     openDeleteDialog: (fileId, filePath) => set({ deleteDialogOpen: true, deleteDialogFileId: fileId, deleteDialogFilePath: filePath }),
-    closeDeleteDialog: () => set({ deleteDialogOpen: false, deleteDialogFileId: null, deleteDialogFilePath: null }),
+    closeDeleteDialog: () => set({ deleteDialogOpen: false, deleteDialogFilePath: null, deleteDialogFileId: null }),
+
+    // Phase 17-3: 同時再生制御
+    setHoveredPreview: (id) => set({ hoveredPreviewId: id }),
 }));

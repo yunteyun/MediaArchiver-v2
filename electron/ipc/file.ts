@@ -1,5 +1,5 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames } from '../services/database';
+import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount } from '../services/database';
 import { generateThumbnail, generatePreviewFrames } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
@@ -188,6 +188,21 @@ export function registerFileHandlers() {
                 success: false,
                 error: e instanceof Error ? e.message : String(e)
             };
+        }
+    });
+
+    // Phase 17: アクセス回数をインクリメント
+    ipcMain.handle('file:incrementAccessCount', async (_event, fileId: string) => {
+        try {
+            const result = incrementAccessCount(fileId);
+            return {
+                success: true,
+                accessCount: result.accessCount,
+                lastAccessedAt: result.lastAccessedAt
+            };
+        } catch (error) {
+            console.error('Failed to increment access count:', error);
+            return { success: false, error: String(error) };
         }
     });
 }

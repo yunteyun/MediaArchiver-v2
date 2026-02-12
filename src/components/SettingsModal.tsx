@@ -45,6 +45,10 @@ export const SettingsModal = React.memo(() => {
     // タグ表示スタイル設定
     const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
     const setTagDisplayStyle = useSettingsStore((s) => s.setTagDisplayStyle);
+    // Phase 17-3: playモード詳細設定
+    const playMode = useSettingsStore((s) => s.playMode);
+    const setPlayModeJumpType = useSettingsStore((s) => s.setPlayModeJumpType);
+    const setPlayModeJumpInterval = useSettingsStore((s) => s.setPlayModeJumpInterval);
 
     const [activeTab, setActiveTab] = useState<TabType>('general');
     const [logs, setLogs] = useState<string[]>([]);
@@ -378,6 +382,54 @@ export const SettingsModal = React.memo(() => {
                                         </label>
                                     </div>
                                 </div>
+
+                                {/* Phase 17-3: Playモード詳細設定 */}
+                                {thumbnailAction === 'play' && (
+                                    <div className="ml-6 mt-3 space-y-3 border-l-2 border-surface-700 pl-4">
+                                        {/* ジャンプタイプ */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-surface-300 mb-1">
+                                                プレビュー動作
+                                            </label>
+                                            <select
+                                                value={playMode.jumpType}
+                                                onChange={(e) => setPlayModeJumpType(e.target.value as any)}
+                                                className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                            >
+                                                <option value="light">軽量（ジャンプなし）</option>
+                                                <option value="random">ランダムジャンプ</option>
+                                                <option value="sequential">固定間隔ジャンプ</option>
+                                            </select>
+                                            <div className="text-xs text-surface-400 mt-1.5 space-y-0.5">
+                                                <div><strong>軽量:</strong> 先頭から再生のみ（低負荷）</div>
+                                                <div><strong>ランダム:</strong> 毎回ランダムな位置にジャンプ</div>
+                                                <div><strong>固定間隔:</strong> 動画を分割して順番にプレビュー</div>
+                                            </div>
+                                        </div>
+
+                                        {/* ジャンプ間隔（軽量モード以外） */}
+                                        {playMode.jumpType !== 'light' && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-surface-300 mb-1">
+                                                    ジャンプ間隔
+                                                </label>
+                                                <select
+                                                    value={playMode.jumpInterval}
+                                                    onChange={(e) => setPlayModeJumpInterval(Number(e.target.value) as any)}
+                                                    className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                                >
+                                                    <option value={1000}>1秒（高速プレビュー）</option>
+                                                    <option value={2000}>2秒（推奨）</option>
+                                                    <option value={3000}>3秒</option>
+                                                    <option value={5000}>5秒（じっくり確認）</option>
+                                                </select>
+                                                <p className="text-xs text-surface-400 mt-1.5">
+                                                    短いほど多くのシーンを確認できますが、負荷が高くなります
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Preview Frame Count */}
                                 <div>

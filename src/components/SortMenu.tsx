@@ -151,6 +151,8 @@ export const Header = React.memo(() => {
                     <option value="date">日付</option>
                     <option value="size">サイズ</option>
                     <option value="type">種類</option>
+                    <option value="accessCount">アクセス回数</option>
+                    <option value="lastAccessed">直近アクセス</option>
                 </select>
                 <button
                     onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}

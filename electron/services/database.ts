@@ -39,6 +39,9 @@ export interface MediaFile {
     contentHash?: string;
     createdAt?: number;
     mtimeMs?: number;
+    // Phase 17: アクセストラッキング
+    accessCount?: number;
+    lastAccessedAt?: number | null;
 }
 
 export interface MediaFolder {
@@ -79,6 +82,9 @@ function mapRow(f: any): MediaFile {
         contentHash: f.content_hash,
         createdAt: f.created_at,
         mtimeMs: f.mtime_ms,
+        // Phase 17: アクセストラッキング
+        accessCount: f.access_count || 0,
+        lastAccessedAt: f.last_accessed_at || null,
         tags: [],
     };
 }
@@ -286,6 +292,31 @@ export function updateFileThumbnail(id: string, thumbnailPath: string) {
 export function updateFilePreviewFrames(id: string, previewFrames: string) {
     const db = getDb();
     db.prepare('UPDATE files SET preview_frames = ? WHERE id = ?').run(previewFrames, id);
+}
+
+// Phase 17: アクセス回数をインクリメント
+export function incrementAccessCount(id: string): { accessCount: number; lastAccessedAt: number } {
+    const db = getDb();
+    const now = Date.now();
+
+    db.prepare(`
+        UPDATE files 
+        SET access_count = access_count + 1,
+            last_accessed_at = ?
+        WHERE id = ?
+    `).run(now, id);
+
+    // 更新後の値を返す
+    const result = db.prepare(`
+        SELECT access_count, last_accessed_at 
+        FROM files 
+        WHERE id = ?
+    `).get(id) as { access_count: number; last_accessed_at: number } | undefined;
+
+    return {
+        accessCount: result?.access_count || 0,
+        lastAccessedAt: result?.last_accessed_at || now
+    };
 }
 
 function getTags(fileId: string): string[] {

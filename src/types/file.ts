@@ -15,6 +15,9 @@ export interface MediaFile {
     mtimeMs?: number;
     notes?: string;
     isAnimated?: boolean; // preview上で「フレーム変化を持つ」メディア（主にGIF/WebP、将来的にAPNG/AVIF等にも対応）
+    // Phase 17: アクセストラッキング
+    accessCount: number;
+    lastAccessedAt: number | null;
 }
 
 export interface MediaFolder {

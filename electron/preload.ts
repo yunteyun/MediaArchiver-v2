@@ -35,6 +35,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateFileNotes: (fileId: string, notes: string) =>
         ipcRenderer.invoke('file:updateNotes', { fileId, notes }),
 
+    // Phase 17: Access Count
+    incrementAccessCount: (fileId: string) =>
+        ipcRenderer.invoke('file:incrementAccessCount', fileId),
+
     // === Dialog ===
     selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
 
