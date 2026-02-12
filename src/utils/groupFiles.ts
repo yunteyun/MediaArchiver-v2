@@ -100,7 +100,7 @@ function getGroupIcon(key: string, groupBy: GroupBy): string {
  */
 function sortFiles(
     files: MediaFile[],
-    sortBy: 'name' | 'date' | 'size' | 'type',
+    sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed',
     sortOrder: 'asc' | 'desc'
 ): MediaFile[] {
     const sorted = [...files].sort((a, b) => {
@@ -117,6 +117,16 @@ function sortFiles(
                 break;
             case 'type':
                 comparison = a.type.localeCompare(b.type);
+                break;
+            case 'accessCount': // Phase 17: アクセス回数ソート
+                comparison = (a.accessCount || 0) - (b.accessCount || 0);
+                break;
+            case 'lastAccessed': // Phase 17: 直近アクセスソート
+                // null は最後に
+                if (a.lastAccessedAt === null && b.lastAccessedAt === null) comparison = 0;
+                else if (a.lastAccessedAt === null) comparison = 1;
+                else if (b.lastAccessedAt === null) comparison = -1;
+                else comparison = a.lastAccessedAt - b.lastAccessedAt;
                 break;
         }
         return sortOrder === 'asc' ? comparison : -comparison;
@@ -153,7 +163,7 @@ function sortGroups(groups: FileGroup[], groupBy: GroupBy): FileGroup[] {
 export function groupFiles(
     files: MediaFile[],
     groupBy: GroupBy,
-    sortBy: 'name' | 'date' | 'size' | 'type',
+    sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed',
     sortOrder: 'asc' | 'desc'
 ): FileGroup[] {
     // グループ化なしの場合

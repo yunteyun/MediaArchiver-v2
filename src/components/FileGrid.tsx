@@ -85,6 +85,16 @@ export const FileGrid = React.memo(() => {
                 case 'type':
                     comparison = a.type.localeCompare(b.type);
                     break;
+                case 'accessCount': // Phase 17: アクセス回数ソート
+                    comparison = (a.accessCount || 0) - (b.accessCount || 0);
+                    break;
+                case 'lastAccessed': // Phase 17: 直近アクセスソート
+                    // null は最後に
+                    if (a.lastAccessedAt === null && b.lastAccessedAt === null) comparison = 0;
+                    else if (a.lastAccessedAt === null) comparison = 1;
+                    else if (b.lastAccessedAt === null) comparison = -1;
+                    else comparison = a.lastAccessedAt - b.lastAccessedAt;
+                    break;
             }
             return sortOrder === 'asc' ? comparison : -comparison;
         });
