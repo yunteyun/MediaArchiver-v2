@@ -15,6 +15,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-18a] - 2026-02-14
+### Phase 18-A: 外部アプリ起動カウント（最小構成）
+
+#### Added
+- **外部アプリ起動カウント機能**: 外部アプリ起動時に `external_open_count` をインクリメント
+- Database: Migration 007 で `external_open_count` と `last_external_opened_at` カラム追加
+- FileCard: 起動回数表示（2行目に `↗N回` 表示）
+- `incrementExternalOpenCount` 関数追加（`database.ts`）
+- `useFileStore` に `updateFileExternalOpenCount` アクション追加
+
+#### Changed
+- `app:openWithApp` IPC ハンドラに `fileId` 引数追加、カウント統合
+- `electron.d.ts` の `openWithApp` 型定義更新
+
+#### Fixed
+- `ipc/database.ts` の手動マッピング漏れ問題（前回の失敗原因）を解消
+
+---
+
 ## [dev-17] - 2026-02-12
 ### Phase 17: アクセストラッキング機能
 

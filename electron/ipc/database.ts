@@ -25,6 +25,9 @@ export function registerDatabaseHandlers() {
             // Phase 17: アクセストラッキング
             accessCount: f.accessCount ?? 0,
             lastAccessedAt: f.lastAccessedAt ?? null,
+            // Phase 18-A: 外部アプリ起動トラッキング
+            externalOpenCount: f.externalOpenCount ?? 0,
+            lastExternalOpenedAt: f.lastExternalOpenedAt ?? null,
         }));
 
         return mappedFiles;
@@ -63,6 +66,9 @@ export function registerDatabaseHandlers() {
             // Phase 17: アクセストラッキング
             accessCount: file.accessCount ?? 0,
             lastAccessedAt: file.lastAccessedAt ?? null,
+            // Phase 18-A: 外部アプリ起動トラッキング
+            externalOpenCount: file.externalOpenCount ?? 0,
+            lastExternalOpenedAt: file.lastExternalOpenedAt ?? null,
         };
     });
 }

@@ -42,6 +42,9 @@ export interface MediaFile {
     // Phase 17: アクセストラッキング
     accessCount?: number;
     lastAccessedAt?: number | null;
+    // Phase 18-A: 外部アプリ起動トラッキング
+    externalOpenCount?: number;
+    lastExternalOpenedAt?: number | null;
 }
 
 export interface MediaFolder {
@@ -85,7 +88,30 @@ function mapRow(f: any): MediaFile {
         // Phase 17: アクセストラッキング
         accessCount: f.access_count || 0,
         lastAccessedAt: f.last_accessed_at || null,
+        // Phase 18-A: 外部アプリ起動トラッキング
+        externalOpenCount: f.external_open_count || 0,
+        lastExternalOpenedAt: f.last_external_opened_at || null,
         tags: [],
+    };
+}
+
+/**
+ * Phase 18-A: 外部アプリ起動カウントをインクリメント
+ */
+export function incrementExternalOpenCount(id: string): { externalOpenCount: number; lastExternalOpenedAt: number } {
+    const db = getDb();
+    const now = Date.now();
+    db.prepare(`
+        UPDATE files
+        SET external_open_count = external_open_count + 1,
+            last_external_opened_at = ?
+        WHERE id = ?
+    `).run(now, id);
+
+    const result = db.prepare('SELECT external_open_count FROM files WHERE id = ?').get(id) as { external_open_count: number } | undefined;
+    return {
+        externalOpenCount: result?.external_open_count || 0,
+        lastExternalOpenedAt: now,
     };
 }
 

@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectFile: () => ipcRenderer.invoke('app:selectFile'),
     validatePath: (appPath: string) => ipcRenderer.invoke('app:validatePath', appPath),
     setExternalApps: (apps: any[]) => ipcRenderer.invoke('app:setExternalApps', apps),
-    openWithApp: (filePath: string, appPath: string) => ipcRenderer.invoke('app:openWithApp', filePath, appPath),
+    openWithApp: (filePath: string, appPath: string, fileId?: string) => ipcRenderer.invoke('app:openWithApp', filePath, appPath, fileId),
 
     // === File Operations ===
     updateFileNotes: (fileId: string, notes: string) =>

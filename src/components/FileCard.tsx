@@ -487,6 +487,28 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     const handleDoubleClick = async () => {
         try {
+            // Phase 18-A: 外部アプリ起動 + カウント更新
+            const { externalApps } = useSettingsStore.getState();
+            const ext = file.name.split('.').pop()?.toLowerCase() || '';
+            const matchedApp = externalApps.find((a: { extensions: string[]; }) =>
+                a.extensions.length === 0 || a.extensions.includes(ext)
+            );
+
+            if (matchedApp) {
+                const result = await window.electronAPI.openWithApp(file.path, matchedApp.path, file.id);
+
+                if (result.success && result.externalOpenCount !== undefined) {
+                    const { useFileStore } = await import('../stores/useFileStore');
+                    useFileStore.getState().updateFileExternalOpenCount(
+                        file.id,
+                        result.externalOpenCount,
+                        result.lastExternalOpenedAt || Date.now()
+                    );
+                }
+                return;
+            }
+
+            // デフォルト: OS標準アプリで開く
             await window.electronAPI.openExternal(file.path);
         } catch (e) {
             console.error('Failed to open file:', e);
@@ -702,6 +724,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                                     {' · '}
                                     <Eye size={9} className="inline-block" style={{ verticalAlign: 'text-top' }} />
                                     {' '}{file.accessCount}回
+                                </>
+                            )}
+                            {/* Phase 18-A: 外部アプリ起動回数（1回以上） */}
+                            {file.externalOpenCount > 0 && (
+                                <>
+                                    {' · '}
+                                    <span title="外部アプリで開いた回数">↗{file.externalOpenCount}回</span>
                                 </>
                             )}
                         </div>

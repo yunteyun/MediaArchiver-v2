@@ -3,6 +3,7 @@ import { logger } from '../services/logger';
 import { existsSync } from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
+import { incrementExternalOpenCount } from '../services/database';
 
 // 外部アプリのキャッシュ
 interface ExternalApp {
@@ -74,8 +75,8 @@ export function registerAppHandlers() {
         return cachedExternalApps;
     });
 
-    // 外部アプリでファイルを開く（セキュア）
-    ipcMain.handle('app:openWithApp', async (_event, filePath: string, appPath: string) => {
+    // 外部アプリでファイルを開く（Phase 18-A: カウント統合）
+    ipcMain.handle('app:openWithApp', async (_event, filePath: string, appPath: string, fileId?: string) => {
         if (!existsSync(appPath)) {
             throw new Error(`アプリケーションが見つかりません: ${appPath}`);
         }
@@ -94,6 +95,13 @@ export function registerAppHandlers() {
                 stdio: 'ignore'
             });
             child.unref();
+
+            // Phase 18-A: カウントをインクリメントして結果を返す
+            if (fileId) {
+                const result = incrementExternalOpenCount(fileId);
+                return { success: true, ...result };
+            }
+            return { success: true };
         } catch (error) {
             throw new Error(`アプリケーション起動エラー: ${(error as Error).message}`);
         }

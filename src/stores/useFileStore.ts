@@ -34,6 +34,8 @@ interface FileState {
     setFolderMetadata: (metadata: { fileCounts: Record<string, number>; thumbnails: Record<string, string> }) => void;
     // Phase 17: アクセストラッキング
     incrementAccessCount: (fileId: string, lastAccessedAt: number) => void;
+    // Phase 18-A: 外部アプリ起動トラッキング
+    updateFileExternalOpenCount: (fileId: string, count: number, timestamp: number) => void;
 }
 
 export const useFileStore = create<FileState>((set, get) => ({
@@ -210,6 +212,20 @@ export const useFileStore = create<FileState>((set, get) => ({
                         ...file,
                         accessCount: (file.accessCount || 0) + 1,
                         lastAccessedAt
+                    }
+                    : file
+            )
+        })),
+
+    // Phase 18-A: 外部アプリ起動カウント更新（即時UI反映）
+    updateFileExternalOpenCount: (fileId: string, count: number, timestamp: number) =>
+        set((state) => ({
+            files: state.files.map(file =>
+                file.id === fileId
+                    ? {
+                        ...file,
+                        externalOpenCount: count,
+                        lastExternalOpenedAt: timestamp
                     }
                     : file
             )
