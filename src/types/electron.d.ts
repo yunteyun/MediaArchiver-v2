@@ -89,6 +89,11 @@ declare global {
             confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
             onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) => () => void;
 
+            // Phase 18-C: File Move
+            moveFileToFolder: (fileId: string, targetFolderId: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
+            onFileMoved: (callback: (data: { fileId: string; newPath: string; targetFolderId: string }) => void) => () => void;
+            onRequestMove: (callback: (data: { fileId: string; targetFolderId: string }) => void) => () => void;
+
             // Archive
             getArchiveMetadata: (path: string) => Promise<{
                 fileCount: number;

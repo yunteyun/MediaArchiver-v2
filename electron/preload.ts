@@ -98,6 +98,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('file:showDeleteDialog', listener);
     },
 
+    // Phase 18-C: ファイル移動
+    moveFileToFolder: (fileId: string, targetFolderId: string) =>
+        ipcRenderer.invoke('file:moveToFolder', { fileId, targetFolderId }),
+    onFileMoved: (callback: (data: { fileId: string; newPath: string; targetFolderId: string }) => void) => {
+        const listener = (_: any, data: any) => callback(data);
+        ipcRenderer.on('file:moved', listener);
+        return () => ipcRenderer.removeListener('file:moved', listener);
+    },
+    onRequestMove: (callback: (data: { fileId: string; targetFolderId: string }) => void) => {
+        const listener = (_: any, data: any) => callback(data);
+        ipcRenderer.on('file:requestMove', listener);
+        return () => ipcRenderer.removeListener('file:requestMove', listener);
+    },
+
     // === Archive ===
     getArchiveMetadata: (path: string) => ipcRenderer.invoke('archive:getMetadata', path),
     getArchivePreviewFrames: (path: string, limit?: number) =>

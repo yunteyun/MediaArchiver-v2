@@ -198,6 +198,29 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
+    const [isLoadingTags, setIsLoadingTags] = useState(false);
+
+    // Phase 18-C: ファイル移動イベントハンドラ
+    React.useEffect(() => {
+        const handleRequestMove = async (data: { fileId: string; targetFolderId: string }) => {
+            if (data.fileId !== file.id) return;
+
+            const result = await window.electronAPI.moveFileToFolder(data.fileId, data.targetFolderId);
+
+            if (result.success) {
+                const { useToastStore } = await import('../stores/useToastStore');
+                useToastStore.getState().success('ファイルを移動しました');
+            } else {
+                const { useToastStore } = await import('../stores/useToastStore');
+                useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
+            }
+        };
+
+        const cleanup = window.electronAPI.onRequestMove(handleRequestMove);
+        return cleanup;
+    }, [file.id]);
+
+    const [isLoadingNotes, setIsLoadingNotes] = useState(false);
     // Phase 14-7: タグポップオーバー
     const [showTagPopover, setShowTagPopover] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);

@@ -81,3 +81,84 @@ export async function deleteFileSafe(
         };
     }
 }
+
+/**
+ * Phase 18-C: ファイルを別フォルダに移動する
+ * @param sourcePath 移動元ファイルパス
+ * @param targetPath 移動先ファイルパス
+ * @returns 移動結果
+ */
+export async function moveFileToFolder(
+    sourcePath: string,
+    targetPath: string
+): Promise<{ success: boolean; error?: string }> {
+    log.info(`Moving file: ${sourcePath} -> ${targetPath}`);
+
+    try {
+        // 移動元ファイルの存在確認
+        try {
+            await access(sourcePath, constants.F_OK);
+        } catch {
+            log.warn(`Source file not found: ${sourcePath}`);
+            return {
+                success: false,
+                error: 'ファイルが見つかりません'
+            };
+        }
+
+        // 移動先ファイルの存在確認（同名ファイルチェック）
+        try {
+            await access(targetPath, constants.F_OK);
+            log.warn(`Target file already exists: ${targetPath}`);
+            return {
+                success: false,
+                error: '移動先に同名のファイルが既に存在します'
+            };
+        } catch {
+            // 存在しない = OK
+        }
+
+        // ファイル移動（rename は同一ドライブ内でアトミック）
+        // 異なるドライブ間の場合は EXDEV エラーが発生するので copy + delete にフォールバック
+        const { rename, copyFile, unlink } = await import('fs/promises');
+
+        try {
+            await rename(sourcePath, targetPath);
+            log.info(`File moved successfully (rename): ${targetPath}`);
+            return { success: true };
+        } catch (renameError: any) {
+            // EXDEV エラー（異なるドライブ間）の場合は copy + delete
+            if (renameError.code === 'EXDEV') {
+                log.info(`Cross-device move detected, using copy + delete`);
+
+                try {
+                    // ファイルをコピー
+                    await copyFile(sourcePath, targetPath);
+
+                    // コピー成功後、元ファイルを削除
+                    await unlink(sourcePath);
+
+                    log.info(`File moved successfully (copy + delete): ${targetPath}`);
+                    return { success: true };
+                } catch (copyError) {
+                    const errorMessage = copyError instanceof Error ? copyError.message : String(copyError);
+                    log.error(`Copy + delete failed: ${errorMessage}`);
+                    return {
+                        success: false,
+                        error: `ファイル移動に失敗しました: ${errorMessage}`
+                    };
+                }
+            } else {
+                // その他のエラー
+                throw renameError;
+            }
+        }
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log.error(`Move failed: ${errorMessage}`);
+        return {
+            success: false,
+            error: `ファイル移動に失敗しました: ${errorMessage}`
+        };
+    }
+}

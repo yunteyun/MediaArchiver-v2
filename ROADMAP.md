@@ -40,11 +40,15 @@ MediaArchiver v2 の開発ロードマップです。
 
 ## 📋 予定 (Planned)
 
-### Phase 18-C: 外部アプリ連携の高度化 🛡️
-**優先度**: 低 (Backlog)
+### Phase 19: Release Preparation 🚀
+**優先度**: 高 (High)
+**目的**: アプリケーションのリリースビルドとパッケージング
 
-- [ ] セキュリティ強化（realpath, X_OK）
-- [ ] シンボリックリンク対応
+- [ ] electron-builder セットアップ
+- [ ] アイコン設定
+- [ ] ビルドスクリプト整備
+
+### Phase 20: メディア再生機能拡張 🎬
 
 ---
 

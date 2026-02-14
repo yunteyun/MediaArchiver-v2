@@ -1,5 +1,5 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount } from '../services/database';
+import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, updateFileLocation, getFolders } from '../services/database';
 import { generateThumbnail, generatePreviewFrames } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
@@ -131,6 +131,16 @@ export function registerFileHandlers() {
             },
             { type: 'separator' },
             {
+                label: 'フォルダに移動',
+                submenu: getFolders().map(folder => ({
+                    label: folder.name,
+                    click: async () => {
+                        event.sender.send('file:requestMove', { fileId, targetFolderId: folder.id });
+                    }
+                }))
+            },
+            { type: 'separator' },
+            {
                 label: 'ファイルを削除',
                 click: async () => {
                     // Rendererにダイアログ表示を通知（Phase 12-17B）
@@ -203,6 +213,60 @@ export function registerFileHandlers() {
         } catch (error) {
             console.error('Failed to increment access count:', error);
             return { success: false, error: String(error) };
+        }
+    });
+
+    // Phase 18-C: ファイル移動
+    ipcMain.handle('file:moveToFolder', async (event, { fileId, targetFolderId }) => {
+        try {
+            console.log('[File Move] Starting file move:', { fileId, targetFolderId });
+
+            // DBからファイル情報取得
+            const file = findFileById(fileId);
+            if (!file) {
+                console.error('[File Move] File not found:', fileId);
+                return { success: false, error: 'ファイルが見つかりません' };
+            }
+            console.log('[File Move] Source file:', file.path);
+
+            // 移動先フォルダ情報取得
+            const folders = getFolders();
+            const targetFolder = folders.find(f => f.id === targetFolderId);
+            if (!targetFolder) {
+                console.error('[File Move] Target folder not found:', targetFolderId);
+                return { success: false, error: '移動先フォルダが見つかりません' };
+            }
+            console.log('[File Move] Target folder:', targetFolder.path);
+
+            // 新しいパスを生成
+            const fileName = path.basename(file.path);
+            const newPath = path.join(targetFolder.path, fileName);
+            console.log('[File Move] New path:', newPath);
+
+            // ファイル移動実行
+            const { moveFileToFolder } = await import('../services/fileOperationService');
+            const moveResult = await moveFileToFolder(file.path, newPath);
+            console.log('[File Move] Move result:', moveResult);
+
+            if (!moveResult.success) {
+                console.error('[File Move] Move failed:', moveResult.error);
+                return { success: false, error: moveResult.error };
+            }
+
+            // DB更新
+            updateFileLocation(fileId, newPath, targetFolderId);
+            console.log('[File Move] DB updated');
+
+            // フロントエンドに通知
+            event.sender.send('file:moved', { fileId, newPath, targetFolderId });
+
+            return { success: true, newPath };
+        } catch (error) {
+            console.error('[File Move] Exception:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
         }
     });
 }
