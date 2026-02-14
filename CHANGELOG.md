@@ -15,6 +15,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-18b] - 2026-02-14
+### Phase 18-B: 外部アプリ連携UX強化
+
+#### Added
+- **デフォルトアプリ設定機能**: 拡張子ごとに特定の外部アプリをデフォルトとして指定可能に
+- **フォールバック機能**: 指定アプリでの起動失敗時やデフォルト未設定時に自動でOS標準アプリを使用
+- **エラーハンドリング**: 外部アプリ起動失敗時にトースト通知で理由を表示
+- `useSettingsStore`: `defaultExternalApps` 状態と正規化ロジックを追加
+
+#### Changed
+- `app:openWithApp` IPC: 例外の代わりに `{ success, error }` を返す安全な設計に変更
+- `FileCard`: デフォルト設定がある場合のみ外部アプリを使用（なければ即OS標準）
+
+---
+
 ## [dev-18a] - 2026-02-14
 ### Phase 18-A: 外部アプリ起動カウント（最小構成）
 

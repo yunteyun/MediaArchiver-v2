@@ -1,14 +1,14 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-14 01:38
+**Last Updated**: 2026-02-14 09:03
 
 - **Current Focus**: Phase 18（外部アプリ連携強化）
-- **Current Status**: Phase 18-A（外部アプリ起動カウント最小構成）完了。Phase 18-B へ移行予定。
+- **Current Status**: Phase 18-B（UX強化）完了。
 - **Recent Achievements**: 
+  - **Phase 18-B**: デフォルトアプリ設定、エラーハンドリング、フォールバック実装完了
   - **Phase 18-A**: 外部アプリ起動時のカウント追跡機能（最小構成）実装完了
   - **Phase 17**: アクセストラッキング機能実装完了（アクセス回数/日時記録、ソート機能）
   - **Phase 16**: FileCard インタラクション修正（サムネイルクリックでLightbox、カード全体で選択）
-  - **Phase 15**: アニメーションバッジ修正 & UI改善完了
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -168,17 +168,21 @@
   - 外部アプリ起動時のカウント追跡
   - DBマイグレーション（007_external_open_count）
   - FileCard にカウント表示（↗N回）
+- ✅ **Phase 18-B: 外部アプリ連携UX強化**
+  - デフォルトアプリ設定機能（拡張子ごと）
+  - エラーハンドリング（トースト通知）
+  - フォールバック（自動的にOS標準で開く）
 
 ## Recent Additions (2026-02-14)
+- **Phase 18-B 完了**:
+  - 設定画面で拡張子ごとにデフォルトアプリを指定可能に
+  - 起動エラー時にトースト通知 + OS標準アプリへフォールバック
 - **Phase 18-A 完了**:
   - 外部アプリ起動カウント追跡（Migration 007）
   - `ipc/database.ts` の手動マッピング問題を解消
   - FileCard に `↗N回` 表示
 
 ## Next Steps
-- [ ] **Phase 18-B: 外部アプリ連携UX強化**
-  - 設定UIの拡充（デフォルトアプリ指定）
-  - フォールバック機能、トースト通知
 - [ ] **Phase 18-C: 外部アプリ連携の高度化**
   - セキュリティ強化（realpath, X_OK）
   - シンボリックリンク対応

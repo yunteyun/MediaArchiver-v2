@@ -55,6 +55,9 @@ interface SettingsState {
     // 外部アプリ設定（Phase 12-7）
     externalApps: ExternalApp[];
 
+    // Phase 18-B: デフォルト外部アプリ設定
+    defaultExternalApps: Record<string, string>; // 拡張子(正規化済み) → アプリID
+
     // グループ化設定（Phase 12-10）
     groupBy: GroupBy;
 
@@ -92,6 +95,8 @@ interface SettingsState {
     addExternalApp: (name: string, path: string, extensions: string[]) => void;
     updateExternalApp: (id: string, updates: Partial<Omit<ExternalApp, 'id' | 'createdAt'>>) => void;
     deleteExternalApp: (id: string) => void;
+    // Phase 18-B: デフォルト外部アプリアクション
+    setDefaultExternalApp: (extension: string, appId: string | null) => void;
     // グループ化アクション（Phase 12-10）
     setGroupBy: (groupBy: GroupBy) => void;
     // タグポップオーバーアクション（Phase 14-8）
@@ -131,6 +136,9 @@ export const useSettingsStore = create<SettingsState>()(
 
             // 外部アプリ設定（Phase 12-7）
             externalApps: [],
+
+            // Phase 18-B: デフォルト外部アプリ設定
+            defaultExternalApps: {},
 
             // グループ化設定（Phase 12-10）
             groupBy: 'none',
@@ -188,8 +196,26 @@ export const useSettingsStore = create<SettingsState>()(
             },
             deleteExternalApp: (id) => {
                 set((state) => ({
-                    externalApps: state.externalApps.filter(app => app.id !== id)
+                    externalApps: state.externalApps.filter(app => app.id !== id),
+                    // Phase 18-B: 削除されたアプリのデフォルト設定も削除
+                    defaultExternalApps: Object.fromEntries(
+                        Object.entries(state.defaultExternalApps).filter(([, appId]) => appId !== id)
+                    )
                 }));
+            },
+            // Phase 18-B: デフォルト外部アプリアクション
+            setDefaultExternalApp: (extension, appId) => {
+                // 拡張子を正規化（ドット除去 + 小文字化）
+                const normalizedExt = extension.replace(/^\./, '').toLowerCase();
+                set((state) => {
+                    const newDefaults = { ...state.defaultExternalApps };
+                    if (appId === null) {
+                        delete newDefaults[normalizedExt];
+                    } else {
+                        newDefaults[normalizedExt] = appId;
+                    }
+                    return { defaultExternalApps: newDefaults };
+                });
             },
             // グループ化アクション（Phase 12-10）
             setGroupBy: (groupBy) => set({ groupBy }),

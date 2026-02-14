@@ -13,6 +13,9 @@ export const ExternalAppsTab = React.memo(() => {
     const addExternalApp = useSettingsStore((s) => s.addExternalApp);
     const updateExternalApp = useSettingsStore((s) => s.updateExternalApp);
     const deleteExternalApp = useSettingsStore((s) => s.deleteExternalApp);
+    // Phase 18-B: デフォルト外部アプリ設定
+    const defaultExternalApps = useSettingsStore((s) => s.defaultExternalApps);
+    const setDefaultExternalApp = useSettingsStore((s) => s.setDefaultExternalApp);
     const toastSuccess = useToastStore((s) => s.success);
     const toastError = useToastStore((s) => s.error);
 
@@ -121,6 +124,18 @@ export const ExternalAppsTab = React.memo(() => {
         toastSuccess('外部アプリを削除しました');
     }, [deleteExternalApp, toastSuccess]);
 
+    // Phase 18-B: デフォルトアプリ設定
+    const handleSetDefault = useCallback((appId: string, extension: string) => {
+        if (!extension) return;
+        setDefaultExternalApp(extension, appId);
+        toastSuccess(`${extension} のデフォルトアプリを設定しました`);
+    }, [setDefaultExternalApp, toastSuccess]);
+
+    const handleRemoveDefault = useCallback((extension: string) => {
+        setDefaultExternalApp(extension, null);
+        toastSuccess(`${extension} のデフォルト設定を解除しました`);
+    }, [setDefaultExternalApp, toastSuccess]);
+
     return (
         <div className="p-4 space-y-4">
             <p className="text-sm text-surface-400 mb-4">
@@ -198,6 +213,39 @@ export const ExternalAppsTab = React.memo(() => {
                                                 対応: {app.extensions.join(', ')}
                                             </div>
                                         )}
+                                        {/* Phase 18-B: デフォルト設定表示 */}
+                                        <div className="mt-2 space-y-1">
+                                            <div className="text-xs text-surface-400">デフォルト設定:</div>
+                                            <div className="flex flex-wrap gap-1">
+                                                {Object.entries(defaultExternalApps)
+                                                    .filter(([, appId]) => appId === app.id)
+                                                    .map(([ext]) => (
+                                                        <span
+                                                            key={ext}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-600/20 text-primary-400 rounded text-xs"
+                                                        >
+                                                            .{ext}
+                                                            <button
+                                                                onClick={() => handleRemoveDefault(ext)}
+                                                                className="hover:text-primary-300"
+                                                                title="解除"
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        </span>
+                                                    ))}
+                                            </div>
+                                            <select
+                                                onChange={(e) => handleSetDefault(app.id, e.target.value)}
+                                                value=""
+                                                className="w-full px-2 py-1 bg-surface-700 text-white rounded text-xs"
+                                            >
+                                                <option value="">拡張子を選択してデフォルトに設定...</option>
+                                                {app.extensions.map(ext => (
+                                                    <option key={ext} value={ext}>.{ext}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="flex gap-1 ml-2">
                                         <button

@@ -75,18 +75,18 @@ export function registerAppHandlers() {
         return cachedExternalApps;
     });
 
-    // 外部アプリでファイルを開く（Phase 18-A: カウント統合）
+    // 外部アプリでファイルを開く（Phase 18-A: カウント統合、Phase 18-B: エラーハンドリング改善）
     ipcMain.handle('app:openWithApp', async (_event, filePath: string, appPath: string, fileId?: string) => {
         if (!existsSync(appPath)) {
-            throw new Error(`アプリケーションが見つかりません: ${appPath}`);
+            return { success: false, error: `アプリケーションが見つかりません: ${appPath}` };
         }
         if (!existsSync(filePath)) {
-            throw new Error(`ファイルが見つかりません: ${filePath}`);
+            return { success: false, error: `ファイルが見つかりません: ${filePath}` };
         }
 
         const ext = path.extname(appPath).toLowerCase();
         if (!['.exe', '.bat'].includes(ext)) {
-            throw new Error('実行可能ファイルではありません');
+            return { success: false, error: '実行可能ファイルではありません' };
         }
 
         try {
@@ -103,7 +103,7 @@ export function registerAppHandlers() {
             }
             return { success: true };
         } catch (error) {
-            throw new Error(`アプリケーション起動エラー: ${(error as Error).message}`);
+            return { success: false, error: `起動エラー: ${(error as Error).message}` };
         }
     });
 }

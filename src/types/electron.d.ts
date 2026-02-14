@@ -54,7 +54,12 @@ declare global {
             selectFile: () => Promise<string | null>;
             validatePath: (appPath: string) => Promise<boolean>;
             setExternalApps: (apps: any[]) => Promise<void>;
-            openWithApp: (filePath: string, appPath: string, fileId?: string) => Promise<{ success: boolean; externalOpenCount?: number; lastExternalOpenedAt?: number }>;
+            openWithApp: (filePath: string, appPath: string, fileId?: string) => Promise<{
+                success: boolean;
+                error?: string;
+                externalOpenCount?: number;
+                lastExternalOpenedAt?: number;
+            }>;
 
             // File Operations
             updateFileNotes: (fileId: string, notes: string) => Promise<{ success: boolean }>;

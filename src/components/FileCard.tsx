@@ -486,18 +486,25 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     };
 
     const handleDoubleClick = async () => {
-        try {
-            // Phase 18-A: 外部アプリ起動 + カウント更新
-            const { externalApps } = useSettingsStore.getState();
-            const ext = file.name.split('.').pop()?.toLowerCase() || '';
-            const matchedApp = externalApps.find((a: { extensions: string[]; }) =>
-                a.extensions.length === 0 || a.extensions.includes(ext)
-            );
+        // Phase 18-B: デフォルトアプリ設定 + エラーハンドリング + フォールバック
+        const { externalApps, defaultExternalApps } = useSettingsStore.getState();
+        const ext = file.name.split('.').pop()?.toLowerCase() || '';
 
-            if (matchedApp) {
-                const result = await window.electronAPI.openWithApp(file.path, matchedApp.path, file.id);
+        // デフォルトアプリが設定されている場合のみ外部アプリで開く
+        const defaultAppId = defaultExternalApps[ext];
+        if (defaultAppId) {
+            const app = externalApps.find((a: { id: string; }) => a.id === defaultAppId);
 
-                if (result.success && result.externalOpenCount !== undefined) {
+            if (app) {
+                const result = await window.electronAPI.openWithApp(file.path, app.path, file.id);
+
+                if (!result.success) {
+                    // エラー時: トースト表示 + OS標準で開く
+                    const { useToastStore } = await import('../stores/useToastStore');
+                    useToastStore.getState().error(result.error || '外部アプリで開けませんでした');
+                    await window.electronAPI.openExternal(file.path);
+                } else if (result.externalOpenCount !== undefined) {
+                    // 成功時: カウント更新
                     const { useFileStore } = await import('../stores/useFileStore');
                     useFileStore.getState().updateFileExternalOpenCount(
                         file.id,
@@ -507,12 +514,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 }
                 return;
             }
-
-            // デフォルト: OS標準アプリで開く
-            await window.electronAPI.openExternal(file.path);
-        } catch (e) {
-            console.error('Failed to open file:', e);
         }
+
+        // デフォルト設定なし or アプリが見つからない → OS標準で開く
+        await window.electronAPI.openExternal(file.path);
     };
 
     const handleContextMenu = (e: React.MouseEvent) => {
