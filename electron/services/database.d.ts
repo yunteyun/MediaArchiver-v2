@@ -20,6 +20,18 @@ export interface MediaFile {
     metadata?: string;
     mtime_ms?: number;
     notes?: string;
+    is_animated?: number;
+    isAnimated?: boolean;
+    thumbnailPath?: string;
+    previewFrames?: string;
+    rootFolderId?: string;
+    contentHash?: string;
+    createdAt?: number;
+    mtimeMs?: number;
+    accessCount?: number;
+    lastAccessedAt?: number | null;
+    externalOpenCount?: number;
+    lastExternalOpenedAt?: number | null;
 }
 export interface MediaFolder {
     id: string;
@@ -27,6 +39,13 @@ export interface MediaFolder {
     path: string;
     created_at: number;
 }
+/**
+ * Phase 18-A: 外部アプリ起動カウントをインクリメント
+ */
+export declare function incrementExternalOpenCount(id: string): {
+    externalOpenCount: number;
+    lastExternalOpenedAt: number;
+};
 export declare function getFiles(rootFolderId?: string): MediaFile[];
 export declare function findFileByPath(filePath: string): MediaFile | undefined;
 export declare function findFileByHash(hash: string): MediaFile | undefined;
@@ -44,6 +63,10 @@ export declare function updateFileNotes(id: string, notes: string): void;
 export declare function findFileById(id: string): MediaFile | undefined;
 export declare function updateFileThumbnail(id: string, thumbnailPath: string): void;
 export declare function updateFilePreviewFrames(id: string, previewFrames: string): void;
+export declare function incrementAccessCount(id: string): {
+    accessCount: number;
+    lastAccessedAt: number;
+};
 export declare function getFolders(): MediaFolder[];
 export declare function getFolderByPath(folderPath: string): MediaFolder | undefined;
 export declare function addFolder(folderPath: string, name?: string): MediaFolder;

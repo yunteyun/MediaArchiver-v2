@@ -75,7 +75,7 @@ interface SettingsState {
 
     // アクション
     setThumbnailAction: (action: 'scrub' | 'play') => void;
-    setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
+    setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
     setPerformanceMode: (enabled: boolean) => void;
@@ -236,4 +236,3 @@ export const useSettingsStore = create<SettingsState>()(
         }
     )
 );
-
