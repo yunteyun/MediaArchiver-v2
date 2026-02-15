@@ -1,4 +1,4 @@
-export declare function generateThumbnail(filePath: string): Promise<string | null>;
+export declare function generateThumbnail(filePath: string, resolution?: number): Promise<string | null>;
 /**
  * 動画からプレビューフレームを生成（スクラブ用）
  * @param videoPath 動画ファイルパス

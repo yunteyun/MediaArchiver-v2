@@ -34,7 +34,7 @@ export const accessTracking: Migration = {
             ON files(last_accessed_at);
         `);
     },
-    down: (db: Database) => {
+    down: (_db: Database) => {
         // SQLite では安全な DROP COLUMN が困難なため、no-op
         // ロールバックが必要な場合は手動で対応
     }

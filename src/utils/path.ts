@@ -15,5 +15,5 @@
  */
 export const getDisplayFolderName = (path: string): string => {
     const parts = path.split(/[/\\]/);
-    return parts.length > 1 ? parts[parts.length - 2] : '';
+    return parts.length > 1 ? (parts[parts.length - 2] ?? '') : '';
 };

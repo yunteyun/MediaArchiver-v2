@@ -44,8 +44,10 @@ interface UIState {
     openSettingsModal: () => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
-    addToast: (toast: Omit<ToastData, 'id'>) => void;
+    showToast: (message: string, type?: ToastData['type'], duration?: number) => void;
     removeToast: (id: string) => void;
+    openDuplicateView: () => void;
+    closeDuplicateView: () => void;
     setDuplicateViewOpen: (open: boolean) => void;
     setMainView: (view: 'grid' | 'statistics') => void;
     setHoveredPreview: (id: string | null) => void;  // Phase 17-3
@@ -76,6 +78,7 @@ export const useUIStore = create<UIState>((set) => ({
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+    setViewMode: (viewMode) => set({ viewMode }),
     openLightbox: (file) => set({ lightboxFile: file }),
     closeLightbox: () => set({ lightboxFile: null }),
     setSortBy: (sortBy) => set({ sortBy }),
@@ -91,7 +94,7 @@ export const useUIStore = create<UIState>((set) => ({
         isScanProgressVisible: progress?.phase === 'counting' ? true : state.isScanProgressVisible
     })),
     setScanProgressVisible: (visible) => set({ isScanProgressVisible: visible }),
-    showToast: (message, type = 'info', duration = 3000) => set((state) => ({
+    showToast: (message: string, type: ToastData['type'] = 'info', duration = 3000) => set((state) => ({
         toasts: [...state.toasts, { id: Date.now().toString(), message, type, duration }]
     })),
     removeToast: (id) => set((state) => ({
@@ -99,6 +102,7 @@ export const useUIStore = create<UIState>((set) => ({
     })),
     openDuplicateView: () => set({ duplicateViewOpen: true }),
     closeDuplicateView: () => set({ duplicateViewOpen: false }),
+    setDuplicateViewOpen: (open) => set({ duplicateViewOpen: open }),
     setMainView: (view) => set({ mainView: view }),
     openDeleteDialog: (fileId, filePath) => set({ deleteDialogOpen: true, deleteDialogFileId: fileId, deleteDialogFilePath: filePath }),
     closeDeleteDialog: () => set({ deleteDialogOpen: false, deleteDialogFilePath: null, deleteDialogFileId: null }),

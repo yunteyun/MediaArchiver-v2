@@ -42,7 +42,7 @@ export interface CleanupResult {
  * サムネイルディレクトリのパスを取得
  * Note: サムネイルは thumbnails/ 直下に保存される（プロファイル別サブディレクトリは使用しない）
  */
-function getThumbnailDir(profileId: string): string {
+function getThumbnailDir(_profileId: string): string {
     // profileId は将来の拡張用に引数として残すが、現状は使用しない
     return path.join(app.getPath('userData'), 'thumbnails');
 }

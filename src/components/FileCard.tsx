@@ -138,7 +138,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
-    const videoVolume = useSettingsStore((s) => s.videoVolume);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     // カード表示設定（Phase 12-3）
     const showFileName = useSettingsStore((s) => s.showFileName);
@@ -198,7 +197,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
-    const [isLoadingTags, setIsLoadingTags] = useState(false);
 
     // Phase 18-C: ファイル移動イベントハンドラ
     React.useEffect(() => {
@@ -220,7 +218,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return cleanup;
     }, [file.id]);
 
-    const [isLoadingNotes, setIsLoadingNotes] = useState(false);
     // Phase 14-7: タグポップオーバー
     const [showTagPopover, setShowTagPopover] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);

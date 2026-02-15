@@ -10,14 +10,6 @@ interface DiagnosticResult {
     orphanedFiles: string[];
     samples: { path: string; size: number }[];
 }
-
-interface CleanupResult {
-    success: boolean;
-    deletedCount: number;
-    freedBytes: number;
-    errors: string[];
-}
-
 export const StorageCleanupSection: React.FC = () => {
     const [diagnosticResult, setDiagnosticResult] = useState<DiagnosticResult | null>(null);
     const [isCleanupConfirmOpen, setCleanupConfirmOpen] = useState(false);
