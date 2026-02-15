@@ -19,7 +19,15 @@ npm install
 
 # 開発サーバーの起動
 npm run dev
+
+# Lint チェック
+npm run lint
+
+# 本番ビルド確認
+npm run build
 ```
+
+> `npm run lint` は警告を表示する場合があります。まずはエラー 0 を維持し、警告は段階的に解消してください。
 
 ## ドキュメント
 

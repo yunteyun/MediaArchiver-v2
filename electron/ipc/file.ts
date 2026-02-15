@@ -1,5 +1,5 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, updateFileLocation, getFolders } from '../services/database';
+import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, getFolders } from '../services/database';
 import { generateThumbnail, generatePreviewFrames } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
@@ -22,6 +22,12 @@ export function registerFileHandlers() {
                 label: 'デフォルトアプリで開く',
                 click: async () => {
                     await shell.openPath(filePath);
+                    const result = incrementExternalOpenCount(fileId);
+                    event.sender.send('file:externalOpenCountUpdated', {
+                        fileId,
+                        externalOpenCount: result.externalOpenCount,
+                        lastExternalOpenedAt: result.lastExternalOpenedAt,
+                    });
                 }
             },
         ];
@@ -39,6 +45,13 @@ export function registerFileHandlers() {
                                 stdio: 'ignore'
                             });
                             child.unref();
+
+                            const result = incrementExternalOpenCount(fileId);
+                            event.sender.send('file:externalOpenCountUpdated', {
+                                fileId,
+                                externalOpenCount: result.externalOpenCount,
+                                lastExternalOpenedAt: result.lastExternalOpenedAt,
+                            });
                         } catch (e) {
                             console.error('Failed to open with app:', e);
                         }
@@ -212,6 +225,21 @@ export function registerFileHandlers() {
             };
         } catch (error) {
             console.error('Failed to increment access count:', error);
+            return { success: false, error: String(error) };
+        }
+    });
+
+    // 外部アプリ起動回数をインクリメント
+    ipcMain.handle('file:incrementExternalOpenCount', async (_event, fileId: string) => {
+        try {
+            const result = incrementExternalOpenCount(fileId);
+            return {
+                success: true,
+                externalOpenCount: result.externalOpenCount,
+                lastExternalOpenedAt: result.lastExternalOpenedAt,
+            };
+        } catch (error) {
+            console.error('Failed to increment external open count:', error);
             return { success: false, error: String(error) };
         }
     });

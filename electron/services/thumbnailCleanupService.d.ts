@@ -12,7 +12,14 @@ export interface DiagnosticResult {
     totalThumbnails: number;
     orphanedCount: number;
     totalOrphanedSize: number;
+    orphanedFiles: string[];
     samples: OrphanedThumbnail[];
+}
+export interface CleanupResult {
+    success: boolean;
+    deletedCount: number;
+    freedBytes: number;
+    errors: string[];
 }
 /**
  * 孤立サムネイルの診断
@@ -22,3 +29,8 @@ export interface DiagnosticResult {
  * - パス比較の厳密化: path.normalize() で正規化
  */
 export declare function diagnoseThumbnails(profileId: string): Promise<DiagnosticResult>;
+/**
+ * 孤立サムネイルをクリーンアップ（削除）
+ * Phase 12-6: ストレージクリーンアップ機能
+ */
+export declare function cleanupOrphanedThumbnails(profileId: string): Promise<CleanupResult>;

@@ -28,6 +28,7 @@ export const FileGrid = React.memo(() => {
     const clearSelection = useFileStore((s) => s.clearSelection);
     const removeFile = useFileStore((s) => s.removeFile);
     const refreshFile = useFileStore((s) => s.refreshFile);
+    const updateFileExternalOpenCount = useFileStore((s) => s.updateFileExternalOpenCount);
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const currentFolderId = useFileStore((s) => s.currentFolderId);
     const setFolderMetadata = useFileStore((s) => s.setFolderMetadata);
@@ -203,6 +204,14 @@ export const FileGrid = React.memo(() => {
         });
         return unsubscribe;
     }, [refreshFile, showToast]);
+
+    // 外部アプリ起動カウント更新イベント
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onExternalOpenCountUpdated(({ fileId, externalOpenCount, lastExternalOpenedAt }) => {
+            updateFileExternalOpenCount(fileId, externalOpenCount, lastExternalOpenedAt);
+        });
+        return unsubscribe;
+    }, [updateFileExternalOpenCount]);
 
     // Phase 14-6: レスポンシブカードサイズ計算
     const { cardHeight, columns, rows, effectiveCardWidth, effectiveThumbnailHeight } = useMemo(() => {

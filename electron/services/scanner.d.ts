@@ -14,4 +14,8 @@ export declare function cancelScan(): void;
 export declare function isScanCancelled(): boolean;
 export declare function setPreviewFrameCount(count: number): void;
 export declare function getPreviewFrameCount(): number;
+export declare function setScanThrottleMs(ms: number): void;
+export declare function getScanThrottleMs(): number;
+export declare function setThumbnailResolution(resolution: number): void;
+export declare function getThumbnailResolution(): number;
 export declare function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback): Promise<void>;
