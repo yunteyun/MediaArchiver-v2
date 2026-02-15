@@ -506,6 +506,18 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     };
 
     const handleDoubleClick = async () => {
+        const syncExternalOpenCount = async () => {
+            const result = await window.electronAPI.incrementExternalOpenCount(file.id);
+            if (result.success && result.externalOpenCount !== undefined) {
+                const { useFileStore } = await import('../stores/useFileStore');
+                useFileStore.getState().updateFileExternalOpenCount(
+                    file.id,
+                    result.externalOpenCount,
+                    result.lastExternalOpenedAt || Date.now()
+                );
+            }
+        };
+
         // Phase 18-B: デフォルトアプリ設定 + エラーハンドリング + フォールバック
         const { externalApps, defaultExternalApps } = useSettingsStore.getState();
         const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -523,6 +535,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     const { useToastStore } = await import('../stores/useToastStore');
                     useToastStore.getState().error(result.error || '外部アプリで開けませんでした');
                     await window.electronAPI.openExternal(file.path);
+                    await syncExternalOpenCount();
                 } else if (result.externalOpenCount !== undefined) {
                     // 成功時: カウント更新
                     const { useFileStore } = await import('../stores/useFileStore');
@@ -538,6 +551,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
         // デフォルト設定なし or アプリが見つからない → OS標準で開く
         await window.electronAPI.openExternal(file.path);
+        await syncExternalOpenCount();
     };
 
     const handleContextMenu = (e: React.MouseEvent) => {

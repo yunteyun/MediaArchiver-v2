@@ -84,6 +84,7 @@ declare global {
             showFileContextMenu: (fileId: string, path: string) => Promise<void>;
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
+            onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => () => void;
 
             // File Delete Dialog (Phase 12-17B)
             confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
@@ -178,6 +179,12 @@ declare global {
                 success: boolean;
                 accessCount?: number;
                 lastAccessedAt?: number;
+                error?: string;
+            }>;
+            incrementExternalOpenCount: (fileId: string) => Promise<{
+                success: boolean;
+                externalOpenCount?: number;
+                lastExternalOpenedAt?: number;
                 error?: string;
             }>;
         };
