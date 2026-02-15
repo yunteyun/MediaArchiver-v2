@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Phase 17: Access Count
     incrementAccessCount: (fileId: string) =>
         ipcRenderer.invoke('file:incrementAccessCount', fileId),
+    incrementExternalOpenCount: (fileId: string) =>
+        ipcRenderer.invoke('file:incrementExternalOpenCount', fileId),
 
     // === Dialog ===
     selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
@@ -87,6 +89,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const handler = (_event: any, fileId: string) => callback(fileId);
         ipcRenderer.on('file:thumbnailRegenerated', handler);
         return () => ipcRenderer.removeListener('file:thumbnailRegenerated', handler);
+    },
+
+    onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => {
+        const handler = (_event: any, data: any) => callback(data);
+        ipcRenderer.on('file:externalOpenCountUpdated', handler);
+        return () => ipcRenderer.removeListener('file:externalOpenCountUpdated', handler);
     },
 
     // === File Delete Dialog (Phase 12-17B) ===

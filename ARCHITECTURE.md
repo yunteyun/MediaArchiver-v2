@@ -29,8 +29,8 @@ MediaArchiver v2 のシステム構成と設計方針を定義します。
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │   Archive    │  │   Metadata   │  │   External   │       │
-│  │   Handler    │  │   Extractor  │  │   App Opener │       │
+│  │   Archive    │  │   Tag/Rule   │  │   External   │       │
+│  │   Handler    │  │   Services   │  │   App Opener │       │
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -48,8 +48,13 @@ MediaArchiver-v2/
 │   │   └── thumbnail.ts
 │   └── services/       # ビジネスロジック
 │       ├── archiveHandler.ts
-│       ├── metadataExtractor.ts
-│       └── hashCalculator.ts
+│       ├── scanner.ts
+│       ├── thumbnail.ts
+│       ├── tagService.ts
+│       ├── autoTagService.ts
+│       ├── duplicateService.ts
+│       ├── statisticsService.ts
+│       └── fileOperationService.ts
 ├── src/                # Reactフロントエンド
 │   ├── App.tsx
 │   ├── main.tsx

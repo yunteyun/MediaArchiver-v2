@@ -34,7 +34,9 @@ MediaArchiver v2 の開発ロードマップです。
 
 ## 🚧 進行中 (In Progress)
 
-(なし)
+- Phase 19: Release Preparation
+  - lint/build の運用整備とドキュメント同期
+  - パッケージング準備項目の棚卸し
 
 ---
 

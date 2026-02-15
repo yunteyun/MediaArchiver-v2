@@ -11,7 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-(なし)
+### Docs
+- README に `lint` / `build` の実行手順を追記
+- ARCHITECTURE のサービス構成例を現行実装寄りに更新
+- CONVENTIONS に lint/build 運用ルールを追加
+- ROADMAP の In Progress を更新
 
 ---
 

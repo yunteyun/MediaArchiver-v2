@@ -103,6 +103,13 @@ export interface IpcChannels {
 - カラーパレットは `tailwind.config.js` で一元管理
 - ダークモード対応: `dark:` プレフィックスを使用
 
+## Lint / Build 運用
+
+- PR 前に最低限 `npm run lint` と `npm run build` を実行する
+- `lint` は **error 0** を必須とする（warning は段階的に解消）
+- 既存コードに警告が残っている場合でも、新規差分で警告を増やさない
+- 設定ファイルや生成物（`dist`, `dist-electron`, `*.d.ts`）の変更は意図を PR に明記する
+
 ## コミットメッセージ
 
 ```
