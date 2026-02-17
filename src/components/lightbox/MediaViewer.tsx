@@ -71,7 +71,56 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
             setSelectedArchiveImage(null);
             setCurrentArchiveAudioPath(null);
         }
-    }, [file]);
+    }, [file])
+
+    // Keyboard controls for video playback
+    useEffect(() => {
+        if (file.type !== 'video' || !videoRef.current) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const video = videoRef.current;
+            if (!video) return;
+
+            // 日本語入力時のSpaceキー対応のため e.code を使用
+            switch (e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    e.stopPropagation(); // 既存のショートカットとの競合を防ぐ
+                    video.paused ? video.play() : video.pause();
+                    break;
+
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    e.stopPropagation(); // Lightboxのファイル移動を無効化
+                    video.currentTime = Math.max(0, video.currentTime - 5);
+                    break;
+
+                case 'ArrowRight':
+                    e.preventDefault();
+                    e.stopPropagation(); // Lightboxのファイル移動を無効化
+                    video.currentTime = Math.min(video.duration, video.currentTime + 5);
+                    break;
+
+                case 'ArrowUp':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    video.volume = Math.min(1, video.volume + 0.1);
+                    break;
+
+                case 'ArrowDown':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    video.volume = Math.max(0, video.volume - 0.1);
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [file.type]);
+
 
     // Video type
     if (file.type === 'video') {

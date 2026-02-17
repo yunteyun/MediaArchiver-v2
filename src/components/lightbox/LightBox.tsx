@@ -146,8 +146,12 @@ export const LightBox = React.memo(() => {
             if (e.key === 'Escape') {
                 closeLightbox();
             }
-            if (e.key === 'ArrowLeft') goToPrevious();
-            if (e.key === 'ArrowRight') goToNext();
+
+            // 動画ファイルの場合は矢印キーをMediaViewerに任せる（シーク操作優先）
+            if (lightboxFile.type !== 'video') {
+                if (e.key === 'ArrowLeft') goToPrevious();
+                if (e.key === 'ArrowRight') goToNext();
+            }
 
             // 数字キーでクイックタグ
             if (e.key >= '1' && e.key <= '9') {
