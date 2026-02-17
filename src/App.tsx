@@ -213,6 +213,10 @@ function App() {
                         const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId);
 
                         if (result.success) {
+                            // Bug 3修正: 移動したファイルを即座にstoreから削除
+                            const { removeFile } = useFileStore.getState();
+                            removeFile(fileId);
+
                             useToastStore.getState().success('ファイルを移動しました');
                         } else {
                             useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
