@@ -17,6 +17,8 @@ export const SettingsModal = React.memo(() => {
 
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
+    const audioVolume = useSettingsStore((s) => s.audioVolume);
+    const setAudioVolume = useSettingsStore((s) => s.setAudioVolume);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const setThumbnailAction = useSettingsStore((s) => s.setThumbnailAction);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
@@ -190,6 +192,25 @@ export const SettingsModal = React.memo(() => {
                                     max="100"
                                     value={Math.round(videoVolume * 100)}
                                     onChange={(e) => setVideoVolume(Number(e.target.value) / 100)}
+                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                />
+                                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                    <span>0%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+
+                            {/* Audio Volume */}
+                            <div>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    音声ファイル再生時の音量: {Math.round(audioVolume * 100)}%
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={Math.round(audioVolume * 100)}
+                                    onChange={(e) => setAudioVolume(Number(e.target.value) / 100)}
                                     className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
                                 />
                                 <div className="flex justify-between text-xs text-surface-500 mt-1">

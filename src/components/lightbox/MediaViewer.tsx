@@ -6,10 +6,11 @@ import { toMediaUrl } from '../../utils/mediaPath';
 interface MediaViewerProps {
     file: MediaFile;
     videoVolume: number;
+    audioVolume: number;
     onVolumeChange: () => void;
 }
 
-export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, onVolumeChange }) => {
+export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, audioVolume, onVolumeChange }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -22,15 +23,16 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, on
     const [archiveLoading, setArchiveLoading] = useState(false);
     const [selectedArchiveImage, setSelectedArchiveImage] = useState<string | null>(null);
 
-    // 動画・音声の音量をvideoVolumeに同期
+    // 動画・音声の音量を同期
     useEffect(() => {
         if (videoRef.current) {
             videoRef.current.volume = videoVolume;
         }
         if (audioRef.current) {
-            audioRef.current.volume = videoVolume;
+            // audioRefは音声ファイルと書庫内音声の両方で使用されるため、常にaudioVolumeを使用
+            audioRef.current.volume = audioVolume;
         }
-    }, [videoVolume, file, currentArchiveAudioPath]);
+    }, [videoVolume, audioVolume, file, currentArchiveAudioPath]);
 
     // Set initial volume when video loads
     useEffect(() => {
@@ -259,7 +261,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, on
                 )}
                 {/* オーディオプレイヤー */}
                 <audio
-                    ref={videoRef}
+                    ref={audioRef}
                     src={toMediaUrl(file.path)}
                     controls
                     autoPlay

@@ -34,6 +34,7 @@ interface SettingsState {
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
+    audioVolume: number; // 0.0 - 1.0 (音声ファイル専用)
     performanceMode: boolean; // true = アニメーション無効化
     autoScanOnStartup: boolean; // true = 起動時自動スキャン
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
@@ -78,6 +79,7 @@ interface SettingsState {
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
+    setAudioVolume: (volume: number) => void;
     setPerformanceMode: (enabled: boolean) => void;
     setAutoScanOnStartup: (enabled: boolean) => void;
     setPreviewFrameCount: (count: number) => void;
@@ -116,6 +118,7 @@ export const useSettingsStore = create<SettingsState>()(
             sortBy: 'date',
             sortOrder: 'desc',
             videoVolume: 0.5,
+            audioVolume: 0.5,
             performanceMode: false,
             autoScanOnStartup: false,
             previewFrameCount: 10,
@@ -159,6 +162,7 @@ export const useSettingsStore = create<SettingsState>()(
             setSortBy: (sortBy) => set({ sortBy }),
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setVideoVolume: (volume) => set({ videoVolume: volume }),
+            setAudioVolume: (volume) => set({ audioVolume: volume }),
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
             setAutoScanOnStartup: (autoScanOnStartup) => set({ autoScanOnStartup }),
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),

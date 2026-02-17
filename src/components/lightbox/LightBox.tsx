@@ -14,7 +14,9 @@ export const LightBox = React.memo(() => {
     const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
     const incrementAccessCount = useFileStore((s) => s.incrementAccessCount);
     const videoVolume = useSettingsStore((s) => s.videoVolume);
+    const audioVolume = useSettingsStore((s) => s.audioVolume);
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
+    const setAudioVolume = useSettingsStore((s) => s.setAudioVolume);
 
     // Tag state
     const [fileTagIds, setFileTagIds] = useState<string[]>([]);
@@ -228,6 +230,7 @@ export const LightBox = React.memo(() => {
                     <MediaViewer
                         file={lightboxFile}
                         videoVolume={videoVolume}
+                        audioVolume={audioVolume}
                         onVolumeChange={handleVolumeChange}
                     />
                 </div>
