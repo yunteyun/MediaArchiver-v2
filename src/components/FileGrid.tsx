@@ -213,6 +213,28 @@ export const FileGrid = React.memo(() => {
         return unsubscribe;
     }, [updateFileExternalOpenCount]);
 
+    // Phase 19.5 Bug 6: ファイル移動イベント（一元管理）
+    // Phase 19.5 Bug 3: ファイル移動後の即時UI更新
+    useEffect(() => {
+        const handleRequestMove = async (data: { fileId: string; targetFolderId: string }) => {
+            const result = await window.electronAPI.moveFileToFolder(data.fileId, data.targetFolderId);
+
+            if (result.success) {
+                // Bug 3修正: 移動したファイルを即座にstoreから削除
+                removeFile(data.fileId);
+
+                const { useToastStore } = await import('../stores/useToastStore');
+                useToastStore.getState().success('ファイルを移動しました');
+            } else {
+                const { useToastStore } = await import('../stores/useToastStore');
+                useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
+            }
+        };
+
+        const unsubscribe = window.electronAPI.onRequestMove(handleRequestMove);
+        return unsubscribe;
+    }, [removeFile]);
+
     // Phase 14-6: レスポンシブカードサイズ計算
     const { cardHeight, columns, rows, effectiveCardWidth, effectiveThumbnailHeight } = useMemo(() => {
         // ⚠️ containerWidth は ResizeObserver.contentRect.width で取得済み（p-4 パディング除外済み）

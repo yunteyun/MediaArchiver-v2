@@ -81,7 +81,7 @@ declare global {
             onFolderRescanComplete: (callback: (folderId: string) => void) => () => void;
 
             // File Context Menu
-            showFileContextMenu: (fileId: string, path: string) => Promise<void>;
+            showFileContextMenu: (fileId: string, path: string, selectedFileIds?: string[]) => Promise<void>;
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
             onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => () => void;

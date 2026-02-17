@@ -7,7 +7,11 @@ import { spawn } from 'child_process';
 import { getCachedExternalApps } from './app';
 
 export function registerFileHandlers() {
-    ipcMain.handle('file:showContextMenu', async (event, { fileId, filePath }) => {
+    ipcMain.handle('file:showContextMenu', async (event, { fileId, filePath, selectedFileIds }) => {
+        // Bug 2修正: 複数選択対応
+        const effectiveFileIds = selectedFileIds && selectedFileIds.length > 0 ? selectedFileIds : [fileId];
+        const isMultiple = effectiveFileIds.length > 1;
+
         const ext = path.extname(filePath).toLowerCase().substring(1);
         const cachedApps = getCachedExternalApps();
 
@@ -20,6 +24,7 @@ export function registerFileHandlers() {
         const menuTemplate: Electron.MenuItemConstructorOptions[] = [
             {
                 label: 'デフォルトアプリで開く',
+                enabled: !isMultiple, // 複数選択時は無効
                 click: async () => {
                     await shell.openPath(filePath);
                     const result = incrementExternalOpenCount(fileId);
@@ -38,6 +43,7 @@ export function registerFileHandlers() {
             for (const app of compatibleApps) {
                 menuTemplate.push({
                     label: `${app.name}で開く`,
+                    enabled: !isMultiple, // 複数選択時は無効
                     click: async () => {
                         try {
                             const child = spawn(path.resolve(app.path), [path.resolve(filePath)], {
@@ -65,6 +71,7 @@ export function registerFileHandlers() {
             { type: 'separator' },
             {
                 label: 'エクスプローラーで表示',
+                enabled: !isMultiple, // 複数選択時は無効
                 click: async () => {
                     shell.showItemInFolder(filePath);
                 }
@@ -72,6 +79,7 @@ export function registerFileHandlers() {
             { type: 'separator' },
             {
                 label: 'サムネイル再作成',
+                enabled: !isMultiple, // 複数選択時は無効
                 click: async () => {
                     try {
                         const file = findFileById(fileId);
@@ -98,7 +106,7 @@ export function registerFileHandlers() {
                         if (videoExts.includes(fileExt)) {
                             const frameCount = getPreviewFrameCount();
 
-                            // 設定つ0の場合はスキップ
+                            // 設定が0の場合はスキップ
                             if (frameCount === 0) {
                                 console.log('[Thumbnail Regeneration] Preview frame count is 0, skipping generation');
                             } else {
@@ -146,18 +154,26 @@ export function registerFileHandlers() {
             {
                 label: 'フォルダに移動',
                 submenu: getFolders().map(folder => ({
-                    label: folder.name,
+                    label: isMultiple ? `${folder.name} (${effectiveFileIds.length}件)` : folder.name,
                     click: async () => {
-                        event.sender.send('file:requestMove', { fileId, targetFolderId: folder.id });
+                        // Bug 2修正: 複数ファイルの移動
+                        for (const id of effectiveFileIds) {
+                            event.sender.send('file:requestMove', { fileId: id, targetFolderId: folder.id });
+                        }
                     }
                 }))
             },
             { type: 'separator' },
             {
-                label: 'ファイルを削除',
+                label: isMultiple ? `ファイルを削除 (${effectiveFileIds.length}件)` : 'ファイルを削除',
                 click: async () => {
-                    // Rendererにダイアログ表示を通知（Phase 12-17B）
-                    event.sender.send('file:showDeleteDialog', { fileId, filePath });
+                    // Bug 2修正: 複数ファイルの削除
+                    for (const id of effectiveFileIds) {
+                        const file = findFileById(id);
+                        if (file) {
+                            event.sender.send('file:showDeleteDialog', { fileId: id, filePath: file.path });
+                        }
+                    }
                 }
             }
         );

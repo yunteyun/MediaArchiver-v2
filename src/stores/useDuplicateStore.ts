@@ -60,18 +60,26 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
 
     // Start duplicate search
     startSearch: async () => {
-        set({ isSearching: true, groups: [], stats: null, progress: null, selectedFileIds: new Set() });
+        // Bug 4修正: 開始時に完全初期化
+        set({
+            isSearching: true,
+            groups: [],
+            stats: null,
+            progress: null,
+            selectedFileIds: new Set()
+        });
 
         try {
             const result = await window.electronAPI.findDuplicates();
             set({
                 groups: result.groups,
                 stats: result.stats,
-                isSearching: false,
                 progress: { phase: 'complete', current: 0, total: 0 }
             });
         } catch (err) {
             console.error('Duplicate search failed:', err);
+        } finally {
+            // Bug 4修正: 確実にリセット
             set({ isSearching: false });
         }
     },

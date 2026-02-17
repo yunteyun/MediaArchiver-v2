@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard, Eye } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
+import { useFileStore } from '../stores/useFileStore';
 import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
 
@@ -197,26 +198,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // File tags state
     const [fileTags, setFileTags] = useState<Tag[]>([]);
-
-    // Phase 18-C: ファイル移動イベントハンドラ
-    React.useEffect(() => {
-        const handleRequestMove = async (data: { fileId: string; targetFolderId: string }) => {
-            if (data.fileId !== file.id) return;
-
-            const result = await window.electronAPI.moveFileToFolder(data.fileId, data.targetFolderId);
-
-            if (result.success) {
-                const { useToastStore } = await import('../stores/useToastStore');
-                useToastStore.getState().success('ファイルを移動しました');
-            } else {
-                const { useToastStore } = await import('../stores/useToastStore');
-                useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
-            }
-        };
-
-        const cleanup = window.electronAPI.onRequestMove(handleRequestMove);
-        return cleanup;
-    }, [file.id]);
 
     // Phase 14-7: タグポップオーバー
     const [showTagPopover, setShowTagPopover] = useState(false);
@@ -556,7 +537,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     const handleContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
-        window.electronAPI.showFileContextMenu(file.id, file.path);
+
+        // Bug 2修正: 複数選択対応
+        const selectedIdsArray = Array.from(useFileStore.getState().selectedIds);
+
+        // 右クリック対象が選択中に含まれているかを判定
+        const effectiveIds = selectedIdsArray.includes(file.id) ? selectedIdsArray : [file.id];
+
+        window.electronAPI.showFileContextMenu(file.id, file.path, effectiveIds);
     };
 
     return (

@@ -1,14 +1,14 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-14 09:03
+**Last Updated**: 2026-02-14 10:05
 
-- **Current Focus**: Phase 18（外部アプリ連携強化）
-- **Current Status**: Phase 18-B（UX強化）完了。
+- **Current Focus**: v1.0.0 リリース完了
+- **Current Status**: Phase 18-C完了。リリースビルド成功。数日間開発停止予定。
 - **Recent Achievements**: 
+  - **Release v1.0.0**: electron-builder セットアップ、ビルド成功（MediaArchiver v2.exe 生成）
+  - **Phase 18-C**: ファイル移動機能実装（クロスドライブ対応）
   - **Phase 18-B**: デフォルトアプリ設定、エラーハンドリング、フォールバック実装完了
   - **Phase 18-A**: 外部アプリ起動時のカウント追跡機能（最小構成）実装完了
-  - **Phase 17**: アクセストラッキング機能実装完了（アクセス回数/日時記録、ソート機能）
-  - **Phase 16**: FileCard インタラクション修正（サムネイルクリックでLightbox、カード全体で選択）
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -189,10 +189,8 @@
   - FileCard に `↗N回` 表示
 
 ## Next Steps
-- [ ] **Release Preparation**
-  - electron-builder セットアップ
-  - ビルドプロセス整備
-- [ ] **Phase 19: メディア再生機能拡張**
+- [ ] **数日間開発停止** — ユーザーがアプリを使用して不満点・実装希望をメモ
+- [ ] **Phase 19: メディア再生機能拡張**（再開後）
   - 動画途中再生（ランダム位置）
   - 既存モード拡張
 - [ ] Phase 14-3/4/5: 拡張モード（漫画/動画/WhiteBrowser風）

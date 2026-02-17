@@ -1,11 +1,12 @@
 {
     "name": "media-archiver-v2",
     "private": true,
-    "version": "0.9.8",
+    "version": "1.0.0",
     "main": "dist-electron/main.js",
     "scripts": {
         "dev": "vite",
-        "build": "tsc -b && vite build",
+        "build": "vite build",
+        "build:electron": "electron-builder",
         "lint": "eslint .",
         "preview": "vite preview"
     },
@@ -39,6 +40,7 @@
         "@vitejs/plugin-react": "^4.3.4",
         "autoprefixer": "^10.4.20",
         "electron": "^33.2.1",
+        "electron-builder": "^26.7.0",
         "electron-squirrel-startup": "^1.0.1",
         "eslint": "^9.17.0",
         "eslint-plugin-react-hooks": "^5.1.0",
@@ -50,5 +52,21 @@
         "typescript-eslint": "^8.18.2",
         "vite": "^6.0.5",
         "vite-plugin-electron": "^0.29.0"
+    },
+    "build": {
+        "appId": "com.yunteyun.mediaarchiver",
+        "productName": "MediaArchiver v2",
+        "directories": {
+            "output": "release"
+        },
+        "files": [
+            "dist/**/*",
+            "dist-electron/**/*",
+            "node_modules/**/*",
+            "package.json"
+        ],
+        "win": {
+            "target": "dir"
+        }
     }
 }

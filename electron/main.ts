@@ -29,10 +29,7 @@ protocol.registerSchemesAsPrivileged([
     { scheme: 'media', privileges: { stream: true, supportFetchAPI: true } }
 ]);
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) {
-    app.quit();
-}
+// Note: electron-squirrel-startup removed (not needed for dir build)
 
 let mainWindow: BrowserWindow | null = null;
 
