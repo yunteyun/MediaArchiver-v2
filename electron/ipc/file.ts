@@ -313,4 +313,47 @@ export function registerFileHandlers() {
             };
         }
     });
+
+    // Phase 22-C: ドライブ配下の全ファイル取得
+    ipcMain.handle('getFilesByDrive', async (_, drive: string) => {
+        const { getFilesByFolderIds } = await import('../services/database');
+        const folders = getFolders().filter(f => f.drive === drive);
+        const folderIds = folders.map(f => f.id);
+
+        if (folderIds.length === 0) return [];
+
+        return getFilesByFolderIds(folderIds);
+    });
+
+    // Phase 22-C: フォルダ配下の全ファイル取得（再帰）
+    ipcMain.handle('getFilesByFolderRecursive', async (_, folderId: string) => {
+        const { getFilesByFolderIds } = await import('../services/database');
+        const folders = getFolders();
+
+        // parentMap構築
+        const parentMap = new Map<string, string[]>();
+        folders.forEach(f => {
+            if (!f.parent_id) return;
+            if (!parentMap.has(f.parent_id)) {
+                parentMap.set(f.parent_id, []);
+            }
+            parentMap.get(f.parent_id)!.push(f.id);
+        });
+
+        // 子孫フォルダID取得
+        const descendants: string[] = [];
+        const stack = [folderId];
+
+        while (stack.length) {
+            const current = stack.pop()!;
+            const children = parentMap.get(current) || [];
+
+            children.forEach(child => {
+                descendants.push(child);
+                stack.push(child);
+            });
+        }
+
+        return getFilesByFolderIds([folderId, ...descendants]);
+    });
 }

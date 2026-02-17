@@ -18,6 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
     getFolderMetadata: () => ipcRenderer.invoke('folder:getMetadata'),
 
+    // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得
+    getFilesByDrive: (drive: string) => ipcRenderer.invoke('getFilesByDrive', drive),
+    getFilesByFolderRecursive: (folderId: string) => ipcRenderer.invoke('getFilesByFolderRecursive', folderId),
+
     // === Scanner ===
     scanFolder: (folderPath: string) => ipcRenderer.invoke('scanner:start', folderPath),
 
