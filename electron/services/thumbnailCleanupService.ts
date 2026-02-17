@@ -87,11 +87,8 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
     const thumbnailDir = getThumbnailDir(profileId);
     const db = dbManager.getDb();
 
-    // 1. サムネイルディレクトリ内のすべてのファイルを取得
-    const allThumbnails = getAllFiles(thumbnailDir);
-    log.debug(`Found ${allThumbnails.length} thumbnail files`);
-
-    // 2. DBから登録済みサムネイルパスを取得
+    // Bug 5修正: DB基準の孤立判定に変更
+    // 1. DBから登録済みサムネイルパスを取得
     const registeredFiles = db.prepare(`
         SELECT thumbnail_path, preview_frames FROM files 
         WHERE thumbnail_path IS NOT NULL OR preview_frames IS NOT NULL
@@ -99,52 +96,47 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
 
     log.debug(`Found ${registeredFiles.length} files with thumbnails or preview frames`);
 
-    // パスを正規化してSetに格納（高速検索のため）
-    const registeredPathSet = new Set<string>();
+    // 2. すべての登録済みサムネイルパスを収集
+    const allRegisteredPaths: string[] = [];
 
     for (const row of registeredFiles) {
         if (row.thumbnail_path) {
-            registeredPathSet.add(path.normalize(path.resolve(row.thumbnail_path)));
+            allRegisteredPaths.push(row.thumbnail_path);
         }
         if (row.preview_frames) {
             // preview_framesはカンマ区切り文字列（例: "path1,path2,path3"）
             const frames = row.preview_frames.split(',').filter(f => f.trim().length > 0);
-            log.debug(`Parsed ${frames.length} preview frames from DB`);
-            frames.forEach(framePath => {
-                const normalizedPath = path.normalize(path.resolve(framePath.trim()));
-                registeredPathSet.add(normalizedPath);
-                log.debug(`Registered preview frame: ${normalizedPath}`);
-            });
+            allRegisteredPaths.push(...frames.map(f => f.trim()));
         }
     }
 
-    log.debug(`Found ${registeredPathSet.size} registered thumbnail paths in DB`);
+    log.debug(`Found ${allRegisteredPaths.length} registered thumbnail paths in DB`);
 
-    // 3. 孤立サムネイルを検出
+    // 3. 孤立サムネイルを検出（DBに登録されているが実際にファイルが存在しないもの）
     const orphanedThumbnails: OrphanedThumbnail[] = [];
     let totalOrphanedSize = 0;
 
-    for (const thumbnailPath of allThumbnails) {
-        // パスを正規化して比較
+    for (const thumbnailPath of allRegisteredPaths) {
+        // パスを正規化
         const normalizedPath = path.normalize(path.resolve(thumbnailPath));
 
-        if (!registeredPathSet.has(normalizedPath)) {
-            const stats = fs.statSync(thumbnailPath);
+        // ファイルが存在しない場合は孤立サムネイル
+        if (!fs.existsSync(normalizedPath)) {
             orphanedThumbnails.push({
                 path: thumbnailPath,
-                size: stats.size
+                size: 0 // ファイルが存在しないのでサイズは0
             });
-            totalOrphanedSize += stats.size;
+            log.debug(`Orphaned thumbnail (file not found): ${normalizedPath}`);
         }
     }
 
-    log.info(`Diagnostic complete: ${orphanedThumbnails.length} orphaned thumbnails found (${(totalOrphanedSize / 1024 / 1024).toFixed(2)} MB)`);
+    log.info(`Diagnostic complete: ${orphanedThumbnails.length} orphaned thumbnails found (DB entries without files)`);
 
     // 4. サンプルを最大10件に制限（IPCペイロード軽量化）
     const samples = orphanedThumbnails.slice(0, 10);
 
     return {
-        totalThumbnails: allThumbnails.length,
+        totalThumbnails: allRegisteredPaths.length,
         orphanedCount: orphanedThumbnails.length,
         totalOrphanedSize,
         orphanedFiles: orphanedThumbnails.map(t => t.path),
