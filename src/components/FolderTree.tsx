@@ -61,6 +61,10 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
                     `}
                     style={{ paddingLeft: `${node.depth * 16 + 8}px` }}
                     onClick={() => onSelectFolder(node.id)}
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        window.electronAPI.showFolderContextMenu(node.id, node.path);
+                    }}
                     title={node.path}
                 >
                     {hasChildren && (
