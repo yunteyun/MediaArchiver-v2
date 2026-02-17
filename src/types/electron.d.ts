@@ -43,6 +43,10 @@ declare global {
             deleteFolder: (folderId: string) => Promise<void>;
             getFolderMetadata: () => Promise<{ fileCounts: Record<string, number>; thumbnails: Record<string, string> }>;
 
+            // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得
+            getFilesByDrive: (drive: string) => Promise<any[]>;
+            getFilesByFolderRecursive: (folderId: string) => Promise<any[]>;
+
             // Scanner
             scanFolder: (folderPath: string) => Promise<void>;
 
