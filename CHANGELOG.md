@@ -9,6 +9,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-22c] - 2026-02-18
+### Phase 22-C: フォルダツリーナビゲーション機能
+
+#### Added
+- **Phase 22-C-1**: ドライブ/親フォルダ選択機能
+  - ドライブヘッダークリックで配下全ファイル表示
+  - 親フォルダクリックで配下全ファイル表示（再帰）
+  - `getFilesByDrive`, `getFilesByFolderRecursive` IPC追加
+  - 特殊ID処理（`DRIVE_PREFIX`, `FOLDER_PREFIX`）
+- **Phase 22-C-2**: ファイル移動ダイアログ
+  - `MoveFolderDialog.tsx` 実装（フォルダツリー表示で移動先選択）
+  - 右クリックメニューに「移動」オプション追加
+  - `useUIStore` に移動ダイアログstate追加
+
+#### Changed
+- DBマイグレーション（008_add_folder_hierarchy）: `folders`テーブルに`parent_id`, `drive`カラム追加
+- `addFolder`関数で`parent_id`, `drive`を自動設定
+- 循環移動防止（自分自身と子孫フォルダを除外）
+
+#### Fixed
+- Bug 3: ファイル移動後に古いパスで404エラーが発生する問題（移動後にファイルストアから削除）
+
+#### Performance
+- parentIdベースの再帰検索（O(n)パフォーマンス）
+- `path.startsWith()`を使わず、parentMapで子孫検索
+
 ---
 
 ## [dev-21] - 2026-02-17
