@@ -1,14 +1,18 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-14 10:05
+**Last Updated**: 2026-02-17 10:41
 
-- **Current Focus**: v1.0.0 リリース完了
-- **Current Status**: Phase 18-C完了。リリースビルド成功。数日間開発停止予定。
+- **Current Focus**: Phase 19.5 完了
+- **Current Status**: 緊急バグ修正完了。Phase 20 (Lightbox改修) に進む準備完了。
 - **Recent Achievements**: 
+  - **Phase 19.5**: 緊急バグ修正（5件完了、1件スキップ）
+    - Bug 6: EventEmitter メモリリーク警告修正
+    - Bug 3: ファイル移動後の再スキャン問題修正
+    - Bug 2: 複数選択時の削除/移動の不具合修正
+    - Bug 4: 重複ファイル検索の再実行不可修正
+    - Bug 5: 書庫ファイルの孤立サムネイル問題修正
   - **Release v1.0.0**: electron-builder セットアップ、ビルド成功（MediaArchiver v2.exe 生成）
   - **Phase 18-C**: ファイル移動機能実装（クロスドライブ対応）
-  - **Phase 18-B**: デフォルトアプリ設定、エラーハンドリング、フォールバック実装完了
-  - **Phase 18-A**: 外部アプリ起動時のカウント追跡機能（最小構成）実装完了
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -175,24 +179,24 @@
 - ✅ **Phase 18-C: ファイル操作機能**
   - ファイル移動機能（右クリックメニュー）
   - クロスドライブ移動対応（EXDEVエラー時のcopy+deleteフォールバック）
+- ✅ **Phase 19.5: Critical Bug Fixes** 🐛
+  - Bug 6: EventEmitter メモリリーク警告（onRequestMove重複登録）
+  - Bug 3: ファイル移動後の再スキャン問題（store直接更新）
+  - Bug 2: 複数選択時の削除/移動の不具合（複数ファイルID対応）
+  - Bug 4: 重複ファイル検索の再実行不可（finallyブロック追加）
+  - Bug 5: 孤立サムネイル誤検出（DB基準判定に変更）
 
-## Recent Additions (2026-02-14)
-- **Phase 18-C 完了**:
-  - ファイルを登録済みフォルダへ移動可能に
-  - 異なるドライブ間の移動にも対応（`fs.rename` 失敗時の自動フォールバック）
-- **Phase 18-B 完了**:
-  - 設定画面で拡張子ごとにデフォルトアプリを指定可能に
-  - 起動エラー時にトースト通知 + OS標準アプリへフォールバック
-- **Phase 18-A 完了**:
-  - 外部アプリ起動カウント追跡（Migration 007）
-  - `ipc/database.ts` の手動マッピング問題を解消
-  - FileCard に `↗N回` 表示
+## Recent Additions (2026-02-17)
+- **Phase 19.5 完了**:
+  - 5つの緊急バグを修正（Bug 1はスキップ）
+  - EventEmitter メモリリーク、ファイル移動後の再スキャン、複数選択削除/移動、重複検索再実行、孤立サムネイル誤検出を解決
+  - プロファイル別サムネイル管理の改善
 
 ## Next Steps
-- [ ] **数日間開発停止** — ユーザーがアプリを使用して不満点・実装希望をメモ
-- [ ] **Phase 19: メディア再生機能拡張**（再開後）
+- [ ] **Phase 20: Lightbox & メディア再生機能拡張**
+  - Lightbox全面改良（レイアウト、操作性）
   - 動画途中再生（ランダム位置）
-  - 既存モード拡張
+  - 音声ファイルのプログレスバー改善
 - [ ] Phase 14-3/4/5: 拡張モード（漫画/動画/WhiteBrowser風）
 
 ## Known Issues

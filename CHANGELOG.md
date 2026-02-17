@@ -9,6 +9,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+---
+
+## [dev-19.5] - 2026-02-17
+### Phase 19.5: Critical Bug Fixes
+
+#### Fixed
+- **EventEmitter メモリリーク警告**: FileCardでの重複イベントリスナー登録をFileGridに集約
+- **ファイル移動後の再スキャン問題**: ファイル移動後に即座にstoreから削除、404エラーとUI更新遅延を解決
+- **複数選択時の削除/移動の不具合**: コンテキストメニューで複数ファイルIDを渡すように修正、選択した全ファイルの削除/移動に対応
+- **重複ファイル検索の再実行不可**: finallyブロックで確実に検索状態をリセット、複数回の検索実行が可能に
+- **孤立サムネイル誤検出**: 孤立判定をDB基準に変更、他のプロファイルのサムネイル誤検出を解決
+
+---
+
 ## [Unreleased]
 
 ### Docs
