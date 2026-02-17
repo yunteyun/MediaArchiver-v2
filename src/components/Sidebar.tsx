@@ -3,6 +3,7 @@ import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Sett
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
+import { FolderTree } from './FolderTree';
 import type { MediaFolder } from '../types/file';
 
 // 特殊なフォルダID
@@ -156,7 +157,7 @@ export const Sidebar = React.memo(() => {
                     <div className="border-t border-surface-700 my-2" />
                 )}
 
-                {/* フォルダリスト */}
+                {/* フォルダツリー（Phase 22） */}
                 {folders.length === 0 ? (
                     !sidebarCollapsed && (
                         <p className="text-surface-500 text-sm text-center py-4">
@@ -164,31 +165,12 @@ export const Sidebar = React.memo(() => {
                         </p>
                     )
                 ) : (
-                    folders.map(folder => (
-                        <div
-                            key={folder.id}
-                            onClick={() => handleSelectFolder(folder.id)}
-                            className={`
-                                flex items-center gap-2 p-2 rounded cursor-pointer mb-1 transition-colors
-                                ${currentFolderId === folder.id
-                                    ? 'bg-blue-600 text-white'
-                                    : 'hover:bg-surface-800 text-surface-300'}
-                                ${sidebarCollapsed ? 'justify-center' : ''}
-                            `}
-                            onContextMenu={(e) => {
-                                e.preventDefault();
-                                window.electronAPI.showFolderContextMenu(folder.id, folder.path);
-                            }}
-                            title={folder.path}
-                        >
-                            <Folder size={20} className="flex-shrink-0" />
-                            {!sidebarCollapsed && (
-                                <span className="truncate text-sm">
-                                    {folder.name}
-                                </span>
-                            )}
-                        </div>
-                    ))
+                    <FolderTree
+                        folders={folders}
+                        currentFolderId={currentFolderId}
+                        onSelectFolder={handleSelectFolder}
+                        collapsed={sidebarCollapsed}
+                    />
                 )}
 
                 {/* Tag Filter Panel */}
