@@ -17,8 +17,9 @@ import { addAutoTagRules } from './004_add_auto_tag_rules';
 import { addIsAnimated } from './005_add_is_animated';
 import { accessTracking } from './006_access_tracking';
 import { externalOpenCount } from './007_external_open_count';
+import { addFolderHierarchy } from './008_add_folder_hierarchy';
 // 将来のマイグレーション:
-// import { xxx } from './008_xxx';
+// import { xxx } from './009_xxx';
 
 // 型をre-export
 export type { Migration };
@@ -35,6 +36,7 @@ const MIGRATIONS: Migration[] = [
     addIsAnimated,
     accessTracking,
     externalOpenCount,
+    addFolderHierarchy, // Phase 22-C
 ];
 
 /**
