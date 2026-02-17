@@ -52,6 +52,8 @@ export interface MediaFolder {
     name: string;
     path: string;
     created_at: number;
+    parent_id: string | null;  // Phase 22-C: 親フォルダID
+    drive: string;              // Phase 22-C: ドライブ文字
 }
 
 // --- Helper ---
@@ -134,6 +136,24 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
         tags: getTags(f.id)
     }));
 }
+
+/**
+ * Phase 22-C: 複数フォルダのファイルを一括取得
+ */
+export function getFilesByFolderIds(folderIds: string[]): MediaFile[] {
+    if (folderIds.length === 0) return [];
+
+    const db = getDb();
+    const placeholders = folderIds.map(() => '?').join(',');
+    const query = `SELECT * FROM files WHERE root_folder_id IN (${placeholders}) ORDER BY created_at DESC`;
+    const files = db.prepare(query).all(...folderIds) as any[];
+
+    return files.map(f => ({
+        ...mapRow(f),
+        tags: getTags(f.id)
+    }));
+}
+
 
 export function findFileByPath(filePath: string): MediaFile | undefined {
     const db = getDb();

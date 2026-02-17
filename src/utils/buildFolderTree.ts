@@ -98,3 +98,45 @@ export function buildFolderTreeByDrive(folders: MediaFolder[]): Map<string, Fold
     // ドライブ名でソート（C:, D:, ...）
     return new Map([...driveMap.entries()].sort((a, b) => a[0].localeCompare(b[0])));
 }
+
+/**
+ * parentId ベースの親子マップを構築（Phase 22-C）
+ * O(n) で構築
+ */
+export function buildParentMap(folders: MediaFolder[]): Map<string, string[]> {
+    const map = new Map<string, string[]>();
+
+    folders.forEach(f => {
+        if (!f.parentId) return;
+        if (!map.has(f.parentId)) {
+            map.set(f.parentId, []);
+        }
+        map.get(f.parentId)!.push(f.id);
+    });
+
+    return map;
+}
+
+/**
+ * 指定フォルダの子孫フォルダIDを取得（Phase 22-C）
+ * parentMap を使用して O(n) で取得
+ */
+export function getDescendantFolderIds(
+    folderId: string,
+    parentMap: Map<string, string[]>
+): string[] {
+    const result: string[] = [];
+    const stack = [folderId];
+
+    while (stack.length) {
+        const current = stack.pop()!;
+        const children = parentMap.get(current) || [];
+
+        children.forEach(child => {
+            result.push(child);
+            stack.push(child);
+        });
+    }
+
+    return result;
+}
