@@ -90,7 +90,7 @@ export const TagSelector = React.memo(({
 
             {/* Dropdown - opens upward */}
             {isOpen && (
-                <div className="absolute bottom-full mb-1 w-64 bg-surface-800 border border-surface-700 rounded-lg shadow-xl overflow-hidden" style={{ zIndex: 'var(--z-dropdown)' }}>
+                <div className="absolute bottom-full mb-1 w-96 bg-surface-800 border border-surface-700 rounded-lg shadow-xl overflow-hidden" style={{ zIndex: 'var(--z-dropdown)' }}>
                     {/* Search */}
                     <div className="p-2 border-b border-surface-700">
                         <div className="relative">
@@ -107,7 +107,7 @@ export const TagSelector = React.memo(({
                     </div>
 
                     {/* Tag List */}
-                    <div className="max-h-64 overflow-auto p-2">
+                    <div className="max-h-96 overflow-auto p-2">
                         {/* Uncategorized tags */}
                         {uncategorizedTags.length > 0 && (
                             <div className="mb-2">
