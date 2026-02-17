@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from 'react';
 import { Folder, FolderOpen, ChevronRight, ChevronDown, HardDrive } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
 import { buildFolderTreeByDrive, type FolderTreeNode } from '../utils/buildFolderTree';
+import { DRIVE_PREFIX, FOLDER_PREFIX } from './Sidebar';
 
 interface FolderTreeProps {
     folders: MediaFolder[];
@@ -60,7 +61,11 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
                         ${isSelected ? 'bg-blue-600 text-white' : 'hover:bg-surface-800 text-surface-300'}
                     `}
                     style={{ paddingLeft: `${node.depth * 16 + 8}px` }}
-                    onClick={() => onSelectFolder(node.id)}
+                    onClick={() => {
+                        // Phase 22-C: 子フォルダがある場合は配下全体を選択
+                        const folderId = hasChildren ? `${FOLDER_PREFIX}${node.id}` : node.id;
+                        onSelectFolder(folderId);
+                    }}
                     onContextMenu={(e) => {
                         e.preventDefault();
                         window.electronAPI.showFolderContextMenu(node.id, node.path);
@@ -108,7 +113,16 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
                         {/* ドライブヘッダー */}
                         <div
                             className="flex items-center gap-2 p-2 font-semibold text-surface-400 cursor-pointer hover:bg-surface-800 rounded transition-colors"
-                            onClick={() => toggleDrive(drive)}
+                            onClick={(e) => {
+                                // Phase 22-C: ドライブクリックで配下全ファイル表示
+                                if (e.shiftKey || e.ctrlKey) {
+                                    // 修飾キー押下時は折りたたみトグル
+                                    toggleDrive(drive);
+                                } else {
+                                    // 通常クリックはドライブ選択
+                                    onSelectFolder(`${DRIVE_PREFIX}${drive}`);
+                                }
+                            }}
                         >
                             {isDriveCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                             <HardDrive size={16} className="flex-shrink-0" />

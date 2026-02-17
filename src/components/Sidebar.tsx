@@ -8,6 +8,8 @@ import type { MediaFolder } from '../types/file';
 
 // 特殊なフォルダID
 const ALL_FILES_ID = '__all__';
+export const DRIVE_PREFIX = '__drive:';
+export const FOLDER_PREFIX = '__folder:';
 
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
@@ -51,11 +53,27 @@ export const Sidebar = React.memo(() => {
         useUIStore.getState().closeDuplicateView(); // 重複ビューを閉じる
         useUIStore.getState().setMainView('grid');  // 統計ビューを閉じる
         try {
-            // folderId が null または ALL_FILES_ID の場合は全ファイル取得
-            const queryFolderId = folderId === ALL_FILES_ID ? undefined : folderId ?? undefined;
-            console.log('Frontend: Requesting files for', queryFolderId ?? 'all');
-            const files = await window.electronAPI.getFiles(queryFolderId);
-            console.log('Frontend: Received files:', files.length);
+            let files;
+
+            if (!folderId || folderId === ALL_FILES_ID) {
+                // 全ファイル
+                files = await window.electronAPI.getFiles();
+            }
+            else if (folderId.startsWith(DRIVE_PREFIX)) {
+                // Phase 22-C: ドライブ配下の全ファイル
+                const drive = folderId.slice(DRIVE_PREFIX.length);
+                files = await window.electronAPI.getFilesByDrive(drive);
+            }
+            else if (folderId.startsWith(FOLDER_PREFIX)) {
+                // Phase 22-C: フォルダ配下の全ファイル（再帰）
+                const actualId = folderId.slice(FOLDER_PREFIX.length);
+                files = await window.electronAPI.getFilesByFolderRecursive(actualId);
+            }
+            else {
+                // 通常のフォルダ（直下のみ）
+                files = await window.electronAPI.getFiles(folderId);
+            }
+
             setFiles(files);
         } catch (e) {
             console.error('Error loading files:', e);

@@ -393,10 +393,18 @@ export function addFolder(folderPath: string, name?: string): MediaFolder {
     const folderName = name || path.basename(folderPath);
     const now = Date.now();
 
-    db.prepare('INSERT INTO folders (id, path, name, created_at) VALUES (?, ?, ?, ?)')
-        .run(id, folderPath, folderName, now);
+    // Phase 22-C: drive抽出
+    const drive = folderPath.match(/^[A-Z]:/i) ? folderPath.substring(0, 2).toUpperCase() : '/';
 
-    return { id, path: folderPath, name: folderName, created_at: now };
+    // Phase 22-C: parent_id算出（pathベース）
+    const parentPath = path.dirname(folderPath);
+    const parent = parentPath && parentPath !== folderPath ? getFolderByPath(parentPath) : null;
+    const parent_id = parent ? parent.id : null;
+
+    db.prepare('INSERT INTO folders (id, path, name, created_at, parent_id, drive) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(id, folderPath, folderName, now, parent_id, drive);
+
+    return { id, path: folderPath, name: folderName, created_at: now, parent_id, drive };
 }
 
 export function deleteFolder(id: string) {
