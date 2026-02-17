@@ -11,6 +11,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-21] - 2026-02-17
+### Phase 21: グループ表示改善
+
+#### Added
+- 相対時間区分追加（今日、昨日、今週、先週、2週間前）
+- グループキー仕様実装（`relative:today`など）
+- 表示順序実装（今日→昨日→今週→先週→2週間前→それ以降）
+
+#### Changed
+- 日付グループ化ロジックを拡張（相対時間区分を優先）
+- 日付境界は1回だけ計算（パフォーマンス最適化）
+
+#### Performance
+- ループ外で日付境界を計算（O(n)を維持）
+- 既存のメモ化、React.memo、TanStack Virtualを活用
+
+---
+
 ## [dev-20b] - 2026-02-17
 ### Phase 20-B: 動画キーボード操作
 
