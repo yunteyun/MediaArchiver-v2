@@ -11,6 +11,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-20b] - 2026-02-17
+### Phase 20-B: 動画キーボード操作
+
+#### Added
+- 動画再生時のキーボード操作（Space: 再生/停止、←→: 5秒シーク、↑↓: 音量調整）
+- 日本語入力対応（`e.code`使用）
+
+#### Changed
+- 動画ファイル時はLightboxの矢印キーファイル移動を無効化（シーク操作優先）
+
+#### Fixed
+- 日本語入力時にSpaceキーが機能しない問題
+- 矢印キーが既存のLightboxショートカットと競合する問題
+
+---
+
 ## [dev-20a] - 2026-02-17
 ### Phase 20-A: Lightbox UI再設計
 
