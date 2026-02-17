@@ -11,6 +11,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-20a] - 2026-02-17
+### Phase 20-A: Lightbox UI再設計
+
+#### Added
+- Lightbox コンポーネント分離（MediaViewer, ControlOverlay, InfoPanel, MetaSection, TagSection, StatsSection, MemoSection）
+- 常に2カラム固定レイアウト（情報エリア左384px・メディア右可変）
+- 動画・音声音量分離機能（audioVolume設定追加）
+- 設定画面に音声音量スライダー追加
+
+#### Changed
+- メディアサイズを情報エリアを考慮した値に調整（`calc(100vw - 450px)`）
+- ナビゲーション矢印を下部中央に移動（横並び配置）
+- 音声プレイヤーの幅を拡大（320px → 最大672px）
+- React.memo全適用、Zustand最小購読でパフォーマンス最適化
+
+#### Fixed
+- 音声ファイルで`audioRef`を使用するように修正（`videoRef`使用によるバグ）
+- 書庫内音声も`audioVolume`設定を使用するように修正
+
+---
+
 ## [dev-19.5] - 2026-02-17
 ### Phase 19.5: Critical Bug Fixes
 
