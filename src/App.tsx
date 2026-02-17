@@ -17,6 +17,7 @@ import { useUIStore } from './stores/useUIStore';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
+import { MoveFolderDialog } from './components/MoveFolderDialog';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -36,6 +37,11 @@ function App() {
     const deleteDialogFileId = useUIStore((s) => s.deleteDialogFileId);
     const openDeleteDialog = useUIStore((s) => s.openDeleteDialog);
     const closeDeleteDialog = useUIStore((s) => s.closeDeleteDialog);
+    // Phase 22-C-2
+    const moveDialogOpen = useUIStore((s) => s.moveDialogOpen);
+    const moveFileIds = useUIStore((s) => s.moveFileIds);
+    const moveCurrentFolderId = useUIStore((s) => s.moveCurrentFolderId);
+    const closeMoveDialog = useUIStore((s) => s.closeMoveDialog);
 
     // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
     const autoScanOnStartupRef = useRef(false);
@@ -107,6 +113,15 @@ function App() {
         });
         return cleanup;
     }, [setFiles, setCurrentFolderId, clearTagFilter]);
+
+    // Phase 22-C-2: ファイル移動ダイアログ開くイベント
+    useEffect(() => {
+        const cleanup = window.electronAPI.onOpenMoveDialog((data) => {
+            const { openMoveDialog } = useUIStore.getState();
+            openMoveDialog(data.fileIds, data.currentFolderId);
+        });
+        return cleanup;
+    }, []);
 
     // スキャンキャンセル
     const handleCancelScan = useCallback(async () => {
@@ -184,6 +199,30 @@ function App() {
                 filePath={deleteDialogFilePath || ''}
                 onConfirm={handleDeleteConfirm}
                 onCancel={closeDeleteDialog}
+            />
+            {/* Phase 22-C-2: ファイル移動ダイアログ */}
+            <MoveFolderDialog
+                isOpen={moveDialogOpen}
+                onClose={closeMoveDialog}
+                onMove={async (targetFolderId) => {
+                    if (moveFileIds.length === 0) return;
+
+                    try {
+                        // 現在は単一ファイルのみ対応
+                        const fileId = moveFileIds[0];
+                        const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId);
+
+                        if (result.success) {
+                            useToastStore.getState().success('ファイルを移動しました');
+                        } else {
+                            useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
+                        }
+                    } catch (error) {
+                        console.error('Move file error:', error);
+                        useToastStore.getState().error('ファイル移動に失敗しました');
+                    }
+                }}
+                currentFolderId={moveCurrentFolderId || undefined}
             />
         </div>
     );

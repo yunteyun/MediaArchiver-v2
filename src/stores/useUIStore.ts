@@ -32,6 +32,10 @@ interface UIState {
     deleteDialogOpen: boolean;
     deleteDialogFilePath: string | null;
     deleteDialogFileId: string | null;
+    // Phase 22-C-2: ファイル移動ダイアログ
+    moveDialogOpen: boolean;
+    moveFileIds: string[];  // 将来の複数選択対応
+    moveCurrentFolderId: string | null;
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -55,6 +59,9 @@ interface UIState {
     setScanProgressVisible: (visible: boolean) => void;
     openDeleteDialog: (fileId: string, filePath: string) => void;
     closeDeleteDialog: () => void;
+    // Phase 22-C-2
+    openMoveDialog: (fileIds: string[], currentFolderId: string | null) => void;
+    closeMoveDialog: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -75,6 +82,10 @@ export const useUIStore = create<UIState>((set) => ({
     deleteDialogOpen: false,
     deleteDialogFilePath: null,
     deleteDialogFileId: null,
+    // Phase 22-C-2
+    moveDialogOpen: false,
+    moveFileIds: [],
+    moveCurrentFolderId: null,
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -106,6 +117,9 @@ export const useUIStore = create<UIState>((set) => ({
     setMainView: (view) => set({ mainView: view }),
     openDeleteDialog: (fileId, filePath) => set({ deleteDialogOpen: true, deleteDialogFileId: fileId, deleteDialogFilePath: filePath }),
     closeDeleteDialog: () => set({ deleteDialogOpen: false, deleteDialogFilePath: null, deleteDialogFileId: null }),
+    // Phase 22-C-2
+    openMoveDialog: (fileIds, currentFolderId) => set({ moveDialogOpen: true, moveFileIds: fileIds, moveCurrentFolderId: currentFolderId }),
+    closeMoveDialog: () => set({ moveDialogOpen: false, moveFileIds: [], moveCurrentFolderId: null }),
 
     // Phase 17-3: 同時再生制御
     setHoveredPreview: (id) => set({ hoveredPreviewId: id }),

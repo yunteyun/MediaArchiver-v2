@@ -70,6 +70,20 @@ export function registerFileHandlers() {
         menuTemplate.push(
             { type: 'separator' },
             {
+                label: '移動',
+                enabled: !isMultiple, // 複数選択時は無効（将来対応）
+                click: async () => {
+                    const file = findFileById(fileId);
+                    if (!file) return;
+
+                    // UIStoreのopenMoveDialogを呼び出す
+                    event.sender.send('file:openMoveDialog', {
+                        fileIds: [fileId],
+                        currentFolderId: file.root_folder_id
+                    });
+                }
+            },
+            {
                 label: 'エクスプローラーで表示',
                 enabled: !isMultiple, // 複数選択時は無効
                 click: async () => {

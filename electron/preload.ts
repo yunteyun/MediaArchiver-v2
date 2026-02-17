@@ -101,6 +101,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('file:externalOpenCountUpdated', handler);
     },
 
+    // Phase 22-C-2: ファイル移動ダイアログ
+    onOpenMoveDialog: (callback: (data: { fileIds: string[]; currentFolderId: string | null }) => void) => {
+        const handler = (_event: any, data: any) => callback(data);
+        ipcRenderer.on('file:openMoveDialog', handler);
+        return () => ipcRenderer.removeListener('file:openMoveDialog', handler);
+    },
+
     // === File Delete Dialog (Phase 12-17B) ===
     confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) =>
         ipcRenderer.invoke('file:confirmDelete', { fileId, filePath, permanentDelete }),

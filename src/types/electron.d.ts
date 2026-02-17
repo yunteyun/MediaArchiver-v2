@@ -90,6 +90,9 @@ declare global {
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
             onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => () => void;
 
+            // Phase 22-C-2: ファイル移動ダイアログ
+            onOpenMoveDialog: (callback: (data: { fileIds: string[]; currentFolderId: string | null }) => void) => () => void;
+
             // File Delete Dialog (Phase 12-17B)
             confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
             onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) => () => void;
