@@ -29,13 +29,96 @@ const TYPE_LABELS: Record<string, { label: string; icon: string }> = {
 };
 
 /**
+ * 日付境界計算（Phase 21-A: 相対時間区分）
+ * ループ外で1回だけ計算する
+ */
+function getDateBoundaries() {
+    const now = new Date();
+
+    // 今日の開始時刻（00:00:00）
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // 昨日の開始時刻
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+    // 今週の月曜日（weekStartsOn: 1）
+    const weekStart = new Date(todayStart);
+    const dayOfWeek = weekStart.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 日曜日は6日前、それ以外は曜日-1
+    weekStart.setDate(weekStart.getDate() - daysToMonday);
+
+    // 先週の月曜日
+    const lastWeekStart = new Date(weekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    // 2週間前の月曜日
+    const twoWeeksStart = new Date(weekStart);
+    twoWeeksStart.setDate(twoWeeksStart.getDate() - 14);
+
+    return {
+        now,
+        todayStart: todayStart.getTime(),
+        yesterdayStart: yesterdayStart.getTime(),
+        weekStart: weekStart.getTime(),
+        lastWeekStart: lastWeekStart.getTime(),
+        twoWeeksStart: twoWeeksStart.getTime()
+    };
+}
+
+/**
+ * 相対時間区分を判定（Phase 21-A）
+ * 判定順序は厳守すること
+ */
+function getRelativeTimeGroup(timestamp: number, boundaries: ReturnType<typeof getDateBoundaries>): string | null {
+    const { todayStart, yesterdayStart, weekStart, lastWeekStart, twoWeeksStart } = boundaries;
+
+    // 今日
+    if (timestamp >= todayStart) {
+        return 'relative:today';
+    }
+
+    // 昨日
+    if (timestamp >= yesterdayStart && timestamp < todayStart) {
+        return 'relative:yesterday';
+    }
+
+    // 今週（今日・昨日を除く）
+    if (timestamp >= weekStart && timestamp < yesterdayStart) {
+        return 'relative:thisWeek';
+    }
+
+    // 先週
+    if (timestamp >= lastWeekStart && timestamp < weekStart) {
+        return 'relative:lastWeek';
+    }
+
+    // 2週間前
+    if (timestamp >= twoWeeksStart && timestamp < lastWeekStart) {
+        return 'relative:twoWeeksAgo';
+    }
+
+    // それ以降は既存ロジック
+    return null;
+}
+
+/**
  * ファイルのグループキーを取得
  */
-function getGroupKey(file: MediaFile, groupBy: GroupBy): string {
+function getGroupKey(file: MediaFile, groupBy: GroupBy, boundaries?: ReturnType<typeof getDateBoundaries>): string {
     switch (groupBy) {
         case 'date': {
+            // Phase 21-A: 相対時間区分を優先
+            if (boundaries) {
+                const relativeGroup = getRelativeTimeGroup(file.createdAt, boundaries);
+                if (relativeGroup) {
+                    return relativeGroup;
+                }
+            }
+
+            // 既存ロジック（年/月）
             const date = new Date(file.createdAt);
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            return `month:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         }
         case 'size': {
             for (const range of SIZE_RANGES) {
@@ -56,11 +139,28 @@ function getGroupKey(file: MediaFile, groupBy: GroupBy): string {
  * グループキーからラベルを取得
  */
 function getGroupLabel(key: string, groupBy: GroupBy): string {
+    // Phase 21-A: 相対時間区分
+    if (key.startsWith('relative:')) {
+        const relativeType = key.split(':')[1];
+        switch (relativeType) {
+            case 'today': return '今日';
+            case 'yesterday': return '昨日';
+            case 'thisWeek': return '今週';
+            case 'lastWeek': return '先週';
+            case 'twoWeeksAgo': return '2週間前';
+        }
+    }
+
     switch (groupBy) {
         case 'date': {
-            const [year, month] = key.split('-');
-            const monthNum = month ? parseInt(month, 10) : 1;
-            return `${year}年${monthNum}月`;
+            // 既存ロジック（年/月）
+            if (key.startsWith('month:')) {
+                const monthKey = key.substring(6); // "month:" を除去
+                const [year, month] = monthKey.split('-');
+                const monthNum = month ? parseInt(month, 10) : 1;
+                return `${year}年${monthNum}月`;
+            }
+            return key;
         }
         case 'size': {
             const range = SIZE_RANGES.find(r => r.key === key);
@@ -79,6 +179,11 @@ function getGroupLabel(key: string, groupBy: GroupBy): string {
  * グループアイコンを取得
  */
 function getGroupIcon(key: string, groupBy: GroupBy): string {
+    // Phase 21-A: 相対時間区分
+    if (key.startsWith('relative:')) {
+        return 'Calendar';
+    }
+
     switch (groupBy) {
         case 'date':
             return 'Calendar';
@@ -146,9 +251,29 @@ function sortFiles(
  */
 function sortGroups(groups: FileGroup[], groupBy: GroupBy): FileGroup[] {
     switch (groupBy) {
-        case 'date':
-            // 新しい月が上
-            return groups.sort((a, b) => b.key.localeCompare(a.key));
+        case 'date': {
+            // Phase 21-A: 相対時間区分の優先順位
+            const relativeOrder = ['relative:today', 'relative:yesterday', 'relative:thisWeek', 'relative:lastWeek', 'relative:twoWeeksAgo'];
+
+            return groups.sort((a, b) => {
+                const aIsRelative = a.key.startsWith('relative:');
+                const bIsRelative = b.key.startsWith('relative:');
+
+                // 両方とも相対時間区分の場合
+                if (aIsRelative && bIsRelative) {
+                    const aIndex = relativeOrder.indexOf(a.key);
+                    const bIndex = relativeOrder.indexOf(b.key);
+                    return aIndex - bIndex;
+                }
+
+                // 相対時間区分が優先
+                if (aIsRelative) return -1;
+                if (bIsRelative) return 1;
+
+                // 既存ロジック（新しい月が上）
+                return b.key.localeCompare(a.key);
+            });
+        }
         case 'size':
             // SIZE_RANGES の順序に従う（大きいサイズが上）
             return groups.sort((a, b) => {
@@ -184,11 +309,14 @@ export function groupFiles(
         }];
     }
 
+    // Phase 21-A: date grouping の場合は日付境界を1回だけ計算
+    const boundaries = groupBy === 'date' ? getDateBoundaries() : undefined;
+
     // グループ化
     const groupMap = new Map<string, MediaFile[]>();
 
     files.forEach(file => {
-        const key = getGroupKey(file, groupBy);
+        const key = getGroupKey(file, groupBy, boundaries);
         const existing = groupMap.get(key) || [];
         groupMap.set(key, [...existing, file]);
     });
