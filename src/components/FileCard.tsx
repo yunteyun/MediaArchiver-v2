@@ -588,6 +588,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         className={`w-full h-full object-cover transition-transform duration-300 ${!shouldPlayVideo ? 'group-hover:scale-105' : ''
                             } ${shouldPlayVideo ? 'opacity-0' : 'opacity-100'}`}
                         loading="lazy"
+                        onError={(e) => {
+                            // 画像ロードエラー時はプレースホルダーを表示（不透明度を下げるなど視覚的FB）
+                            e.currentTarget.style.opacity = '0.3';
+                        }}
                     />
                 ) : (
                     <Icon size={40} className="text-surface-600" />
@@ -603,6 +607,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         loop
                         playsInline
                         preload="metadata"
+                        onError={() => {
+                            // Phase 19.5 Bug Fix: 動画ロードエラー時にプレビューを解除して404ループを防止
+                            setHoveredPreview(null);
+                        }}
                     />
                 )}
 

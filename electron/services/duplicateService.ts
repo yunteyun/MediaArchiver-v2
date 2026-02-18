@@ -58,6 +58,11 @@ export async function findDuplicates(
     isCancelled = false;
     const db = dbManager.getDb();
 
+    // デバッグ: 現在のプロファイルとファイル数を確認
+    const profileId = dbManager.getCurrentProfileId();
+    const totalFileCount = (db.prepare('SELECT COUNT(*) as count FROM files').get() as { count: number }).count;
+    log.info(`[DEBUG] findDuplicates called. profileId=${profileId}, totalFiles=${totalFileCount}`);
+
     // Phase 1: サイズ重複グループを抽出（高速）
     log.info('Phase 1: Finding size duplicates...');
     onProgress?.({ phase: 'analyzing', current: 0, total: 0 });
@@ -72,14 +77,14 @@ export async function findDuplicates(
     `).all() as { size: number; count: number }[];
 
     if (sizeGroups.length === 0) {
-        log.info('No size duplicates found');
+        log.info(`[DEBUG] No size duplicates found. profileId=${profileId}, totalFiles=${totalFileCount}`);
         onProgress?.({ phase: 'complete', current: 0, total: 0 });
         return [];
     }
 
     // 対象ファイル数を計算
     const totalFilesToHash = sizeGroups.reduce((sum, g) => sum + g.count, 0);
-    log.info(`Found ${sizeGroups.length} size groups, ${totalFilesToHash} files to hash`);
+    log.info(`[DEBUG] Found ${sizeGroups.length} size groups, ${totalFilesToHash} files to hash`);
 
     // Phase 2: 各グループ内のファイルのハッシュを計算
     log.info('Phase 2: Calculating hashes...');
@@ -118,11 +123,17 @@ export async function findDuplicates(
             // 既にハッシュがある場合は再利用
             let hash = file.content_hash;
             if (!hash) {
-                hash = await calculateFileHash(file.path);
-                if (hash) {
-                    // DBに保存（次回高速化）
-                    db.prepare('UPDATE files SET content_hash = ? WHERE id = ?')
-                        .run(hash, file.id);
+                try {
+                    hash = await calculateFileHash(file.path);
+                    if (hash) {
+                        // DBに保存（次回高速化）
+                        db.prepare('UPDATE files SET content_hash = ? WHERE id = ?')
+                            .run(hash, file.id);
+                    } else {
+                        log.warn(`[DEBUG] Hash calculation returned null for: ${file.path}`);
+                    }
+                } catch (hashErr: any) {
+                    log.error(`[DEBUG] Hash calculation error for ${file.path}: ${hashErr.message}`);
                 }
             }
 
@@ -168,7 +179,7 @@ export async function findDuplicates(
     // サイズでソート（大きい順）
     duplicateGroups.sort((a, b) => b.size - a.size);
 
-    log.info(`Found ${duplicateGroups.length} duplicate groups`);
+    log.info(`[DEBUG] Found ${duplicateGroups.length} duplicate groups (processed ${processedFiles} files)`);
     onProgress?.({ phase: 'complete', current: processedFiles, total: totalFilesToHash });
 
     return duplicateGroups;

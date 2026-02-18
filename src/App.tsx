@@ -18,6 +18,7 @@ import { useSettingsStore } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 import { MoveFolderDialog } from './components/MoveFolderDialog';
+import { useDuplicateStore } from './stores/useDuplicateStore';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -104,12 +105,21 @@ function App() {
     // プロファイル切替イベントを監視
     useEffect(() => {
         const cleanup = window.electronAPI.onProfileSwitched((_profileId) => {
-            // プロファイルが切り替わったらファイル表示をクリア
-            setFiles([]);
-            setCurrentFolderId(null);
-            clearTagFilter();
-            // コンポーネントを再マウント
-            setRefreshKey((k) => k + 1);
+            // === プロファイル切替時の論理的アプリリセット ===
+            // プロファイル切替は「DBの切替」ではなく「アプリ状態の完全分離境界」として扱う。
+            // Zustand の state はメモリに残るため、明示的にリセットが必要。
+            // 将来ストアが増えた場合はここに追加する。
+            const handleProfileSwitch = () => {
+                // ファイル表示をクリア
+                setFiles([]);
+                setCurrentFolderId(null);
+                clearTagFilter();
+                // 重複検索ストアをリセット（前プロファイルの結果を残さない）
+                useDuplicateStore.getState().reset();
+                // コンポーネントを再マウント
+                setRefreshKey((k) => k + 1);
+            };
+            handleProfileSwitch();
         });
         return cleanup;
     }, [setFiles, setCurrentFolderId, clearTagFilter]);

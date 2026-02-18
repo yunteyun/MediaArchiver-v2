@@ -176,6 +176,10 @@ export const FileGrid = React.memo(() => {
     useEffect(() => {
         const cleanup = window.electronAPI.onFileDeleted((fileId) => {
             console.log('File deleted:', fileId);
+            // 削除されるファイルがプレビュー中なら解除
+            if (useUIStore.getState().hoveredPreviewId === fileId) {
+                useUIStore.getState().setHoveredPreview(null);
+            }
             removeFile(fileId);
         });
 
@@ -220,6 +224,11 @@ export const FileGrid = React.memo(() => {
             const result = await window.electronAPI.moveFileToFolder(data.fileId, data.targetFolderId);
 
             if (result.success) {
+                // 移動したファイルがプレビュー中なら解除
+                if (useUIStore.getState().hoveredPreviewId === data.fileId) {
+                    useUIStore.getState().setHoveredPreview(null);
+                }
+
                 // Bug 3修正: 移動したファイルを即座にstoreから削除
                 removeFile(data.fileId);
 

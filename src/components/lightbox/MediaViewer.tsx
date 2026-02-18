@@ -130,7 +130,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
                 src={toMediaUrl(file.path)}
                 controls
                 autoPlay
-                style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '85vh', objectFit: 'contain' }}
+                style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
                 onVolumeChange={onVolumeChange}
             />
         );
@@ -142,7 +142,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
             <img
                 src={toMediaUrl(file.path)}
                 alt={file.name}
-                style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '85vh', objectFit: 'contain' }}
+                style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
             />
         );
     }
@@ -156,7 +156,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
                     <img
                         src={toMediaUrl(selectedArchiveImage)}
                         alt="Archive preview"
-                        style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '85vh', objectFit: 'contain' }}
+                        style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
                         className="cursor-pointer"
                         onClick={() => setSelectedArchiveImage(null)}
                     />

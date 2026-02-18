@@ -33,6 +33,7 @@ interface DuplicateState {
     progress: DuplicateProgress | null;
     selectedFileIds: Set<string>;
     isDeleting: boolean;
+    hasSearched: boolean; // 検索完了フラグ（未検索 vs 結果0件の区別）
 
     // Actions
     startSearch: () => Promise<void>;
@@ -57,6 +58,7 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
     progress: null,
     selectedFileIds: new Set(),
     isDeleting: false,
+    hasSearched: false,
 
     // Start duplicate search
     startSearch: async () => {
@@ -74,7 +76,8 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
             set({
                 groups: result.groups,
                 stats: result.stats,
-                progress: { phase: 'complete', current: 0, total: 0 }
+                progress: { phase: 'complete', current: 0, total: 0 },
+                hasSearched: true
             });
         } catch (err) {
             console.error('Duplicate search failed:', err);
@@ -184,7 +187,8 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
             isSearching: false,
             progress: null,
             selectedFileIds: new Set(),
-            isDeleting: false
+            isDeleting: false,
+            hasSearched: false
         });
     },
 

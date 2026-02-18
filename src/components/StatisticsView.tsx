@@ -72,7 +72,7 @@ export const StatisticsView: React.FC = () => {
     useEffect(() => {
         loadStats();
         // Delay chart rendering to avoid size calculation issues
-        const timer = setTimeout(() => setIsReady(true), 100);
+        const timer = setTimeout(() => setIsReady(true), 300);
         return () => clearTimeout(timer);
     }, []);
 
@@ -158,30 +158,32 @@ export const StatisticsView: React.FC = () => {
                 </h2>
                 <div className="grid grid-cols-[auto_1fr] gap-6 items-center">
                     <div className="h-48 w-48">
-                        <PieChart width={192} height={192}>
-                            <Pie
-                                data={stats.byType.map(t => ({
-                                    name: typeLabels[t.type] || t.type,
-                                    value: t.count,
-                                    color: typeColors[t.type] || '#6366f1'
-                                }))}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={40}
-                                outerRadius={70}
-                                dataKey="value"
-                                stroke="#1e293b"
-                                strokeWidth={2}
-                            >
-                                {stats.byType.map((t, idx) => (
-                                    <Cell key={`cell-${idx}`} fill={typeColors[t.type] || '#6366f1'} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                labelStyle={{ color: '#f1f5f9' }}
-                            />
-                        </PieChart>
+                        {isReady && (
+                            <PieChart width={192} height={192}>
+                                <Pie
+                                    data={stats.byType.map(t => ({
+                                        name: typeLabels[t.type] || t.type,
+                                        value: t.count,
+                                        color: typeColors[t.type] || '#6366f1'
+                                    }))}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={40}
+                                    outerRadius={70}
+                                    dataKey="value"
+                                    stroke="#1e293b"
+                                    strokeWidth={2}
+                                >
+                                    {stats.byType.map((t, idx) => (
+                                        <Cell key={`cell-${idx}`} fill={typeColors[t.type] || '#6366f1'} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                    labelStyle={{ color: '#f1f5f9' }}
+                                />
+                            </PieChart>
+                        )}
                     </div>
                     <div className="flex-1 space-y-3">
                         {stats.byType.map(t => (
@@ -214,7 +216,7 @@ export const StatisticsView: React.FC = () => {
                     </h2>
                     <div className="h-64">
                         {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <BarChart
                                     data={stats.byTag.slice(0, 10)}
                                     layout="vertical"
@@ -253,7 +255,7 @@ export const StatisticsView: React.FC = () => {
                     </h2>
                     <div className="h-64">
                         {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <BarChart
                                     data={stats.byFolder.map(f => ({
                                         name: f.folderPath.split('\\').pop() || f.folderPath,
@@ -299,7 +301,7 @@ export const StatisticsView: React.FC = () => {
                     </h2>
                     <div className="h-64 min-w-0 min-h-0">
                         {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <LineChart data={stats.monthlyTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                     <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
@@ -325,28 +327,30 @@ export const StatisticsView: React.FC = () => {
                     </h2>
                     <div className="grid grid-cols-[auto_1fr] gap-6 items-center">
                         <div className="h-48 w-48">
-                            <PieChart width={192} height={192}>
-                                <Pie
-                                    data={[
-                                        { name: 'タグあり', value: stats.untaggedStats.tagged, color: '#22c55e' },
-                                        { name: 'タグなし', value: stats.untaggedStats.untagged, color: '#ef4444' }
-                                    ]}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={40}
-                                    outerRadius={70}
-                                    dataKey="value"
-                                    stroke="#1e293b"
-                                    strokeWidth={2}
-                                >
-                                    <Cell fill="#22c55e" />
-                                    <Cell fill="#ef4444" />
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
-                                />
-                            </PieChart>
+                            {isReady && (
+                                <PieChart width={192} height={192}>
+                                    <Pie
+                                        data={[
+                                            { name: 'タグあり', value: stats.untaggedStats.tagged, color: '#22c55e' },
+                                            { name: 'タグなし', value: stats.untaggedStats.untagged, color: '#ef4444' }
+                                        ]}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={40}
+                                        outerRadius={70}
+                                        dataKey="value"
+                                        stroke="#1e293b"
+                                        strokeWidth={2}
+                                    >
+                                        <Cell fill="#22c55e" />
+                                        <Cell fill="#ef4444" />
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#f1f5f9' }}
+                                    />
+                                </PieChart>
+                            )}
                         </div>
                         <div className="flex-1 space-y-3">
                             <div className="flex items-center gap-3">
@@ -379,7 +383,7 @@ export const StatisticsView: React.FC = () => {
                     </h2>
                     <div className="h-48 min-w-0 min-h-0">
                         {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <BarChart data={stats.ratingStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                     <XAxis dataKey="rating" stroke="#94a3b8" fontSize={12} />
@@ -456,29 +460,31 @@ export const StatisticsView: React.FC = () => {
                     </h2>
                     <div className="grid grid-cols-[auto_1fr] gap-6 items-center">
                         <div className="h-48 w-48">
-                            <PieChart width={192} height={192}>
-                                <Pie
-                                    data={stats.resolutionStats}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={40}
-                                    outerRadius={70}
-                                    dataKey="count"
-                                    nameKey="resolution"
-                                    stroke="#1e293b"
-                                    strokeWidth={2}
-                                >
-                                    <Cell fill="#06b6d4" />
-                                    <Cell fill="#3b82f6" />
-                                    <Cell fill="#8b5cf6" />
-                                    <Cell fill="#ec4899" />
-                                    <Cell fill="#64748b" />
-                                </Pie>
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
-                                />
-                            </PieChart>
+                            {isReady && (
+                                <PieChart width={192} height={192}>
+                                    <Pie
+                                        data={stats.resolutionStats}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={40}
+                                        outerRadius={70}
+                                        dataKey="count"
+                                        nameKey="resolution"
+                                        stroke="#1e293b"
+                                        strokeWidth={2}
+                                    >
+                                        <Cell fill="#06b6d4" />
+                                        <Cell fill="#3b82f6" />
+                                        <Cell fill="#8b5cf6" />
+                                        <Cell fill="#ec4899" />
+                                        <Cell fill="#64748b" />
+                                    </Pie>
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                                        labelStyle={{ color: '#f1f5f9' }}
+                                    />
+                                </PieChart>
+                            )}
                         </div>
                         <div className="flex-1 space-y-2">
                             {stats.resolutionStats.map((res, idx) => (

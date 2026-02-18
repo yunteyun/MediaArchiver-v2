@@ -34,6 +34,7 @@ export const DuplicateView: React.FC = () => {
         progress,
         selectedFileIds,
         isDeleting,
+        hasSearched,
         startSearch,
         cancelSearch,
         setProgress,
@@ -77,7 +78,7 @@ export const DuplicateView: React.FC = () => {
     }, [selectedFileIds, deleteSelectedFiles]);
 
     // 検索中の表示
-    if (isSearching && progress) {
+    if (isSearching) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Loader className="w-12 h-12 text-primary-400 animate-spin mb-4" />
@@ -85,8 +86,9 @@ export const DuplicateView: React.FC = () => {
                     重複ファイルを検索中...
                 </h2>
                 <p className="text-surface-400 mb-4">
-                    {progress.phase === 'analyzing' && '同じサイズのファイルを分析中...'}
-                    {progress.phase === 'hashing' && (
+                    {!progress && '準備中...'}
+                    {progress?.phase === 'analyzing' && '同じサイズのファイルを分析中...'}
+                    {progress?.phase === 'hashing' && (
                         <>
                             ハッシュ計算中: {progress.current}/{progress.total}
                             {progress.currentFile && (
@@ -97,7 +99,7 @@ export const DuplicateView: React.FC = () => {
                         </>
                     )}
                 </p>
-                {progress.phase === 'hashing' && (
+                {progress?.phase === 'hashing' && (
                     <div className="w-64 h-2 bg-surface-700 rounded-full overflow-hidden mb-4">
                         <div
                             className="h-full bg-primary-500 transition-all duration-200"
@@ -115,8 +117,30 @@ export const DuplicateView: React.FC = () => {
         );
     }
 
-    // 結果がない場合
-    if (!isSearching && groups.length === 0) {
+    // 検索済みだが重複なし
+    if (hasSearched && !isSearching && groups.length === 0) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
+                <Copy className="w-16 h-16 text-surface-600 mb-4" />
+                <h2 className="text-xl font-medium text-surface-100 mb-2">
+                    重複ファイルは見つかりませんでした
+                </h2>
+                <p className="text-surface-400 mb-6 text-center max-w-md">
+                    このプロファイルには重複するファイルがありません。
+                </p>
+                <button
+                    onClick={startSearch}
+                    className="px-6 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                    <Copy className="w-5 h-5" />
+                    再検索
+                </button>
+            </div>
+        );
+    }
+
+    // 未検索の初期画面
+    if (!hasSearched && !isSearching && groups.length === 0) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Copy className="w-16 h-16 text-surface-600 mb-4" />
