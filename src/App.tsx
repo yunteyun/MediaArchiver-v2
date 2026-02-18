@@ -10,6 +10,7 @@ import { ScanProgressBar } from './components/ScanProgressBar';
 import { ToastContainer } from './components/Toast';
 import { DuplicateView } from './components/DuplicateView';
 import { StatisticsView } from './components/StatisticsView';
+import { RightPanel } from './components/RightPanel';
 import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
@@ -43,6 +44,9 @@ function App() {
     const moveFileIds = useUIStore((s) => s.moveFileIds);
     const moveCurrentFolderId = useUIStore((s) => s.moveCurrentFolderId);
     const closeMoveDialog = useUIStore((s) => s.closeMoveDialog);
+    // Phase 23: 右サイドパネル
+    const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
+    const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
 
     // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
     const autoScanOnStartupRef = useRef(false);
@@ -176,7 +180,7 @@ function App() {
     return (
         <div className="flex h-screen w-screen bg-surface-950 text-white overflow-hidden">
             <Sidebar key={`sidebar-${refreshKey}`} />
-            <main className="flex-1 flex flex-col h-full overflow-hidden">
+            <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden">
                 {/* Header with Profile Switcher */}
                 <header className="h-12 flex items-center justify-between px-4 border-b border-surface-800 bg-surface-900 flex-shrink-0">
                     <div className="flex items-center gap-4">
@@ -184,6 +188,20 @@ function App() {
                     </div>
                     <div className="flex items-center gap-2">
                         <ProfileSwitcher onOpenManageModal={() => setProfileModalOpen(true)} />
+                        {/* Phase 23: 右パネルトグル */}
+                        <button
+                            onClick={toggleRightPanel}
+                            className={`p-1.5 rounded transition-colors ${isRightPanelOpen
+                                    ? 'text-primary-400 bg-primary-900/30 hover:bg-primary-900/50'
+                                    : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700'
+                                }`}
+                            title={isRightPanelOpen ? '右パネルを閉じる' : '右パネルを開く'}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                                    d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h4M9 3v18M9 3h10a2 2 0 012 2v14a2 2 0 01-2 2H9" />
+                            </svg>
+                        </button>
                     </div>
                 </header>
                 {/* メインコンテンツ: 統計 / 重複ビュー / ファイルグリッド */}
@@ -195,6 +213,8 @@ function App() {
                     <FileGrid key={`grid-${refreshKey}`} />
                 )}
             </main>
+            {/* Phase 23: 右サイドパネル（transform で開閉、レイアウトシフト回避） */}
+            {isRightPanelOpen && <RightPanel />}
             <LightBox />
             <SettingsModal />
             <ProfileModal

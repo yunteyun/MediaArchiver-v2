@@ -36,6 +36,9 @@ interface UIState {
     moveDialogOpen: boolean;
     moveFileIds: string[];  // 将来の複数選択対応
     moveCurrentFolderId: string | null;
+    // Phase 23: 右サイドパネル
+    isRightPanelOpen: boolean;
+    previewContext: 'grid-hover' | 'right-panel' | null;  // プレビュー排他制御
     // アクション
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
@@ -62,6 +65,9 @@ interface UIState {
     // Phase 22-C-2
     openMoveDialog: (fileIds: string[], currentFolderId: string | null) => void;
     closeMoveDialog: () => void;
+    // Phase 23: 右サイドパネル
+    toggleRightPanel: () => void;
+    setPreviewContext: (ctx: 'grid-hover' | 'right-panel' | null) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -86,6 +92,9 @@ export const useUIStore = create<UIState>((set) => ({
     moveDialogOpen: false,
     moveFileIds: [],
     moveCurrentFolderId: null,
+    // Phase 23: 右サイドパネル
+    isRightPanelOpen: true,
+    previewContext: null,
 
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
@@ -123,4 +132,8 @@ export const useUIStore = create<UIState>((set) => ({
 
     // Phase 17-3: 同時再生制御
     setHoveredPreview: (id) => set({ hoveredPreviewId: id }),
+
+    // Phase 23: 右サイドパネル
+    toggleRightPanel: () => set((state) => ({ isRightPanelOpen: !state.isRightPanelOpen })),
+    setPreviewContext: (ctx) => set({ previewContext: ctx }),
 }));

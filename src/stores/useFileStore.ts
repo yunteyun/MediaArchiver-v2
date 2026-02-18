@@ -5,8 +5,9 @@ import { useTagStore } from './useTagStore';
 
 interface FileState {
     files: MediaFile[];
+    fileMap: Map<string, MediaFile>;  // O(1)ルックアップ用（Phase 23: 右パネル）
     selectedIds: Set<string>;
-    focusedId: string | null;
+    focusedId: string | null;  // 右パネル専用。単一。selectedIds（複数選択）とは独立。
     anchorId: string | null;  // 範囲選択の起点
     currentFolderId: string | null;
     // ファイルごとのタグIDをキャッシュ
@@ -40,6 +41,7 @@ interface FileState {
 
 export const useFileStore = create<FileState>((set, get) => ({
     files: [],
+    fileMap: new Map(),
     selectedIds: new Set(),
     focusedId: null,
     anchorId: null,
@@ -49,7 +51,8 @@ export const useFileStore = create<FileState>((set, get) => ({
     folderThumbnails: {},
 
     setFiles: (files) => {
-        set({ files, focusedId: null });
+        const fileMap = new Map(files.map(f => [f.id, f]));
+        set({ files, fileMap, focusedId: null });
         // ファイルが更新されたらタグキャッシュをリロード
         get().loadFileTagsCache();
     },
@@ -156,8 +159,11 @@ export const useFileStore = create<FileState>((set, get) => ({
         set((state) => {
             const newCache = new Map(state.fileTagsCache);
             newCache.delete(fileId);
+            const newFileMap = new Map(state.fileMap);
+            newFileMap.delete(fileId);
             return {
                 files: state.files.filter(f => f.id !== fileId),
+                fileMap: newFileMap,
                 selectedIds: new Set(
                     Array.from(state.selectedIds).filter(id => id !== fileId)
                 ),
@@ -169,9 +175,14 @@ export const useFileStore = create<FileState>((set, get) => ({
         try {
             const updatedFile = await window.electronAPI.getFileById(fileId);
             if (updatedFile) {
-                set((state) => ({
-                    files: state.files.map(f => f.id === fileId ? updatedFile : f)
-                }));
+                set((state) => {
+                    const newFileMap = new Map(state.fileMap);
+                    newFileMap.set(fileId, updatedFile);
+                    return {
+                        files: state.files.map(f => f.id === fileId ? updatedFile : f),
+                        fileMap: newFileMap,
+                    };
+                });
             }
         } catch (e) {
             console.error('Failed to refresh file:', e);
@@ -205,29 +216,29 @@ export const useFileStore = create<FileState>((set, get) => ({
 
     // Phase 17: アクセス回数をインクリメント（即時UI反映）
     incrementAccessCount: (fileId: string, lastAccessedAt: number) =>
-        set((state) => ({
-            files: state.files.map(file =>
+        set((state) => {
+            const updatedFiles = state.files.map(file =>
                 file.id === fileId
-                    ? {
-                        ...file,
-                        accessCount: (file.accessCount || 0) + 1,
-                        lastAccessedAt
-                    }
+                    ? { ...file, accessCount: (file.accessCount || 0) + 1, lastAccessedAt }
                     : file
-            )
-        })),
+            );
+            const newFileMap = new Map(state.fileMap);
+            const updated = newFileMap.get(fileId);
+            if (updated) newFileMap.set(fileId, { ...updated, accessCount: (updated.accessCount || 0) + 1, lastAccessedAt });
+            return { files: updatedFiles, fileMap: newFileMap };
+        }),
 
     // Phase 18-A: 外部アプリ起動カウント更新（即時UI反映）
     updateFileExternalOpenCount: (fileId: string, count: number, timestamp: number) =>
-        set((state) => ({
-            files: state.files.map(file =>
+        set((state) => {
+            const updatedFiles = state.files.map(file =>
                 file.id === fileId
-                    ? {
-                        ...file,
-                        externalOpenCount: count,
-                        lastExternalOpenedAt: timestamp
-                    }
+                    ? { ...file, externalOpenCount: count, lastExternalOpenedAt: timestamp }
                     : file
-            )
-        })),
+            );
+            const newFileMap = new Map(state.fileMap);
+            const updated = newFileMap.get(fileId);
+            if (updated) newFileMap.set(fileId, { ...updated, externalOpenCount: count, lastExternalOpenedAt: timestamp });
+            return { files: updatedFiles, fileMap: newFileMap };
+        }),
 }));
