@@ -9,6 +9,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-23] - 2026-02-18
+### Phase 23: 右サイドパネル
+
+#### Added
+- **`RightPanel` コンポーネント群**: `PreviewSection`（動画autoplay/muted/loop、アニメーション対応）、`BasicInfoSection`（ファイル名・サイズ・解像度・再生時間・作成日）、`TagSection`（カラー表示・折り返しレイアウト）
+- **`useUIStore`**: `isRightPanelOpen`（デフォルトtrue）、`toggleRightPanel`、`previewContext`、`setPreviewContext` を追加
+- **ヘッダートグルボタン**: 右パネル開閉ボタンをヘッダー右上に追加（アクティブ時ハイライト）
+- **グリッドホバーとの排他制御**: `previewContext` で `'grid-hover'` / `'right-panel'` を管理
+
+#### Changed
+- `App.tsx`: `<RightPanel />` を `isRightPanelOpen` 条件付きで組み込み
+
+---
+
 ## [dev-24] - 2026-02-18
 ### Phase 24: サムネイル軽量化
 

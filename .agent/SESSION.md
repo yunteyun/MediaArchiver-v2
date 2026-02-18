@@ -1,11 +1,11 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-18 20:56
+**Last Updated**: 2026-02-18 21:07
 
-- **Current Focus**: Phase 24 完了（サムネイル軽量化・WebP化）
-- **Current Status**: Phase 24完了。次のフェーズに進む準備完了。
+- **Current Focus**: Phase 23・24 完了（右サイドパネル・サムネイル軽量化）
+- **Current Status**: Phase 23・24完了。次のフェーズに進む準備完了。
 - **Recent Achievements**: 
-  - **Phase 24**: サムネイル軽量化完了
+  - **Phase 23**: 右サイドパネル完了（実装済みだったが記録漏れ）
     - 静止画/動画/プレビューフレームをWebP形式に変換
     - プレビューフレームを320px×10枚 → 256px×6枚に削減
     - 一括再生成機能（バッチ処理・進捗通知付き）
@@ -246,6 +246,11 @@
     - 右クリックメニューに「移動」オプション追加
     - 循環移動防止（自分自身と子孫フォルダを除外）
     - Bug 3修正: 移動後のファイル削除
+- ✅ **Phase 23: 右サイドパネル** 🗂️
+  - `RightPanel` コンポーネント群（PreviewSection・BasicInfoSection・TagSection）
+  - `useUIStore`: `isRightPanelOpen`・`toggleRightPanel`・`previewContext`・`setPreviewContext`
+  - ヘッダートグルボタン（アクティブ時ハイライト）
+  - グリッドホバーとの排他制御（previewContextによる同時再生防止）
 - ✅ **Phase 24: サムネイル軽量化** 🗜️
   - 静止画サムネイル → WebP（quality:82）
   - 動画サムネイル → WebP（quality:75、ffmpeg libwebp方式）
