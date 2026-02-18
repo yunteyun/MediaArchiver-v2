@@ -1,8 +1,8 @@
 /**
- * Archive Handler - 書庫ファイル処理サービス
+ * Archive Handler - 書庫ファイル処琁E��ービス
  * 
- * ZIP, RAR, 7Z, CBZ, CBR などの書庫ファイルを処理し、
- * メタデータ取得、サムネイル生成、プレビュー画像抽出を行う。
+ * ZIP, RAR, 7Z, CBZ, CBR などの書庫ファイルを�E琁E��、E
+ * メタチE�Eタ取得、サムネイル生�E、�Eレビュー画像抽出を行う、E
  */
 
 import { path7za } from '7zip-bin';
@@ -13,40 +13,45 @@ import { execFile } from 'child_process';
 import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
+import { getBasePath } from './storageConfig';
 
 const log = logger.scope('ArchiveHandler');
 
 const execFilePromise = util.promisify(execFile);
 
-// ディレクトリ設定
-const TEMP_DIR = path.join(app.getPath('userData'), 'temp', 'archives');
-const THUMBNAIL_DIR = path.join(app.getPath('userData'), 'thumbnails');
+// Phase 25: チE��レクトリ設定（動皁E��得！E
+function getTempDir(): string {
+    return path.join(app.getPath('userData'), 'temp', 'archives');
+}
+function getThumbnailDir(): string {
+    return path.join(getBasePath(), 'thumbnails');
+}
 
-// サポートする書庫拡張子
+// サポ�Eトする書庫拡張孁E
 const ARCHIVE_EXTENSIONS = ['.zip', '.cbz', '.rar', '.cbr', '.7z'];
 
-// サポートする画像拡張子
+// サポ�Eトする画像拡張孁E
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 
-// サポートする音声拡張子
+// サポ�Eトする音声拡張孁E
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
 
 // 7za バイナリパスの解決
 function resolve7zaPath(): string {
     let resolvedPath = path7za;
 
-    // Production 環境での asar 対応
+    // Production 環墁E��の asar 対忁E
     if (resolvedPath && resolvedPath.includes('app.asar')) {
         resolvedPath = resolvedPath.replace('app.asar', 'app.asar.unpacked');
     }
 
-    // パスが存在するか確認
+    // パスが存在するか確誁E
     if (fs.existsSync(resolvedPath)) {
         log.info('7za binary found at:', resolvedPath);
         return resolvedPath;
     }
 
-    // 開発環境でのフォールバック
+    // 開発環墁E��のフォールバック
     log.warn('7za binary not found at:', resolvedPath);
     const devPath = path.join(process.cwd(), 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe');
 
@@ -56,18 +61,20 @@ function resolve7zaPath(): string {
     }
 
     log.error('7za binary not found anywhere!');
-    return resolvedPath; // 見つからなくても返す（エラーは後で発生）
+    return resolvedPath; // 見つからなくても返す�E�エラーは後で発生！E
 }
 
 const SEVEN_ZA_PATH = resolve7zaPath();
 
-// ディレクトリ初期化
+// チE��レクトリ初期匁E
 function ensureDirectories(): void {
-    if (!fs.existsSync(TEMP_DIR)) {
-        fs.mkdirSync(TEMP_DIR, { recursive: true });
+    const tempDir = getTempDir();
+    const thumbnailDir = getThumbnailDir();
+    if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
     }
-    if (!fs.existsSync(THUMBNAIL_DIR)) {
-        fs.mkdirSync(THUMBNAIL_DIR, { recursive: true });
+    if (!fs.existsSync(thumbnailDir)) {
+        fs.mkdirSync(thumbnailDir, { recursive: true });
     }
 }
 
@@ -95,7 +102,7 @@ export interface ArchiveError {
 // ========================
 
 /**
- * ファイルが書庫ファイルかどうかを判定
+ * ファイルが書庫ファイルかどぁE��を判宁E
  */
 export function isArchive(filePath: string): boolean {
     const ext = path.extname(filePath).toLowerCase();
@@ -103,11 +110,11 @@ export function isArchive(filePath: string): boolean {
 }
 
 /**
- * 書庫ファイルのメタデータ（画像リスト）を取得
+ * 書庫ファイルのメタチE�Eタ�E�画像リスト）を取征E
  */
 export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetadata | null> {
     try {
-        // 7za -slt で詳細情報を取得
+        // 7za -slt で詳細惁E��を取征E
         const { stdout } = await execFilePromise(SEVEN_ZA_PATH, [
             'l', '-ba', '-slt', '-sccUTF-8', filePath
         ]);
@@ -134,7 +141,7 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
             }
         }
 
-        // 最後のエントリを処理
+        // 最後�Eエントリを�E琁E
         if (currentPath && !isDirectory) {
             entries.push(currentPath);
         }
@@ -151,7 +158,7 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
             return AUDIO_EXTENSIONS.includes(ext);
         });
 
-        // 自然順ソート（1.jpg, 2.jpg, 10.jpg）
+        // 自然頁E��ート！E.jpg, 2.jpg, 10.jpg�E�E
         const sortedImages = imageEntries.sort((a, b) =>
             a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
         );
@@ -174,13 +181,13 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
 }
 
 /**
- * 書庫ファイルからサムネイル用の最初の画像を抽出
+ * 書庫ファイルからサムネイル用の最初�E画像を抽出
  */
 export async function getArchiveThumbnail(filePath: string): Promise<string | null> {
-    const TIMEOUT_MS = 30000; // 30秒タイムアウト
+    const TIMEOUT_MS = 30000; // 30秒タイムアウチE
 
     try {
-        // ファイル存在確認
+        // ファイル存在確誁E
         if (!fs.existsSync(filePath)) {
             log.warn('File not found:', filePath);
             return null;
@@ -205,20 +212,20 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         const entryName = metadata.firstImageEntry;
         const ext = path.extname(entryName) || '.jpg';
         const outName = `${uuidv4()}${ext}`;
-        const outPath = path.join(THUMBNAIL_DIR, outName);
+        const outPath = path.join(getThumbnailDir(), outName);
 
-        // 7za で抽出（フラット展開）with timeout
+        // 7za で抽出�E�フラチE��展開�E�with timeout
         try {
             await Promise.race([
                 execFilePromise(SEVEN_ZA_PATH, [
-                    'e', filePath, `-o${TEMP_DIR}`, entryName, '-y', '-sccUTF-8'
+                    'e', filePath, `-o${getTempDir()}`, entryName, '-y', '-sccUTF-8'
                 ]),
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('Extraction timeout')), TIMEOUT_MS)
                 )
             ]);
         } catch (execError: any) {
-            // エラー種別判定
+            // エラー種別判宁E
             const errorMsg = execError?.stderr || execError?.message || String(execError);
 
             if (errorMsg.includes('password') || errorMsg.includes('Wrong password')) {
@@ -237,9 +244,9 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             throw execError;
         }
 
-        // 抽出されたファイルをサムネイルディレクトリに移動
+        // 抽出されたファイルをサムネイルチE��レクトリに移勁E
         const extractedBasename = path.basename(entryName);
-        const extractedPath = path.join(TEMP_DIR, extractedBasename);
+        const extractedPath = path.join(getTempDir(), extractedBasename);
 
         if (fs.existsSync(extractedPath)) {
             fs.renameSync(extractedPath, outPath);
@@ -247,14 +254,14 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         }
 
         // フォールバック: TEMP_DIRを検索
-        const tempFiles = fs.readdirSync(TEMP_DIR);
+        const tempFiles = fs.readdirSync(getTempDir());
         const imageFile = tempFiles.find(f => {
             const fExt = path.extname(f).toLowerCase();
             return IMAGE_EXTENSIONS.includes(fExt);
         });
 
         if (imageFile) {
-            const foundPath = path.join(TEMP_DIR, imageFile);
+            const foundPath = path.join(getTempDir(), imageFile);
             fs.renameSync(foundPath, outPath);
             log.info('Found image via fallback:', imageFile);
             return outPath;
@@ -276,9 +283,9 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 }
 
 /**
- * 書庫ファイルから複数のプレビュー画像を抽出
+ * 書庫ファイルから褁E��のプレビュー画像を抽出
  * @param filePath - 書庫ファイルパス
- * @param limit - 取得する画像の最大数（デフォルト: 9）
+ * @param limit - 取得する画像�E最大数�E�デフォルチE 9�E�E
  */
 export async function getArchivePreviewFrames(
     filePath: string,
@@ -293,13 +300,13 @@ export async function getArchivePreviewFrames(
         const images = metadata.imageEntries;
         const selectedImages: string[] = [];
 
-        // 最初の画像（サムネイル）をスキップ（十分な画像がある場合）
+        // 最初�E画像（サムネイル�E�をスキチE�E�E�十刁E��画像がある場合！E
         const pool = images.length > 1 ? images.slice(1) : images;
 
         if (pool.length <= limit) {
             selectedImages.push(...pool);
         } else {
-            // 均等に分散して選択
+            // 坁E��に刁E��して選抁E
             const step = (pool.length - 1) / (limit - 1);
             for (let i = 0; i < limit; i++) {
                 const index = Math.round(i * step);
@@ -312,15 +319,15 @@ export async function getArchivePreviewFrames(
         for (const entryName of selectedImages) {
             const ext = path.extname(entryName) || '.jpg';
             const outName = `preview_${uuidv4()}${ext}`;
-            const outPath = path.join(TEMP_DIR, outName);
+            const outPath = path.join(getTempDir(), outName);
 
             try {
                 await execFilePromise(SEVEN_ZA_PATH, [
-                    'e', filePath, `-o${TEMP_DIR}`, entryName, '-y', '-sccUTF-8'
+                    'e', filePath, `-o${getTempDir()}`, entryName, '-y', '-sccUTF-8'
                 ]);
 
                 const extractedBasename = path.basename(entryName);
-                const extractedPath = path.join(TEMP_DIR, extractedBasename);
+                const extractedPath = path.join(getTempDir(), extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
                     fs.renameSync(extractedPath, outPath);
@@ -339,13 +346,13 @@ export async function getArchivePreviewFrames(
 }
 
 /**
- * 一時ディレクトリをクリーンアップ
+ * 一時ディレクトリをクリーンアチE�E
  */
 export function cleanTempArchives(): void {
     try {
-        if (fs.existsSync(TEMP_DIR)) {
-            fs.rmSync(TEMP_DIR, { recursive: true, force: true });
-            fs.mkdirSync(TEMP_DIR, { recursive: true });
+        if (fs.existsSync(getTempDir())) {
+            fs.rmSync(getTempDir(), { recursive: true, force: true });
+            fs.mkdirSync(getTempDir(), { recursive: true });
             log.info('Temp archives cleaned');
         }
     } catch (e) {
@@ -354,7 +361,7 @@ export function cleanTempArchives(): void {
 }
 
 /**
- * 書庫ファイル内の音声ファイルリストを取得
+ * 書庫ファイル冁E�E音声ファイルリストを取征E
  */
 export async function getArchiveAudioFiles(archivePath: string): Promise<string[]> {
     const metadata = await getArchiveMetadata(archivePath);
@@ -362,14 +369,14 @@ export async function getArchiveAudioFiles(archivePath: string): Promise<string[
 }
 
 /**
- * 書庫ファイルから特定の音声ファイルを抽出し、一時ファイルパスを返す
+ * 書庫ファイルから特定�E音声ファイルを抽出し、一時ファイルパスを返す
  */
 export async function extractArchiveAudioFile(
     archivePath: string,
     entryName: string
 ): Promise<string | null> {
     const extractId = uuidv4();
-    const extractDir = path.join(TEMP_DIR, 'audio', extractId);
+    const extractDir = path.join(getTempDir(), 'audio', extractId);
 
     try {
         if (!fs.existsSync(extractDir)) {
@@ -385,7 +392,7 @@ export async function extractArchiveAudioFile(
             '-sccUTF-8'
         ]);
 
-        // 抽出したファイルを探す
+        // 抽出したファイルを探ぁE
         const extractedName = path.basename(entryName);
         const extractedPath = path.join(extractDir, extractedName);
 
@@ -393,7 +400,7 @@ export async function extractArchiveAudioFile(
             return extractedPath;
         }
 
-        // ディレクトリ内を検索
+        // チE��レクトリ冁E��検索
         const files = fs.readdirSync(extractDir);
         if (files.length > 0) {
             return path.join(extractDir, files[0]);

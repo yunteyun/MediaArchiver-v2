@@ -198,6 +198,13 @@ declare global {
             // Phase 24: Thumbnail Regeneration
             regenerateAllThumbnails: () => Promise<ThumbnailRegenerateResult>;
             onThumbnailRegenerateProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
+
+            // Phase 25: Storage Config
+            getStorageConfig: () => Promise<StorageConfig>;
+            setStorageConfig: (mode: StorageMode, customPath?: string) => Promise<MigrationResult>;
+            browseStorageFolder: () => Promise<string | null>;
+            deleteOldStorageData: (oldBase: string) => Promise<{ success: boolean; error?: string }>;
+
         };
     }
 }
@@ -337,3 +344,20 @@ interface ThumbnailRegenerateResult {
     success: number;
     failed: number;
 }
+
+// Phase 25: Storage Config types
+type StorageMode = 'appdata' | 'install' | 'custom';
+
+interface StorageConfig {
+    mode: StorageMode;
+    customPath?: string;
+    resolvedPath: string;
+}
+
+interface MigrationResult {
+    success: boolean;
+    oldBase: string;
+    newBase: string;
+    error?: string;
+}
+

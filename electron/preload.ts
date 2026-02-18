@@ -240,4 +240,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('thumbnail:regenerateProgress', handler);
         return () => ipcRenderer.removeListener('thumbnail:regenerateProgress', handler);
     },
+
+    // === Phase 25: Storage Config ===
+    getStorageConfig: () =>
+        ipcRenderer.invoke('storage:getConfig'),
+    setStorageConfig: (mode: string, customPath?: string) =>
+        ipcRenderer.invoke('storage:setConfig', mode, customPath),
+    browseStorageFolder: () =>
+        ipcRenderer.invoke('storage:browseFolder'),
+    deleteOldStorageData: (oldBase: string) =>
+        ipcRenderer.invoke('storage:deleteOldData', oldBase),
 });
+

@@ -9,7 +9,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.0] - 2026-02-18
+### Phase 19.5〜25 まとめリリース
+
+#### Added
+- **Phase 25**: 保存場所カスタマイズ（AppData / インストールフォルダ / 任意パス、原子的移行、旧データ削除）
+- **Phase 24**: サムネイル WebP 変換（静止画 q:82、動画 q:75、フレーム q:70）、一括再生成
+- **Phase 23**: 右サイドパネル（選択ファイルの詳細情報・プレビュー常時表示）
+- **Phase 22-C**: フォルダツリーナビゲーション（ドライブ/親フォルダ選択、ファイル移動ダイアログ）
+- **Phase 21**: グループ表示改善（今日・昨日・今週・先週・2週間前 の相対時間区分）
+- **Phase 20-B**: 動画キーボード操作（Space/←→/↑↓）
+- **Phase 20-A**: Lightbox UI 再設計（2カラム固定レイアウト）
+
+#### Fixed
+- **Phase 19.5**: EventEmitter メモリリーク、複数選択削除/移動、孤立サムネイル誤検出
+
+---
+
+## [dev-25] - 2026-02-18
+### Phase 25: 保存場所カスタマイズ
+
+#### Added
+- **`storageConfig.ts`**: 二段階ロード・原子的移行・権限チェック・旧データ削除・thumbnail_path 一括更新
+- **`electron/ipc/storage.ts`**: IPC ハンドラ（getConfig / setConfig / browseFolder / deleteOldData）
+- **`SettingsModal.tsx`**: サムネイルタブに「保存場所」セクション追加（ラジオ3択・参照・移行・旧データ削除ボタン）
+
+#### Changed
+- `thumbnail.ts`: `THUMBNAIL_DIR` 定数 → `getThumbnailDir()` 動的取得
+- `archiveHandler.ts`: `THUMBNAIL_DIR`・`TEMP_DIR` 定数 → 動的取得関数
+- `databaseManager.ts`: `userDataPath` → `getBasePath()` 動的取得、`walCheckpoint()`・`closeAll()`・`reopenMetaDb()` 追加
+- `main.ts`: `initStorageConfig()` を DB 初期化前に呼び出し
+
+---
+
 ## [dev-23] - 2026-02-18
+
 ### Phase 23: 右サイドパネル
 
 #### Added

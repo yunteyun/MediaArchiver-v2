@@ -11,6 +11,7 @@ import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
 import { runMigrations } from '../migrations';
+import { getBasePath } from './storageConfig';
 
 const log = logger.scope('DatabaseManager');
 
@@ -27,13 +28,31 @@ class DatabaseManager {
     private db: Database.Database | null = null;
     private currentProfileId: string | null = null;
     private metaDb: Database.Database;
-    private userDataPath: string;
 
     constructor() {
-        this.userDataPath = app.getPath('userData');
-        const metaPath = path.join(this.userDataPath, 'profiles.db');
-        this.metaDb = new Database(metaPath);
+        // profiles.db は常に userData に置く（プロファイル管理はベースパスに依存しない）
+        this.metaDb = this.openMetaDb();
         this.initMetaDb();
+    }
+
+    /** Phase 25: プロファイルDBのベースパス（動的取得） */
+    private getDbBasePath(): string {
+        return getBasePath();
+    }
+
+    /** metaDb を開く */
+    private openMetaDb(): Database.Database {
+        const metaPath = path.join(app.getPath('userData'), 'profiles.db');
+        return new Database(metaPath);
+    }
+
+    /** Phase 25: 移行後に metaDb を再接続する */
+    reopenMetaDb(): void {
+        if (!this.metaDb.open) {
+            this.metaDb = this.openMetaDb();
+            this.initMetaDb();
+            log.info('metaDb reopened');
+        }
     }
 
     /**
@@ -132,7 +151,7 @@ class DatabaseManager {
         `).run(id, name, dbFilename, now, now);
 
         // 新しいDBファイルを作成してスキーマ初期化
-        const dbPath = path.join(this.userDataPath, dbFilename);
+        const dbPath = path.join(this.getDbBasePath(), dbFilename);
         const newDb = new Database(dbPath);
         const tempCurrent = this.db;
         this.db = newDb;
@@ -175,13 +194,13 @@ class DatabaseManager {
 
         // DBファイル削除
         const fs = require('fs');
-        const dbPath = path.join(this.userDataPath, profile.dbFilename);
+        const dbPath = path.join(this.getDbBasePath(), profile.dbFilename);
         if (fs.existsSync(dbPath)) {
             fs.unlinkSync(dbPath);
         }
 
         // サムネイルディレクトリ削除
-        const thumbnailDir = path.join(this.userDataPath, 'thumbnails', id);
+        const thumbnailDir = path.join(this.getDbBasePath(), 'thumbnails', id);
         if (fs.existsSync(thumbnailDir)) {
             try {
                 fs.rmSync(thumbnailDir, { recursive: true, force: true });
@@ -226,7 +245,7 @@ class DatabaseManager {
         }
 
         // 新しいDBに接続
-        const dbPath = path.join(this.userDataPath, profile.dbFilename);
+        const dbPath = path.join(this.getDbBasePath(), profile.dbFilename);
         this.db = new Database(dbPath);
         this.initMediaDb();
         this.currentProfileId = profileId;
@@ -281,9 +300,34 @@ class DatabaseManager {
         if (!profile) {
             throw new Error('Active profile not found');
         }
-        return path.join(this.userDataPath, profile.dbFilename);
+        return path.join(this.getDbBasePath(), profile.dbFilename);
     }
 
+    /**
+     * Phase 25: WALチェックポイント（移行前に実行しDBを安全にフラッシュ）
+     */
+    walCheckpoint(): void {
+        if (this.db && this.db.open) {
+            this.db.pragma('wal_checkpoint(FULL)');
+            log.info('WAL checkpoint completed');
+        }
+        if (this.metaDb && this.metaDb.open) {
+            this.metaDb.pragma('wal_checkpoint(FULL)');
+        }
+    }
+
+    /**
+     * Phase 25: DB接続を全て閉じる（移行前に実行）
+     */
+    closeAll(): void {
+        if (this.db && this.db.open) {
+            this.db.close();
+            this.db = null;
+        }
+        if (this.metaDb && this.metaDb.open) {
+            this.metaDb.close();
+        }
+    }
     /**
      * DB接続を明示的に閉じる（リストア処理用）
      */

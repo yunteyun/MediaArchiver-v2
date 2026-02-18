@@ -3,11 +3,16 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image } from 'lucide-react';
+import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { StorageCleanupSection } from './settings/StorageCleanupSection';
+
+// Phase 25: ローカル型定義
+type StorageMode = 'appdata' | 'install' | 'custom';
+interface StorageConfig { mode: StorageMode; customPath?: string; resolvedPath: string; }
+
 
 type TabType = 'general' | 'thumbnails' | 'apps' | 'logs' | 'backup';
 
@@ -57,6 +62,58 @@ export const SettingsModal = React.memo(() => {
     const [logFilter, setLogFilter] = useState<'all' | 'error' | 'warn' | 'info'>('all');
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
 
+    // Phase 25: ストレージ設定
+    const [storageConfig, setStorageConfig] = useState<StorageConfig | null>(null);
+    const [selectedMode, setSelectedMode] = useState<StorageMode>('appdata');
+    const [customPath, setCustomPath] = useState('');
+    const [isMigrating, setIsMigrating] = useState(false);
+    const [migrationMsg, setMigrationMsg] = useState<{ type: 'success' | 'error'; text: string; oldBase?: string } | null>(null);
+
+    const loadStorageConfig = useCallback(async () => {
+        try {
+            const cfg = await window.electronAPI.getStorageConfig();
+            setStorageConfig(cfg);
+            setSelectedMode(cfg.mode);
+            setCustomPath(cfg.customPath ?? '');
+        } catch (e) {
+            console.error('Failed to load storage config:', e);
+        }
+    }, []);
+
+    const handleMigrate = async () => {
+        if (isMigrating) return;
+        setIsMigrating(true);
+        setMigrationMsg(null);
+        try {
+            const result = await window.electronAPI.setStorageConfig(
+                selectedMode,
+                selectedMode === 'custom' ? customPath : undefined
+            );
+            if (result.success) {
+                setMigrationMsg({ type: 'success', text: `移行完了: ${result.newBase}`, oldBase: result.oldBase });
+                await loadStorageConfig();
+            } else {
+                setMigrationMsg({ type: 'error', text: result.error ?? '移行に失敗しました' });
+            }
+        } catch (e: any) {
+            setMigrationMsg({ type: 'error', text: e.message });
+        }
+        setIsMigrating(false);
+    };
+
+    const handleDeleteOldData = async () => {
+        if (!migrationMsg?.oldBase) return;
+        if (!confirm(`旧データを削除しますか？\n${migrationMsg.oldBase}\n\nこの操作は元に戻せません。`)) return;
+        const result = await window.electronAPI.deleteOldStorageData(migrationMsg.oldBase);
+        if (result.success) {
+            setMigrationMsg(null);
+            alert('旧データを削除しました');
+        } else {
+            alert(`削除失敗: ${result.error}`);
+        }
+    };
+
+
     const loadLogs = useCallback(async () => {
         setIsLoadingLogs(true);
         try {
@@ -73,7 +130,10 @@ export const SettingsModal = React.memo(() => {
         if (isOpen && activeTab === 'logs') {
             loadLogs();
         }
-    }, [isOpen, activeTab, loadLogs]);
+        if (isOpen && activeTab === 'thumbnails') {
+            loadStorageConfig();
+        }
+    }, [isOpen, activeTab, loadLogs, loadStorageConfig]);
 
     const filteredLogs = logs.filter(line => {
         if (logFilter === 'all') return true;
@@ -502,6 +562,94 @@ export const SettingsModal = React.memo(() => {
                                         プレビュー生成時のファイル間待機時間を調整します。PCから異音がする場合に設定してください。
                                     </p>
                                 </div>
+                            </div>
+
+                            {/* 保存場所設定セクション */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2 flex items-center gap-2">
+                                    <HardDrive size={15} />
+                                    保存場所
+                                </h3>
+
+                                {storageConfig && (
+                                    <p className="text-xs text-surface-400">
+                                        現在: <span className="text-surface-200 font-mono">{storageConfig.resolvedPath}</span>
+                                    </p>
+                                )}
+
+                                <div className="space-y-2">
+                                    {([
+                                        { value: 'appdata', label: 'AppData（デフォルト）', desc: '%APPDATA%\\media-archiver-v2\\' },
+                                        { value: 'install', label: 'インストールフォルダ', desc: 'exe と同じフォルダ内の data\\（ポータブル運用）' },
+                                        { value: 'custom', label: '任意の場所', desc: 'フォルダを選択して指定' },
+                                    ] as { value: StorageMode; label: string; desc: string }[]).map(opt => (
+                                        <label key={opt.value} className="flex items-start gap-3 cursor-pointer p-2 rounded hover:bg-surface-800">
+                                            <input
+                                                type="radio"
+                                                name="storageMode"
+                                                value={opt.value}
+                                                checked={selectedMode === opt.value}
+                                                onChange={() => setSelectedMode(opt.value)}
+                                                className="mt-0.5 w-4 h-4 accent-primary-500"
+                                            />
+                                            <div>
+                                                <span className="text-sm text-surface-200">{opt.label}</span>
+                                                <span className="block text-xs text-surface-500">{opt.desc}</span>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+
+                                {selectedMode === 'custom' && (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={customPath}
+                                            onChange={(e) => setCustomPath(e.target.value)}
+                                            placeholder="フォルダパスを入力"
+                                            className="flex-1 px-3 py-1.5 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                        />
+                                        <button
+                                            onClick={async () => {
+                                                const p = await window.electronAPI.browseStorageFolder();
+                                                if (p) setCustomPath(p);
+                                            }}
+                                            className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors flex items-center gap-1"
+                                        >
+                                            <FolderOpen size={14} />
+                                            参照
+                                        </button>
+                                    </div>
+                                )}
+
+                                {migrationMsg && (
+                                    <div className={`p-3 rounded text-sm ${migrationMsg.type === 'success' ? 'bg-green-900/30 text-green-300' : 'bg-red-900/30 text-red-300'}`}>
+                                        <p>{migrationMsg.text}</p>
+                                        {migrationMsg.type === 'success' && migrationMsg.oldBase && (
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <span className="text-xs text-surface-400">再起動後に有効になります。旧データ:</span>
+                                                <button
+                                                    onClick={handleDeleteOldData}
+                                                    className="px-2 py-0.5 bg-red-700 hover:bg-red-600 text-white text-xs rounded transition-colors"
+                                                >
+                                                    旧データを削除
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={handleMigrate}
+                                    disabled={isMigrating || (selectedMode === 'custom' && !customPath)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm rounded transition-colors disabled:opacity-50"
+                                >
+                                    {isMigrating ? <RefreshCw size={14} className="animate-spin" /> : <HardDrive size={14} />}
+                                    {isMigrating ? '移行中...' : '変更して移行'}
+                                </button>
+                                <p className="text-xs text-surface-500">
+                                    移行後はアプリの再起動が必要です。旧データは自動削除されません。
+                                </p>
                             </div>
 
                             {/* サムネイル管理セクション */}

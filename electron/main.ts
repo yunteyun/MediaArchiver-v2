@@ -20,6 +20,8 @@ import { registerStatisticsHandlers } from './ipc/statistics';
 import { registerActivityLogHandlers } from './ipc/activityLog';
 import { registerThumbnailCleanupHandlers } from './ipc/thumbnailCleanup';
 import { pruneOldLogs } from './services/activityLogService';
+import { initStorageConfig } from './services/storageConfig';
+import { registerStorageHandlers } from './ipc/storage';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -65,8 +67,12 @@ const createWindow = () => {
     }
 };
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     logger.info('MediaArchiver starting...');
+
+    // Phase 25: ストレージ設定を最初に初期化（二段階ロード）
+    await initStorageConfig();
+    logger.info('Storage config initialized');
 
     // Register custom protocol handler
     registerMediaProtocol();
@@ -91,6 +97,7 @@ app.whenReady().then(() => {
     registerStatisticsHandlers();
     registerActivityLogHandlers();
     registerThumbnailCleanupHandlers();
+    registerStorageHandlers();
     logger.info('IPC handlers registered');
 
     // 古いアクティビティログを削除（30日以上前）

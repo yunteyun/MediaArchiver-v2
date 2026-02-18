@@ -2,18 +2,20 @@ import ffmpeg from 'fluent-ffmpeg';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
-import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { isArchive, getArchiveThumbnail } from './archiveHandler';
 import { logger } from './logger';
+import { getBasePath } from './storageConfig';
 
 const log = logger.scope('Thumbnail');
 
-// Setup paths
-const THUMBNAIL_DIR = path.join(app.getPath('userData'), 'thumbnails');
-
-if (!fs.existsSync(THUMBNAIL_DIR)) {
-    fs.mkdirSync(THUMBNAIL_DIR, { recursive: true });
+// Phase 25: basePath から動的取得（モジュールロード時に確定させない）
+function getThumbnailDir(): string {
+    const dir = path.join(getBasePath(), 'thumbnails');
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    return dir;
 }
 
 // Configure ffmpeg/ffprobe paths
@@ -59,7 +61,7 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
  */
 function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
     const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(THUMBNAIL_DIR, filename);
+    const outputPath = path.join(getThumbnailDir(), filename);
 
     return new Promise((resolve) => {
         ffmpeg(videoPath)
@@ -87,7 +89,7 @@ function generateVideoThumbnail(videoPath: string, resolution: number = 320): Pr
  */
 function generateAudioThumbnail(audioPath: string): Promise<string | null> {
     const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(THUMBNAIL_DIR, filename);
+    const outputPath = path.join(getThumbnailDir(), filename);
 
     return new Promise((resolve) => {
         // FFmpegでアルバムアート（埋め込み画像）を抽出
@@ -114,7 +116,7 @@ function generateAudioThumbnail(audioPath: string): Promise<string | null> {
  */
 export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
     const videoId = uuidv4();
-    const frameDir = path.join(THUMBNAIL_DIR, 'frames', videoId);
+    const frameDir = path.join(getThumbnailDir(), 'frames', videoId);
 
     try {
         // フレームディレクトリ作成
@@ -198,7 +200,7 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
  */
 async function generateImageThumbnail(imagePath: string, resolution: number = 320): Promise<string | null> {
     const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(THUMBNAIL_DIR, filename);
+    const outputPath = path.join(getThumbnailDir(), filename);
 
     try {
         await sharp(imagePath)
