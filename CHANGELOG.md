@@ -9,6 +9,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-24] - 2026-02-18
+### Phase 24: サムネイル軽量化
+
+#### Added
+- **WebP変換**: 静止画サムネイル（quality:82）、動画サムネイル（quality:75）、プレビューフレーム（quality:70）をWebP出力に変更
+- **プレビューフレーム最適化**: 320px×10枚 → 256px×6枚に削減（容量約75%削減）
+- **一括再生成機能**: `thumbnail:regenerateAll` IPC ハンドラ追加（バッチ20件、進捗通知付き）
+- **統計画面**: サムネイルキャッシュ容量表示カードと「WebP一括変換」ボタンを追加
+- **容量計算**: `statisticsService.ts` に `getThumbnailDirSize()` 追加（統計画面表示時のみ計算）
+
+#### Changed
+- `thumbnail.ts`: `generateImageThumbnail` → sharp WebP出力、`generateVideoThumbnail` → ffmpeg libwebp方式
+- `generatePreviewFrames`: フレーム数・解像度削減
+- `regenerateAllThumbnails`: 安全なDB更新順序（生成→DB更新→旧ファイル削除）
+- `preload.ts`: `regenerateAllThumbnails` / `onThumbnailRegenerateProgress` を expose
+- `electron.d.ts`: `LibraryStats.thumbnailSize`、Phase 24 API 型定義追加
+- `StatisticsView.tsx`: recharts 幅0警告対策（`visibility:hidden` + 遅延500ms）
+
+---
+
 ## [dev-22c] - 2026-02-18
 ### Phase 22-C: フォルダツリーナビゲーション機能
 

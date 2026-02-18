@@ -1,6 +1,6 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, getFolders } from '../services/database';
-import { generateThumbnail, generatePreviewFrames } from '../services/thumbnail';
+import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, getFolders, getFiles } from '../services/database';
+import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
 import { spawn } from 'child_process';
@@ -370,4 +370,27 @@ export function registerFileHandlers() {
 
         return getFilesByFolderIds([folderId, ...descendants]);
     });
+
+    // Phase 24: サムネイル一括再生成（WebP化）
+    ipcMain.handle('thumbnail:regenerateAll', async (event) => {
+        const files = getFiles();  // 引数なしで全件取得
+
+        const result = await regenerateAllThumbnails(
+            files.map(f => ({
+                id: f.id,
+                path: f.path,
+                type: f.type,
+                thumbnailPath: f.thumbnail_path ?? null,
+            })),
+            async (fileId, newThumbnailPath) => {
+                updateFileThumbnail(fileId, newThumbnailPath);
+            },
+            (current, total) => {
+                event.sender.send('thumbnail:regenerateProgress', { current, total });
+            }
+        );
+
+        return result;
+    });
 }
+

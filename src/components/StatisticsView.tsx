@@ -5,8 +5,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line, CartesianGrid } from 'recharts';
-import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, AlertCircle, Image } from 'lucide-react';
 import { ActivityLogView } from './ActivityLogView';
 import { toMediaUrl } from '../utils/mediaPath';
 
@@ -23,6 +23,7 @@ interface LibraryStats {
     largeFiles: { id: string; name: string; path: string; type: string; size: number; thumbnailPath: string | null }[];
     extensionStats: { type: string; extension: string; count: number }[];
     resolutionStats: { resolution: string; count: number }[];
+    thumbnailSize: number;  // Phase 24
 }
 
 const formatBytes = (bytes: number): string => {
@@ -51,6 +52,8 @@ export const StatisticsView: React.FC = () => {
     const [stats, setStats] = useState<LibraryStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [regenerating, setRegenerating] = useState(false);
+    const [regenProgress, setRegenProgress] = useState<{ current: number; total: number } | null>(null);
 
     const loadStats = async () => {
         setLoading(true);
@@ -72,9 +75,32 @@ export const StatisticsView: React.FC = () => {
     useEffect(() => {
         loadStats();
         // Delay chart rendering to avoid size calculation issues
-        const timer = setTimeout(() => setIsReady(true), 300);
+        const timer = setTimeout(() => setIsReady(true), 500);
         return () => clearTimeout(timer);
     }, []);
+
+    const handleRegenerateAll = async () => {
+        if (regenerating) return;
+        setRegenerating(true);
+        setRegenProgress({ current: 0, total: 0 });
+
+        const cleanup = window.electronAPI.onThumbnailRegenerateProgress((progress) => {
+            setRegenProgress(progress);
+        });
+
+        try {
+            const result = await window.electronAPI.regenerateAllThumbnails();
+            console.log('Regeneration complete:', result);
+            // 完了後に統計を再読み込み
+            await loadStats();
+        } catch (e) {
+            console.error('Regeneration failed:', e);
+        } finally {
+            cleanup();
+            setRegenerating(false);
+            setRegenProgress(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -151,6 +177,44 @@ export const StatisticsView: React.FC = () => {
                 </div>
             </div>
 
+            {/* Phase 24: サムネイル容量カード */}
+            <div className="bg-surface-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                        <Image size={16} className="text-primary-400" />
+                        サムネイルキャッシュ
+                    </h2>
+                    <button
+                        onClick={handleRegenerateAll}
+                        disabled={regenerating}
+                        className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-xs flex items-center gap-1.5 text-white transition-colors"
+                    >
+                        <RefreshCw size={12} className={regenerating ? 'animate-spin' : ''} />
+                        {regenerating ? 'WebP変換中...' : 'WebP一括変換'}
+                    </button>
+                </div>
+                <div className="flex items-center gap-6">
+                    <div>
+                        <div className="text-surface-400 text-xs mb-0.5">現在の容量</div>
+                        <div className="text-xl font-bold text-white">{formatBytes(stats.thumbnailSize ?? 0)}</div>
+                    </div>
+                    {regenProgress && regenProgress.total > 0 && (
+                        <div className="flex-1">
+                            <div className="flex justify-between text-xs text-surface-400 mb-1">
+                                <span>変換中...</span>
+                                <span>{regenProgress.current} / {regenProgress.total}</span>
+                            </div>
+                            <div className="w-full bg-surface-700 rounded-full h-2">
+                                <div
+                                    className="bg-primary-500 h-2 rounded-full transition-all"
+                                    style={{ width: `${(regenProgress.current / regenProgress.total) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* File Type Stats - Pie Chart */}
             <div className="bg-surface-800 rounded-lg p-4">
                 <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
@@ -214,7 +278,7 @@ export const StatisticsView: React.FC = () => {
                         <Tag size={16} className="text-primary-400" />
                         タグ別統計（上位20件）
                     </h2>
-                    <div className="h-64">
+                    <div className="h-64" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
                         {isReady && (
                             <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <BarChart
@@ -253,7 +317,7 @@ export const StatisticsView: React.FC = () => {
                         <FolderOpen size={16} className="text-primary-400" />
                         フォルダ別統計（ファイル数）
                     </h2>
-                    <div className="h-64">
+                    <div className="h-64" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
                         {isReady && (
                             <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <BarChart
@@ -299,7 +363,7 @@ export const StatisticsView: React.FC = () => {
                         <TrendingUp size={16} className="text-primary-400" />
                         月別登録推移（過去12ヶ月）
                     </h2>
-                    <div className="h-64 min-w-0 min-h-0">
+                    <div className="h-64 min-w-0 min-h-0" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
                         {isReady && (
                             <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <LineChart data={stats.monthlyTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -381,7 +445,7 @@ export const StatisticsView: React.FC = () => {
                         <Tag size={16} className="text-amber-400" />
                         評価分布（★1-5）
                     </h2>
-                    <div className="h-48 min-w-0 min-h-0">
+                    <div className="h-48 min-w-0 min-h-0" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
                         {isReady && (
                             <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
                                 <BarChart data={stats.ratingStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>

@@ -29,8 +29,6 @@ if (ffprobePath) {
 
 export async function generateThumbnail(filePath: string, resolution: number = 320): Promise<string | null> {
     const ext = path.extname(filePath).toLowerCase();
-    const filename = `${uuidv4()}.png`;
-    const outputPath = path.join(THUMBNAIL_DIR, filename);
 
     try {
         // Archive files (zip, rar, 7z, cbz, cbr)
@@ -39,15 +37,15 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
         }
         // Video files
         if (['.mp4', '.webm', '.mov', '.avi', '.mkv'].includes(ext)) {
-            return generateVideoThumbnail(filePath, filename, outputPath, resolution);
+            return generateVideoThumbnail(filePath, resolution);
         }
         // Image files
         if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) {
-            return generateImageThumbnail(filePath, outputPath, resolution);
+            return generateImageThumbnail(filePath, resolution);
         }
         // Audio files - アルバムアート抽出を試みる
         if (['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'].includes(ext)) {
-            return generateAudioThumbnail(filePath, outputPath);
+            return generateAudioThumbnail(filePath);
         }
     } catch (e) {
         log.error(`Failed to generate thumbnail for ${filePath}:`, e);
@@ -55,23 +53,31 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
     return null;
 }
 
-function generateVideoThumbnail(videoPath: string, filename: string, outputPath: string, resolution: number = 320): Promise<string | null> {
+/**
+ * 動画サムネイルを WebP で生成
+ * ffmpeg の screenshots API は PNG 固定のため -vcodec libwebp 方式を使用
+ */
+function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
+    const filename = `${uuidv4()}.webp`;
+    const outputPath = path.join(THUMBNAIL_DIR, filename);
+
     return new Promise((resolve) => {
         ffmpeg(videoPath)
-            .screenshots({
-                count: 1,
-                folder: THUMBNAIL_DIR,
-                filename: filename,
-                size: `${resolution}x?`, // maintain aspect ratio
-                timemarks: ['10%'] // take screenshot at 10% duration
-            })
-            .on('end', () => {
-                resolve(outputPath);
-            })
+            .outputOptions([
+                '-vframes', '1',
+                '-vf', `scale=${resolution}:-1`,
+                '-vcodec', 'libwebp',
+                '-quality', '75',
+                '-threads', '1',  // コイル鳴き軽減
+            ])
+            .seekInput('10%')
+            .output(outputPath)
+            .on('end', () => resolve(outputPath))
             .on('error', (err) => {
                 log.error('Error generating video thumbnail:', err);
                 resolve(null);
-            });
+            })
+            .run();
     });
 }
 
@@ -79,7 +85,10 @@ function generateVideoThumbnail(videoPath: string, filename: string, outputPath:
  * 音声ファイルからアルバムアートを抽出
  * アルバムアートがない場合はnullを返す
  */
-function generateAudioThumbnail(audioPath: string, outputPath: string): Promise<string | null> {
+function generateAudioThumbnail(audioPath: string): Promise<string | null> {
+    const filename = `${uuidv4()}.webp`;
+    const outputPath = path.join(THUMBNAIL_DIR, filename);
+
     return new Promise((resolve) => {
         // FFmpegでアルバムアート（埋め込み画像）を抽出
         ffmpeg(audioPath)
@@ -98,11 +107,12 @@ function generateAudioThumbnail(audioPath: string, outputPath: string): Promise<
 
 /**
  * 動画からプレビューフレームを生成（スクラブ用）
+ * Phase 24: 320px x10枚 → 256px x6枚 WebP に軽量化
  * @param videoPath 動画ファイルパス
- * @param frameCount 生成するフレーム数（デフォルト: 10）
+ * @param frameCount 生成するフレーム数（デフォルト: 6）
  * @returns カンマ区切りのフレームパス文字列
  */
-export async function generatePreviewFrames(videoPath: string, frameCount: number = 10): Promise<string | null> {
+export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
     const videoId = uuidv4();
     const frameDir = path.join(THUMBNAIL_DIR, 'frames', videoId);
 
@@ -136,22 +146,26 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
 
         return new Promise((resolve) => {
             ffmpeg(videoPath)
-                .outputOptions(['-threads', '1'])  // スレッド数を1に制限してコイル鳴きを軽減
+                .outputOptions([
+                    '-threads', '1',  // コイル鳴き軽減
+                    '-vcodec', 'libwebp',
+                    '-quality', '70',
+                ])
                 .screenshots({
                     count: frameCount,
                     folder: frameDir,
-                    filename: 'frame_%02d.png',
-                    size: '320x?',
+                    filename: 'frame_%02d.webp',
+                    size: '256x?',  // Phase 24: 320→256px
                     timemarks: timemarks
                 })
                 .on('end', () => {
                     // ディレクトリの内容を確認
                     const filesInDir = fs.readdirSync(frameDir);
 
-                    // 生成されたフレームのパスを収集（想定形式: frame_01.png）
+                    // 生成されたフレームのパスを収集（想定形式: frame_01.webp）
                     const framePaths: string[] = [];
                     for (let i = 1; i <= frameCount; i++) {
-                        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.png`);
+                        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.webp`);
                         if (fs.existsSync(framePath)) {
                             framePaths.push(framePath);
                         }
@@ -160,12 +174,12 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                     if (framePaths.length > 0) {
                         resolve(framePaths.join(','));
                     } else {
-                        // フォールバック: ディレクトリ内の全PNGを使用
-                        const allPngs = filesInDir
-                            .filter(f => f.endsWith('.png'))
+                        // フォールバック: ディレクトリ内の全WebPを使用
+                        const allWebps = filesInDir
+                            .filter(f => f.endsWith('.webp'))
                             .sort()
                             .map(f => path.join(frameDir, f));
-                        resolve(allPngs.length > 0 ? allPngs.join(',') : null);
+                        resolve(allWebps.length > 0 ? allWebps.join(',') : null);
                     }
                 })
                 .on('error', (err) => {
@@ -179,10 +193,17 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
     }
 }
 
-async function generateImageThumbnail(imagePath: string, outputPath: string, resolution: number = 320): Promise<string | null> {
+/**
+ * 静止画サムネイルを WebP で生成（quality: 82）
+ */
+async function generateImageThumbnail(imagePath: string, resolution: number = 320): Promise<string | null> {
+    const filename = `${uuidv4()}.webp`;
+    const outputPath = path.join(THUMBNAIL_DIR, filename);
+
     try {
         await sharp(imagePath)
             .resize(resolution, null, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 82 })
             .toFile(outputPath);
         return outputPath;
     } catch (err) {
@@ -286,4 +307,60 @@ export async function checkIsAnimated(filePath: string): Promise<boolean> {
         return isAnimatedWebp(filePath);
     }
     return false;
+}
+
+/**
+ * 全ファイルのサムネイルを一括再生成（WebP化）
+ * Phase 24: 安全な順序で実行（生成→DB更新→旧ファイル削除）
+ * @param files 再生成対象ファイルリスト
+ * @param updateDB DB更新コールバック
+ * @param onProgress 進捗コールバック
+ */
+export async function regenerateAllThumbnails(
+    files: { id: string; path: string; type: string; thumbnailPath: string | null }[],
+    updateDB: (fileId: string, newThumbnailPath: string) => Promise<void>,
+    onProgress: (current: number, total: number) => void
+): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+    const BATCH_SIZE = 20;
+
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        const batch = files.slice(i, i + BATCH_SIZE);
+
+        await Promise.all(batch.map(async (file) => {
+            try {
+                const oldPath = file.thumbnailPath;
+
+                // 1. 新WebP生成
+                const newPath = await generateThumbnail(file.path);
+                if (!newPath) {
+                    failed++;
+                    return;
+                }
+
+                // 2. DB更新（成功確認後）
+                await updateDB(file.id, newPath);
+
+                // 3. 旧ファイル削除（PNG等）
+                if (oldPath && oldPath !== newPath && fs.existsSync(oldPath)) {
+                    try {
+                        fs.unlinkSync(oldPath);
+                    } catch (e) {
+                        log.warn(`Failed to delete old thumbnail: ${oldPath}`);
+                    }
+                }
+
+                success++;
+            } catch (e) {
+                log.error(`Failed to regenerate thumbnail for ${file.path}:`, e);
+                failed++;
+            }
+        }));
+
+        // バッチ完了後に進捗通知
+        onProgress(Math.min(i + BATCH_SIZE, files.length), files.length);
+    }
+
+    return { success, failed };
 }

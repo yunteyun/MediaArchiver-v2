@@ -1,11 +1,16 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-18 00:18
+**Last Updated**: 2026-02-18 20:56
 
-- **Current Focus**: Phase 22-C 完了（フォルダツリーナビゲーション機能）
-- **Current Status**: Phase 22-C完了。次のフェーズに進む準備完了。
+- **Current Focus**: Phase 24 完了（サムネイル軽量化・WebP化）
+- **Current Status**: Phase 24完了。次のフェーズに進む準備完了。
 - **Recent Achievements**: 
-  - **Phase 22-C**: フォルダツリーナビゲーション機能完了
+  - **Phase 24**: サムネイル軽量化完了
+    - 静止画/動画/プレビューフレームをWebP形式に変換
+    - プレビューフレームを320px×10枚 → 256px×6枚に削減
+    - 一括再生成機能（バッチ処理・進捗通知付き）
+    - 統計画面にサムネイル容量カードと「WebP一括変換」ボタンを追加
+    - recharts幅0警告を修正（visibility:hidden + 遅延500ms）
     - Phase 22-C-1: ドライブ/親フォルダ選択機能
       - ドライブヘッダークリックで配下全ファイル表示
       - 親フォルダクリックで配下全ファイル表示（再帰）
@@ -241,6 +246,13 @@
     - 右クリックメニューに「移動」オプション追加
     - 循環移動防止（自分自身と子孫フォルダを除外）
     - Bug 3修正: 移動後のファイル削除
+- ✅ **Phase 24: サムネイル軽量化** 🗜️
+  - 静止画サムネイル → WebP（quality:82）
+  - 動画サムネイル → WebP（quality:75、ffmpeg libwebp方式）
+  - プレビューフレーム → WebP（quality:70、256px×6枚に削減）
+  - `regenerateAllThumbnails()` 一括再生成関数（バッチ20件、安全なDB更新順序）
+  - 統計画面にサムネイル容量カードと「WebP一括変換」ボタン追加
+  - recharts幅0警告修正（visibility:hidden + 遅延500ms）
 
 ## Recent Additions (2026-02-17)
 - **Phase 21 完了**:
@@ -264,8 +276,9 @@
   - プロファイル別サムネイル管理の改善
 
 ## Next Steps
-- [ ] Phase 14-3/4/5: 拡張モード（漫画/動画/WhiteBrowser風）
-- [ ] Phase 22以降: ROADMAP参照
+- [ ] Phase 23: 右サイドパネル（選択ファイルの詳細情報常時表示）
+- [ ] Phase 25: 保存場所カスタマイズ
+- [ ] Phase 26: タグ構造刷新
 
 ## Known Issues
 なし（現在確認されている重大な不具合はありません）

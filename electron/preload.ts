@@ -231,4 +231,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('autoTag:previewRule', { rule, files }),
     applyAutoTagsToFiles: (fileIds: string[]) =>
         ipcRenderer.invoke('autoTag:applyToFiles', { fileIds }),
+
+    // === Phase 24: Thumbnail Regeneration ===
+    regenerateAllThumbnails: () =>
+        ipcRenderer.invoke('thumbnail:regenerateAll'),
+    onThumbnailRegenerateProgress: (callback: (progress: { current: number; total: number }) => void) => {
+        const handler = (_event: any, progress: any) => callback(progress);
+        ipcRenderer.on('thumbnail:regenerateProgress', handler);
+        return () => ipcRenderer.removeListener('thumbnail:regenerateProgress', handler);
+    },
 });

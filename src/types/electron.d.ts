@@ -194,6 +194,10 @@ declare global {
                 lastExternalOpenedAt?: number;
                 error?: string;
             }>;
+
+            // Phase 24: Thumbnail Regeneration
+            regenerateAllThumbnails: () => Promise<ThumbnailRegenerateResult>;
+            onThumbnailRegenerateProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
         };
     }
 }
@@ -278,6 +282,7 @@ interface LibraryStats {
     largeFiles: { id: string; name: string; path: string; type: string; size: number; thumbnailPath: string | null }[];
     extensionStats: { type: string; extension: string; count: number }[];
     resolutionStats: { resolution: string; count: number }[];
+    thumbnailSize: number;  // Phase 24: サムネイルディレクトリ合計サイズ
 }
 
 // Activity Log types
@@ -325,4 +330,10 @@ interface DeleteFileResult {
     method: 'trash' | 'permanent' | 'none';
     cancelled?: boolean;
     error?: string;
+}
+
+// Phase 24: Thumbnail Regeneration types
+interface ThumbnailRegenerateResult {
+    success: number;
+    failed: number;
 }

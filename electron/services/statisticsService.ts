@@ -7,6 +7,9 @@
 
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
+import fs from 'fs';
+import path from 'path';
+import { app } from 'electron';
 
 const log = logger.scope('StatisticsService');
 
@@ -89,6 +92,7 @@ export interface LibraryStats {
     largeFiles: LargeFile[];       // 巨大ファイルTop 10
     extensionStats: ExtensionStats[];  // 拡張子ランキング
     resolutionStats: ResolutionStats[]; // 解像度分布
+    thumbnailSize: number;  // Phase 24: サムネイルディレクトリ合計サイズ（bytes）
 }
 
 // --- Public API ---
@@ -238,6 +242,40 @@ export function getLibraryStats(): LibraryStats {
         ratingStats,
         largeFiles,
         extensionStats,
-        resolutionStats
+        resolutionStats,
+        thumbnailSize: getThumbnailDirSize(),
     };
+}
+
+/**
+ * Phase 24: サムネイルディレクトリの合計サイズを計算
+ * 統計画面表示時のみ呼ばれるため、毎回計算する（キャッシュ不要）
+ */
+function getThumbnailDirSize(): number {
+    try {
+        const thumbnailDir = path.join(app.getPath('userData'), 'thumbnails');
+        return getDirSizeRecursive(thumbnailDir);
+    } catch (e) {
+        log.warn('Failed to calculate thumbnail dir size:', e);
+        return 0;
+    }
+}
+
+function getDirSizeRecursive(dirPath: string): number {
+    if (!fs.existsSync(dirPath)) return 0;
+    let total = 0;
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            total += getDirSizeRecursive(fullPath);
+        } else if (entry.isFile()) {
+            try {
+                total += fs.statSync(fullPath).size;
+            } catch {
+                // ignore
+            }
+        }
+    }
+    return total;
 }
