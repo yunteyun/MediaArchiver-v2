@@ -34,3 +34,6 @@ Thumbs.db
 # Thumbnails and temp files (app runtime)
 thumbnails/
 temp/
+
+# Electron Builder output
+release/
