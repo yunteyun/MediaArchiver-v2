@@ -177,6 +177,12 @@ function App() {
         }
     }, [deleteDialogFileId, deleteDialogFilePath, closeDeleteDialog]);
 
+    // Phase 26: ヘッダーバージョン表記
+    const [appVersion, setAppVersion] = useState('');
+    useEffect(() => {
+        window.electronAPI.getAppVersion().then((v: string) => setAppVersion(v)).catch(() => { });
+    }, []);
+
     return (
         <div className="flex h-screen w-screen bg-surface-950 text-white overflow-hidden">
             <Sidebar key={`sidebar-${refreshKey}`} />
@@ -185,6 +191,10 @@ function App() {
                 <header className="h-12 flex items-center justify-between px-4 border-b border-surface-800 bg-surface-900 flex-shrink-0">
                     <div className="flex items-center gap-4">
                         <h1 className="text-lg font-semibold text-surface-100">MediaArchiver</h1>
+                        {/* Phase 26: バージョン表記 */}
+                        {appVersion && (
+                            <span className="text-xs text-surface-500 font-mono">v{appVersion}</span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <ProfileSwitcher onOpenManageModal={() => setProfileModalOpen(true)} />
@@ -192,8 +202,8 @@ function App() {
                         <button
                             onClick={toggleRightPanel}
                             className={`p-1.5 rounded transition-colors ${isRightPanelOpen
-                                    ? 'text-primary-400 bg-primary-900/30 hover:bg-primary-900/50'
-                                    : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700'
+                                ? 'text-primary-400 bg-primary-900/30 hover:bg-primary-900/50'
+                                : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700'
                                 }`}
                             title={isRightPanelOpen ? '右パネルを閉じる' : '右パネルを開く'}
                         >

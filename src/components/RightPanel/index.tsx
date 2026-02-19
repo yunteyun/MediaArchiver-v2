@@ -3,6 +3,7 @@ import { useFileStore } from '../../stores/useFileStore';
 import { PreviewSection } from './PreviewSection';
 import { BasicInfoSection } from './BasicInfoSection';
 import { TagSection } from './TagSection';
+import { ArchivePreviewSection } from './ArchivePreviewSection';
 
 export const RightPanel: React.FC = () => {
     const focusedId = useFileStore((s) => s.focusedId);
@@ -18,6 +19,8 @@ export const RightPanel: React.FC = () => {
                     <PreviewSection file={file} />
                     <div className="flex-1 overflow-y-auto">
                         <BasicInfoSection file={file} />
+                        {/* Phase 26: 書庫プレビューグリッド（BASIC INFO 下・TAG 上） */}
+                        <ArchivePreviewSection file={file} />
                         <TagSection file={file} />
                     </div>
                 </>
