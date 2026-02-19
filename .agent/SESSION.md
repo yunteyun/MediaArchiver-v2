@@ -1,21 +1,20 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-18 22:19
+**Last Updated**: 2026-02-19 20:45
 
-- **Current Focus**: Phase 25 完了・v1.1.0 リリース完了
-- **Current Status**: Phase 25（保存場所カスタマイズ）実装完了、v1.1.0 として ZIP リリース済み。
+- **Current Focus**: v1.1.2 リリース完了 & ドキュメント更新
+- **Current Status**: v1.1.2（音声書庫バッジ・書庫プレビュー・バージョン表記）の実装・リリース完了。現在ドキュメント整理中。
 - **Recent Achievements**:
-  - **Phase 25**: 保存場所カスタマイズ完了
-    - `storageConfig.ts`: 二段階ロード・原子的移行・権限チェック・旧データ削除・thumbnail_path 一括更新
-    - `electron/ipc/storage.ts`: IPC ハンドラ（getConfig / setConfig / browseFolder / deleteOldData）
-    - `SettingsModal.tsx`: サムネイルタブに「保存場所」セクション追加（ラジオ3択・参照・移行・旧データ削除）
-    - バグ修正: `closeAll()` 後の `metaDb` 再接続（`reopenMetaDb()`）
-    - バグ修正: `deleteOldStorageData` で `profiles.db` を除外
-    - バグ修正: 移行後に `thumbnail_path` / `preview_frames` を新パスに一括更新
-  - **v1.1.0 リリース**: ZIP 形式でビルド完了
-    - `release/MediaArchiver v2-1.1.0-win.zip` 生成
-    - README.txt 同梱（起動方法・SmartScreen 警告・ポータブル説明）
-    - Git タグ `v1.1.0`（注釈付き）コミット済み
+  - **v1.1.2 リリース**:
+    - **音声書庫バッジ**: FileCard に Music アイコンバッジを追加
+    - **書庫プレビューグリッド**: 右パネルの BASIC INFO 下に独立セクションとして実装
+    - **バージョン表記**: ヘッダータイトル横と設定モーダルフッターにアプリバージョンを表示
+    - **コミット**: `7758516`, `43ea759`, `7c76400`
+    - **リリースビルド**: `release/MediaArchiver v2-1.1.2-win.zip` 生成済み
+  - **Bug Fixes**:
+    - 書庫プレビュー時のファイルロック問題解消
+    - 動画サムネイル生成エラー解消
+    - 音声書庫認識精度の改善
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -49,9 +48,10 @@
 - ✅ Phase 24: サムネイル軽量化（WebP変換・一括再生成）
 - ✅ Phase 25: 保存場所カスタマイズ
 - ✅ **v1.1.0 リリース**（Phase 25 まで、ZIP 形式）
+- ✅ Phase 26 (Part 1): v1.1.2 バグ修正・UX改善（プレビュー・バッジ・バージョン）
 
 ## Next Steps
-- [ ] Phase 26: タグ構造刷新（二層カテゴリ構造・評価軸の物理的分離）
+- [ ] Phase 26 (Part 2): タグ構造刷新（二層カテゴリ構造・評価軸の物理的分離）
 - [ ] 追加表示モード（漫画モード・動画モード）
 
 ## Known Issues
@@ -60,8 +60,5 @@
 ## Important Context
 - v2 は v1（c:\\MediaArchiver）のリファクタリング版
 - 状態管理: Zustand、仮想スクロール: TanStack Virtual
-- Phase 8 でデータ整合性強化（トランザクション、ログシステム）
-- Phase 9 で音声対応、全ファイルビュー、メモ機能、重複検出を実装
-- Phase 10 で DB マイグレーションシステムを導入
-- Phase 25 で保存場所カスタマイズ（AppData/インストールフォルダ/任意パス）を実装
-- `profiles.db` は常に `userData` に置く（metaDb として常時開いているため移行・削除対象外）
+- Phase 25 で保存場所カスタマイズ機能実装済み（アップデート時のデータ退避に注意）
+- リリース時は必ず `package.json` バージョン更新と `ROADMAP.md` 更新を行う（commit.md 参照）
