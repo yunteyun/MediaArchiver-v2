@@ -58,29 +58,49 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
 /**
  * 動画サムネイルを WebP で生成
  * ffmpeg の screenshots API は PNG 固定のため -vcodec libwebp 方式を使用
+ * Phase 26: seekInput('%') を廃止 → ffprobe で秒数を取得して絶対値でシーク（Windowsでの Invalid argument 回避）
  */
-function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
+async function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
     const filename = `${uuidv4()}.webp`;
     const outputPath = path.join(getThumbnailDir(), filename);
 
-    return new Promise((resolve) => {
-        ffmpeg(videoPath)
-            .outputOptions([
-                '-vframes', '1',
-                '-vf', `scale=${resolution}:-1`,
-                '-vcodec', 'libwebp',
-                '-quality', '75',
-                '-threads', '1',  // コイル鳴き軽減
-            ])
-            .seekInput('10%')
-            .output(outputPath)
-            .on('end', () => resolve(outputPath))
-            .on('error', (err) => {
-                log.error('Error generating video thumbnail:', err);
-                resolve(null);
-            })
-            .run();
-    });
+    try {
+        // ffprobe で動画の長さを取得
+        const durationSec = await new Promise<number>((resolve) => {
+            ffmpeg.ffprobe(videoPath, (err, metadata) => {
+                if (err || !metadata?.format?.duration) {
+                    resolve(0);
+                } else {
+                    resolve(metadata.format.duration);
+                }
+            });
+        });
+
+        // シーク位置を絶対秒数で指定（10%の位置、最低0秒、最大300秒）
+        const seekSec = durationSec > 1 ? Math.min(durationSec * 0.1, 300) : 0;
+
+        return await new Promise((resolve) => {
+            ffmpeg(videoPath)
+                .outputOptions([
+                    '-vframes', '1',
+                    '-vf', `scale=${resolution}:-1`,
+                    '-vcodec', 'libwebp',
+                    '-quality', '75',
+                    '-threads', '1',  // コイル鳴き軽減
+                ])
+                .seekInput(seekSec)
+                .output(outputPath)
+                .on('end', () => resolve(outputPath))
+                .on('error', (err) => {
+                    log.error('Error generating video thumbnail:', err);
+                    resolve(null);
+                })
+                .run();
+        });
+    } catch (e) {
+        log.error('generateVideoThumbnail exception:', e);
+        return null;
+    }
 }
 
 /**

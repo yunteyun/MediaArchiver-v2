@@ -1,8 +1,8 @@
 /**
- * Archive Handler - 書庫ファイル処琁E��ービス
+ * Archive Handler - 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ蜃ｦ逅・し繝ｼ繝薙せ
  * 
- * ZIP, RAR, 7Z, CBZ, CBR などの書庫ファイルを�E琁E��、E
- * メタチE�Eタ取得、サムネイル生�E、�Eレビュー画像抽出を行う、E
+ * ZIP, RAR, 7Z, CBZ, CBR 縺ｪ縺ｩ縺ｮ譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ繧貞・逅・＠縲・
+ * 繝｡繧ｿ繝・・繧ｿ蜿門ｾ励√し繝�繝阪う繝ｫ逕滓・縲√・繝ｬ繝薙Η繝ｼ逕ｻ蜒乗歓蜃ｺ繧定｡後≧縲・
  */
 
 import { path7za } from '7zip-bin';
@@ -19,7 +19,7 @@ const log = logger.scope('ArchiveHandler');
 
 const execFilePromise = util.promisify(execFile);
 
-// Phase 25: チE��レクトリ設定（動皁E��得！E
+// Phase 25: 繝・ぅ繝ｬ繧ｯ繝医Μ險ｭ螳夲ｼ亥虚逧・叙蠕暦ｼ・
 function getTempDir(): string {
     return path.join(app.getPath('userData'), 'temp', 'archives');
 }
@@ -27,31 +27,31 @@ function getThumbnailDir(): string {
     return path.join(getBasePath(), 'thumbnails');
 }
 
-// サポ�Eトする書庫拡張孁E
+// 繧ｵ繝昴・繝医☆繧区嶌蠎ｫ諡｡蠑ｵ蟄・
 const ARCHIVE_EXTENSIONS = ['.zip', '.cbz', '.rar', '.cbr', '.7z'];
 
-// サポ�Eトする画像拡張孁E
+// 繧ｵ繝昴・繝医☆繧狗判蜒乗僑蠑ｵ蟄・
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 
-// サポ�Eトする音声拡張孁E
+// 繧ｵ繝昴・繝医☆繧矩浹螢ｰ諡｡蠑ｵ蟄・
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
 
-// 7za バイナリパスの解決
+// 7za 繝舌う繝翫Μ繝代せ縺ｮ隗｣豎ｺ
 function resolve7zaPath(): string {
     let resolvedPath = path7za;
 
-    // Production 環墁E��の asar 対忁E
+    // Production 迺ｰ蠅・〒縺ｮ asar 蟇ｾ蠢・
     if (resolvedPath && resolvedPath.includes('app.asar')) {
         resolvedPath = resolvedPath.replace('app.asar', 'app.asar.unpacked');
     }
 
-    // パスが存在するか確誁E
+    // 繝代せ縺悟ｭ伜惠縺吶ｋ縺狗｢ｺ隱・
     if (fs.existsSync(resolvedPath)) {
         log.info('7za binary found at:', resolvedPath);
         return resolvedPath;
     }
 
-    // 開発環墁E��のフォールバック
+    // 髢狗匱迺ｰ蠅・〒縺ｮ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ
     log.warn('7za binary not found at:', resolvedPath);
     const devPath = path.join(process.cwd(), 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe');
 
@@ -61,12 +61,12 @@ function resolve7zaPath(): string {
     }
 
     log.error('7za binary not found anywhere!');
-    return resolvedPath; // 見つからなくても返す�E�エラーは後で発生！E
+    return resolvedPath; // 隕九▽縺九ｉ縺ｪ縺上※繧りｿ斐☆・医お繝ｩ繝ｼ縺ｯ蠕後〒逋ｺ逕滂ｼ・
 }
 
 const SEVEN_ZA_PATH = resolve7zaPath();
 
-// チE��レクトリ初期匁E
+// 繝・ぅ繝ｬ繧ｯ繝医Μ蛻晄悄蛹・
 function ensureDirectories(): void {
     const tempDir = getTempDir();
     const thumbnailDir = getThumbnailDir();
@@ -102,7 +102,7 @@ export interface ArchiveError {
 // ========================
 
 /**
- * ファイルが書庫ファイルかどぁE��を判宁E
+ * 繝輔ぃ繧､繝ｫ縺梧嶌蠎ｫ繝輔ぃ繧､繝ｫ縺九←縺・°繧貞愛螳・
  */
 export function isArchive(filePath: string): boolean {
     const ext = path.extname(filePath).toLowerCase();
@@ -110,11 +110,11 @@ export function isArchive(filePath: string): boolean {
 }
 
 /**
- * 書庫ファイルのメタチE�Eタ�E�画像リスト）を取征E
+ * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺ｮ繝｡繧ｿ繝・・繧ｿ・育判蜒上Μ繧ｹ繝茨ｼ峨ｒ蜿門ｾ・
  */
 export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetadata | null> {
     try {
-        // 7za -slt で詳細惁E��を取征E
+        // 7za -slt 縺ｧ隧ｳ邏ｰ諠・�ｱ繧貞叙蠕・
         const { stdout } = await execFilePromise(SEVEN_ZA_PATH, [
             'l', '-ba', '-slt', '-sccUTF-8', filePath
         ]);
@@ -141,24 +141,24 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
             }
         }
 
-        // 最後�Eエントリを�E琁E
+        // 譛蠕後・繧ｨ繝ｳ繝医Μ繧貞・逅・
         if (currentPath && !isDirectory) {
             entries.push(currentPath);
         }
 
-        // 画像ファイルのみフィルタリング
+        // 逕ｻ蜒上ヵ繧｡繧､繝ｫ縺ｮ縺ｿ繝輔ぅ繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ
         const imageEntries = entries.filter(name => {
             const ext = path.extname(name).toLowerCase();
             return IMAGE_EXTENSIONS.includes(ext);
         });
 
-        // 音声ファイルをフィルタリング
+        // 髻ｳ螢ｰ繝輔ぃ繧､繝ｫ繧偵ヵ繧｣繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ
         const audioEntries = entries.filter(name => {
             const ext = path.extname(name).toLowerCase();
             return AUDIO_EXTENSIONS.includes(ext);
         });
 
-        // 自然頁E��ート！E.jpg, 2.jpg, 10.jpg�E�E
+        // 閾ｪ辟ｶ鬆・た繝ｼ繝茨ｼ・.jpg, 2.jpg, 10.jpg・・
         const sortedImages = imageEntries.sort((a, b) =>
             a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
         );
@@ -181,13 +181,13 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
 }
 
 /**
- * 書庫ファイルからサムネイル用の最初�E画像を抽出
+ * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺九ｉ繧ｵ繝�繝阪う繝ｫ逕ｨ縺ｮ譛蛻昴・逕ｻ蜒上ｒ謚ｽ蜃ｺ
  */
 export async function getArchiveThumbnail(filePath: string): Promise<string | null> {
-    const TIMEOUT_MS = 30000; // 30秒タイムアウチE
+    const TIMEOUT_MS = 30000; // 30遘偵ち繧､繝�繧｢繧ｦ繝・
 
     try {
-        // ファイル存在確誁E
+        // 繝輔ぃ繧､繝ｫ蟄伜惠遒ｺ隱・
         if (!fs.existsSync(filePath)) {
             log.warn('File not found:', filePath);
             return null;
@@ -214,7 +214,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         const outName = `${uuidv4()}${ext}`;
         const outPath = path.join(getThumbnailDir(), outName);
 
-        // 7za で抽出�E�フラチE��展開�E�with timeout
+        // 7za 縺ｧ謚ｽ蜃ｺ・医ヵ繝ｩ繝・ヨ螻暮幕・駅ith timeout
         try {
             await Promise.race([
                 execFilePromise(SEVEN_ZA_PATH, [
@@ -225,7 +225,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
                 )
             ]);
         } catch (execError: any) {
-            // エラー種別判宁E
+            // 繧ｨ繝ｩ繝ｼ遞ｮ蛻･蛻､螳・
             const errorMsg = execError?.stderr || execError?.message || String(execError);
 
             if (errorMsg.includes('password') || errorMsg.includes('Wrong password')) {
@@ -244,7 +244,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             throw execError;
         }
 
-        // 抽出されたファイルをサムネイルチE��レクトリに移勁E
+        // 謚ｽ蜃ｺ縺輔ｌ縺溘ヵ繧｡繧､繝ｫ繧偵し繝�繝阪う繝ｫ繝・ぅ繝ｬ繧ｯ繝医Μ縺ｫ遘ｻ蜍・
         const extractedBasename = path.basename(entryName);
         const extractedPath = path.join(getTempDir(), extractedBasename);
 
@@ -253,7 +253,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             return outPath;
         }
 
-        // フォールバック: TEMP_DIRを検索
+        // 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ: TEMP_DIR繧呈､懃ｴ｢
         const tempFiles = fs.readdirSync(getTempDir());
         const imageFile = tempFiles.find(f => {
             const fExt = path.extname(f).toLowerCase();
@@ -270,7 +270,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         log.warn('Extracted file not found:', extractedPath);
         return null;
     } catch (error: any) {
-        // 詳細ログ
+        // 隧ｳ邏ｰ繝ｭ繧ｰ
         const errorDetail = {
             filePath,
             message: error?.message || String(error),
@@ -283,9 +283,9 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 }
 
 /**
- * 書庫ファイルから褁E��のプレビュー画像を抽出
- * @param filePath - 書庫ファイルパス
- * @param limit - 取得する画像�E最大数�E�デフォルチE 9�E�E
+ * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺九ｉ隍・焚縺ｮ繝励Ξ繝薙Η繝ｼ逕ｻ蜒上ｒ謚ｽ蜃ｺ
+ * @param filePath - 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ繝代せ
+ * @param limit - 蜿門ｾ励☆繧狗判蜒上・譛螟ｧ謨ｰ・医ョ繝輔か繝ｫ繝・ 9・・
  */
 export async function getArchivePreviewFrames(
     filePath: string,
@@ -300,13 +300,13 @@ export async function getArchivePreviewFrames(
         const images = metadata.imageEntries;
         const selectedImages: string[] = [];
 
-        // 最初�E画像（サムネイル�E�をスキチE�E�E�十刁E��画像がある場合！E
+        // 譛蛻昴・逕ｻ蜒擾ｼ医し繝�繝阪う繝ｫ・峨ｒ繧ｹ繧ｭ繝・・・亥香蛻・↑逕ｻ蜒上′縺ゅｋ蝣ｴ蜷茨ｼ・
         const pool = images.length > 1 ? images.slice(1) : images;
 
         if (pool.length <= limit) {
             selectedImages.push(...pool);
         } else {
-            // 坁E��に刁E��して選抁E
+            // 蝮・ｭ峨↓蛻・淵縺励※驕ｸ謚・
             const step = (pool.length - 1) / (limit - 1);
             for (let i = 0; i < limit; i++) {
                 const index = Math.round(i * step);
@@ -318,16 +318,21 @@ export async function getArchivePreviewFrames(
 
         for (const entryName of selectedImages) {
             const ext = path.extname(entryName) || '.jpg';
-            const outName = `preview_${uuidv4()}${ext}`;
+            const extractId = uuidv4();
+            const subDir = path.join(getTempDir(), extractId);
+            const outName = `preview_${extractId}${ext}`;
             const outPath = path.join(getTempDir(), outName);
 
             try {
+                // Phase 26: UUID サブフォルダに解凍して同名ファイル競合を防ぐ
+                fs.mkdirSync(subDir, { recursive: true });
+
                 await execFilePromise(SEVEN_ZA_PATH, [
-                    'e', filePath, `-o${getTempDir()}`, entryName, '-y', '-sccUTF-8'
+                    'e', filePath, `-o${subDir}`, entryName, '-y', '-sccUTF-8'
                 ]);
 
                 const extractedBasename = path.basename(entryName);
-                const extractedPath = path.join(getTempDir(), extractedBasename);
+                const extractedPath = path.join(subDir, extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
                     fs.renameSync(extractedPath, outPath);
@@ -335,6 +340,15 @@ export async function getArchivePreviewFrames(
                 }
             } catch (e) {
                 log.warn(`Failed to extract preview frame: ${entryName}`, e);
+            } finally {
+                // UUID サブフォルダを削除（残骸クリーンアップ）
+                try {
+                    if (fs.existsSync(subDir)) {
+                        fs.rmSync(subDir, { recursive: true, force: true });
+                    }
+                } catch {
+                    // クリーンアップ失敗は無視
+                }
             }
         }
 
@@ -346,7 +360,7 @@ export async function getArchivePreviewFrames(
 }
 
 /**
- * 一時ディレクトリをクリーンアチE�E
+ * 荳譎ゅョ繧｣繝ｬ繧ｯ繝医Μ繧偵け繝ｪ繝ｼ繝ｳ繧｢繝・・
  */
 export function cleanTempArchives(): void {
     try {
@@ -361,7 +375,7 @@ export function cleanTempArchives(): void {
 }
 
 /**
- * 書庫ファイル冁E�E音声ファイルリストを取征E
+ * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ蜀・・髻ｳ螢ｰ繝輔ぃ繧､繝ｫ繝ｪ繧ｹ繝医ｒ蜿門ｾ・
  */
 export async function getArchiveAudioFiles(archivePath: string): Promise<string[]> {
     const metadata = await getArchiveMetadata(archivePath);
@@ -369,7 +383,7 @@ export async function getArchiveAudioFiles(archivePath: string): Promise<string[
 }
 
 /**
- * 書庫ファイルから特定�E音声ファイルを抽出し、一時ファイルパスを返す
+ * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺九ｉ迚ｹ螳壹・髻ｳ螢ｰ繝輔ぃ繧､繝ｫ繧呈歓蜃ｺ縺励∽ｸ譎ゅヵ繧｡繧､繝ｫ繝代せ繧定ｿ斐☆
  */
 export async function extractArchiveAudioFile(
     archivePath: string,
@@ -383,7 +397,7 @@ export async function extractArchiveAudioFile(
             fs.mkdirSync(extractDir, { recursive: true });
         }
 
-        // 7zaで特定ファイルを抽出
+        // 7za縺ｧ迚ｹ螳壹ヵ繧｡繧､繝ｫ繧呈歓蜃ｺ
         await execFilePromise(SEVEN_ZA_PATH, [
             'e', archivePath,
             `-o${extractDir}`,
@@ -392,7 +406,7 @@ export async function extractArchiveAudioFile(
             '-sccUTF-8'
         ]);
 
-        // 抽出したファイルを探ぁE
+        // 謚ｽ蜃ｺ縺励◆繝輔ぃ繧､繝ｫ繧呈爾縺・
         const extractedName = path.basename(entryName);
         const extractedPath = path.join(extractDir, extractedName);
 
@@ -400,7 +414,7 @@ export async function extractArchiveAudioFile(
             return extractedPath;
         }
 
-        // チE��レクトリ冁E��検索
+        // 繝・ぅ繝ｬ繧ｯ繝医Μ蜀・ｒ讀懃ｴ｢
         const files = fs.readdirSync(extractDir);
         if (files.length > 0) {
             return path.join(extractDir, files[0]);
