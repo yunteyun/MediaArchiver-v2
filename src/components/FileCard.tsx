@@ -657,6 +657,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             {badge.label}
                         </span>
                     ))}
+                    {/* Phase 26: 音声書庫バッジ（Music アイコン） */}
+                    {!isSelected && file.type === 'archive' && isAudioArchive(file) && (
+                        <div className="bg-purple-800/80 rounded-sm p-0.5 opacity-90">
+                            <Music size={12} className="text-white" strokeWidth={2.5} />
+                        </div>
+                    )}
                     {/* 拡張子バッジ */}
                     {thumbnailBadges.extension && (
                         <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm opacity-90 text-white uppercase ${extensionColor}`}>

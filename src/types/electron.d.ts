@@ -53,6 +53,7 @@ declare global {
             // App
             openExternal: (path: string) => Promise<void>;
             showInExplorer: (path: string) => Promise<void>;
+            getAppVersion: () => Promise<string>;  // Phase 26
             getLogs: (lines?: number) => Promise<string[]>;
             openLogFolder: () => Promise<void>;
             selectFile: () => Promise<string | null>;

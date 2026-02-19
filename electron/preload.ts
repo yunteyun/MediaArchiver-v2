@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === App ===
     openExternal: (path: string) => ipcRenderer.invoke('app:openExternal', path),
     showInExplorer: (path: string) => ipcRenderer.invoke('app:showInExplorer', path),
+    getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
     getLogs: (lines?: number) => ipcRenderer.invoke('app:getLogs', lines),
     openLogFolder: () => ipcRenderer.invoke('app:openLogFolder'),
     selectFile: () => ipcRenderer.invoke('app:selectFile'),

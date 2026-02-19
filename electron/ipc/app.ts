@@ -1,4 +1,4 @@
-import { ipcMain, shell, dialog } from 'electron';
+import { ipcMain, shell, dialog, app } from 'electron';
 import { logger } from '../services/logger';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -21,6 +21,9 @@ export function getCachedExternalApps(): ExternalApp[] {
 }
 
 export function registerAppHandlers() {
+    // アプリバージョンを返す（Phase 26）
+    ipcMain.handle('app:getVersion', () => app.getVersion());
+
     // ファイルをデフォルトアプリで開く
     ipcMain.handle('app:openExternal', async (_event, filePath: string) => {
         return shell.openPath(filePath);

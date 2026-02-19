@@ -61,6 +61,8 @@ export const SettingsModal = React.memo(() => {
     const [logs, setLogs] = useState<string[]>([]);
     const [logFilter, setLogFilter] = useState<'all' | 'error' | 'warn' | 'info'>('all');
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+    // Phase 26: バージョン表記
+    const [appVersion, setAppVersion] = useState<string>('');
 
     // Phase 25: ストレージ設定
     const [storageConfig, setStorageConfig] = useState<StorageConfig | null>(null);
@@ -134,6 +136,13 @@ export const SettingsModal = React.memo(() => {
             loadStorageConfig();
         }
     }, [isOpen, activeTab, loadLogs, loadStorageConfig]);
+
+    // Phase 26: バージョン取得
+    useEffect(() => {
+        if (isOpen && !appVersion) {
+            window.electronAPI.getAppVersion().then((v: string) => setAppVersion(v)).catch(() => { });
+        }
+    }, [isOpen, appVersion]);
 
     const filteredLogs = logs.filter(line => {
         if (logFilter === 'all') return true;
@@ -776,7 +785,11 @@ export const SettingsModal = React.memo(() => {
                 </div>
 
                 {/* Footer */}
-                <div className="px-4 py-3 border-t border-surface-700 flex justify-end">
+                <div className="px-4 py-3 border-t border-surface-700 flex items-center justify-between">
+                    {/* Phase 26: バージョン表記 */}
+                    <span className="text-xs text-surface-500">
+                        {appVersion ? `v${appVersion}` : ''}
+                    </span>
                     <button
                         onClick={closeModal}
                         className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded transition-colors"
