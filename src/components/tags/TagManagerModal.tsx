@@ -1,9 +1,10 @@
 /**
  * TagManagerModal - タグとカテゴリの管理モーダル
+ * Phase 26-A: 左右ペイン構造に刷新
  */
 
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, ChevronRight } from 'lucide-react';
 import { useTagStore, Tag, TagCategory } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
 import { AutoTagRulesTab } from '../AutoTagRulesTab';
@@ -15,22 +16,39 @@ const COLOR_OPTIONS = [
     'purple', 'fuchsia', 'pink', 'rose'
 ];
 
+/** カテゴリ色→背景CSSクラス */
+const colorBgClass = (color: string) =>
+    color === 'amber' ? 'bg-amber-600'
+        : color === 'yellow' ? 'bg-amber-500'
+            : color === 'lime' ? 'bg-lime-600'
+                : `bg-${color}-600`;
+
+// 未分類カテゴリの仮想ID
+const UNCATEGORIZED_ID = '__uncategorized__';
+
 interface TagManagerModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
 export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalProps) => {
-    const [activeTab, setActiveTab] = useState<'tags' | 'categories' | 'autoRules'>('tags');
+    const [activeTab, setActiveTab] = useState<'tags' | 'autoRules'>('tags');
+
+    // カテゴリ選択（左ペイン）
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+
+    // タグ編集
     const [editingTag, setEditingTag] = useState<Tag | null>(null);
-    const [editingCategory, setEditingCategory] = useState<TagCategory | null>(null);
     const [newTagName, setNewTagName] = useState('');
     const [newTagColor, setNewTagColor] = useState('gray');
-    const [newTagCategoryId, setNewTagCategoryId] = useState<string | null>(null);
     const [newTagIcon, setNewTagIcon] = useState('');
     const [newTagDescription, setNewTagDescription] = useState('');
+
+    // カテゴリ編集
+    const [editingCategory, setEditingCategory] = useState<TagCategory | null>(null);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newCategoryColor, setNewCategoryColor] = useState('gray');
+    const [showCategoryForm, setShowCategoryForm] = useState(false);
 
     const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
@@ -50,6 +68,13 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         }
     }, [isOpen, loadTags, loadCategories]);
 
+    // 初期選択: 最初のカテゴリまたは未分類
+    useEffect(() => {
+        if (isOpen && selectedCategoryId === null) {
+            setSelectedCategoryId(categories.length > 0 ? categories[0]!.id : UNCATEGORIZED_ID);
+        }
+    }, [isOpen, categories, selectedCategoryId]);
+
     // Handle escape key
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
@@ -61,34 +86,39 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         return () => window.removeEventListener('keydown', handleEscape);
     }, [isOpen, onClose]);
 
+    // 選択中カテゴリに属するタグ
+    const filteredTags = useMemo(() => {
+        if (selectedCategoryId === UNCATEGORIZED_ID) {
+            return tags.filter(t => !t.categoryId);
+        }
+        if (selectedCategoryId === null) return tags;
+        return tags.filter(t => t.categoryId === selectedCategoryId);
+    }, [tags, selectedCategoryId]);
+
+    // 未分類タグ数
+    const uncategorizedCount = useMemo(() => tags.filter(t => !t.categoryId).length, [tags]);
+
     if (!isOpen) return null;
 
     // === Tag CRUD ===
     const handleCreateTag = async () => {
         if (!newTagName.trim()) return;
-        await createTag(newTagName.trim(), newTagColor, newTagCategoryId || undefined, newTagIcon, newTagDescription);
-        setNewTagName('');
-        setNewTagColor('gray');
-        setNewTagCategoryId(null);
-        setNewTagIcon('');
-        setNewTagDescription('');
+        const categoryId = selectedCategoryId === UNCATEGORIZED_ID ? undefined : (selectedCategoryId || undefined);
+        await createTag(newTagName.trim(), newTagColor, categoryId, newTagIcon, newTagDescription);
+        resetTagForm();
     };
 
     const handleUpdateTag = async () => {
         if (!editingTag || !newTagName.trim()) return;
+        const categoryId = selectedCategoryId === UNCATEGORIZED_ID ? null : selectedCategoryId;
         await updateTag(editingTag.id, {
             name: newTagName.trim(),
             color: newTagColor,
-            categoryId: newTagCategoryId,
+            categoryId,
             icon: newTagIcon,
             description: newTagDescription
         });
-        setEditingTag(null);
-        setNewTagName('');
-        setNewTagColor('gray');
-        setNewTagCategoryId(null);
-        setNewTagIcon('');
-        setNewTagDescription('');
+        resetTagForm();
     };
 
     const handleDeleteTag = async (tag: Tag) => {
@@ -101,17 +131,24 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         setEditingTag(tag);
         setNewTagName(tag.name);
         setNewTagColor(tag.color);
-        setNewTagCategoryId(tag.categoryId);
         setNewTagIcon(tag.icon || '');
         setNewTagDescription(tag.description || '');
+    };
+
+    const resetTagForm = () => {
+        setEditingTag(null);
+        setNewTagName('');
+        setNewTagColor('gray');
+        setNewTagIcon('');
+        setNewTagDescription('');
     };
 
     // === Category CRUD ===
     const handleCreateCategory = async () => {
         if (!newCategoryName.trim()) return;
-        await createCategory(newCategoryName.trim(), newCategoryColor);
-        setNewCategoryName('');
-        setNewCategoryColor('gray');
+        const newCat = await createCategory(newCategoryName.trim(), newCategoryColor);
+        resetCategoryForm();
+        setSelectedCategoryId(newCat.id);
     };
 
     const handleUpdateCategory = async () => {
@@ -120,14 +157,15 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
             name: newCategoryName.trim(),
             color: newCategoryColor
         });
-        setEditingCategory(null);
-        setNewCategoryName('');
-        setNewCategoryColor('gray');
+        resetCategoryForm();
     };
 
     const handleDeleteCategory = async (cat: TagCategory) => {
         if (confirm(`カテゴリ "${cat.name}" を削除しますか？\nタグはカテゴリなしになります。`)) {
             await deleteCategory(cat.id);
+            if (selectedCategoryId === cat.id) {
+                setSelectedCategoryId(UNCATEGORIZED_ID);
+            }
         }
     };
 
@@ -135,12 +173,26 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         setEditingCategory(cat);
         setNewCategoryName(cat.name);
         setNewCategoryColor(cat.color);
+        setShowCategoryForm(true);
     };
+
+    const resetCategoryForm = () => {
+        setEditingCategory(null);
+        setNewCategoryName('');
+        setNewCategoryColor('gray');
+        setShowCategoryForm(false);
+    };
+
+    // 選択中カテゴリ名
+    const selectedCategoryName = selectedCategoryId === UNCATEGORIZED_ID
+        ? '未分類'
+        : categories.find(c => c.id === selectedCategoryId)?.name || '';
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black/70" onClick={onClose} style={{ zIndex: 'var(--z-modal)' }}>
             <div
-                className="bg-surface-900 rounded-lg border border-surface-700 shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+                className="bg-surface-900 rounded-lg border border-surface-700 shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col"
+                style={{ minWidth: '720px' }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -151,7 +203,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                     </button>
                 </div>
 
-                {/* Tabs */}
+                {/* Tabs: タグ管理 / 自動割り当て */}
                 <div className="flex border-b border-surface-700">
                     <button
                         onClick={() => setActiveTab('tags')}
@@ -161,17 +213,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                             }`}
                     >
                         <TagIcon size={16} className="inline mr-2" />
-                        タグ ({tags.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('categories')}
-                        className={`flex-1 py-2 text-sm font-medium transition-colors ${activeTab === 'categories'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <FolderOpen size={16} className="inline mr-2" />
-                        カテゴリ ({categories.length})
+                        タグ・カテゴリ管理
                     </button>
                     <button
                         onClick={() => setActiveTab('autoRules')}
@@ -186,217 +228,260 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto p-4">
+                <div className="flex-1 overflow-hidden">
                     {activeTab === 'tags' ? (
-                        <div className="space-y-4">
-                            {/* New Tag Form */}
-                            <div className="p-3 bg-surface-800 rounded-lg space-y-3">
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="新しいタグ名..."
-                                        value={newTagName}
-                                        onChange={(e) => setNewTagName(e.target.value)}
-                                        className="flex-1 px-3 py-2 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
-                                    />
-                                    <select
-                                        value={newTagCategoryId || ''}
-                                        onChange={(e) => setNewTagCategoryId(e.target.value || null)}
-                                        className="px-3 py-2 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
-                                    >
-                                        <option value="">カテゴリなし</option>
-                                        {categories.map(cat => (
-                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                        ))}
-                                    </select>
+                        <div className="flex h-full" style={{ minHeight: '400px' }}>
+                            {/* === 左ペイン: カテゴリ一覧 === */}
+                            <div className="w-56 flex-shrink-0 border-r border-surface-700 flex flex-col">
+                                <div className="p-3 border-b border-surface-700">
+                                    <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider flex items-center gap-1">
+                                        <FolderOpen size={12} />
+                                        カテゴリ
+                                    </h3>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-surface-500">色:</span>
-                                    <div className="flex flex-wrap gap-1">
-                                        {COLOR_OPTIONS.map(color => {
-                                            // TagBadge.tsxと一致: amber=600, yellow=amber-500, lime=600
-                                            const bgClass = color === 'amber' ? 'bg-amber-600'
-                                                : color === 'yellow' ? 'bg-amber-500'
-                                                    : color === 'lime' ? 'bg-lime-600'
-                                                        : `bg-${color}-600`;
-                                            return (
-                                                <button
-                                                    key={color}
-                                                    onClick={() => setNewTagColor(color)}
-                                                    className={`w-5 h-5 rounded transition-all ${bgClass} ${newTagColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-800' : ''
-                                                        }`}
-                                                    title={color}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="アイコン名 (例: Star, Heart)"
-                                    value={newTagIcon}
-                                    onChange={(e) => setNewTagIcon(e.target.value)}
-                                    className="w-full px-3 py-2 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
-                                />
-                                <textarea
-                                    placeholder="説明文 (オプション)"
-                                    value={newTagDescription}
-                                    onChange={(e) => setNewTagDescription(e.target.value)}
-                                    rows={2}
-                                    className="w-full px-3 py-2 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500 resize-none"
-                                />
-                                <button
-                                    onClick={editingTag ? handleUpdateTag : handleCreateTag}
-                                    className="w-full py-2 bg-primary-600 hover:bg-primary-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                >
-                                    {editingTag ? <Check size={16} /> : <Plus size={16} />}
-                                    {editingTag ? '更新' : '追加'}
-                                </button>
-                                {editingTag && (
-                                    <button
-                                        onClick={() => {
-                                            setEditingTag(null);
-                                            setNewTagName('');
-                                            setNewTagColor('gray');
-                                            setNewTagCategoryId(null);
-                                            setNewTagIcon('');
-                                            setNewTagDescription('');
-                                        }}
-                                        className="w-full py-1 text-sm text-surface-400 hover:text-surface-200"
-                                    >
-                                        キャンセル
-                                    </button>
-                                )}
-                            </div>
 
-                            {/* Tag List */}
-                            <div className="space-y-1">
-                                {tags.length === 0 ? (
-                                    <p className="text-center text-surface-500 py-8">タグがありません</p>
-                                ) : (
-                                    tags.map(tag => (
-                                        <div key={tag.id} className="flex items-center justify-between p-2 hover:bg-surface-800 rounded group">
-                                            <div className="flex items-center gap-2">
-                                                <TagBadge name={tag.name} color={tag.color} />
-                                                {tag.categoryId && (
-                                                    <span className="text-xs text-surface-500">
-                                                        ({categories.find(c => c.id === tag.categoryId)?.name})
-                                                    </span>
+                                {/* カテゴリリスト */}
+                                <div className="flex-1 overflow-auto">
+                                    {categories.map(cat => {
+                                        const tagCount = tags.filter(t => t.categoryId === cat.id).length;
+                                        const isSelected = selectedCategoryId === cat.id;
+                                        return (
+                                            <div
+                                                key={cat.id}
+                                                className={`flex items-center gap-2 px-3 py-2 cursor-pointer group transition-colors ${isSelected
+                                                    ? 'bg-primary-500/15 text-primary-300 border-r-2 border-primary-400'
+                                                    : 'hover:bg-surface-800 text-surface-300'
+                                                    }`}
+                                                onClick={() => { setSelectedCategoryId(cat.id); resetTagForm(); }}
+                                            >
+                                                <div className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${colorBgClass(cat.color)}`} />
+                                                <span className="text-sm truncate flex-1">{cat.name}</span>
+                                                <span className="text-[10px] text-surface-500">{tagCount}</span>
+                                                {isSelected && (
+                                                    <div className="flex gap-0.5 ml-1">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); startEditCategory(cat); }}
+                                                            className="p-0.5 hover:bg-surface-600 rounded"
+                                                            title="編集"
+                                                        >
+                                                            <Edit2 size={11} className="text-surface-400" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat); }}
+                                                            className="p-0.5 hover:bg-red-500/20 rounded"
+                                                            title="削除"
+                                                        >
+                                                            <Trash2 size={11} className="text-red-400" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => startEditTag(tag)}
-                                                    className="p-1 hover:bg-surface-700 rounded"
-                                                >
-                                                    <Edit2 size={14} className="text-surface-400" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteTag(tag)}
-                                                    className="p-1 hover:bg-red-500/20 rounded"
-                                                >
-                                                    <Trash2 size={14} className="text-red-400" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    ) : activeTab === 'categories' ? (
-                        <div className="space-y-4">
-                            {/* New Category Form */}
-                            <div className="p-3 bg-surface-800 rounded-lg space-y-3">
-                                <input
-                                    type="text"
-                                    placeholder="新しいカテゴリ名..."
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    className="w-full px-3 py-2 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
-                                />
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-surface-500">色:</span>
-                                    <div className="flex flex-wrap gap-1">
-                                        {COLOR_OPTIONS.map(color => {
-                                            // TagBadge.tsxと一致: amber=600, yellow=amber-500, lime=600
-                                            const bgClass = color === 'amber' ? 'bg-amber-600'
-                                                : color === 'yellow' ? 'bg-amber-500'
-                                                    : color === 'lime' ? 'bg-lime-600'
-                                                        : `bg-${color}-600`;
-                                            return (
-                                                <button
-                                                    key={color}
-                                                    onClick={() => setNewCategoryColor(color)}
-                                                    className={`w-5 h-5 rounded transition-all ${bgClass} ${newCategoryColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-800' : ''
-                                                        }`}
-                                                    title={color}
-                                                />
-                                            );
-                                        })}
+                                        );
+                                    })}
+
+                                    {/* 未分類 */}
+                                    <div
+                                        className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors ${selectedCategoryId === UNCATEGORIZED_ID
+                                            ? 'bg-primary-500/15 text-primary-300 border-r-2 border-primary-400'
+                                            : 'hover:bg-surface-800 text-surface-400'
+                                            }`}
+                                        onClick={() => { setSelectedCategoryId(UNCATEGORIZED_ID); resetTagForm(); }}
+                                    >
+                                        <div className="w-2.5 h-2.5 rounded-sm bg-surface-600 flex-shrink-0" />
+                                        <span className="text-sm truncate flex-1 italic">未分類</span>
+                                        <span className="text-[10px] text-surface-500">{uncategorizedCount}</span>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={editingCategory ? handleUpdateCategory : handleCreateCategory}
-                                    className="w-full py-2 bg-primary-600 hover:bg-primary-500 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                                >
-                                    {editingCategory ? <Check size={16} /> : <Plus size={16} />}
-                                    {editingCategory ? '更新' : '追加'}
-                                </button>
-                                {editingCategory && (
-                                    <button
-                                        onClick={() => {
-                                            setEditingCategory(null);
-                                            setNewCategoryName('');
-                                            setNewCategoryColor('gray');
-                                        }}
-                                        className="w-full py-1 text-sm text-surface-400 hover:text-surface-200"
-                                    >
-                                        キャンセル
-                                    </button>
-                                )}
-                            </div>
 
-                            {/* Category List */}
-                            <div className="space-y-1">
-                                {categories.length === 0 ? (
-                                    <p className="text-center text-surface-500 py-8">カテゴリがありません</p>
-                                ) : (
-                                    categories.map(cat => (
-                                        <div key={cat.id} className="flex items-center justify-between p-2 hover:bg-surface-800 rounded group">
-                                            <div className="flex items-center gap-2">
-                                                <div
-                                                    className={`w-3 h-3 rounded ${cat.color === 'amber' ? 'bg-amber-600'
-                                                            : cat.color === 'yellow' ? 'bg-amber-500'
-                                                                : cat.color === 'lime' ? 'bg-lime-600'
-                                                                    : `bg-${cat.color}-600`
-                                                        }`}
-                                                />
-                                                <span className="text-sm text-surface-200">{cat.name}</span>
-                                                <span className="text-xs text-surface-500">
-                                                    ({tags.filter(t => t.categoryId === cat.id).length} タグ)
-                                                </span>
+                                {/* カテゴリ追加/編集フォーム */}
+                                <div className="border-t border-surface-700">
+                                    {showCategoryForm ? (
+                                        <div className="p-2 space-y-2">
+                                            <input
+                                                type="text"
+                                                placeholder="カテゴリ名..."
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                className="w-full px-2 py-1.5 bg-surface-800 border border-surface-600 rounded text-xs focus:outline-none focus:border-primary-500"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        editingCategory ? handleUpdateCategory() : handleCreateCategory();
+                                                    }
+                                                }}
+                                                autoFocus
+                                            />
+                                            <div className="flex flex-wrap gap-0.5">
+                                                {COLOR_OPTIONS.map(color => (
+                                                    <button
+                                                        key={color}
+                                                        onClick={() => setNewCategoryColor(color)}
+                                                        className={`w-4 h-4 rounded transition-all ${colorBgClass(color)} ${newCategoryColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-900' : ''
+                                                            }`}
+                                                        title={color}
+                                                    />
+                                                ))}
                                             </div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex gap-1">
                                                 <button
-                                                    onClick={() => startEditCategory(cat)}
-                                                    className="p-1 hover:bg-surface-700 rounded"
+                                                    onClick={editingCategory ? handleUpdateCategory : handleCreateCategory}
+                                                    className="flex-1 py-1 bg-primary-600 hover:bg-primary-500 text-white rounded text-xs font-medium flex items-center justify-center gap-1"
                                                 >
-                                                    <Edit2 size={14} className="text-surface-400" />
+                                                    {editingCategory ? <Check size={12} /> : <Plus size={12} />}
+                                                    {editingCategory ? '更新' : '追加'}
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteCategory(cat)}
-                                                    className="p-1 hover:bg-red-500/20 rounded"
+                                                    onClick={resetCategoryForm}
+                                                    className="px-2 py-1 text-xs text-surface-400 hover:text-surface-200 hover:bg-surface-700 rounded"
                                                 >
-                                                    <Trash2 size={14} className="text-red-400" />
+                                                    取消
                                                 </button>
                                             </div>
                                         </div>
-                                    ))
-                                )}
+                                    ) : (
+                                        <button
+                                            onClick={() => setShowCategoryForm(true)}
+                                            className="w-full px-3 py-2 text-xs text-surface-400 hover:text-surface-200 hover:bg-surface-800 flex items-center gap-1 transition-colors"
+                                        >
+                                            <Plus size={12} />
+                                            カテゴリを追加
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* === 右ペイン: タグ一覧 === */}
+                            <div className="flex-1 flex flex-col min-w-0">
+                                {/* 右ペインヘッダー */}
+                                <div className="p-3 border-b border-surface-700 flex items-center justify-between">
+                                    <h3 className="text-sm font-medium text-surface-200 flex items-center gap-1.5">
+                                        <ChevronRight size={14} className="text-surface-500" />
+                                        {selectedCategoryName}
+                                        <span className="text-xs text-surface-500 ml-1">({filteredTags.length} タグ)</span>
+                                    </h3>
+                                </div>
+
+                                {/* タグ作成フォーム */}
+                                <div className="p-3 border-b border-surface-700 bg-surface-800/50">
+                                    <div className="space-y-2">
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder={editingTag ? 'タグ名を編集...' : '新しいタグ名...'}
+                                                value={newTagName}
+                                                onChange={(e) => setNewTagName(e.target.value)}
+                                                className="flex-1 px-3 py-1.5 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        editingTag ? handleUpdateTag() : handleCreateTag();
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                onClick={editingTag ? handleUpdateTag : handleCreateTag}
+                                                className="px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1"
+                                            >
+                                                {editingTag ? <Check size={14} /> : <Plus size={14} />}
+                                                {editingTag ? '更新' : '追加'}
+                                            </button>
+                                            {editingTag && (
+                                                <button
+                                                    onClick={resetTagForm}
+                                                    className="px-2 py-1.5 text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-700 rounded"
+                                                >
+                                                    取消
+                                                </button>
+                                            )}
+                                        </div>
+                                        {/* 色選択（コンパクト表示） */}
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-surface-500">色:</span>
+                                            <div className="flex flex-wrap gap-0.5">
+                                                {COLOR_OPTIONS.map(color => (
+                                                    <button
+                                                        key={color}
+                                                        onClick={() => setNewTagColor(color)}
+                                                        className={`w-4 h-4 rounded transition-all ${colorBgClass(color)} ${newTagColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-surface-800' : ''
+                                                            }`}
+                                                        title={color}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {/* アイコン/説明 は折りたたみで表示可能にする */}
+                                        <details className="text-xs">
+                                            <summary className="text-surface-500 cursor-pointer hover:text-surface-300 select-none">
+                                                詳細設定（アイコン・説明）
+                                            </summary>
+                                            <div className="mt-2 space-y-1.5">
+                                                <input
+                                                    type="text"
+                                                    placeholder="アイコン名 (例: Star, Heart)"
+                                                    value={newTagIcon}
+                                                    onChange={(e) => setNewTagIcon(e.target.value)}
+                                                    className="w-full px-2 py-1 bg-surface-900 border border-surface-600 rounded text-xs focus:outline-none focus:border-primary-500"
+                                                />
+                                                <textarea
+                                                    placeholder="説明文 (オプション)"
+                                                    value={newTagDescription}
+                                                    onChange={(e) => setNewTagDescription(e.target.value)}
+                                                    rows={2}
+                                                    className="w-full px-2 py-1 bg-surface-900 border border-surface-600 rounded text-xs focus:outline-none focus:border-primary-500 resize-none"
+                                                />
+                                            </div>
+                                        </details>
+                                    </div>
+                                </div>
+
+                                {/* タグリスト */}
+                                <div className="flex-1 overflow-auto p-2">
+                                    {filteredTags.length === 0 ? (
+                                        <p className="text-center text-surface-500 py-8 text-sm">
+                                            {selectedCategoryId === UNCATEGORIZED_ID
+                                                ? '未分類のタグはありません'
+                                                : 'このカテゴリにタグはありません'}
+                                        </p>
+                                    ) : (
+                                        <div className="space-y-0.5">
+                                            {filteredTags.map(tag => (
+                                                <div
+                                                    key={tag.id}
+                                                    className="flex items-center justify-between px-2 py-1.5 hover:bg-surface-800 rounded group"
+                                                >
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <TagBadge name={tag.name} color={tag.color} />
+                                                        {tag.description && (
+                                                            <span className="text-[10px] text-surface-500 truncate">
+                                                                {tag.description}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                                                        <button
+                                                            onClick={() => startEditTag(tag)}
+                                                            className="p-1 hover:bg-surface-700 rounded"
+                                                            title="編集"
+                                                        >
+                                                            <Edit2 size={13} className="text-surface-400" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteTag(tag)}
+                                                            className="p-1 hover:bg-red-500/20 rounded"
+                                                            title="削除"
+                                                        >
+                                                            <Trash2 size={13} className="text-red-400" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ) : activeTab === 'autoRules' ? (
-                        <AutoTagRulesTab />
+                        <div className="overflow-auto p-4">
+                            <AutoTagRulesTab />
+                        </div>
                     ) : null}
                 </div>
             </div>

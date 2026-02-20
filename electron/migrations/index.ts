@@ -18,8 +18,9 @@ import { addIsAnimated } from './005_add_is_animated';
 import { accessTracking } from './006_access_tracking';
 import { externalOpenCount } from './007_external_open_count';
 import { addFolderHierarchy } from './008_add_folder_hierarchy';
+import { addRatingAxes } from './009_add_rating_axes';
 // 将来のマイグレーション:
-// import { xxx } from './009_xxx';
+// import { xxx } from './010_xxx';
 
 // 型をre-export
 export type { Migration };
@@ -37,6 +38,7 @@ const MIGRATIONS: Migration[] = [
     accessTracking,
     externalOpenCount,
     addFolderHierarchy, // Phase 22-C
+    addRatingAxes,      // Phase 26-B1
 ];
 
 /**

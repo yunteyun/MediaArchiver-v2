@@ -251,5 +251,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('storage:browseFolder'),
     deleteOldStorageData: (oldBase: string) =>
         ipcRenderer.invoke('storage:deleteOldData', oldBase),
+
+    // === Phase 26-B: Rating Axes ===
+    // Axis Management
+    getRatingAxes: () =>
+        ipcRenderer.invoke('rating:getAllAxes'),
+    createRatingAxis: (name: string, minValue?: number, maxValue?: number, step?: number) =>
+        ipcRenderer.invoke('rating:createAxis', { name, minValue, maxValue, step }),
+    updateRatingAxis: (id: string, updates: { name?: string; minValue?: number; maxValue?: number; step?: number; sortOrder?: number }) =>
+        ipcRenderer.invoke('rating:updateAxis', { id, ...updates }),
+    deleteRatingAxis: (id: string) =>
+        ipcRenderer.invoke('rating:deleteAxis', { id }),
+
+    // File Ratings
+    getFileRatings: (fileId: string) =>
+        ipcRenderer.invoke('rating:getFileRatings', { fileId }),
+    setFileRating: (fileId: string, axisId: string, value: number) =>
+        ipcRenderer.invoke('rating:setFileRating', { fileId, axisId, value }),
+    removeFileRating: (fileId: string, axisId: string) =>
+        ipcRenderer.invoke('rating:removeFileRating', { fileId, axisId }),
+    getAllFileRatings: () =>
+        ipcRenderer.invoke('rating:getAllFileRatings') as Promise<Record<string, Record<string, number>>>,
+    getRatingDistribution: (axisId: string) =>
+        ipcRenderer.invoke('rating:getDistribution', { axisId }),
 });
 

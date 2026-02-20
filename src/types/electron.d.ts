@@ -206,6 +206,17 @@ declare global {
             browseStorageFolder: () => Promise<string | null>;
             deleteOldStorageData: (oldBase: string) => Promise<{ success: boolean; error?: string }>;
 
+            // Phase 26-B: Rating Axes
+            getRatingAxes: () => Promise<RatingAxis[]>;
+            createRatingAxis: (name: string, minValue?: number, maxValue?: number, step?: number) => Promise<RatingAxis>;
+            updateRatingAxis: (id: string, updates: { name?: string; minValue?: number; maxValue?: number; step?: number; sortOrder?: number }) => Promise<RatingAxis | null>;
+            deleteRatingAxis: (id: string) => Promise<{ success: boolean; reason?: string }>;
+            getFileRatings: (fileId: string) => Promise<FileRating[]>;
+            setFileRating: (fileId: string, axisId: string, value: number) => Promise<{ success: boolean }>;
+            removeFileRating: (fileId: string, axisId: string) => Promise<{ success: boolean }>;
+            getAllFileRatings: () => Promise<Record<string, Record<string, number>>>;
+            getRatingDistribution: (axisId: string) => Promise<{ value: number; count: number }[]>;
+
         };
     }
 }
@@ -360,5 +371,24 @@ interface MigrationResult {
     oldBase: string;
     newBase: string;
     error?: string;
+}
+
+// Phase 26-B: Rating Axes types
+interface RatingAxis {
+    id: string;
+    name: string;
+    minValue: number;
+    maxValue: number;
+    step: number;
+    isSystem: boolean;
+    sortOrder: number;
+    createdAt: number;
+}
+
+interface FileRating {
+    fileId: string;
+    axisId: string;
+    value: number;
+    updatedAt: number;
 }
 
