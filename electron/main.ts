@@ -23,6 +23,7 @@ import { pruneOldLogs } from './services/activityLogService';
 import { initStorageConfig } from './services/storageConfig';
 import { registerStorageHandlers } from './ipc/storage';
 import { registerRatingHandlers } from './ipc/rating';
+import { registerSearchHandlers } from './ipc/search';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -100,6 +101,7 @@ app.whenReady().then(async () => {
     registerThumbnailCleanupHandlers();
     registerStorageHandlers();
     registerRatingHandlers();
+    registerSearchHandlers();
     logger.info('IPC handlers registered');
 
     // 古いアクティビティログを削除（30日以上前）

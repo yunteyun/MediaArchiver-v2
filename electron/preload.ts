@@ -274,5 +274,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('rating:getAllFileRatings') as Promise<Record<string, Record<string, number>>>,
     getRatingDistribution: (axisId: string) =>
         ipcRenderer.invoke('rating:getDistribution', { axisId }),
+
+    // === Phase 26-D: 複合検索 ===
+    searchFiles: (condition: any) =>
+        ipcRenderer.invoke('search:searchFiles', condition),
 });
 

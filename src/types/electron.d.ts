@@ -30,6 +30,38 @@ interface Profile {
     updatedAt: number;
 }
 
+// Phase 26-D: 複合検索型定義
+interface SearchConditionTagFilter {
+    ids: string[];
+    mode: 'AND' | 'OR';
+}
+
+interface SearchConditionRatingFilter {
+    axisId: string;
+    min?: number;
+    max?: number;
+}
+
+interface SearchCondition {
+    text?: string;
+    tags?: SearchConditionTagFilter;
+    ratings?: SearchConditionRatingFilter[];
+    types?: string[];
+}
+
+interface SearchResult {
+    id: string;
+    name: string;
+    path: string;
+    type: string;
+    size: number;
+    duration: number | null;
+    width: number | null;
+    height: number | null;
+    createdAt: number;
+    thumbnailPath: string | null;
+}
+
 declare global {
     interface Window {
         electronAPI: {
@@ -216,6 +248,9 @@ declare global {
             removeFileRating: (fileId: string, axisId: string) => Promise<{ success: boolean }>;
             getAllFileRatings: () => Promise<Record<string, Record<string, number>>>;
             getRatingDistribution: (axisId: string) => Promise<{ value: number; count: number }[]>;
+
+            // Phase 26-D: 複合検索
+            searchFiles: (condition: SearchCondition) => Promise<SearchResult[]>;
 
         };
     }
