@@ -3,18 +3,19 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive } from 'lucide-react';
+import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive, Star } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { StorageCleanupSection } from './settings/StorageCleanupSection';
+import { RatingAxesManager } from './settings/RatingAxesManager';
 
 // Phase 25: ローカル型定義
 type StorageMode = 'appdata' | 'install' | 'custom';
 interface StorageConfig { mode: StorageMode; customPath?: string; resolvedPath: string; }
 
 
-type TabType = 'general' | 'thumbnails' | 'apps' | 'logs' | 'backup';
+type TabType = 'general' | 'thumbnails' | 'apps' | 'logs' | 'backup' | 'ratings';
 
 export const SettingsModal = React.memo(() => {
     const isOpen = useUIStore((s) => s.settingsModalOpen);
@@ -241,6 +242,18 @@ export const SettingsModal = React.memo(() => {
                         <span className="flex items-center gap-2">
                             <Database size={16} />
                             バックアップ
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('ratings')}
+                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'ratings'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Star size={16} />
+                            評価軸
                         </span>
                     </button>
                 </div>
@@ -781,6 +794,10 @@ export const SettingsModal = React.memo(() => {
                                 </ul>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'ratings' && (
+                        <RatingAxesManager />
                     )}
                 </div>
 
