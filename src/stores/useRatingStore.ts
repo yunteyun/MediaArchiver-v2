@@ -25,6 +25,8 @@ interface RatingState {
     axes: RatingAxis[];
     fileRatings: Record<string, Record<string, number>>;
     isLoaded: boolean;
+    /** 評価フィルター: axisId → { min?, max? } */
+    ratingFilter: Record<string, { min?: number; max?: number }>;
 
     // Actions
     loadAxes: () => Promise<void>;
@@ -35,6 +37,10 @@ interface RatingState {
     setFileRating: (fileId: string, axisId: string, value: number) => Promise<void>;
     removeFileRating: (fileId: string, axisId: string) => Promise<void>;
     loadFileRatings: (fileId: string) => Promise<void>;
+    /** 評価フィルター: 軸ごとに min/max をセット */
+    setRatingFilter: (axisId: string, min?: number, max?: number) => void;
+    /** 評価フィルター: 全解除 */
+    clearRatingFilters: () => void;
 
     // Helpers
     getAxisById: (id: string) => RatingAxis | undefined;
@@ -46,6 +52,7 @@ export const useRatingStore = create<RatingState>((set, get) => ({
     axes: [],
     fileRatings: {},
     isLoaded: false,
+    ratingFilter: {},
 
     loadAxes: async () => {
         try {
@@ -147,4 +154,14 @@ export const useRatingStore = create<RatingState>((set, get) => ({
     getAxisById: (id) => get().axes.find(a => a.id === id),
     getFileRating: (fileId, axisId) => get().fileRatings[fileId]?.[axisId],
     getOverallAxis: () => get().axes.find(a => a.isSystem) ?? get().axes[0],
+
+    setRatingFilter: (axisId, min, max) =>
+        set((state) => ({
+            ratingFilter: {
+                ...state.ratingFilter,
+                [axisId]: { min, max },
+            },
+        })),
+
+    clearRatingFilters: () => set({ ratingFilter: {} }),
 }));

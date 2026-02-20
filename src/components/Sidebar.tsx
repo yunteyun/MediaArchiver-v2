@@ -4,6 +4,7 @@ import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
 import { FolderTree } from './FolderTree';
+import { RatingFilterPanel } from './ratings/RatingFilterPanel';
 import type { MediaFolder } from '../types/file';
 
 // 特殊なフォルダID
@@ -193,7 +194,10 @@ export const Sidebar = React.memo(() => {
 
                 {/* Tag Filter Panel */}
                 {!sidebarCollapsed && (
-                    <TagFilterPanel onOpenManager={() => setTagManagerOpen(true)} />
+                    <>
+                        <TagFilterPanel onOpenManager={() => setTagManagerOpen(true)} />
+                        <RatingFilterPanel />
+                    </>
                 )}
 
                 {/* 重複ファイルチェック */}

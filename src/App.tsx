@@ -3,7 +3,6 @@ import { Toaster } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
 import { LightBox } from './components/lightbox/LightBox';
-import { AdvancedSearchPanel } from './components/search/AdvancedSearchPanel';
 import { SettingsModal } from './components/SettingsModal';
 import { ProfileSwitcher } from './components/ProfileSwitcher';
 import { ProfileModal } from './components/ProfileModal';
@@ -184,8 +183,6 @@ function App() {
         window.electronAPI.getAppVersion().then((v: string) => setAppVersion(v)).catch(() => { });
     }, []);
 
-    // Phase 26-D2: 詳細検索パネル
-    const [searchPanelOpen, setSearchPanelOpen] = useState(false);
 
     return (
         <div className="flex h-screen w-screen bg-surface-950 text-white overflow-hidden">
@@ -201,16 +198,6 @@ function App() {
                         )}
                     </div>
                     <div className="flex items-center gap-2">
-                        {/* Phase 26-D2: 詳細検索ボタン */}
-                        <button
-                            onClick={() => setSearchPanelOpen(true)}
-                            className="p-1.5 rounded text-surface-400 hover:text-surface-200 hover:bg-surface-700 transition-colors"
-                            title="詳細検索"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-                            </svg>
-                        </button>
                         <ProfileSwitcher onOpenManageModal={() => setProfileModalOpen(true)} />
                         {/* Phase 23: 右パネルトグル */}
                         <button
@@ -240,7 +227,6 @@ function App() {
             {/* Phase 23: 右サイドパネル（transform で開閉、レイアウトシフト回避） */}
             {isRightPanelOpen && <RightPanel />}
             <LightBox />
-            <AdvancedSearchPanel isOpen={searchPanelOpen} onClose={() => setSearchPanelOpen(false)} />
             <SettingsModal />
             <ProfileModal
                 isOpen={profileModalOpen}

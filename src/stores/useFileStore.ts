@@ -25,7 +25,11 @@ interface FileState {
     selectAll: () => void;
     clearSelection: () => void;
     getSortedFiles: () => MediaFile[];
-    getFilteredFiles: () => MediaFile[];
+    getFilteredFiles: (
+        tagFilter: { selectedTagIds: string[]; filterMode: 'AND' | 'OR' },
+        ratingFilter: Record<string, { min?: number; max?: number }>,
+        fileRatings: Record<string, Record<string, number>>
+    ) => MediaFile[];
     removeFile: (fileId: string) => void;
     refreshFile: (fileId: string) => Promise<void>;
     // タグキャッシュ管理
@@ -133,25 +137,45 @@ export const useFileStore = create<FileState>((set, get) => ({
         });
     },
 
-    getFilteredFiles: () => {
-        const { selectedTagIds, filterMode } = useTagStore.getState();
+    getFilteredFiles: (tagFilter, ratingFilter, fileRatings) => {
+        const { selectedTagIds, filterMode } = tagFilter;
         const sortedFiles = get().getSortedFiles();
         const fileTagsCache = get().fileTagsCache;
 
-        // フィルター未選択なら全件返す
-        if (selectedTagIds.length === 0) {
+        const hasTagFilter = selectedTagIds.length > 0;
+        const activeRatingAxes = Object.entries(ratingFilter).filter(
+            ([, r]) => r.min !== undefined || r.max !== undefined
+        );
+        const hasRatingFilter = activeRatingAxes.length > 0;
+
+        // フィルター無しなら全件返す
+        if (!hasTagFilter && !hasRatingFilter) {
             return sortedFiles;
         }
 
         return sortedFiles.filter((file) => {
-            const fileTags = fileTagsCache.get(file.id) || [];
-            if (filterMode === 'OR') {
-                // いずれかのタグを持っていればOK
-                return selectedTagIds.some((tagId) => fileTags.includes(tagId));
-            } else {
-                // 全てのタグを持っている必要がある
-                return selectedTagIds.every((tagId) => fileTags.includes(tagId));
+            // --- タグフィルター ---
+            if (hasTagFilter) {
+                const fileTags = fileTagsCache.get(file.id) || [];
+                const tagMatch = filterMode === 'OR'
+                    ? selectedTagIds.some((tagId) => fileTags.includes(tagId))
+                    : selectedTagIds.every((tagId) => fileTags.includes(tagId));
+                if (!tagMatch) return false;
             }
+
+            // --- 評価フィルター（未評価は除外） ---
+            if (hasRatingFilter) {
+                const ratings = fileRatings[file.id] ?? {};
+                for (const [axisId, { min, max }] of activeRatingAxes) {
+                    const rating = ratings[axisId];
+                    // 評価未設定のファイルは除外
+                    if (rating == null) return false;
+                    if (min !== undefined && rating < min) return false;
+                    if (max !== undefined && rating > max) return false;
+                }
+            }
+
+            return true;
         });
     },
 

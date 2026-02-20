@@ -4,6 +4,7 @@ import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
+import { useRatingStore } from '../stores/useRatingStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard, DISPLAY_MODE_CONFIGS } from './FileCard';
 import { FolderCard } from './FolderCard';
@@ -68,6 +69,10 @@ export const FileGrid = React.memo(() => {
         loadFoldersAndMetadata();
     }, [setFolderMetadata]);
 
+    // Rating filter state
+    const ratingFilter = useRatingStore((s) => s.ratingFilter);
+    const allFileRatings = useRatingStore((s) => s.fileRatings);
+
     // Sort and filter files in component using useMemo
     const files = useMemo(() => {
         // First sort
@@ -122,6 +127,23 @@ export const FileGrid = React.memo(() => {
             });
         }
 
+        // Filter by rating（未評価は除外）
+        const activeRatingAxes = (Object.entries(ratingFilter) as [string, { min?: number; max?: number }][]).filter(
+            ([, r]) => r.min !== undefined || r.max !== undefined
+        );
+        if (activeRatingAxes.length > 0) {
+            filtered = filtered.filter((file) => {
+                const ratings = allFileRatings[file.id] ?? {};
+                for (const [axisId, { min, max }] of activeRatingAxes) {
+                    const rating = ratings[axisId];
+                    if (rating == null) return false;
+                    if (min !== undefined && rating < min) return false;
+                    if (max !== undefined && rating > max) return false;
+                }
+                return true;
+            });
+        }
+
         // Filter by search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
@@ -131,7 +153,8 @@ export const FileGrid = React.memo(() => {
         }
 
         return filtered;
-    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery]);
+    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, ratingFilter, allFileRatings]);
+
 
     // グループ化されたファイル（Phase 12-10）
     const groupedFiles = useMemo(() => {
