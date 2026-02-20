@@ -3,6 +3,7 @@ import { TagSection } from './sections/TagSection';
 import { MemoSection } from './sections/MemoSection';
 import { MetaSection } from './sections/MetaSection';
 import { StatsSection } from './sections/StatsSection';
+import { RatingSection } from './sections/RatingSection';
 import { MediaFile } from '../../types/file';
 
 interface InfoPanelProps {
@@ -32,12 +33,16 @@ export const InfoPanel = React.memo<InfoPanelProps>(({
     return (
         <div className="w-96 bg-black/80 backdrop-blur-sm p-6 overflow-y-auto">
             <div className="space-y-4">
-                <TagSection
-                    fileId={file.id}
-                    selectedTagIds={fileTagIds}
-                    onAdd={onAddTag}
-                    onRemove={onRemoveTag}
-                />
+                {/* Phase 26-C2: 評価セクション */}
+                <RatingSection fileId={file.id} />
+                <div className="border-t border-white/10 pt-4">
+                    <TagSection
+                        fileId={file.id}
+                        selectedTagIds={fileTagIds}
+                        onAdd={onAddTag}
+                        onRemove={onRemoveTag}
+                    />
+                </div>
                 <div className="border-t border-white/10 pt-4">
                     <MemoSection
                         notes={notes}
