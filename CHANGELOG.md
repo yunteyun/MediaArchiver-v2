@@ -188,6 +188,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-27.5] - 2026-02-20
+### Phase 27.5: 詳細検索廃止・サイドバー評価フィルター統合
+
+#### Removed
+- **AdvancedSearchPanel.tsx** 削除（左サイドバーと機能重複のため廃止）
+- `App.tsx` から詳細検索ボタン・`searchPanelOpen` state・JSX を除去
+
+#### Added
+- **`RatingFilterPanel.tsx`** 新規作成（`src/components/ratings/`）
+  - blue系（`#2563eb`）の星で「★N以上」フィルターをクリック選択
+  - 同じ星を再クリックで解除（トグル）、評価軸が0件なら非表示
+  - 「全解除」ボタン
+- **Sidebar.tsx**: `TagFilterPanel` 直下に `RatingFilterPanel` を追加（折りたたみ時は非表示）
+
+#### Changed
+- **`useRatingStore`**: `ratingFilter` state・`setRatingFilter`・`clearRatingFilters` を追加
+- **`useFileStore`**: `getFilteredFiles` を純粋関数化（引数でtagFilter・ratingFilter・fileRatingsを受け取る形式に変更）
+- **`FileGrid.tsx`**: `useMemo` 内のフィルタリングに評価フィルターを統合（未評価ファイルは評価フィルター適用時に除外）
+
+---
+
+## [dev-27] - 2026-02-20
+### Phase 27: 検索UI統合・タググループ化
+
+#### Changed
+- `AdvancedSearchPanel` をカテゴリ別折りたたみ対応に刷新
+- `useUIStore` による開閉状態一元管理を整備
+
+---
+
+## [dev-26b] - 2026-02-20
+### Phase 26 (Part 2): タグ・評価システム刷新
+
+#### Added
+- **26-A**: `TagManagerModal` を左右ペイン構造に刷新（タグ一覧と詳細編集の分離）
+- **26-B**: 評価軸 DB マイグレーション・`ratingService.ts`・IPC ハンドラ・`electron.d.ts` 型定義追加
+- **26-B3**: `useRatingStore`（Zustand）と評価軸管理UIを実装
+- **26-C1**: `StarRatingInput` コンポーネント・RightPanel 評価セクション実装
+- **26-C2**: Lightbox 評価セクション実装
+- **26-D1**: `searchService.ts`（SQL クエリビルダー）実装
+- **26-D2**: `AdvancedSearchPanel`（詳細検索UI）実装
+
+---
+
 ## [Unreleased]
 
 ### Docs

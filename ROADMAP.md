@@ -41,25 +41,15 @@ MediaArchiver v2 の開発ロードマップです。
 | 25 | 保存場所カスタマイズ | AppData/インストールフォルダ/任意パス、原子的移行、thumbnail_path 一括更新 | 2026-02 |
 | **v1.1.0** | **リリース** | **ZIP 形式、Phase 19.5〜25 含む** | **2026-02** |
 | **26 (v1.1.2)** | **バグ修正・UX改善** | **書庫プレビューグリッド・音声書庫バッジ・バージョン表記・動画サムネイル修正** | **2026-02** |
+| 26 (Part 2) | タグ・評価システム刷新 | TagManagerModal刷新・評価軸DB/IPC/Store・StarRatingInput・詳細検索UI | 2026-02 |
+| 27 | 検索UI統合・タググループ化 | AdvancedSearchPanel カテゴリ別折りたたみ、UIStore開閉管理 | 2026-02 |
+| 27.5 | 詳細検索廃止・評価フィルター統合 | AdvancedSearchPanel削除、サイドバーに RatingFilterPanel（blue星）追加、getFilteredFiles純粋関数化 | 2026-02 |
 
 ---
 
 ## 🚧 進行中 (In Progress)
 
-### Phase 26: タグ・評価システム刷新 🏷️⭐
-**目的**: タグ管理UIの刷新と評価軸の物理的分離を実現する
-**参考**: [タグ構造の刷新に関するメモ.md](タグ構造の刷新に関するメモ.md)
-**方針**: 既存タグベース評価（cat_rating）は触らず、新規ファイルのみ評価軸を使用
-
-- [x] DB基盤（`tag_categories` / `tag_definitions.category_id`）— Phase 1 で実装済み
-- [ ] **26-A**: タグ管理画面を左右ペイン構造に刷新
-- [ ] **26-B1**: 評価軸 DB マイグレーション + Service
-- [ ] **26-B2**: 評価軸 IPC + preload + 型定義
-- [ ] **26-B3**: 評価軸 Zustand Store + 管理UI
-- [ ] **26-C1**: StarRatingInput + RightPanel 評価セクション
-- [ ] **26-C2**: Lightbox 評価セクション + 統計画面更新
-- [ ] **26-D1**: 検索クエリビルダー（バックエンド）
-- [ ] **26-D2**: 詳細検索UI（フロントエンド）
+現在進行中のフェーズはありません。
 
 ---
 

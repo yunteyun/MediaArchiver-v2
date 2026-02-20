@@ -1,20 +1,26 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-20 09:50
+**Last Updated**: 2026-02-20 23:48
 
-- **Current Focus**: Phase 26 (Part 2): タグ構造刷新の準備
-- **Current Status**: v1.1.2 リリース完了。ドキュメント整備完了。次期フェーズの設計検討中。
+- **Current Focus**: Phase 27.5 完了。次期フェーズ選定中。
+- **Current Status**: 詳細検索パネル廃止・サイドバーへの評価フィルター統合完了。
 - **Recent Achievements**:
-  - **v1.1.2 リリース**:
-    - **音声書庫バッジ**: FileCard に Music アイコンバッジを追加
-    - **書庫プレビューグリッド**: 右パネルの BASIC INFO 下に独立セクションとして実装
-    - **バージョン表記**: ヘッダータイトル横と設定モーダルフッターにアプリバージョンを表示
-    - **コミット**: `7758516`, `43ea759`, `7c76400`
-    - **リリースビルド**: `release/MediaArchiver v2-1.1.2-win.zip` 生成済み
-  - **Bug Fixes**:
-    - 書庫プレビュー時のファイルロック問題解消
-    - 動画サムネイル生成エラー解消
-    - 音声書庫認識精度の改善
+  - **Phase 26: タグ・評価システム刷新**:
+    - TagManagerModal を左右ペイン構造に刷新（26-A）
+    - 評価軸 DB / Service / IPC / Store 実装（26-B）
+    - StarRatingInput・RightPanel/Lightbox評価セクション実装（26-C）
+    - searchService・AdvancedSearchPanel 実装（26-D）
+  - **Phase 27: 検索UI統合 & タググループ化**:
+    - AdvancedSearchPanel をカテゴリ別折りたたみ対応に刷新
+    - UIStore による開閉状態一元管理
+  - **Phase 27.5: 詳細検索パネル廃止・評価フィルター統合**:
+    - AdvancedSearchPanel 削除（左サイドバーと機能重複のため）
+    - useRatingStore に ratingFilter state 追加（setRatingFilter / clearRatingFilters）
+    - useFileStore の getFilteredFiles を純粋関数化
+    - FileGrid useMemo に評価フィルターを統合（未評価ファイルは除外）
+    - RatingFilterPanel 新規作成（blue系 #2563eb の星）
+    - Sidebar に RatingFilterPanel を TagFilterPanel 直下に配置
+    - コミット: `b85ef3d`
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -49,10 +55,14 @@
 - ✅ Phase 25: 保存場所カスタマイズ
 - ✅ **v1.1.0 リリース**（Phase 25 まで、ZIP 形式）
 - ✅ Phase 26 (Part 1): v1.1.2 バグ修正・UX改善（プレビュー・バッジ・バージョン）
+- ✅ **v1.1.2 リリース**
+- ✅ Phase 26 (Part 2): タグ・評価システム刷新（TagManagerModal刷新・評価軸・StarRating・詳細検索）
+- ✅ Phase 27: 検索UI統合 & タググループ化（カテゴリ別折りたたみ）
+- ✅ Phase 27.5: 詳細検索廃止・サイドバー評価フィルター統合
 
 ## Next Steps
-- [ ] Phase 26 (Part 2): タグ構造刷新（二層カテゴリ構造・評価軸の物理的分離）
 - [ ] 追加表示モード（漫画モード・動画モード）
+- [ ] タグカテゴリ表示優先順位付け強化
 
 ## Known Issues
 なし（現在確認されている重大な不具合はありません）
