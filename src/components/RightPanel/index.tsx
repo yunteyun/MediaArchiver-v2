@@ -4,6 +4,7 @@ import { PreviewSection } from './PreviewSection';
 import { BasicInfoSection } from './BasicInfoSection';
 import { TagSection } from './TagSection';
 import { ArchivePreviewSection } from './ArchivePreviewSection';
+import { RatingSection } from './RatingSection';
 
 export const RightPanel: React.FC = () => {
     const focusedId = useFileStore((s) => s.focusedId);
@@ -21,6 +22,8 @@ export const RightPanel: React.FC = () => {
                         <BasicInfoSection file={file} />
                         {/* Phase 26: 書庫プレビューグリッド（BASIC INFO 下・TAG 上） */}
                         <ArchivePreviewSection file={file} />
+                        {/* Phase 26-C1: 評価セクション */}
+                        <RatingSection file={file} />
                         <TagSection file={file} />
                     </div>
                 </>
