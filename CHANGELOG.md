@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **リリース版書庫サムネイル取得エラー**: `package.json` に `asarUnpack` 指定を追加し、`7za.exe` 等のバイナリが実行可能に
 - **DBディレクトリ未作成エラー**: `mode=install` 等で保存先にフォルダが存在しない場合、DB作成前に `ensureDbDirectory` で事前生成するように修正
 - **ビルド安全性向上**: `afterPack` フックを追加し、`app.asar.unpacked` 内の必須バイナリ存在をビルド時に検証
+- **別ドライブ保存時の書庫展開エラー (EXDEV)**: `fs.renameSync` がドライブ間のファイル移動時に `EXDEV` エラーを起す問題に対し、コピー＆削除のフォールバック (`safeRenameSync`) を実装
+- **サムネイル削除時のJSONパースエラー**: `preview_frames` がJSON配列ではなくカンマ区切り（CSV）で保存された過去バージョンとの互換性を保つため、削除時のパース処理にフォールバックを追加
 
 ---
 

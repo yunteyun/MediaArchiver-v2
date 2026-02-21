@@ -83,6 +83,23 @@ function ensureDirectories(): void {
 ensureDirectories();
 
 // ========================
+// Helper Functions
+// ========================
+
+function safeRenameSync(srcPath: string, destPath: string) {
+    try {
+        fs.renameSync(srcPath, destPath);
+    } catch (err: any) {
+        if (err.code === 'EXDEV') {
+            fs.copyFileSync(srcPath, destPath);
+            fs.unlinkSync(srcPath);
+        } else {
+            throw err;
+        }
+    }
+}
+
+// ========================
 // Type Definitions
 // ========================
 
@@ -251,7 +268,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         const extractedPath = path.join(getTempDir(), extractedBasename);
 
         if (fs.existsSync(extractedPath)) {
-            fs.renameSync(extractedPath, outPath);
+            safeRenameSync(extractedPath, outPath);
             return outPath;
         }
 
@@ -264,7 +281,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 
         if (imageFile) {
             const foundPath = path.join(getTempDir(), imageFile);
-            fs.renameSync(foundPath, outPath);
+            safeRenameSync(foundPath, outPath);
             log.info('Found image via fallback:', imageFile);
             return outPath;
         }
@@ -337,7 +354,7 @@ export async function getArchivePreviewFrames(
                 const extractedPath = path.join(subDir, extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
-                    fs.renameSync(extractedPath, outPath);
+                    safeRenameSync(extractedPath, outPath);
                     previewPaths.push(outPath);
                 }
             } catch (e) {

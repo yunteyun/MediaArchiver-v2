@@ -263,7 +263,14 @@ export function deleteFile(id: string) {
         // プレビューフレーム削除
         if (file.preview_frames) {
             try {
-                const frames: string[] = JSON.parse(file.preview_frames);
+                let frames: string[] = [];
+                try {
+                    frames = JSON.parse(file.preview_frames);
+                } catch {
+                    // Phase 24 等でカンマ区切りCSVとして保存されている場合のフォールバック
+                    frames = file.preview_frames.split(',').filter(f => f.trim().length > 0);
+                }
+
                 frames.forEach(framePath => {
                     if (fs.existsSync(framePath)) {
                         try {
