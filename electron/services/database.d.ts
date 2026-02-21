@@ -38,7 +38,16 @@ export interface MediaFolder {
     name: string;
     path: string;
     created_at: number;
+    parent_id: string | null;
+    drive: string;
 }
+/**
+ * preview_frames文字列を安全に文字列配列へパースし、
+ * CSV形式(カンマ区切り)からのフォールバック時はJSON形式へ正規化(DB更新)する
+ * @param previewFramesStr DB上の文字列
+ * @param fileId DB正規化(UPDATE)を行うためのファイルID
+ */
+export declare function parsePreviewFrames(previewFramesStr: string | null | undefined, fileId?: string): string[];
 /**
  * Phase 18-A: 外部アプリ起動カウントをインクリメント
  */
@@ -47,6 +56,10 @@ export declare function incrementExternalOpenCount(id: string): {
     lastExternalOpenedAt: number;
 };
 export declare function getFiles(rootFolderId?: string): MediaFile[];
+/**
+ * Phase 22-C: 複数フォルダのファイルを一括取得
+ */
+export declare function getFilesByFolderIds(folderIds: string[]): MediaFile[];
 export declare function findFileByPath(filePath: string): MediaFile | undefined;
 export declare function findFileByHash(hash: string): MediaFile | undefined;
 export declare function insertFile(fileData: Partial<MediaFile> & {

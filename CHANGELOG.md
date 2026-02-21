@@ -9,6 +9,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.4] - 2026-02-21
+### Hotfix: リリース版 書庫処理の安全対策・ファイル移動共通化
+
+#### Added
+- **safeMoveFileSync**: `fileOperationService.ts` にクロスドライブ(EXDEV)対応の同期的な安全移動関数を追加。移動先ファイルの存在チェック（上書き防止）および一時コピーとrenameを組み合せた原子的処理を実装
+- **parsePreviewFrames**: `database.ts` にJSON文字列解析の共通ユーティリティ関数を追加。過去バージョン(カンマ区切りCSV)のデータが検出された際は、将来的なデータ収束のためJSONフォーマットへ正規化(DB UPDATE)する機能を追加
+
+#### Changed
+- 各所で `preview_frames` 文字列を解析する際、直接 `split(',')` や `JSON.parse` していた箇所を `parsePreviewFrames` ユーティリティに置き換え
+  - `scanner.ts`
+  - `thumbnailCleanupService.ts`
+  - `database.ts` (deleteFile)
+- **archiveHandler**: 抽出後処理における rename を `safeMoveFileSync` を利用する形へ統合。クリーンアップ(rmSync)失敗時にエラー例外を握りつぶさず警告ログに出力するよう改善
+
+#### Fixed
+- **リリース版サムネイル展開（ENOENT・EXDEV）**: `archiveHandler.ts` において、`fs.renameSync` が別ドライブへの移動を試みた際に `EXDEV` エラーでクラッシュする問題を修正。また、抽出先として独立した UUID サブフォルダを利用するよう修正し同名ファイル競合（ENOENT）を防止
+- **開発環境 7za バイナリ解決**: `npm run dev` (Vite環境等) で `app.isPackaged===false` の際、パス解決が `dist-electron` を指して `ENOENT` となっていた問題を、`node_modules` フォールバックを追加して修正
+- **プレビューフレーム削除時のJSONパースエラー**: `database.ts` の削除処理において、プレビューフレームがCSV形式で保存されていた場合に発生する `SyntaxError: Unexpected token 'D'` を修正（`parsePreviewFrames` によるフォールバック解決）
+
+---
+
 ## [1.1.3] - 2026-02-21
 ### Phase 28〜: タグUI改善・バグ修正
 

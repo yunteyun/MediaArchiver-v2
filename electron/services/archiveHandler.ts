@@ -14,6 +14,7 @@ import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
 import { getBasePath } from './storageConfig';
+import { safeMoveFileSync } from './fileOperationService';
 
 const log = logger.scope('ArchiveHandler');
 
@@ -58,8 +59,21 @@ function resolve7zaPath(): string {
 
     // 開発環境: 7zip-bin が返すパスをそのまま使用
     if (fs.existsSync(path7za)) {
-        log.info('Found 7za in node_modules:', path7za);
+        log.info('Found 7za locally:', path7za);
         return path7za;
+    }
+
+    // Vite環境等で path7za が dist-electron 内を指す場合があるため、明示的に node_modules を探す
+    const fallbackPath1 = path.join(process.cwd(), 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe');
+    if (fs.existsSync(fallbackPath1)) {
+        log.info('Found 7za in node_modules (fallback 1):', fallbackPath1);
+        return fallbackPath1;
+    }
+
+    const fallbackPath2 = path7za.replace('dist-electron', 'node_modules\\7zip-bin');
+    if (fs.existsSync(fallbackPath2)) {
+        log.info('Found 7za in node_modules (fallback 2):', fallbackPath2);
+        return fallbackPath2;
     }
 
     log.error('7za binary not found anywhere!');
@@ -81,23 +95,6 @@ function ensureDirectories(): void {
 }
 
 ensureDirectories();
-
-// ========================
-// Helper Functions
-// ========================
-
-function safeRenameSync(srcPath: string, destPath: string) {
-    try {
-        fs.renameSync(srcPath, destPath);
-    } catch (err: any) {
-        if (err.code === 'EXDEV') {
-            fs.copyFileSync(srcPath, destPath);
-            fs.unlinkSync(srcPath);
-        } else {
-            throw err;
-        }
-    }
-}
 
 // ========================
 // Type Definitions
@@ -233,11 +230,16 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         const outName = `${uuidv4()}${ext}`;
         const outPath = path.join(getThumbnailDir(), outName);
 
+        // UUID サブフォルダを作成して解凍（ファイル名競合によるENOENTエラーを防ぐ）
+        const extractId = uuidv4();
+        const subDir = path.join(getTempDir(), extractId);
+        fs.mkdirSync(subDir, { recursive: true });
+
         // 7za 縺ｧ謚ｽ蜃ｺ・医ヵ繝ｩ繝・ヨ螻暮幕・駅ith timeout
         try {
             await Promise.race([
                 execFilePromise(SEVEN_ZA_PATH, [
-                    'e', filePath, `-o${getTempDir()}`, entryName, '-y', '-sccUTF-8'
+                    'e', filePath, `-o${subDir}`, entryName, '-y', '-sccUTF-8'
                 ]),
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('Extraction timeout')), TIMEOUT_MS)
@@ -263,30 +265,36 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             throw execError;
         }
 
-        // 謚ｽ蜃ｺ縺輔ｌ縺溘ヵ繧｡繧､繝ｫ繧偵し繝�繝阪う繝ｫ繝・ぅ繝ｬ繧ｯ繝医Μ縺ｫ遘ｻ蜍・
+        // 謚ｽ蜃ｺ縺輔ｌ縺溘ヵ繧｡繧､繝ｫ繧偵し繝繝阪う繝ｫ繝・ぅ繝ｬ繧ｯ繝医Μ縺ｫ遘ｻ蜍・
         const extractedBasename = path.basename(entryName);
-        const extractedPath = path.join(getTempDir(), extractedBasename);
+        const extractedPath = path.join(subDir, extractedBasename);
 
         if (fs.existsSync(extractedPath)) {
-            safeRenameSync(extractedPath, outPath);
+            safeMoveFileSync(extractedPath, outPath);
+            try { fs.rmSync(subDir, { recursive: true, force: true }); }
+            catch (e) { log.warn(`Failed to cleanup temp archive dir: ${subDir}`, e); }
             return outPath;
         }
 
-        // 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ: TEMP_DIR繧呈､懃ｴ｢
-        const tempFiles = fs.readdirSync(getTempDir());
+        // 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ: subDir 繧呈､懃ｴ｢
+        const tempFiles = fs.readdirSync(subDir);
         const imageFile = tempFiles.find(f => {
             const fExt = path.extname(f).toLowerCase();
             return IMAGE_EXTENSIONS.includes(fExt);
         });
 
         if (imageFile) {
-            const foundPath = path.join(getTempDir(), imageFile);
-            safeRenameSync(foundPath, outPath);
+            const foundPath = path.join(subDir, imageFile);
+            safeMoveFileSync(foundPath, outPath);
             log.info('Found image via fallback:', imageFile);
+            try { fs.rmSync(subDir, { recursive: true, force: true }); }
+            catch (e) { log.warn(`Failed to cleanup temp archive dir: ${subDir}`, e); }
             return outPath;
         }
 
         log.warn('Extracted file not found:', extractedPath);
+        try { fs.rmSync(subDir, { recursive: true, force: true }); }
+        catch (e) { log.warn(`Failed to cleanup temp archive dir: ${subDir}`, e); }
         return null;
     } catch (error: any) {
         // 隧ｳ邏ｰ繝ｭ繧ｰ
@@ -354,7 +362,7 @@ export async function getArchivePreviewFrames(
                 const extractedPath = path.join(subDir, extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
-                    safeRenameSync(extractedPath, outPath);
+                    safeMoveFileSync(extractedPath, outPath);
                     previewPaths.push(outPath);
                 }
             } catch (e) {
@@ -365,8 +373,8 @@ export async function getArchivePreviewFrames(
                     if (fs.existsSync(subDir)) {
                         fs.rmSync(subDir, { recursive: true, force: true });
                     }
-                } catch {
-                    // クリーンアップ失敗は無視
+                } catch (cleanupErr) {
+                    log.warn(`Failed to cleanup preview subDir: ${subDir}`, cleanupErr);
                 }
             }
         }

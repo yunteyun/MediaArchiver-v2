@@ -71,5 +71,6 @@ export interface LibraryStats {
     largeFiles: LargeFile[];
     extensionStats: ExtensionStats[];
     resolutionStats: ResolutionStats[];
+    thumbnailSize: number;
 }
 export declare function getLibraryStats(): LibraryStats;

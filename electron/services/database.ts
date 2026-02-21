@@ -61,6 +61,35 @@ function getDb() {
     return dbManager.getDb();
 }
 
+/**
+ * preview_frames文字列を安全に文字列配列へパースし、
+ * CSV形式(カンマ区切り)からのフォールバック時はJSON形式へ正規化(DB更新)する
+ * @param previewFramesStr DB上の文字列
+ * @param fileId DB正規化(UPDATE)を行うためのファイルID
+ */
+export function parsePreviewFrames(previewFramesStr: string | null | undefined, fileId?: string): string[] {
+    if (!previewFramesStr) return [];
+
+    try {
+        const parsed = JSON.parse(previewFramesStr);
+        if (Array.isArray(parsed)) return parsed;
+        return [];
+    } catch (e) {
+        // CSV フォールバック
+        const frames = previewFramesStr.split(',').filter(f => f.trim().length > 0);
+        if (frames.length > 0 && fileId) {
+            log.info(`Normalizing preview_frames to JSON for file: ${fileId}`);
+            try {
+                // DB内データを将来的に完全JSONに収束させるため正規化
+                updateFilePreviewFrames(fileId, JSON.stringify(frames));
+            } catch (updateErr) {
+                log.warn(`Failed to normalize preview_frames for file ${fileId}`, updateErr);
+            }
+        }
+        return frames;
+    }
+}
+
 // snake_case DB row → camelCase MediaFile 変換ヘルパー
 function mapRow(f: any): MediaFile {
     return {
@@ -262,27 +291,18 @@ export function deleteFile(id: string) {
 
         // プレビューフレーム削除
         if (file.preview_frames) {
-            try {
-                let frames: string[] = [];
-                try {
-                    frames = JSON.parse(file.preview_frames);
-                } catch {
-                    // Phase 24 等でカンマ区切りCSVとして保存されている場合のフォールバック
-                    frames = file.preview_frames.split(',').filter(f => f.trim().length > 0);
-                }
+            // パースおよび必要に応じた正規化を実行する
+            const frames = parsePreviewFrames(file.preview_frames, id);
 
-                frames.forEach(framePath => {
-                    if (fs.existsSync(framePath)) {
-                        try {
-                            fs.unlinkSync(framePath);
-                        } catch (e) {
-                            log.error(`Failed to delete preview frame: ${framePath}`, e);
-                        }
+            frames.forEach(framePath => {
+                if (fs.existsSync(framePath)) {
+                    try {
+                        fs.unlinkSync(framePath);
+                    } catch (e) {
+                        log.error(`Failed to delete preview frame: ${framePath}`, e);
                     }
-                });
-            } catch (e) {
-                log.error('Failed to parse/delete preview frames', e);
-            }
+                }
+            });
         }
     }
 

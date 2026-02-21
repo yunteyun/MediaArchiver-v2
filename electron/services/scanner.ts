@@ -227,7 +227,7 @@ async function scanDirectoryInternal(
                     // Check if preview frames actually exist on disk (not just in DB)
                     let hasPreviewFrames = false;
                     if (existing?.preview_frames) {
-                        const framePaths = existing.preview_frames.split(',').filter(Boolean);
+                        const framePaths = db.parsePreviewFrames(existing.preview_frames, existing.id);
                         // Check if at least one frame file exists
                         hasPreviewFrames = framePaths.length > 0 && framePaths.some(framePath => {
                             try {
@@ -312,7 +312,7 @@ async function scanDirectoryInternal(
                             needsPreviewFrames = true;
                         } else {
                             // DB record exists, check if files actually exist
-                            const framePaths = previewFrames.split(',').filter(Boolean);
+                            const framePaths = db.parsePreviewFrames(previewFrames, existing.id);
                             const anyFileExists = framePaths.some(framePath => {
                                 try {
                                     return fs.existsSync(framePath);

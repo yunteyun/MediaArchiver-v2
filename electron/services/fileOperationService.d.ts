@@ -26,3 +26,11 @@ export declare function moveFileToFolder(sourcePath: string, targetPath: string)
     success: boolean;
     error?: string;
 }>;
+/**
+ * ファイルを安全に移動する（同期版）
+ * archiveHandlerなどから利用。異なるドライブ間(EXDEV)の移動にも対応。
+ * @param srcPath 移動元パス
+ * @param destPath 移動先パス
+ * @returns 成功した場合はtrue、スキップされた場合はfalse
+ */
+export declare function safeMoveFileSync(srcPath: string, destPath: string): boolean;

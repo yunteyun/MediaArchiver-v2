@@ -7,7 +7,7 @@
 
 import { shell } from 'electron';
 import { unlink, access } from 'fs/promises';
-import { constants } from 'fs';
+import { constants, existsSync, renameSync, copyFileSync, unlinkSync } from 'fs';
 import { logger } from './logger';
 
 const log = logger.scope('FileOperation');
@@ -160,5 +160,46 @@ export async function moveFileToFolder(
             success: false,
             error: `ファイル移動に失敗しました: ${errorMessage}`
         };
+    }
+}
+
+/**
+ * ファイルを安全に移動する（同期版）
+ * archiveHandlerなどから利用。異なるドライブ間(EXDEV)の移動にも対応。
+ * @param srcPath 移動元パス
+ * @param destPath 移動先パス
+ * @returns 成功した場合はtrue、スキップされた場合はfalse
+ */
+export function safeMoveFileSync(srcPath: string, destPath: string): boolean {
+    // 移動先が既に存在する場合は上書きを避けてスキップ
+    if (existsSync(destPath)) {
+        log.warn(`Target file already exists, skipping move: ${destPath}`);
+        return false;
+    }
+
+    try {
+        // 同一ドライブ内ならrenameSyncでアトミックに完了
+        renameSync(srcPath, destPath);
+        return true;
+    } catch (err: any) {
+        if (err.code === 'EXDEV') {
+            log.info(`Cross-device move detected for ${srcPath}, using copy + delete fallback`);
+            const tempDestPath = `${destPath}.tmp`;
+
+            try {
+                // 一時ファイルとしてコピーし、成功後にrenameでアトミック化
+                copyFileSync(srcPath, tempDestPath);
+                renameSync(tempDestPath, destPath);
+                unlinkSync(srcPath);
+                return true;
+            } catch (fallbackErr) {
+                // 失敗した場合はごみファイル(tempDestPath)を消す
+                if (existsSync(tempDestPath)) {
+                    try { unlinkSync(tempDestPath); } catch (e) { }
+                }
+                throw fallbackErr;
+            }
+        }
+        throw err;
     }
 }

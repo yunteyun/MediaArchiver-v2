@@ -46,6 +46,7 @@ MediaArchiver v2 の開発ロードマップです。
 | 27.5 | 詳細検索廃止・評価フィルター統合 | AdvancedSearchPanel削除、サイドバーに RatingFilterPanel（blue星）追加、getFilteredFiles純粋関数化 | 2026-02 |
 | 28 | タグUI改善 | TagSelectorにカラードット/sortOrder順/grid-cols-2夐列、RightPanel TagSectionのselect→TagSelector置換、TagManagerModalタグリスト多列化+カテゴリD&D | 2026-02 |
 | **v1.1.3** | **リリース** | **タグUI改善・TagSelector修正・孤立サムネイル診断修正・リリース版書庫サムネイルHotfix** | **2026-02** |
+| **v1.1.4** | **リリース** | **リリース版書庫処理の追加安全対策・JSONデータ正規化・クロスドライブ操作の共通化** | **2026-02** |
 
 ---
 

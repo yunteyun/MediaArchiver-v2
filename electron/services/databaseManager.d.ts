@@ -16,8 +16,13 @@ declare class DatabaseManager {
     private db;
     private currentProfileId;
     private metaDb;
-    private userDataPath;
     constructor();
+    /** Phase 25: プロファイルDBのベースパス（動的取得） */
+    private getDbBasePath;
+    /** metaDb を開く */
+    private openMetaDb;
+    /** Phase 25: 移行後に metaDb を再接続する */
+    reopenMetaDb(): void;
     /**
      * メタDB初期化（プロファイル一覧管理用）
      */
@@ -26,6 +31,11 @@ declare class DatabaseManager {
      * デフォルトプロファイル作成
      */
     private createDefaultProfile;
+    /**
+     * DBディレクトリを事前作成する（DRY共通処理）
+     * mode=install で data/ が存在しない場合などに対応
+     */
+    private ensureDbDirectory;
     /**
      * メディアDB初期化（プロファイルごと）
      * マイグレーションシステムを使用してスキーマを管理
@@ -81,6 +91,14 @@ declare class DatabaseManager {
      * 現在のDBファイルパス取得（バックアップ用）
      */
     getCurrentDbPath(): string;
+    /**
+     * Phase 25: WALチェックポイント（移行前に実行しDBを安全にフラッシュ）
+     */
+    walCheckpoint(): void;
+    /**
+     * Phase 25: DB接続を全て閉じる（移行前に実行）
+     */
+    closeAll(): void;
     /**
      * DB接続を明示的に閉じる（リストア処理用）
      */

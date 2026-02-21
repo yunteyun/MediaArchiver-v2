@@ -1,8 +1,8 @@
 /**
  * Thumbnail Cleanup Service - サムネイル診断・クリーンアップ
  *
- * DBに存在しないサムネイルファイル（孤立サムネイル）を検出する。
- * Phase 12-1.5: 診断機能のみ実装（削除機能は Phase 12-6 で実装予定）
+ * 「サムネイルDirにあるが、DBに登録がないファイル」を孤立サムネイルとして検出する。
+ * Phase 25対応: getBasePath() を使用して保存場所を動的取得
  */
 export interface OrphanedThumbnail {
     path: string;
@@ -24,9 +24,12 @@ export interface CleanupResult {
 /**
  * 孤立サムネイルの診断
  *
- * アーキテクチャレビュー対応:
- * - IPCペイロード軽量化: サンプル最大10件に制限
- * - パス比較の厳密化: path.normalize() で正規化
+ * 定義: サムネイルDir上に存在するが、現在のDBに thumbnail_path / preview_frames
+ *       として登録されていないファイル = 孤立サムネイル
+ *
+ * bg: フォルダを登録から除外してもfilesテーブルのレコードは残るが、
+ *     DB上に残ったままでも実際のサムネイルファイルが参照されなければ「孤立」。
+ *     ただし最も直接的な孤立は「Dirにあるがどのファイルのthumbnail_pathにも含まれない」。
  */
 export declare function diagnoseThumbnails(profileId: string): Promise<DiagnosticResult>;
 /**

@@ -10,6 +10,7 @@ import path from 'path';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { getBasePath } from './storageConfig';
+import { parsePreviewFrames } from './database';
 
 const log = logger.scope('ThumbnailCleanup');
 
@@ -117,7 +118,7 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
             registeredSet.add(path.normalize(path.resolve(row.thumbnail_path)));
         }
         if (row.preview_frames) {
-            const frames = row.preview_frames.split(',').filter(f => f.trim().length > 0);
+            const frames = parsePreviewFrames(row.preview_frames);
             for (const f of frames) {
                 registeredSet.add(path.normalize(path.resolve(f.trim())));
             }
