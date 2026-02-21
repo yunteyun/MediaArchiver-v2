@@ -8,7 +8,7 @@
  * 軸が0件の場合は非表示。
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import { useRatingStore } from '../../stores/useRatingStore';
 
@@ -121,12 +121,19 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
 
 export const RatingFilterPanel: React.FC = () => {
     const axes = useRatingStore((s) => s.axes);
+    const isLoaded = useRatingStore((s) => s.isLoaded);
+    const loadAxes = useRatingStore((s) => s.loadAxes);
     const ratingFilter = useRatingStore((s) => s.ratingFilter);
     const setRatingFilter = useRatingStore((s) => s.setRatingFilter);
     const clearRatingFilters = useRatingStore((s) => s.clearRatingFilters);
 
-    // 軸が0件なら非表示
-    if (axes.length === 0) return null;
+    // 起動時に評価軸をロード。多重実行ガードはストア側が担う。
+    useEffect(() => {
+        loadAxes();
+    }, [loadAxes]);
+
+    // ロード前 or 軸が0件なら非表示
+    if (!isLoaded || axes.length === 0) return null;
 
     const hasAnyFilter = Object.values(ratingFilter).some(
         (r) => r.min !== undefined || r.max !== undefined

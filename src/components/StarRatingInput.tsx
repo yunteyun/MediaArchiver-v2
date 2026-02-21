@@ -28,7 +28,7 @@ interface StarRatingInputProps {
     disabled?: boolean;
 }
 
-export const StarRatingInput: React.FC<StarRatingInputProps> = ({
+export const StarRatingInput = React.memo<StarRatingInputProps>(({
     value,
     minValue,
     maxValue,
@@ -78,13 +78,15 @@ export const StarRatingInput: React.FC<StarRatingInputProps> = ({
                     >
                         <Star
                             size={size}
-                            className={`transition-colors duration-100 ${filled
-                                ? 'text-yellow-400 fill-yellow-400'
-                                : 'text-surface-600 fill-transparent'
-                                } ${hoverValue !== null && v <= (hoverValue ?? 0) && !filled
-                                    ? 'text-yellow-300 fill-yellow-300'
-                                    : ''
-                                }`}
+                            style={{
+                                color: filled
+                                    ? '#2563eb'
+                                    : (hoverValue !== null && v <= (hoverValue ?? 0) && !filled ? '#60a5fa' : '#475569'),
+                                fill: filled
+                                    ? '#2563eb'
+                                    : (hoverValue !== null && v <= (hoverValue ?? 0) && !filled ? '#60a5fa' : 'transparent'),
+                                transition: 'color 0.1s, fill 0.1s',
+                            }}
                         />
                     </button>
                 );
@@ -96,4 +98,6 @@ export const StarRatingInput: React.FC<StarRatingInputProps> = ({
             )}
         </div>
     );
-};
+})
+
+StarRatingInput.displayName = 'StarRatingInput';

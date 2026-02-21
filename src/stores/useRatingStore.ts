@@ -25,6 +25,7 @@ interface RatingState {
     axes: RatingAxis[];
     fileRatings: Record<string, Record<string, number>>;
     isLoaded: boolean;
+    isLoading: boolean;
     /** 評価フィルター: axisId → { min?, max? } */
     ratingFilter: Record<string, { min?: number; max?: number }>;
 
@@ -52,14 +53,20 @@ export const useRatingStore = create<RatingState>((set, get) => ({
     axes: [],
     fileRatings: {},
     isLoaded: false,
+    isLoading: false,
     ratingFilter: {},
 
     loadAxes: async () => {
+        const { isLoaded, isLoading } = get();
+        if (isLoaded || isLoading) return;
+        set({ isLoading: true });
         try {
             const axes = await window.electronAPI.getRatingAxes();
             set({ axes, isLoaded: true });
         } catch (error) {
             console.error('Failed to load rating axes:', error);
+        } finally {
+            set({ isLoading: false });
         }
     },
 
