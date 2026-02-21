@@ -1,15 +1,15 @@
 /**
  * Thumbnail Cleanup Service - サムネイル診断・クリーンアップ
- * 
- * DBに存在しないサムネイルファイル（孤立サムネイル）を検出する。
- * Phase 12-1.5: 診断機能のみ実装（削除機能は Phase 12-6 で実装予定）
+ *
+ * 「サムネイルDirにあるが、DBに登録がないファイル」を孤立サムネイルとして検出する。
+ * Phase 25対応: getBasePath() を使用して保存場所を動的取得
  */
 
 import fs from 'fs';
 import path from 'path';
-import { app } from 'electron';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
+import { getBasePath } from './storageConfig';
 
 const log = logger.scope('ThumbnailCleanup');
 
@@ -40,11 +40,10 @@ export interface CleanupResult {
 
 /**
  * サムネイルディレクトリのパスを取得
- * Note: サムネイルは thumbnails/ 直下に保存される（プロファイル別サブディレクトリは使用しない）
+ * Phase 25対応: getBasePath() から動的取得（保存場所カスタマイズに対応）
  */
-function getThumbnailDir(_profileId: string): string {
-    // profileId は将来の拡張用に引数として残すが、現状は使用しない
-    return path.join(app.getPath('userData'), 'thumbnails');
+function getThumbnailDir(): string {
+    return path.join(getBasePath(), 'thumbnails');
 }
 
 /**
@@ -76,67 +75,83 @@ function getAllFiles(dir: string): string[] {
 
 /**
  * 孤立サムネイルの診断
- * 
- * アーキテクチャレビュー対応:
- * - IPCペイロード軽量化: サンプル最大10件に制限
- * - パス比較の厳密化: path.normalize() で正規化
+ *
+ * 定義: サムネイルDir上に存在するが、現在のDBに thumbnail_path / preview_frames
+ *       として登録されていないファイル = 孤立サムネイル
+ *
+ * bg: フォルダを登録から除外してもfilesテーブルのレコードは残るが、
+ *     DB上に残ったままでも実際のサムネイルファイルが参照されなければ「孤立」。
+ *     ただし最も直接的な孤立は「Dirにあるがどのファイルのthumbnail_pathにも含まれない」。
  */
 export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticResult> {
     log.info(`Starting thumbnail diagnostic for profile: ${profileId}`);
 
-    const thumbnailDir = getThumbnailDir(profileId);
+    const thumbnailDir = getThumbnailDir();
     const db = dbManager.getDb();
 
-    // Bug 5修正: DB基準の孤立判定に変更
-    // 1. DBから登録済みサムネイルパスを取得
-    const registeredFiles = db.prepare(`
-        SELECT thumbnail_path, preview_frames FROM files 
+    // 1. サムネイルDir上の全ファイルを取得
+    const diskFiles = getAllFiles(thumbnailDir);
+    log.debug(`Found ${diskFiles.length} files on disk in thumbnail dir: ${thumbnailDir}`);
+
+    if (diskFiles.length === 0) {
+        return {
+            totalThumbnails: 0,
+            orphanedCount: 0,
+            totalOrphanedSize: 0,
+            orphanedFiles: [],
+            samples: []
+        };
+    }
+
+    // 2. DBから登録済みサムネイルパスを収集（正規化して Set に）
+    const registeredRows = db.prepare(`
+        SELECT thumbnail_path, preview_frames FROM files
         WHERE thumbnail_path IS NOT NULL OR preview_frames IS NOT NULL
     `).all() as Array<{ thumbnail_path?: string; preview_frames?: string }>;
 
-    log.debug(`Found ${registeredFiles.length} files with thumbnails or preview frames`);
+    log.debug(`Found ${registeredRows.length} files with thumbnails or preview frames in DB`);
 
-    // 2. すべての登録済みサムネイルパスを収集
-    const allRegisteredPaths: string[] = [];
-
-    for (const row of registeredFiles) {
+    const registeredSet = new Set<string>();
+    for (const row of registeredRows) {
         if (row.thumbnail_path) {
-            allRegisteredPaths.push(row.thumbnail_path);
+            registeredSet.add(path.normalize(path.resolve(row.thumbnail_path)));
         }
         if (row.preview_frames) {
-            // preview_framesはカンマ区切り文字列（例: "path1,path2,path3"）
             const frames = row.preview_frames.split(',').filter(f => f.trim().length > 0);
-            allRegisteredPaths.push(...frames.map(f => f.trim()));
+            for (const f of frames) {
+                registeredSet.add(path.normalize(path.resolve(f.trim())));
+            }
         }
     }
 
-    log.debug(`Found ${allRegisteredPaths.length} registered thumbnail paths in DB`);
+    log.debug(`Registered ${registeredSet.size} unique thumbnail paths in DB`);
 
-    // 3. 孤立サムネイルを検出（DBに登録されているが実際にファイルが存在しないもの）
+    // 3. diskにあってDBに未登録 = 孤立サムネイル
     const orphanedThumbnails: OrphanedThumbnail[] = [];
     let totalOrphanedSize = 0;
 
-    for (const thumbnailPath of allRegisteredPaths) {
-        // パスを正規化
-        const normalizedPath = path.normalize(path.resolve(thumbnailPath));
+    for (const diskPath of diskFiles) {
+        const normalizedPath = path.normalize(path.resolve(diskPath));
 
-        // ファイルが存在しない場合は孤立サムネイル
-        if (!fs.existsSync(normalizedPath)) {
-            orphanedThumbnails.push({
-                path: thumbnailPath,
-                size: 0 // ファイルが存在しないのでサイズは0
-            });
-            log.debug(`Orphaned thumbnail (file not found): ${normalizedPath}`);
+        if (!registeredSet.has(normalizedPath)) {
+            let size = 0;
+            try {
+                size = fs.statSync(diskPath).size;
+            } catch {
+                // stat失敗は無視
+            }
+            totalOrphanedSize += size;
+            orphanedThumbnails.push({ path: diskPath, size });
+            log.debug(`Orphaned thumbnail (not in DB): ${diskPath}`);
         }
     }
 
-    log.info(`Diagnostic complete: ${orphanedThumbnails.length} orphaned thumbnails found (DB entries without files)`);
+    log.info(`Diagnostic complete: ${orphanedThumbnails.length} orphaned thumbnails found out of ${diskFiles.length} total`);
 
-    // 4. サンプルを最大10件に制限（IPCペイロード軽量化）
     const samples = orphanedThumbnails.slice(0, 10);
 
     return {
-        totalThumbnails: allRegisteredPaths.length,
+        totalThumbnails: diskFiles.length,
         orphanedCount: orphanedThumbnails.length,
         totalOrphanedSize,
         orphanedFiles: orphanedThumbnails.map(t => t.path),
@@ -169,13 +184,11 @@ export async function cleanupOrphanedThumbnails(profileId: string): Promise<Clea
 
         for (const filePath of diagnostic.orphanedFiles) {
             try {
-                // ファイルが存在するか確認
                 if (!fs.existsSync(filePath)) {
                     log.debug(`File already deleted: ${filePath}`);
                     continue;
                 }
 
-                // ファイルサイズを取得してから削除
                 const stats = fs.statSync(filePath);
                 const fileSize = stats.size;
 
@@ -184,7 +197,6 @@ export async function cleanupOrphanedThumbnails(profileId: string): Promise<Clea
                 result.freedBytes += fileSize;
                 log.debug(`Deleted: ${filePath} (${fileSize} bytes)`);
             } catch (error: any) {
-                // エラーハンドリング
                 if (error.code === 'ENOENT') {
                     log.debug(`File not found (already deleted): ${filePath}`);
                     continue;
@@ -204,7 +216,7 @@ export async function cleanupOrphanedThumbnails(profileId: string): Promise<Clea
             result.success = false;
             log.warn(`Cleanup completed with ${result.errors.length} errors`);
         } else {
-            log.info(`Cleanup completed successfully: ${result.deletedCount} files deleted, ${(result.freedBytes / 1024 / 1024).toFixed(2)} MB freed`);
+            log.info(`Cleanup completed: ${result.deletedCount} files deleted, ${(result.freedBytes / 1024 / 1024).toFixed(2)} MB freed`);
         }
 
         return result;
