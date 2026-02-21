@@ -1,21 +1,21 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-21 14:29
+**Last Updated**: 2026-02-21 19:00
 
-- **Current Focus**: Phase 28 完了。次期フェーズ選定中。
-- **Current Status**: タグUI改善（TagSelector多列化・RightPanel置換・TagManagerModal多列+D&D）完了。
+- **Current Focus**: v1.1.4リリース完了。次の機能開発またはフェーズ選定待ち。
+- **Current Status**: リリース版での書庫抽出におけるENOENT/EXDEVエラー、およびプレビュー削除時のパースエラーに対する追加安全対策を実装し、ビルドを完了。
 - **Recent Achievements**:
-  - **Phase 27.5: 詳細検索廃止・評価フィルター統合**:
-    - AdvancedSearchPanel 削除（左サイドバーと機能重複のため）
-    - RatingFilterPanel 新規作成（blue系 #2563eb の星）、Sidebar 統合
-    - コミット: `b85ef3d`
+  - **1.1.4 Hotfix: リリース版 書庫処理の安全対策・ファイル移動共通化**:
+    - `fileOperationService.ts` に `safeMoveFileSync` を実装し、別ドライブ(EXDEV)間の移動を一時コピー＋アトミックrenameに安全化。
+    - `archiveHandler.ts` において、UUIDを用いた一時サブディレクトリ抽出による抽出ファイル名競合の回避(ENOENT対策)を再適用するとともに、後処理を `safeMoveFileSync` に統一。
+    - `database.ts` に `parsePreviewFrames` ユーティリティを追加し、カンマ区切りCSVによるパースエラー発生時は自動的にJSON配列に正規化(UPDATE)して完全収束する仕組みを構築。
+    - `scanner.ts`、`thumbnailCleanupService.ts` にも共通のパースロジックを適用。
   - **Phase 28: タグUI改善 3パート**:
     - TagSelector: カテゴリ名横にカラードット表示、sortOrder順ソート、grid-cols-2の2列グリッド表示
     - RightPanel/TagSection: `<select>`（TagAddDropdown）を TagSelector に置換
     - TagManagerModal: 右ペインのタグリストを grid-cols-2 多列表示に変更
     - TagManagerModal: 左ペインにGripVerticalハンドル + HTML5 D&D でカテゴリ並び替え実装
     - useTagStore: updateCategory に sortOrder 型を追加
-    - コミット: `d388dc4`
   - **1.1.3 Hotfix: リリース版書庫サムネイル取得障害**:
     - `package.json` に `asarUnpack` と `afterPack` 検証スクリプト追加
     - `archiveHandler.ts` を `process.resourcesPath` ベースに変更
