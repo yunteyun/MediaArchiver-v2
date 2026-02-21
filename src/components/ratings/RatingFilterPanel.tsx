@@ -64,11 +64,7 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
     axisId: _axisId, axisName, minValue, maxValue, step, currentMin, onSet, onClear,
 }) => {
     const [hoverValue, setHoverValue] = useState<number | null>(null);
-
-    const steps: number[] = [];
-    for (let v = minValue; v <= maxValue; v += step) {
-        steps.push(Math.round(v * 100) / 100);
-    }
+    const isHalfMode = step < 1;
 
     const handleClick = (v: number) => {
         if (currentMin === v) {
@@ -92,25 +88,84 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                     </button>
                 )}
             </div>
+
             <div
                 className="flex items-center gap-0.5"
                 onMouseLeave={() => setHoverValue(null)}
             >
-                {steps.map((v) => {
-                    const filled = currentMin !== undefined && v <= currentMin;
-                    const hovered = hoverValue !== null && v <= hoverValue;
-                    return (
-                        <StarButton
-                            key={v}
-                            value={v}
-                            filled={filled}
-                            hovered={!filled && hovered}
-                            onClick={() => handleClick(v)}
-                            onMouseEnter={() => setHoverValue(v)}
-                            onMouseLeave={() => setHoverValue(null)}
-                        />
-                    );
-                })}
+                {isHalfMode ? (
+                    // ─ ハーフスターモード ─
+                    (() => {
+                        const positions: number[] = [];
+                        for (let i = Math.ceil(minValue); i <= maxValue; i++) positions.push(i);
+                        return positions.map((pos) => {
+                            const halfVal = Math.round((pos - step) * 100) / 100;
+                            // 表示状態
+                            const dispVal = hoverValue ?? currentMin ?? 0;
+                            const state: 'full' | 'half' | 'empty' =
+                                dispVal >= pos ? 'full' :
+                                    dispVal >= halfVal ? 'half' : 'empty';
+                            const fillColor = state !== 'empty'
+                                ? (hoverValue !== null ? COLOR_HOVER : COLOR_FILLED)
+                                : 'transparent';
+
+                            return (
+                                <div
+                                    key={pos}
+                                    style={{ position: 'relative', display: 'inline-block', lineHeight: 0, width: 16, height: 16, flexShrink: 0 }}
+                                >
+                                    {/* ベース輪郭 */}
+                                    <Star size={16} style={{ color: COLOR_EMPTY, fill: 'transparent', display: 'block', transition: 'color 0.1s, fill 0.1s' }} />
+                                    {/* 塗り */}
+                                    {state !== 'empty' && (
+                                        <div style={{ position: 'absolute', top: 0, left: 0, width: state === 'half' ? '50%' : '100%', height: '100%', overflow: 'hidden', pointerEvents: 'none' }}>
+                                            <Star size={16} style={{ color: fillColor, fill: fillColor, display: 'block', transition: 'color 0.1s, fill 0.1s' }} />
+                                        </div>
+                                    )}
+                                    {/* 左半ボタン */}
+                                    <button
+                                        type="button"
+                                        style={{ position: 'absolute', top: 0, left: 0, width: '50%', height: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                        title={`★${halfVal}以上`}
+                                        onClick={() => handleClick(halfVal)}
+                                        onMouseEnter={() => setHoverValue(halfVal)}
+                                    />
+                                    {/* 右半ボタン */}
+                                    <button
+                                        type="button"
+                                        style={{ position: 'absolute', top: 0, left: '50%', width: '50%', height: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                                        title={`★${pos}以上`}
+                                        onClick={() => handleClick(pos)}
+                                        onMouseEnter={() => setHoverValue(pos)}
+                                    />
+                                </div>
+                            );
+                        });
+                    })()
+                ) : (
+                    // ─ 通常モード ─
+                    (() => {
+                        const steps: number[] = [];
+                        for (let v = minValue; v <= maxValue; v += step) {
+                            steps.push(Math.round(v * 100) / 100);
+                        }
+                        return steps.map((v) => {
+                            const filled = currentMin !== undefined && v <= currentMin;
+                            const hovered = hoverValue !== null && v <= hoverValue;
+                            return (
+                                <StarButton
+                                    key={v}
+                                    value={v}
+                                    filled={filled}
+                                    hovered={!filled && hovered}
+                                    onClick={() => handleClick(v)}
+                                    onMouseEnter={() => setHoverValue(v)}
+                                    onMouseLeave={() => setHoverValue(null)}
+                                />
+                            );
+                        });
+                    })()
+                )}
                 {currentMin !== undefined && (
                     <span className="ml-1 text-xs text-primary-400">{currentMin}以上</span>
                 )}
