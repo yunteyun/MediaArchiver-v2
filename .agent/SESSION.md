@@ -1,26 +1,21 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-20 23:48
+**Last Updated**: 2026-02-21 14:29
 
-- **Current Focus**: Phase 27.5 完了。次期フェーズ選定中。
-- **Current Status**: 詳細検索パネル廃止・サイドバーへの評価フィルター統合完了。
+- **Current Focus**: Phase 28 完了。次期フェーズ選定中。
+- **Current Status**: タグUI改善（TagSelector多列化・RightPanel置換・TagManagerModal多列+D&D）完了。
 - **Recent Achievements**:
-  - **Phase 26: タグ・評価システム刷新**:
-    - TagManagerModal を左右ペイン構造に刷新（26-A）
-    - 評価軸 DB / Service / IPC / Store 実装（26-B）
-    - StarRatingInput・RightPanel/Lightbox評価セクション実装（26-C）
-    - searchService・AdvancedSearchPanel 実装（26-D）
-  - **Phase 27: 検索UI統合 & タググループ化**:
-    - AdvancedSearchPanel をカテゴリ別折りたたみ対応に刷新
-    - UIStore による開閉状態一元管理
-  - **Phase 27.5: 詳細検索パネル廃止・評価フィルター統合**:
+  - **Phase 27.5: 詳細検索廃止・評価フィルター統合**:
     - AdvancedSearchPanel 削除（左サイドバーと機能重複のため）
-    - useRatingStore に ratingFilter state 追加（setRatingFilter / clearRatingFilters）
-    - useFileStore の getFilteredFiles を純粋関数化
-    - FileGrid useMemo に評価フィルターを統合（未評価ファイルは除外）
-    - RatingFilterPanel 新規作成（blue系 #2563eb の星）
-    - Sidebar に RatingFilterPanel を TagFilterPanel 直下に配置
+    - RatingFilterPanel 新規作成（blue系 #2563eb の星）、Sidebar 統合
     - コミット: `b85ef3d`
+  - **Phase 28: タグUI改善 3パート**:
+    - TagSelector: カテゴリ名横にカラードット表示、sortOrder順ソート、grid-cols-2の2列グリッド表示
+    - RightPanel/TagSection: `<select>`（TagAddDropdown）を TagSelector に置換
+    - TagManagerModal: 右ペインのタグリストを grid-cols-2 多列表示に変更
+    - TagManagerModal: 左ペインにGripVerticalハンドル + HTML5 D&D でカテゴリ並び替え実装
+    - useTagStore: updateCategory に sortOrder 型を追加
+    - コミット: `d388dc4`
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
@@ -59,10 +54,11 @@
 - ✅ Phase 26 (Part 2): タグ・評価システム刷新（TagManagerModal刷新・評価軸・StarRating・詳細検索）
 - ✅ Phase 27: 検索UI統合 & タググループ化（カテゴリ別折りたたみ）
 - ✅ Phase 27.5: 詳細検索廃止・サイドバー評価フィルター統合
+- ✅ Phase 28: タグUI改善（TagSelector多列化・RightPanel置換・TagManagerModal多列+D&D）
 
 ## Next Steps
 - [ ] 追加表示モード（漫画モード・動画モード）
-- [ ] タグカテゴリ表示優先順位付け強化
+- [ ] タグカテゴリ表示優先順位付け強化（カテゴリ単位グループ化・均等表示）
 
 ## Known Issues
 なし（現在確認されている重大な不具合はありません）

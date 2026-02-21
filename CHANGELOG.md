@@ -188,6 +188,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [dev-28] - 2026-02-21
+### Phase 28: タグUI改善 3パート
+
+#### Changed
+- **`TagSelector`**: カテゴリ名横にカラードット表示、カテゴリ/タグを `sortOrder` 昇順ソート、タグ一覧を `grid-cols-2` の2列グリッド表示に変更
+- **`RightPanel/TagSection`**: `<select>`（TagAddDropdown）を `TagSelector` に置換（Lightbox と同一UIに統一）
+- **`TagManagerModal`**: 右ペインのタグリストを `grid-cols-2` 多列表示に変更（一覧性向上）
+- **`TagManagerModal`**: 左ペインにカテゴリD&D機能を実装（`GripVertical` ハンドル + HTML5 D&D、`sortOrder` 一括再採番）
+- **`useTagStore`**: `updateCategory` の引数型に `sortOrder?: number` を追加
+
+---
+
 ## [dev-27.5] - 2026-02-20
 ### Phase 27.5: 詳細検索廃止・サイドバー評価フィルター統合
 

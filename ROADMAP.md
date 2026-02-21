@@ -44,6 +44,7 @@ MediaArchiver v2 の開発ロードマップです。
 | 26 (Part 2) | タグ・評価システム刷新 | TagManagerModal刷新・評価軸DB/IPC/Store・StarRatingInput・詳細検索UI | 2026-02 |
 | 27 | 検索UI統合・タググループ化 | AdvancedSearchPanel カテゴリ別折りたたみ、UIStore開閉管理 | 2026-02 |
 | 27.5 | 詳細検索廃止・評価フィルター統合 | AdvancedSearchPanel削除、サイドバーに RatingFilterPanel（blue星）追加、getFilteredFiles純粋関数化 | 2026-02 |
+| 28 | タグUI改善 | TagSelectorにカラードット/sortOrder順/grid-cols-2夐列、RightPanel TagSectionのselect→TagSelector置換、TagManagerModalタグリスト多列化+カテゴリD&D | 2026-02 |
 
 ---
 
@@ -112,10 +113,9 @@ MediaArchiver v2 の開発ロードマップです。
 
 ### タグ表示の追加改善
 - **タグカテゴリの表示優先順位付け強化**
-  - 現状: `sortOrder` で基本的な優先順位付けは実装済み
+  - 現状: `sortOrder` で基本的な優先順位付およびD&Dは実装済み
   - カテゴリ単位でのグループ化表示
   - 各カテゴリから均等に表示（バランス調整）
-  - ドラッグ&ドロップでの sortOrder 編集
 
 ---
 
