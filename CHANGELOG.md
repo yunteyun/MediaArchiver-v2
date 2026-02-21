@@ -9,6 +9,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.3] - 2026-02-21
+### Phase 28〜: タグUI改善・バグ修正
+
+#### Changed
+- **TagSelector**: カテゴリカラードット表示・`sortOrder`順ソート・grid-cols-2の2列グリッド表示
+- **RightPanel/TagSection**: `<select>` を `TagSelector` に置換（Lightboxと同一UIに統一）
+- **TagManagerModal**: 右ペインのタグリストをgrid-cols-2多列表示、左ペインにカテゴリD&D実装
+- **useTagStore**: `updateCategory` に `sortOrder` 型追加
+
+#### Fixed
+- **TagSelectorドロップダウン非表示バグ**: React Portalで `body` 直下に描画（`overflow:auto` 親コンテナでクリップされる問題を解消）
+- **孤立サムネイル診断ロジック**: 「DBにあるが実ファイルなし」→「サムネイルDirにあるがDBに未登録」に修正。フォルダ登録解除後に孤立サムネイルを正しく検出できるよう修正
+- **孤立サムネイル診断パス**: `app.getPath('userData')` ハードコード → `getBasePath()` 動的取得（Phase 25保存場所カスタマイズに対応）
+
+---
+
 ## [1.1.2] - 2026-02-19
 ### Phase 26: バグ修正・UX改善
 
