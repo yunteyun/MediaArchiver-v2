@@ -28,12 +28,12 @@ export interface Profile {
 class DatabaseManager {
     private db: Database.Database | null = null;
     private currentProfileId: string | null = null;
-    private metaDb: Database.Database;
+    private metaDb: Database.Database | null = null;
 
     constructor() {
-        // profiles.db は常に userData に置く（プロファイル管理はベースパスに依存しない）
-        this.metaDb = this.openMetaDb();
-        this.initMetaDb();
+        // NOTE:
+        // metaDb の実体は initialize() 時に開く。
+        // こうすることで initStorageConfig() 後の basePath を正しく反映できる。
     }
 
     /** Phase 25: プロファイルDBのベースパス（動的取得） */
@@ -43,23 +43,26 @@ class DatabaseManager {
 
     /** metaDb を開く */
     private openMetaDb(): Database.Database {
-        const metaPath = path.join(app.getPath('userData'), 'profiles.db');
+        const metaPath = path.join(this.getDbBasePath(), 'profiles.db');
+        this.ensureDbDirectory(metaPath);
         return new Database(metaPath);
     }
 
     /** Phase 25: 移行後に metaDb を再接続する */
     reopenMetaDb(): void {
-        if (!this.metaDb.open) {
-            this.metaDb = this.openMetaDb();
-            this.initMetaDb();
-            log.info('metaDb reopened');
-        }
+        if (this.metaDb && this.metaDb.open) return;
+        this.metaDb = this.openMetaDb();
+        this.initMetaDb();
+        log.info('metaDb reopened');
     }
 
     /**
      * メタDB初期化（プロファイル一覧管理用）
      */
     private initMetaDb() {
+        if (!this.metaDb) {
+            throw new Error('metaDb is not initialized');
+        }
         this.metaDb.exec(`
             CREATE TABLE IF NOT EXISTS profiles (
                 id TEXT PRIMARY KEY,
@@ -85,13 +88,14 @@ class DatabaseManager {
      * デフォルトプロファイル作成
      */
     private createDefaultProfile() {
+        const metaDb = this.getMetaDb();
         const now = Date.now();
-        this.metaDb.prepare(`
+        metaDb.prepare(`
             INSERT INTO profiles (id, name, db_filename, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
         `).run('default', 'Default', 'media_default.db', now, now);
 
-        this.metaDb.prepare(`
+        metaDb.prepare(`
             INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)
         `).run('active_profile_id', 'default');
     }
@@ -125,7 +129,9 @@ class DatabaseManager {
      * 全プロファイル取得
      */
     getProfiles(): Profile[] {
-        const rows = this.metaDb.prepare('SELECT * FROM profiles ORDER BY created_at ASC').all() as any[];
+        this.reopenMetaDb();
+        const metaDb = this.getMetaDb();
+        const rows = metaDb.prepare('SELECT * FROM profiles ORDER BY created_at ASC').all() as any[];
         return rows.map(r => ({
             id: r.id,
             name: r.name,
@@ -139,7 +145,9 @@ class DatabaseManager {
      * 単一プロファイル取得
      */
     getProfile(id: string): Profile | undefined {
-        const row = this.metaDb.prepare('SELECT * FROM profiles WHERE id = ?').get(id) as any;
+        this.reopenMetaDb();
+        const metaDb = this.getMetaDb();
+        const row = metaDb.prepare('SELECT * FROM profiles WHERE id = ?').get(id) as any;
         if (!row) return undefined;
         return {
             id: row.id,
@@ -154,11 +162,13 @@ class DatabaseManager {
      * プロファイル作成
      */
     createProfile(name: string): Profile {
+        this.reopenMetaDb();
+        const metaDb = this.getMetaDb();
         const id = uuidv4();
         const dbFilename = `media_${id}.db`;
         const now = Date.now();
 
-        this.metaDb.prepare(`
+        metaDb.prepare(`
             INSERT INTO profiles (id, name, db_filename, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
         `).run(id, name, dbFilename, now, now);
@@ -180,12 +190,14 @@ class DatabaseManager {
      * プロファイル更新
      */
     updateProfile(id: string, updates: { name?: string }): void {
+        this.reopenMetaDb();
+        const metaDb = this.getMetaDb();
         if (id === 'default' && updates.name) {
             // デフォルトプロファイルの名前変更は許可
         }
         const now = Date.now();
         if (updates.name) {
-            this.metaDb.prepare('UPDATE profiles SET name = ?, updated_at = ? WHERE id = ?')
+            metaDb.prepare('UPDATE profiles SET name = ?, updated_at = ? WHERE id = ?')
                 .run(updates.name, now, id);
         }
     }
@@ -224,7 +236,8 @@ class DatabaseManager {
         }
 
         // メタDBから削除
-        this.metaDb.prepare('DELETE FROM profiles WHERE id = ?').run(id);
+        const metaDb = this.getMetaDb();
+        metaDb.prepare('DELETE FROM profiles WHERE id = ?').run(id);
         return true;
     }
 
@@ -234,7 +247,9 @@ class DatabaseManager {
      * アクティブプロファイルID取得
      */
     getActiveProfileId(): string {
-        const row = this.metaDb.prepare('SELECT value FROM app_settings WHERE key = ?').get('active_profile_id') as { value: string } | undefined;
+        this.reopenMetaDb();
+        const metaDb = this.getMetaDb();
+        const row = metaDb.prepare('SELECT value FROM app_settings WHERE key = ?').get('active_profile_id') as { value: string } | undefined;
         return row?.value || 'default';
     }
 
@@ -266,7 +281,8 @@ class DatabaseManager {
         this.currentProfileId = profileId;
 
         // アクティブプロファイルを記録
-        this.metaDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
+        const metaDb = this.getMetaDb();
+        metaDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
             .run('active_profile_id', profileId);
     }
 
@@ -274,6 +290,7 @@ class DatabaseManager {
      * 起動時の初期化（アクティブプロファイルに接続）
      */
     initialize(): void {
+        this.reopenMetaDb();
         const activeId = this.getActiveProfileId();
         this.switchProfile(activeId);
     }
@@ -294,6 +311,9 @@ class DatabaseManager {
      * メタDBインスタンス取得
      */
     getMetaDb(): Database.Database {
+        if (!this.metaDb) {
+            throw new Error('metaDb is not initialized. Call initialize() first.');
+        }
         return this.metaDb;
     }
 
@@ -341,6 +361,7 @@ class DatabaseManager {
         }
         if (this.metaDb && this.metaDb.open) {
             this.metaDb.close();
+            this.metaDb = null;
         }
     }
     /**
@@ -362,7 +383,10 @@ class DatabaseManager {
             this.db.close();
             this.db = null;
         }
-        this.metaDb.close();
+        if (this.metaDb && this.metaDb.open) {
+            this.metaDb.close();
+        }
+        this.metaDb = null;
     }
 }
 

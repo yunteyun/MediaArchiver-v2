@@ -36,6 +36,10 @@ let _basePath: string | null = null;
 let _config: StorageConfig = { mode: 'appdata' };
 const CONFIG_FILENAME = 'storage-config.json';
 
+function getRuntimeScope(): 'dev' | 'release' {
+    return process.env.VITE_DEV_SERVER_URL ? 'dev' : 'release';
+}
+
 // ─── パス解決 ─────────────────────────────────────────────────────────────────
 
 /**
@@ -44,12 +48,12 @@ const CONFIG_FILENAME = 'storage-config.json';
 function resolveBasePath(config: StorageConfig): string {
     switch (config.mode) {
         case 'appdata':
-            return app.getPath('userData');
+            return path.join(app.getPath('userData'), getRuntimeScope());
         case 'install': {
             // 開発時は exe パスが electron 本体になるため userData にフォールバック
             const exeDir = path.dirname(app.getPath('exe'));
             const isDev = process.env.VITE_DEV_SERVER_URL !== undefined;
-            return isDev ? app.getPath('userData') : path.join(exeDir, 'data');
+            return isDev ? path.join(app.getPath('userData'), 'dev') : path.join(exeDir, 'data');
         }
         case 'custom':
             return config.customPath ?? app.getPath('userData');
@@ -275,10 +279,8 @@ export function deleteOldStorageData(oldBase: string): { success: boolean; error
         if (fs.existsSync(oldThumbnails)) {
             fs.rmSync(oldThumbnails, { recursive: true, force: true });
         }
-        // DB ファイル削除（profiles.db は metaDb として常に開いているため除外）
-        const dbFiles = fs.readdirSync(oldBase).filter(f =>
-            f.endsWith('.db') && f !== 'profiles.db'
-        );
+        // DB ファイル削除
+        const dbFiles = fs.readdirSync(oldBase).filter(f => f.endsWith('.db'));
         for (const dbFile of dbFiles) {
             fs.unlinkSync(path.join(oldBase, dbFile));
         }

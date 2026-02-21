@@ -73,6 +73,12 @@
             "node_modules/**/*",
             "package.json"
         ],
+        "extraFiles": [
+            {
+                "from": "update.bat",
+                "to": "update.bat"
+            }
+        ],
         "win": {
             "target": "zip"
         }

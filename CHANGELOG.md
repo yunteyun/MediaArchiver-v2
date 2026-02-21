@@ -265,6 +265,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- **プロファイル管理DBの保存先統一**: `profiles.db` を `userData` 固定から `getBasePath()` 基準へ変更し、実データDBと同じ保存先スコープで管理するように変更
+- **metaDb 初期化タイミングの見直し**: `DatabaseManager` の metaDb を遅延初期化に変更し、`initStorageConfig()` 後の保存先設定を確実に反映
+- **旧データ削除処理の整合性向上**: `deleteOldStorageData` で `profiles.db` を除外せず `.db` 全体を削除対象に統一
+- **ZIP運用の更新導線**: `update.bat` を追加し、ZIPファイル選択→展開→上書き更新→再起動をワンステップ化
+- **配布物への同梱設定**: `electron-builder` の `extraFiles` で `update.bat` をリリース版に同梱
+
+### Fixed
+- **開発版/リリース版のプロファイル中途半端共有**: `appdata` モード時の保存先を `.../userData/dev` と `.../userData/release` に自動分離し、プロファイルが混在しないよう修正
+- **開発版/リリース版のログ共有**: ログ保存先を `.../userData/logs/dev` と `.../userData/logs/release` に自動分離し、検証ログが混在しないよう修正
+
 ### Docs
 - README に `lint` / `build` の実行手順を追記
 - ARCHITECTURE のサービス構成例を現行実装寄りに更新

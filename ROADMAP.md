@@ -45,6 +45,7 @@ MediaArchiver v2 の開発ロードマップです。
 | 27 | 検索UI統合・タググループ化 | AdvancedSearchPanel カテゴリ別折りたたみ、UIStore開閉管理 | 2026-02 |
 | 27.5 | 詳細検索廃止・評価フィルター統合 | AdvancedSearchPanel削除、サイドバーに RatingFilterPanel（blue星）追加、getFilteredFiles純粋関数化 | 2026-02 |
 | 28 | タグUI改善 | TagSelectorにカラードット/sortOrder順/grid-cols-2夐列、RightPanel TagSectionのselect→TagSelector置換、TagManagerModalタグリスト多列化+カテゴリD&D | 2026-02 |
+| 29 | 実行環境分離とプロファイル整合 | `profiles.db` を保存先スコープに統一、`appdata` の dev/release 自動分離で開発版とリリース版のプロファイル混在を解消、ログ保存先も `logs/dev`・`logs/release` に分離、ZIP更新用 `update.bat` を同梱 | 2026-02 |
 | **v1.1.3** | **リリース** | **タグUI改善・TagSelector修正・孤立サムネイル診断修正・リリース版書庫サムネイルHotfix** | **2026-02** |
 
 ---
