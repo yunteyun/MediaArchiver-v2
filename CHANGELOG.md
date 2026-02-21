@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **TagSelectorドロップダウン非表示バグ**: React Portalで `body` 直下に描画（`overflow:auto` 親コンテナでクリップされる問題を解消）
 - **孤立サムネイル診断ロジック**: 「DBにあるが実ファイルなし」→「サムネイルDirにあるがDBに未登録」に修正。フォルダ登録解除後に孤立サムネイルを正しく検出できるよう修正
 - **孤立サムネイル診断パス**: `app.getPath('userData')` ハードコード → `getBasePath()` 動的取得（Phase 25保存場所カスタマイズに対応）
+- **リリース版書庫サムネイル取得エラー**: `package.json` に `asarUnpack` 指定を追加し、`7za.exe` 等のバイナリが実行可能に
+- **DBディレクトリ未作成エラー**: `mode=install` 等で保存先にフォルダが存在しない場合、DB作成前に `ensureDbDirectory` で事前生成するように修正
+- **ビルド安全性向上**: `afterPack` フックを追加し、`app.asar.unpacked` 内の必須バイナリ存在をビルド時に検証
 
 ---
 

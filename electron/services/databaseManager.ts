@@ -7,6 +7,7 @@
 
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
@@ -96,6 +97,18 @@ class DatabaseManager {
     }
 
     /**
+     * DBディレクトリを事前作成する（DRY共通処理）
+     * mode=install で data/ が存在しない場合などに対応
+     */
+    private ensureDbDirectory(dbPath: string): void {
+        const dir = path.dirname(dbPath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+            log.info(`Created DB directory: ${dir}`);
+        }
+    }
+
+    /**
      * メディアDB初期化（プロファイルごと）
      * マイグレーションシステムを使用してスキーマを管理
      */
@@ -152,6 +165,7 @@ class DatabaseManager {
 
         // 新しいDBファイルを作成してスキーマ初期化
         const dbPath = path.join(this.getDbBasePath(), dbFilename);
+        this.ensureDbDirectory(dbPath);
         const newDb = new Database(dbPath);
         const tempCurrent = this.db;
         this.db = newDb;
@@ -246,6 +260,7 @@ class DatabaseManager {
 
         // 新しいDBに接続
         const dbPath = path.join(this.getDbBasePath(), profile.dbFilename);
+        this.ensureDbDirectory(dbPath);
         this.db = new Database(dbPath);
         this.initMediaDb();
         this.currentProfileId = profileId;

@@ -36,32 +36,34 @@ const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 // 繧ｵ繝昴・繝医☆繧矩浹螢ｰ諡｡蠑ｵ蟄・
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
 
-// 7za 繝舌う繝翫Μ繝代せ縺ｮ隗｣豎ｺ
+// 7za バイナリパスの解決
 function resolve7zaPath(): string {
-    let resolvedPath = path7za;
-
-    // Production 迺ｰ蠅・〒縺ｮ asar 蟇ｾ蠢・
-    if (resolvedPath && resolvedPath.includes('app.asar')) {
-        resolvedPath = resolvedPath.replace('app.asar', 'app.asar.unpacked');
+    // パッケージ済みアプリ（リリース版）では process.resourcesPath を使用
+    // これにより文字列置換依存を排除し、Electron公式APIベースで安全に解決する
+    if (app.isPackaged) {
+        const packedPath = path.join(
+            process.resourcesPath,
+            'app.asar.unpacked',
+            'node_modules',
+            '7zip-bin',
+            'win', 'x64', '7za.exe'
+        );
+        if (fs.existsSync(packedPath)) {
+            log.info('7za binary found (packaged):', packedPath);
+            return packedPath;
+        }
+        log.error('7za binary not found anywhere!');
+        return packedPath; // 見つからなくても返す（エラーは後で発生）
     }
 
-    // 繝代せ縺悟ｭ伜惠縺吶ｋ縺狗｢ｺ隱・
-    if (fs.existsSync(resolvedPath)) {
-        log.info('7za binary found at:', resolvedPath);
-        return resolvedPath;
-    }
-
-    // 髢狗匱迺ｰ蠅・〒縺ｮ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ
-    log.warn('7za binary not found at:', resolvedPath);
-    const devPath = path.join(process.cwd(), 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe');
-
-    if (fs.existsSync(devPath)) {
-        log.info('Found 7za in node_modules:', devPath);
-        return devPath;
+    // 開発環境: 7zip-bin が返すパスをそのまま使用
+    if (fs.existsSync(path7za)) {
+        log.info('Found 7za in node_modules:', path7za);
+        return path7za;
     }
 
     log.error('7za binary not found anywhere!');
-    return resolvedPath; // 隕九▽縺九ｉ縺ｪ縺上※繧りｿ斐☆・医お繝ｩ繝ｼ縺ｯ蠕後〒逋ｺ逕滂ｼ・
+    return path7za;
 }
 
 const SEVEN_ZA_PATH = resolve7zaPath();
