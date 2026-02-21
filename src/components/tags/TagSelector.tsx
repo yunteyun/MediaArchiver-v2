@@ -51,14 +51,26 @@ export const TagSelector = React.memo(({
         }
     };
 
-    // Group tags by category
-    const uncategorizedTags = filteredTags.filter(t => !t.categoryId);
-    const categorizedGroups = categories
+    // Group tags by category (sortOrder順)
+    const uncategorizedTags = filteredTags
+        .filter(t => !t.categoryId)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+    const categorizedGroups = [...categories]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(cat => ({
             category: cat,
-            tags: filteredTags.filter(t => t.categoryId === cat.id)
+            tags: filteredTags
+                .filter(t => t.categoryId === cat.id)
+                .sort((a, b) => a.sortOrder - b.sortOrder)
         }))
         .filter(g => g.tags.length > 0);
+
+    // カテゴリ色 → CSS背景クラス
+    const colorBgClass = (color: string) =>
+        color === 'amber' ? 'bg-amber-600'
+            : color === 'yellow' ? 'bg-amber-500'
+                : color === 'lime' ? 'bg-lime-600'
+                    : `bg-${color}-600`;
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -111,31 +123,36 @@ export const TagSelector = React.memo(({
                         {/* Uncategorized tags */}
                         {uncategorizedTags.length > 0 && (
                             <div className="mb-2">
-                                {uncategorizedTags.map(tag => (
-                                    <TagItem
-                                        key={tag.id}
-                                        tag={tag}
-                                        isSelected={selectedTagIds.includes(tag.id)}
-                                        onClick={() => handleTagClick(tag)}
-                                    />
-                                ))}
+                                <div className="grid grid-cols-2 gap-0.5">
+                                    {uncategorizedTags.map(tag => (
+                                        <TagItem
+                                            key={tag.id}
+                                            tag={tag}
+                                            isSelected={selectedTagIds.includes(tag.id)}
+                                            onClick={() => handleTagClick(tag)}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         )}
 
                         {/* Categorized tags */}
                         {categorizedGroups.map(({ category, tags }) => (
                             <div key={category.id} className="mb-2">
-                                <div className="text-xs text-surface-500 font-medium mb-1 px-2">
+                                <div className="text-xs text-surface-500 font-medium mb-1 px-2 flex items-center gap-1.5">
+                                    <span className={`w-2 h-2 rounded-sm flex-shrink-0 ${colorBgClass(category.color)}`} />
                                     {category.name}
                                 </div>
-                                {tags.map(tag => (
-                                    <TagItem
-                                        key={tag.id}
-                                        tag={tag}
-                                        isSelected={selectedTagIds.includes(tag.id)}
-                                        onClick={() => handleTagClick(tag)}
-                                    />
-                                ))}
+                                <div className="grid grid-cols-2 gap-0.5">
+                                    {tags.map(tag => (
+                                        <TagItem
+                                            key={tag.id}
+                                            tag={tag}
+                                            isSelected={selectedTagIds.includes(tag.id)}
+                                            onClick={() => handleTagClick(tag)}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         ))}
 

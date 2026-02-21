@@ -3,8 +3,8 @@
  * Phase 26-A: 左右ペイン構造に刷新
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, ChevronRight, GripVertical } from 'lucide-react';
 import { useTagStore, Tag, TagCategory } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
 import { AutoTagRulesTab } from '../AutoTagRulesTab';
@@ -49,6 +49,10 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     const [newCategoryName, setNewCategoryName] = useState('');
     const [newCategoryColor, setNewCategoryColor] = useState('gray');
     const [showCategoryForm, setShowCategoryForm] = useState(false);
+
+    // D&D state
+    const [dragCategoryId, setDragCategoryId] = useState<string | null>(null);
+    const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
 
     const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
@@ -183,6 +187,41 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         setShowCategoryForm(false);
     };
 
+    // === カテゴリ D&D ===
+    const handleDragStart = useCallback((catId: string) => {
+        setDragCategoryId(catId);
+    }, []);
+
+    const handleDragOver = useCallback((e: React.DragEvent, catId: string) => {
+        e.preventDefault();
+        setDragOverCategoryId(catId);
+    }, []);
+
+    const handleDrop = useCallback(async (e: React.DragEvent, targetCatId: string) => {
+        e.preventDefault();
+        if (!dragCategoryId || dragCategoryId === targetCatId) {
+            setDragCategoryId(null);
+            setDragOverCategoryId(null);
+            return;
+        }
+        // ソート順に並んだリストで再インデックス付け
+        const sorted = [...categories].sort((a, b) => a.sortOrder - b.sortOrder);
+        const fromIdx = sorted.findIndex(c => c.id === dragCategoryId);
+        const toIdx = sorted.findIndex(c => c.id === targetCatId);
+        if (fromIdx === -1 || toIdx === -1) return;
+        const reordered = [...sorted];
+        const [moved] = reordered.splice(fromIdx, 1);
+        reordered.splice(toIdx, 0, moved);
+        // 一括更新
+        await Promise.all(
+            reordered.map((cat, idx) =>
+                updateCategory(cat.id, { sortOrder: idx * 10 })
+            )
+        );
+        setDragCategoryId(null);
+        setDragOverCategoryId(null);
+    }, [dragCategoryId, categories, updateCategory]);
+
     // 選択中カテゴリ名
     const selectedCategoryName = selectedCategoryId === UNCATEGORIZED_ID
         ? '未分類'
@@ -242,42 +281,54 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
 
                                 {/* カテゴリリスト */}
                                 <div className="flex-1 overflow-auto">
-                                    {categories.map(cat => {
-                                        const tagCount = tags.filter(t => t.categoryId === cat.id).length;
-                                        const isSelected = selectedCategoryId === cat.id;
-                                        return (
-                                            <div
-                                                key={cat.id}
-                                                className={`flex items-center gap-2 px-3 py-2 cursor-pointer group transition-colors ${isSelected
-                                                    ? 'bg-primary-500/15 text-primary-300 border-r-2 border-primary-400'
-                                                    : 'hover:bg-surface-800 text-surface-300'
-                                                    }`}
-                                                onClick={() => { setSelectedCategoryId(cat.id); resetTagForm(); }}
-                                            >
-                                                <div className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${colorBgClass(cat.color)}`} />
-                                                <span className="text-sm truncate flex-1">{cat.name}</span>
-                                                <span className="text-[10px] text-surface-500">{tagCount}</span>
-                                                {isSelected && (
-                                                    <div className="flex gap-0.5 ml-1">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); startEditCategory(cat); }}
-                                                            className="p-0.5 hover:bg-surface-600 rounded"
-                                                            title="編集"
-                                                        >
-                                                            <Edit2 size={11} className="text-surface-400" />
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat); }}
-                                                            className="p-0.5 hover:bg-red-500/20 rounded"
-                                                            title="削除"
-                                                        >
-                                                            <Trash2 size={11} className="text-red-400" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                    {categories
+                                        .slice()
+                                        .sort((a, b) => a.sortOrder - b.sortOrder)
+                                        .map(cat => {
+                                            const tagCount = tags.filter(t => t.categoryId === cat.id).length;
+                                            const isSelected = selectedCategoryId === cat.id;
+                                            const isDragging = dragCategoryId === cat.id;
+                                            const isDragOver = dragOverCategoryId === cat.id && dragCategoryId !== cat.id;
+                                            return (
+                                                <div
+                                                    key={cat.id}
+                                                    draggable
+                                                    onDragStart={() => handleDragStart(cat.id)}
+                                                    onDragOver={(e) => handleDragOver(e, cat.id)}
+                                                    onDrop={(e) => handleDrop(e, cat.id)}
+                                                    onDragEnd={() => { setDragCategoryId(null); setDragOverCategoryId(null); }}
+                                                    className={`flex items-center gap-1.5 px-2 py-2 cursor-pointer group transition-colors select-none
+                                                    ${isSelected ? 'bg-primary-500/15 text-primary-300 border-r-2 border-primary-400' : 'hover:bg-surface-800 text-surface-300'}
+                                                    ${isDragging ? 'opacity-40' : ''}
+                                                    ${isDragOver ? 'border-t-2 border-primary-400' : ''}
+                                                `}
+                                                    onClick={() => { setSelectedCategoryId(cat.id); resetTagForm(); }}
+                                                >
+                                                    <GripVertical size={13} className="text-surface-600 group-hover:text-surface-400 flex-shrink-0 cursor-grab" />
+                                                    <div className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${colorBgClass(cat.color)}`} />
+                                                    <span className="text-sm truncate flex-1">{cat.name}</span>
+                                                    <span className="text-[10px] text-surface-500">{tagCount}</span>
+                                                    {isSelected && (
+                                                        <div className="flex gap-0.5 ml-1">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); startEditCategory(cat); }}
+                                                                className="p-0.5 hover:bg-surface-600 rounded"
+                                                                title="編集"
+                                                            >
+                                                                <Edit2 size={11} className="text-surface-400" />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat); }}
+                                                                className="p-0.5 hover:bg-red-500/20 rounded"
+                                                                title="削除"
+                                                            >
+                                                                <Trash2 size={11} className="text-red-400" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
 
                                     {/* 未分類 */}
                                     <div
@@ -441,7 +492,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                                 : 'このカテゴリにタグはありません'}
                                         </p>
                                     ) : (
-                                        <div className="space-y-0.5">
+                                        <div className="grid grid-cols-2 gap-1">
                                             {filteredTags.map(tag => (
                                                 <div
                                                     key={tag.id}
