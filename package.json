@@ -1,7 +1,7 @@
 {
     "name": "media-archiver-v2",
     "private": true,
-  "version": "1.1.3d4",
+  "version": "1.1.3d5",
     "main": "dist-electron/main.js",
     "scripts": {
         "dev": "vite",
@@ -84,3 +84,4 @@
         }
     }
 }
+
