@@ -9,6 +9,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+### Changed
+- **Documentation / README**: README.md を利用者向け優先の構成に書き直し（概要 / 起動 / 更新 update.bat / 保存場所の要点 / 開発者向けコマンド / ドキュメント案内）
+- **Documentation / Docs Index**: docs/INDEX.md を書き直し、各ドキュメントの役割と更新ルール、docs/ 集約方針（段階的）を明文化
+- **Documentation / Encoding**: リポジトリ内のMarkdown（node_modules/release除外）を UTF-8 に統一
+- **Documentation / Memo Paths**: `アプリ使用メモ.md` / `不具合・要望リスト.md` / `思考メモ.md` を `docs/user` / `docs/dev` に移動し、参照先を更新
+- **Documentation / Roadmap**: ROADMAP.md を運用しやすい構成（進行中 / 今後の計画優先）に書き直し、旧フェーズ詳細版を ROADMAP_legacy.md として退避
+
+### Fixed
+- **Archive thumbnail (initial scan only)**: `ArchiveHandler` が保存先初期化前に一度だけフォルダ作成していたため、初回スキャン時に `thumbnails` フォルダ未作成で `ENOENT` が発生する場合があった問題を修正。書庫サムネイル/プレビュー/音声抽出の直前にディレクトリ作成を実行するよう変更
+- **Archive thumbnail move robustness**: 書庫サムネイル移動時に保存先親フォルダを毎回作成するようにし、初回起動直後の保存先切り替えや初期化順の影響を受けにくくした
+
+---
+
 ## [1.1.3] - 2026-02-21
 ### Phase 28〜: タグUI改善・バグ修正
 
@@ -275,6 +289,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - **開発版/リリース版のプロファイル中途半端共有**: `appdata` モード時の保存先を `.../userData/dev` と `.../userData/release` に自動分離し、プロファイルが混在しないよう修正
 - **開発版/リリース版のログ共有**: ログ保存先を `.../userData/logs/dev` と `.../userData/logs/release` に自動分離し、検証ログが混在しないよう修正
+- **非Cドライブ環境でのサムネイル表示不安定化対策**: `media://` URL を `media://local/<encoded-path>` 形式に統一し、プロトコル側で新旧URLを両対応することでドライブ文字解釈の曖昧さを解消
+- **書庫サムネイル生成のEXDEVエラー修正**: ドライブ跨ぎ時に `rename` が失敗するケースへ `copy + unlink` フォールバックを追加し、`EXDEV: cross-device link not permitted` を解消
+- **書庫サムネイル抽出の競合対策**: 一時展開先を共通フォルダから UUID サブフォルダ単位に変更し、同時処理時の同名ファイル衝突で「1枚目サムネイルが表示されない」問題を修正
+- **書庫サムネイル抽出のフォールバック強化**: 主経路（entry名一致ファイル）の移動で `ENOENT` が発生した場合でも処理を中断せず、サブフォルダ内画像探索へ継続するよう修正
 
 ### Docs
 - README に `lint` / `build` の実行手順を追記

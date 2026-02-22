@@ -38,3 +38,12 @@ git log -n 5 --oneline
 ## 4. 作業開始
 
 タスクに取り掛かる前に、必ず `implementation_plan.md` を作成し、ユーザーのレビューを受けてから実装を開始してください。
+
+## 5. セッション終了時の必須対応（運用ルール）
+
+- [ ] 実装が終わったら `ROADMAP.md` を更新したか？
+- [ ] 実装が終わったら `CHANGELOG.md` を更新したか？
+- [ ] その日の作業終了時に `.agent/devlog/YYYY-MM-DD.md` を更新したか？
+
+> [!NOTE]
+> ドキュメント更新は `.agent/workflows/update-docs.md` に従って実施すること。
