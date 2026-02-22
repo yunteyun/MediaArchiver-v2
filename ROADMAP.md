@@ -68,6 +68,7 @@
 - サムネイル保存管理 Step 1: `electron/services/thumbnailPaths.ts` を追加し、`thumbnail.ts` / `archiveHandler.ts` / `thumbnailCleanupService.ts` / `statisticsService.ts` / `databaseManager.ts` の主要パス解決を共通化（将来のデータ保持移行に向けた準備）
 - サムネイル保存管理 Step 2（主要生成系）: 画像 / 動画 / 音声 / 書庫サムネイル / 動画プレビューフレームの保存先を新ルール（プロファイル + 種別）へ切替
 - サムネイル保存管理 Step 2（追加）: 書庫サムネイルを優先 WebP 保存へ変更し、容量削減と形式の一貫性を改善（変換失敗時は元形式フォールバック）
+- サムネイル保存管理 Step 2（追加）: 書庫プレビューフレームも優先 WebP 化（256px基準に縮小）し、容量削減を進めた（変換失敗時は元形式フォールバック）
 - サムネイル保存管理 Step 3（一部）: `preview_frames` の形式差（JSON配列 / カンマ区切り）を cleanup / 削除処理で両対応化
 - サムネイル保存管理 Step 3（一部）: cleanup診断で旧保存構造（`thumbnails` 直下）へのフォールバックを追加（移行途中の運用向け）
 

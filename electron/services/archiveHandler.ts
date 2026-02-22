@@ -127,6 +127,23 @@ async function saveArchiveThumbnailAsWebp(
     }
 }
 
+async function saveArchivePreviewFrameAsWebp(
+    srcImagePath: string,
+    extractId: string
+): Promise<string | null> {
+    const outPath = path.join(getTempDir(), `preview_${extractId}.webp`);
+    try {
+        await sharp(srcImagePath)
+            .resize(256, null, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: THUMBNAIL_WEBP_QUALITY.previewFrame })
+            .toFile(outPath);
+        return outPath;
+    } catch (e) {
+        log.warn(`Archive preview frame WebP conversion failed: ${srcImagePath}`, e);
+        return null;
+    }
+}
+
 // ========================
 // Type Definitions
 // ========================
@@ -418,8 +435,8 @@ export async function getArchivePreviewFrames(
             const ext = path.extname(entryName) || '.jpg';
             const extractId = uuidv4();
             const subDir = path.join(getTempDir(), extractId);
-            const outName = `preview_${extractId}${ext}`;
-            const outPath = path.join(getTempDir(), outName);
+            const fallbackOutName = `preview_${extractId}${ext}`;
+            const fallbackOutPath = path.join(getTempDir(), fallbackOutName);
 
             try {
                 // Phase 26: UUID 繧ｵ繝悶ヵ繧ｩ繝ｫ繝縺ｫ隗｣蜃阪＠縺ｦ蜷悟錐繝輔ぃ繧､繝ｫ遶ｶ蜷医ｒ髦ｲ縺・
@@ -433,8 +450,13 @@ export async function getArchivePreviewFrames(
                 const extractedPath = path.join(subDir, extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
-                    moveFileSafe(extractedPath, outPath);
-                    previewPaths.push(outPath);
+                    const webpPath = await saveArchivePreviewFrameAsWebp(extractedPath, extractId);
+                    if (webpPath) {
+                        previewPaths.push(webpPath);
+                    } else {
+                        moveFileSafe(extractedPath, fallbackOutPath);
+                        previewPaths.push(fallbackOutPath);
+                    }
                 }
             } catch (e) {
                 log.warn(`Failed to extract preview frame: ${entryName}`, e);
