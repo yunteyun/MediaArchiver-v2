@@ -1,3 +1,6 @@
+> 旧版保管ファイルです。過去の履歴を残すために保持しています。
+> 一部に文字化けが含まれますが、原本として扱います。
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
