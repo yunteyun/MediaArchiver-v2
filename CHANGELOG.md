@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - **Thumbnail cleanup/delete preview frame parsing compatibility**: `preview_frames` が JSON配列形式・カンマ区切り形式のどちらでも削除/診断処理が動くように互換パーサーを追加（移行途中の取りこぼし防止）
+- **Thumbnail cleanup legacy-dir fallback**: サムネイル診断/掃除で新しいプロファイル配下が空の場合、旧保存構造（`thumbnails` 直下）を診断対象としてフォールバックするよう改善（移行途中の運用を継続しやすく）
 - **Archive thumbnail (dev 7za path resolution)**: 開発版で `7zip-bin` の `path7za` が `dist-electron` 基準の壊れた相対パスを返す場合があり、`spawn ... ENOENT` で書庫サムネイル生成が失敗していた問題を修正。複数候補パスを順に探索するよう改善
 - **Statistics thumbnail size display (legacy fallback)**: サムネイル保存構造の移行途中に統計のサムネイル容量が `0` になりやすかったため、現行プロファイル配下が空の場合は旧保存構造（`thumbnails` 直下）も参照するフォールバックを追加
 - **Thumbnail cleanup profile scope (prep)**: サムネイル診断/掃除の対象ディレクトリを「現在プロファイルのサムネイル配下」に寄せる下準備を追加（将来のプロファイル単位管理に対応しやすく）

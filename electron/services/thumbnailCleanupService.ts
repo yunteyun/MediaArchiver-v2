@@ -10,6 +10,7 @@ import path from 'path';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { getProfileThumbnailRootDir } from './thumbnailPaths';
+import { getBasePath } from './storageConfig';
 
 const log = logger.scope('ThumbnailCleanup');
 
@@ -44,6 +45,10 @@ export interface CleanupResult {
  */
 function getThumbnailDir(profileId: string): string {
     return getProfileThumbnailRootDir(profileId);
+}
+
+function getLegacyThumbnailDir(): string {
+    return path.join(getBasePath(), 'thumbnails');
 }
 
 /**
@@ -105,11 +110,22 @@ function parsePreviewFrames(previewFramesRaw?: string): string[] {
 export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticResult> {
     log.info(`Starting thumbnail diagnostic for profile: ${profileId}`);
 
-    const thumbnailDir = getThumbnailDir(profileId);
+    let thumbnailDir = getThumbnailDir(profileId);
     const db = dbManager.getDb();
 
     // 1. サムネイルDir上の全ファイルを取得
-    const diskFiles = getAllFiles(thumbnailDir);
+    let diskFiles = getAllFiles(thumbnailDir);
+
+    // 旧保存構造からの移行途中は profile 配下が空でも旧 thumbnails 直下に存在しうる
+    if (diskFiles.length === 0) {
+        const legacyDir = getLegacyThumbnailDir();
+        const legacyFiles = getAllFiles(legacyDir);
+        if (legacyFiles.length > 0) {
+            thumbnailDir = legacyDir;
+            diskFiles = legacyFiles;
+            log.info(`Using legacy thumbnail dir fallback for diagnostic: ${legacyDir}`);
+        }
+    }
     log.debug(`Found ${diskFiles.length} files on disk in thumbnail dir: ${thumbnailDir}`);
 
     if (diskFiles.length === 0) {
