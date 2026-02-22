@@ -71,6 +71,25 @@ function getAllFiles(dir: string): string[] {
     return files;
 }
 
+function parsePreviewFrames(previewFramesRaw?: string): string[] {
+    if (!previewFramesRaw) return [];
+    const raw = previewFramesRaw.trim();
+    if (!raw) return [];
+
+    if (raw.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+            }
+        } catch {
+            // fall through to comma split
+        }
+    }
+
+    return raw.split(',').map(v => v.trim()).filter(Boolean);
+}
+
 // --- Public API ---
 
 /**
@@ -117,7 +136,7 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
             registeredSet.add(path.normalize(path.resolve(row.thumbnail_path)));
         }
         if (row.preview_frames) {
-            const frames = row.preview_frames.split(',').filter(f => f.trim().length > 0);
+            const frames = parsePreviewFrames(row.preview_frames);
             for (const f of frames) {
                 registeredSet.add(path.normalize(path.resolve(f.trim())));
             }

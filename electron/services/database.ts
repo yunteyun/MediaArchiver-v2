@@ -61,6 +61,29 @@ function getDb() {
     return dbManager.getDb();
 }
 
+function parsePreviewFrames(previewFramesRaw?: string): string[] {
+    if (!previewFramesRaw) return [];
+
+    const raw = previewFramesRaw.trim();
+    if (!raw) return [];
+
+    // Backward/forward compatibility:
+    // - legacy: JSON array string
+    // - current: comma-separated absolute paths
+    if (raw.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+            }
+        } catch {
+            // fall through to comma-split
+        }
+    }
+
+    return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
 // snake_case DB row → camelCase MediaFile 変換ヘルパー
 function mapRow(f: any): MediaFile {
     return {
@@ -263,7 +286,7 @@ export function deleteFile(id: string) {
         // プレビューフレーム削除
         if (file.preview_frames) {
             try {
-                const frames: string[] = JSON.parse(file.preview_frames);
+                const frames = parsePreviewFrames(file.preview_frames);
                 frames.forEach(framePath => {
                     if (fs.existsSync(framePath)) {
                         try {

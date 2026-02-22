@@ -18,8 +18,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Documentation / Encoding**: リポジトリ内のMarkdown（node_modules/release除外）を UTF-8 に統一
 - **Documentation / Memo Paths**: `アプリ使用メモ.md` / `不具合・要望リスト.md` / `思考メモ.md` を `docs/user` / `docs/dev` に移動し、参照先を更新
 - **Documentation / Roadmap**: ROADMAP.md を運用しやすい構成（進行中 / 今後の計画優先）に書き直し、旧フェーズ詳細版を ROADMAP_legacy.md として退避
+- **Documentation / Git Rules**: `docs/dev/思考メモ.md` に最小Git運用ルール（通常は `codex/...` ブランチ継続・大規模変更時のみ分岐）を追記
+- **Documentation / Git Rules**: 作業コード番号ルール（`C001` 形式）と推奨命名（`codex/c###-short-name` / `codex(c###): ...`）を追記
 
 ### Fixed
+- **Thumbnail cleanup/delete preview frame parsing compatibility**: `preview_frames` が JSON配列形式・カンマ区切り形式のどちらでも削除/診断処理が動くように互換パーサーを追加（移行途中の取りこぼし防止）
 - **Archive thumbnail (dev 7za path resolution)**: 開発版で `7zip-bin` の `path7za` が `dist-electron` 基準の壊れた相対パスを返す場合があり、`spawn ... ENOENT` で書庫サムネイル生成が失敗していた問題を修正。複数候補パスを順に探索するよう改善
 - **Statistics thumbnail size display (legacy fallback)**: サムネイル保存構造の移行途中に統計のサムネイル容量が `0` になりやすかったため、現行プロファイル配下が空の場合は旧保存構造（`thumbnails` 直下）も参照するフォールバックを追加
 - **Thumbnail cleanup profile scope (prep)**: サムネイル診断/掃除の対象ディレクトリを「現在プロファイルのサムネイル配下」に寄せる下準備を追加（将来のプロファイル単位管理に対応しやすく）
