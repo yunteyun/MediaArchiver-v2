@@ -9,7 +9,8 @@ import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import fs from 'fs';
 import path from 'path';
-import { app } from 'electron';
+import { getProfileThumbnailRootDir } from './thumbnailPaths';
+import { getBasePath } from './storageConfig';
 
 const log = logger.scope('StatisticsService');
 
@@ -253,8 +254,16 @@ export function getLibraryStats(): LibraryStats {
  */
 function getThumbnailDirSize(): number {
     try {
-        const thumbnailDir = path.join(app.getPath('userData'), 'thumbnails');
-        return getDirSizeRecursive(thumbnailDir);
+        const thumbnailDir = getProfileThumbnailRootDir(dbManager.getCurrentProfileId());
+        const profileSize = getDirSizeRecursive(thumbnailDir);
+
+        if (profileSize > 0) {
+            return profileSize;
+        }
+
+        // 旧保存構造（thumbnails 直下）に既存データがある間の互換フォールバック
+        const legacyThumbnailDir = path.join(getBasePath(), 'thumbnails');
+        return getDirSizeRecursive(legacyThumbnailDir);
     } catch (e) {
         log.warn('Failed to calculate thumbnail dir size:', e);
         return 0;

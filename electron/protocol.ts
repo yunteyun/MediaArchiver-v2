@@ -42,9 +42,18 @@ function getMimeType(filePath: string): string {
 export function registerMediaProtocol() {
     protocol.handle('media', (request) => {
         try {
-            // Extract file path from media:// URL
-            const urlPath = request.url.replace('media://', '');
-            const decodedPath = decodeURIComponent(urlPath);
+            const parsed = new URL(request.url);
+
+            // New format: media://local/<encoded-path>
+            // Legacy format: media://<encoded-path>
+            let encodedPath = '';
+            if (parsed.hostname === 'local') {
+                encodedPath = parsed.pathname.replace(/^\/+/, '');
+            } else {
+                encodedPath = request.url.replace(/^media:\/\//, '');
+            }
+
+            const decodedPath = decodeURIComponent(encodedPath);
 
             // Normalize path (remove leading slash on Windows if needed, though usually fileURLToPath handles it)
             // But here we need direct fs access path
@@ -57,6 +66,11 @@ export function registerMediaProtocol() {
                 if (process.platform === 'win32' && /^\/[a-zA-Z]:/.test(filePath)) {
                     filePath = filePath.substring(1);
                 }
+            }
+
+            // Normalize /D:/... to D:/... on Windows
+            if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
+                filePath = filePath.substring(1);
             }
 
             // Stat file

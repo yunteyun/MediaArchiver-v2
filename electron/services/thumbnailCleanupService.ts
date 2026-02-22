@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { getBasePath } from './storageConfig';
+import { getProfileThumbnailRootDir } from './thumbnailPaths';
 
 const log = logger.scope('ThumbnailCleanup');
 
@@ -42,8 +42,8 @@ export interface CleanupResult {
  * サムネイルディレクトリのパスを取得
  * Phase 25対応: getBasePath() から動的取得（保存場所カスタマイズに対応）
  */
-function getThumbnailDir(): string {
-    return path.join(getBasePath(), 'thumbnails');
+function getThumbnailDir(profileId: string): string {
+    return getProfileThumbnailRootDir(profileId);
 }
 
 /**
@@ -86,7 +86,7 @@ function getAllFiles(dir: string): string[] {
 export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticResult> {
     log.info(`Starting thumbnail diagnostic for profile: ${profileId}`);
 
-    const thumbnailDir = getThumbnailDir();
+    const thumbnailDir = getThumbnailDir(profileId);
     const db = dbManager.getDb();
 
     // 1. サムネイルDir上の全ファイルを取得

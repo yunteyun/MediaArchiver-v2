@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+- **Thumbnail Storage Step 1**: `electron/services/thumbnailPaths.ts` を追加し、サムネイル保存先解決（root / profile / kind）を共通化。`thumbnail.ts` / `archiveHandler.ts` / `thumbnailCleanupService.ts` / `statisticsService.ts` / `databaseManager.ts` を共通ロジック参照へ切替
+- **Thumbnail Storage Step 2 (main producers)**: 主要なサムネイル生成処理（画像 / 動画 / 音声 / 書庫サムネイル / 動画プレビューフレーム）をプロファイル単位 + 種別単位の保存先へ切替
 - **Documentation / README**: README.md を利用者向け優先の構成に書き直し（概要 / 起動 / 更新 update.bat / 保存場所の要点 / 開発者向けコマンド / ドキュメント案内）
 - **Documentation / Docs Index**: docs/INDEX.md を書き直し、各ドキュメントの役割と更新ルール、docs/ 集約方針（段階的）を明文化
 - **Documentation / Encoding**: リポジトリ内のMarkdown（node_modules/release除外）を UTF-8 に統一
@@ -18,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Documentation / Roadmap**: ROADMAP.md を運用しやすい構成（進行中 / 今後の計画優先）に書き直し、旧フェーズ詳細版を ROADMAP_legacy.md として退避
 
 ### Fixed
+- **Archive thumbnail (dev 7za path resolution)**: 開発版で `7zip-bin` の `path7za` が `dist-electron` 基準の壊れた相対パスを返す場合があり、`spawn ... ENOENT` で書庫サムネイル生成が失敗していた問題を修正。複数候補パスを順に探索するよう改善
+- **Statistics thumbnail size display (legacy fallback)**: サムネイル保存構造の移行途中に統計のサムネイル容量が `0` になりやすかったため、現行プロファイル配下が空の場合は旧保存構造（`thumbnails` 直下）も参照するフォールバックを追加
+- **Thumbnail cleanup profile scope (prep)**: サムネイル診断/掃除の対象ディレクトリを「現在プロファイルのサムネイル配下」に寄せる下準備を追加（将来のプロファイル単位管理に対応しやすく）
+- **Tag Manager Modal UI disappear**: `TagManagerModal` を React Portal (`document.body`) 経由で描画するよう変更し、サイドバー配下のレイアウト/重なり順の影響でモーダル表示時に UI 全体が消えたように見える問題を回避
+- **Tag Manager Modal hook order**: `isOpen` による早期 return と `useCallback` の位置関係で Hook 数が変化していたため、D&D ハンドラを通常関数に変更して `Rendered more hooks than during the previous render` を解消
 - **Archive thumbnail (initial scan only)**: `ArchiveHandler` が保存先初期化前に一度だけフォルダ作成していたため、初回スキャン時に `thumbnails` フォルダ未作成で `ENOENT` が発生する場合があった問題を修正。書庫サムネイル/プレビュー/音声抽出の直前にディレクトリ作成を実行するよう変更
 - **Archive thumbnail move robustness**: 書庫サムネイル移動時に保存先親フォルダを毎回作成するようにし、初回起動直後の保存先切り替えや初期化順の影響を受けにくくした
 
@@ -287,6 +294,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **配布物への同梱設定**: `electron-builder` の `extraFiles` で `update.bat` をリリース版に同梱
 
 ### Fixed
+- **Tag Manager Modal UI disappear**: `TagManagerModal` を React Portal (`document.body`) 経由で描画するよう変更し、サイドバー配下のレイアウト/重なり順の影響でモーダル表示時に UI 全体が消えたように見える問題を回避
+- **Tag Manager Modal hook order**: `isOpen` による早期 return と `useCallback` の位置関係で Hook 数が変化していたため、D&D ハンドラを通常関数に変更して `Rendered more hooks than during the previous render` を解消
 - **開発版/リリース版のプロファイル中途半端共有**: `appdata` モード時の保存先を `.../userData/dev` と `.../userData/release` に自動分離し、プロファイルが混在しないよう修正
 - **開発版/リリース版のログ共有**: ログ保存先を `.../userData/logs/dev` と `.../userData/logs/release` に自動分離し、検証ログが混在しないよう修正
 - **非Cドライブ環境でのサムネイル表示不安定化対策**: `media://` URL を `media://local/<encoded-path>` 形式に統一し、プロトコル側で新旧URLを両対応することでドライブ文字解釈の曖昧さを解消

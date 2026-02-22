@@ -7,6 +7,9 @@
 
 ## 1. 進行中の計画 (In Progress)
 
+- サムネイル保存管理の再設計（Step 1 完了）: 共通パス解決 `thumbnailPaths.ts` を導入。次は生成処理の全面切替と cleanup / 移行系の追従を進める
+- サムネイル保存管理の再設計（Step 2 進捗）: 主要な生成系（画像/動画/音声/書庫サムネイル/動画プレビュー）を新保存構造へ切替済み。次は消費系（cleanup / 統計 / 移行）の整合確認を進める
+
 - 現在進行中の項目はここに記載（最優先で更新）
 - 実装開始時に追加、完了時に `CHANGELOG.md` と本ファイルの完了欄へ反映
 
@@ -23,6 +26,16 @@
 - ドキュメント整理の仕上げ（文字コード統一 / 重複整理 / 役割の最終固定）
 - 書庫サムネイル不具合の再検証（`v1.1.3d3` の確認）
 - 必要ならビルド識別ログ（build marker）追加
+- サムネイル保存管理の再設計（保存構造の統一 / クリーンアップ整合 / 統計・移行の整備）
+
+### サムネイル保存管理（工程）
+- Phase A: 現状仕様の棚卸し（生成 / 保存 / DB保持 / クリーンアップ / 統計 / 移行）
+- Phase B: 保存構造の決定（プロファイル単位・種別単位・パス表現）
+- Phase C: パス解決の共通化（thumbnail path resolver 追加）
+- Phase D: 生成系の切替（`thumbnail.ts` / `archiveHandler.ts` / preview frames）
+- Phase E: 消費系の切替（cleanup / statistics / delete / storage migration）
+- Phase F: 互換・再生成方針の確認（今回はデータ損失許容を活かして簡略化可）
+- Phase G: 検証（初回スキャン / 再スキャン / プロファイル切替 / 保存場所切替 / cleanup）
 
 ### 次点
 - リリース運用の改善（更新手順の簡素化・説明整備）
@@ -51,12 +64,19 @@
 
 ## 5. 最近完了した主な項目（要約）
 
+- サムネイル保存管理 Step 1: `electron/services/thumbnailPaths.ts` を追加し、`thumbnail.ts` / `archiveHandler.ts` / `thumbnailCleanupService.ts` / `statisticsService.ts` / `databaseManager.ts` の主要パス解決を共通化（将来のデータ保持移行に向けた準備）
+- サムネイル保存管理 Step 2（主要生成系）: 画像 / 動画 / 音声 / 書庫サムネイル / 動画プレビューフレームの保存先を新ルール（プロファイル + 種別）へ切替
+
 - dev/release の保存先・プロファイル分離
 - ログ保存先の整理（保存モード追従）
 - `update.bat` 同梱による ZIP 更新フロー追加
 - 書庫サムネイル（`EXDEV` / `ENOENT` / 初回スキャン失敗）の修正対応
 - README.md と docs/INDEX.md の再構成（利用者向け入口 + ドキュメント地図の明確化）
 - Markdown ドキュメントの UTF-8 統一（node_modules/release除外）とメモ類の `docs/user` / `docs/dev` への整理
+- タグフィルタの「タグ管理」ボタン押下時に UI が消える問題に対して `TagManagerModal` の Portal 化で表示安定化
+- タグ管理モーダルの Hook 順序不整合（開閉時の `Rendered more hooks...`）を修正し、背景だけ残る状態を解消
+- 開発版での `7za` 実行ファイル解決失敗（`spawn ... ENOENT`）を修正し、書庫サムネイル生成が止まる問題に対応
+- 統計のサムネイル容量表示で旧保存構造へのフォールバックを追加し、移行途中の `0` 表示を緩和
 - `media://` パス解釈の安定化対応
 
 詳細は `CHANGELOG.md` を参照。

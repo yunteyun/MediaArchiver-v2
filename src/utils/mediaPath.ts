@@ -20,6 +20,6 @@ export function toMediaUrl(filePath: string | null | undefined): string {
     // Normalize Windows backslashes to forward slashes
     const normalized = filePath.replace(/\\/g, '/');
 
-    // Encode the path to handle special characters
-    return `media://${encodeURIComponent(normalized)}`;
+    // Use a stable host segment to avoid drive-letter ambiguity in custom protocol URLs.
+    return `media://local/${encodeURIComponent(normalized)}`;
 }

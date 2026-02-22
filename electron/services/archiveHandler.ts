@@ -1,8 +1,8 @@
-/**
- * Archive Handler - 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ蜃ｦ逅・し繝ｼ繝薙せ
+﻿/**
+ * Archive Handler - 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ陷・ｽｦ騾・・縺礼ｹ晢ｽｼ郢晁侭縺・
  * 
- * ZIP, RAR, 7Z, CBZ, CBR 縺ｪ縺ｩ縺ｮ譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ繧貞・逅・＠縲・
- * 繝｡繧ｿ繝・・繧ｿ蜿門ｾ励√し繝�繝阪う繝ｫ逕滓・縲√・繝ｬ繝薙Η繝ｼ逕ｻ蜒乗歓蜃ｺ繧定｡後≧縲・
+ * ZIP, RAR, 7Z, CBZ, CBR 邵ｺ・ｪ邵ｺ・ｩ邵ｺ・ｮ隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ郢ｧ雋槭・騾・・・邵ｲ繝ｻ
+ * 郢晢ｽ｡郢ｧ・ｿ郢昴・繝ｻ郢ｧ・ｿ陷ｿ髢・ｾ蜉ｱﾂ竏壹＠郢晢ｿｽ郢晞亂縺・ｹ晢ｽｫ騾墓ｻ薙・邵ｲ竏壹・郢晢ｽｬ郢晁侭ﾎ礼ｹ晢ｽｼ騾包ｽｻ陷剃ｹ玲ｭ楢怎・ｺ郢ｧ螳夲ｽ｡蠕娯鴬邵ｲ繝ｻ
  */
 
 import { path7za } from '7zip-bin';
@@ -12,34 +12,38 @@ import { app } from 'electron';
 import { execFile } from 'child_process';
 import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
+import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { getBasePath } from './storageConfig';
+import { createThumbnailOutputPath, getThumbnailRootDir } from './thumbnailPaths';
 
 const log = logger.scope('ArchiveHandler');
 
 const execFilePromise = util.promisify(execFile);
 
-// Phase 25: 繝・ぅ繝ｬ繧ｯ繝医Μ險ｭ螳夲ｼ亥虚逧・叙蠕暦ｼ・
+// Phase 25: 郢昴・縺・ｹ晢ｽｬ郢ｧ・ｯ郢晏現ﾎ憺坎・ｭ陞ｳ螟ｲ・ｼ莠･陌夐ｧ繝ｻ蜿呵墓圜・ｼ繝ｻ
 function getTempDir(): string {
     return path.join(app.getPath('userData'), 'temp', 'archives');
 }
 function getThumbnailDir(): string {
-    return path.join(getBasePath(), 'thumbnails');
+    return getThumbnailRootDir();
+}
+function getCurrentProfileIdForThumbnails(): string | null {
+    return dbManager.getCurrentProfileId();
 }
 
-// 繧ｵ繝昴・繝医☆繧区嶌蠎ｫ諡｡蠑ｵ蟄・
+// 郢ｧ・ｵ郢晄亢繝ｻ郢晏現笘・ｹｧ蛹ｺ蠍瑚趣ｽｫ隲｡・｡陟托ｽｵ陝・・
 const ARCHIVE_EXTENSIONS = ['.zip', '.cbz', '.rar', '.cbr', '.7z'];
 
-// 繧ｵ繝昴・繝医☆繧狗判蜒乗僑蠑ｵ蟄・
+// 郢ｧ・ｵ郢晄亢繝ｻ郢晏現笘・ｹｧ迢怜愛陷剃ｹ怜ヱ陟托ｽｵ陝・・
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 
-// 繧ｵ繝昴・繝医☆繧矩浹螢ｰ諡｡蠑ｵ蟄・
+// 郢ｧ・ｵ郢晄亢繝ｻ郢晏現笘・ｹｧ遏ｩ豬ｹ陞｢・ｰ隲｡・｡陟托ｽｵ陝・・
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
 
-// 7za バイナリパスの解決
+// 7za 繝舌う繝翫Μ繝代せ縺ｮ隗｣豎ｺ
 function resolve7zaPath(): string {
-    // パッケージ済みアプリ（リリース版）では process.resourcesPath を使用
-    // これにより文字列置換依存を排除し、Electron公式APIベースで安全に解決する
+    // 繝代ャ繧ｱ繝ｼ繧ｸ貂医∩繧｢繝励Μ・医Μ繝ｪ繝ｼ繧ｹ迚茨ｼ峨〒縺ｯ process.resourcesPath 繧剃ｽｿ逕ｨ
+    // 縺薙ｌ縺ｫ繧医ｊ譁・ｭ怜・鄂ｮ謠帑ｾ晏ｭ倥ｒ謗帝勁縺励・lectron蜈ｬ蠑就PI繝吶・繧ｹ縺ｧ螳牙・縺ｫ隗｣豎ｺ縺吶ｋ
     if (app.isPackaged) {
         const packedPath = path.join(
             process.resourcesPath,
@@ -53,22 +57,31 @@ function resolve7zaPath(): string {
             return packedPath;
         }
         log.error('7za binary not found anywhere!');
-        return packedPath; // 見つからなくても返す（エラーは後で発生）
+        return packedPath; // 隕九▽縺九ｉ縺ｪ縺上※繧りｿ斐☆・医お繝ｩ繝ｼ縺ｯ蠕後〒逋ｺ逕滂ｼ・
     }
 
-    // 開発環境: 7zip-bin が返すパスをそのまま使用
-    if (fs.existsSync(path7za)) {
-        log.info('Found 7za in node_modules:', path7za);
-        return path7za;
+    // 開発環境では bundler 後に path7za が dist-electron 基準の壊れた相対パスになることがある
+    const devCandidates = [
+        path7za,
+        path.join(process.cwd(), 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe'),
+        path.join(app.getAppPath(), '..', 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe'),
+        path.join(__dirname, '..', '..', 'node_modules', '7zip-bin', 'win', 'x64', '7za.exe'),
+    ].map(p => path.normalize(p));
+
+    for (const candidate of devCandidates) {
+        if (fs.existsSync(candidate)) {
+            log.info('Found 7za in dev candidate:', candidate);
+            return candidate;
+        }
     }
 
-    log.error('7za binary not found anywhere!');
+    log.error('7za binary not found anywhere!', { path7za, devCandidates });
     return path7za;
 }
 
 const SEVEN_ZA_PATH = resolve7zaPath();
 
-// 繝・ぅ繝ｬ繧ｯ繝医Μ蛻晄悄蛹・
+// 郢昴・縺・ｹ晢ｽｬ郢ｧ・ｯ郢晏現ﾎ懆崕譎・ｄ陋ｹ繝ｻ
 function ensureDirectories(): void {
     const tempDir = getTempDir();
     const thumbnailDir = getThumbnailDir();
@@ -80,7 +93,20 @@ function ensureDirectories(): void {
     }
 }
 
-ensureDirectories();
+function moveFileSafe(src: string, dst: string): void {
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    try {
+        fs.renameSync(src, dst);
+    } catch (e) {
+        const err = e as NodeJS.ErrnoException;
+        if (err.code === 'EXDEV') {
+            fs.copyFileSync(src, dst);
+            fs.unlinkSync(src);
+            return;
+        }
+        throw e;
+    }
+}
 
 // ========================
 // Type Definitions
@@ -104,7 +130,7 @@ export interface ArchiveError {
 // ========================
 
 /**
- * 繝輔ぃ繧､繝ｫ縺梧嶌蠎ｫ繝輔ぃ繧､繝ｫ縺九←縺・°繧貞愛螳・
+ * 郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ邵ｺ譴ｧ蠍瑚趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ邵ｺ荵昶・邵ｺ繝ｻﾂｰ郢ｧ雋樊・陞ｳ繝ｻ
  */
 export function isArchive(filePath: string): boolean {
     const ext = path.extname(filePath).toLowerCase();
@@ -112,11 +138,11 @@ export function isArchive(filePath: string): boolean {
 }
 
 /**
- * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺ｮ繝｡繧ｿ繝・・繧ｿ・育判蜒上Μ繧ｹ繝茨ｼ峨ｒ蜿門ｾ・
+ * 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ邵ｺ・ｮ郢晢ｽ｡郢ｧ・ｿ郢昴・繝ｻ郢ｧ・ｿ繝ｻ閧ｲ蛻､陷剃ｸ莞懃ｹｧ・ｹ郢晁肩・ｼ蟲ｨ・定愾髢・ｾ繝ｻ
  */
 export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetadata | null> {
     try {
-        // 7za -slt 縺ｧ隧ｳ邏ｰ諠・�ｱ繧貞叙蠕・
+        // 7za -slt 邵ｺ・ｧ髫ｧ・ｳ驍擾ｽｰ隲繝ｻ・ｽ・ｱ郢ｧ雋槫徐陟輔・
         const { stdout } = await execFilePromise(SEVEN_ZA_PATH, [
             'l', '-ba', '-slt', '-sccUTF-8', filePath
         ]);
@@ -143,24 +169,24 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
             }
         }
 
-        // 譛蠕後・繧ｨ繝ｳ繝医Μ繧貞・逅・
+        // 隴崢陟募ｾ後・郢ｧ・ｨ郢晢ｽｳ郢晏現ﾎ懃ｹｧ雋槭・騾・・
         if (currentPath && !isDirectory) {
             entries.push(currentPath);
         }
 
-        // 逕ｻ蜒上ヵ繧｡繧､繝ｫ縺ｮ縺ｿ繝輔ぅ繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ
+        // 騾包ｽｻ陷剃ｸ翫Ψ郢ｧ・｡郢ｧ・､郢晢ｽｫ邵ｺ・ｮ邵ｺ・ｿ郢晁ｼ斐≦郢晢ｽｫ郢ｧ・ｿ郢晢ｽｪ郢晢ｽｳ郢ｧ・ｰ
         const imageEntries = entries.filter(name => {
             const ext = path.extname(name).toLowerCase();
             return IMAGE_EXTENSIONS.includes(ext);
         });
 
-        // 髻ｳ螢ｰ繝輔ぃ繧､繝ｫ繧偵ヵ繧｣繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ
+        // 鬮ｻ・ｳ陞｢・ｰ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ郢ｧ蛛ｵ繝ｵ郢ｧ・｣郢晢ｽｫ郢ｧ・ｿ郢晢ｽｪ郢晢ｽｳ郢ｧ・ｰ
         const audioEntries = entries.filter(name => {
             const ext = path.extname(name).toLowerCase();
             return AUDIO_EXTENSIONS.includes(ext);
         });
 
-        // 閾ｪ辟ｶ鬆・た繝ｼ繝茨ｼ・.jpg, 2.jpg, 10.jpg・・
+        // 髢ｾ・ｪ霎滂ｽｶ鬯・・縺溽ｹ晢ｽｼ郢晁肩・ｼ繝ｻ.jpg, 2.jpg, 10.jpg繝ｻ繝ｻ
         const sortedImages = imageEntries.sort((a, b) =>
             a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
         );
@@ -183,13 +209,15 @@ export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetad
 }
 
 /**
- * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺九ｉ繧ｵ繝�繝阪う繝ｫ逕ｨ縺ｮ譛蛻昴・逕ｻ蜒上ｒ謚ｽ蜃ｺ
+ * 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ邵ｺ荵晢ｽ臥ｹｧ・ｵ郢晢ｿｽ郢晞亂縺・ｹ晢ｽｫ騾包ｽｨ邵ｺ・ｮ隴崢陋ｻ譏ｴ繝ｻ騾包ｽｻ陷剃ｸ奇ｽ定ｬ夲ｽｽ陷・ｽｺ
  */
 export async function getArchiveThumbnail(filePath: string): Promise<string | null> {
-    const TIMEOUT_MS = 30000; // 30遘偵ち繧､繝�繧｢繧ｦ繝・
+    const TIMEOUT_MS = 30000; // 30驕伜・縺｡郢ｧ・､郢晢ｿｽ郢ｧ・｢郢ｧ・ｦ郢昴・
 
     try {
-        // 繝輔ぃ繧､繝ｫ蟄伜惠遒ｺ隱・
+        ensureDirectories();
+
+        // 郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ陝・ｼ懈Β驕抵ｽｺ髫ｱ繝ｻ
         if (!fs.existsSync(filePath)) {
             log.warn('File not found:', filePath);
             return null;
@@ -213,21 +241,23 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 
         const entryName = metadata.firstImageEntry;
         const ext = path.extname(entryName) || '.jpg';
-        const outName = `${uuidv4()}${ext}`;
-        const outPath = path.join(getThumbnailDir(), outName);
+        const outPath = createThumbnailOutputPath('archive', ext, getCurrentProfileIdForThumbnails());
+        const extractId = uuidv4();
+        const subDir = path.join(getTempDir(), extractId);
+        fs.mkdirSync(subDir, { recursive: true });
 
-        // 7za 縺ｧ謚ｽ蜃ｺ・医ヵ繝ｩ繝・ヨ螻暮幕・駅ith timeout
+        // 7za 邵ｺ・ｧ隰夲ｽｽ陷・ｽｺ繝ｻ蛹ｻ繝ｵ郢晢ｽｩ郢昴・繝ｨ陞ｻ證ｮ蟷輔・鬧・th timeout
         try {
             await Promise.race([
                 execFilePromise(SEVEN_ZA_PATH, [
-                    'e', filePath, `-o${getTempDir()}`, entryName, '-y', '-sccUTF-8'
+                    'e', filePath, `-o${subDir}`, entryName, '-y', '-sccUTF-8'
                 ]),
                 new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('Extraction timeout')), TIMEOUT_MS)
                 )
             ]);
         } catch (execError: any) {
-            // 繧ｨ繝ｩ繝ｼ遞ｮ蛻･蛻､螳・
+            // 郢ｧ・ｨ郢晢ｽｩ郢晢ｽｼ驕橸ｽｮ陋ｻ・･陋ｻ・､陞ｳ繝ｻ
             const errorMsg = execError?.stderr || execError?.message || String(execError);
 
             if (errorMsg.includes('password') || errorMsg.includes('Wrong password')) {
@@ -246,33 +276,54 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
             throw execError;
         }
 
-        // 謚ｽ蜃ｺ縺輔ｌ縺溘ヵ繧｡繧､繝ｫ繧偵し繝�繝阪う繝ｫ繝・ぅ繝ｬ繧ｯ繝医Μ縺ｫ遘ｻ蜍・
+        // 隰夲ｽｽ陷・ｽｺ邵ｺ霈費ｽ檎ｸｺ貅倥Ψ郢ｧ・｡郢ｧ・､郢晢ｽｫ郢ｧ蛛ｵ縺礼ｹ晢ｿｽ郢晞亂縺・ｹ晢ｽｫ郢昴・縺・ｹ晢ｽｬ郢ｧ・ｯ郢晏現ﾎ懃ｸｺ・ｫ驕假ｽｻ陷阪・
         const extractedBasename = path.basename(entryName);
-        const extractedPath = path.join(getTempDir(), extractedBasename);
+        const extractedPath = path.join(subDir, extractedBasename);
 
         if (fs.existsSync(extractedPath)) {
-            fs.renameSync(extractedPath, outPath);
-            return outPath;
+            try {
+                moveFileSafe(extractedPath, outPath);
+                try {
+                    fs.rmSync(subDir, { recursive: true, force: true });
+                } catch {
+                    // ignore cleanup errors
+                }
+                return outPath;
+            } catch (moveErr) {
+                // If exact filename move fails (e.g. race or archive extraction variance),
+                // continue to fallback scan in subDir instead of aborting thumbnail generation.
+                log.warn(`Primary thumbnail move failed, fallback scan: ${entryName}`, moveErr);
+            }
         }
 
-        // 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ: TEMP_DIR繧呈､懃ｴ｢
-        const tempFiles = fs.readdirSync(getTempDir());
+        // 郢晁ｼ斐°郢晢ｽｼ郢晢ｽｫ郢晁・繝｣郢ｧ・ｯ: TEMP_DIR郢ｧ蜻茨ｽ､諛・ｽｴ・｢
+        const tempFiles = fs.readdirSync(subDir);
         const imageFile = tempFiles.find(f => {
             const fExt = path.extname(f).toLowerCase();
             return IMAGE_EXTENSIONS.includes(fExt);
         });
 
         if (imageFile) {
-            const foundPath = path.join(getTempDir(), imageFile);
-            fs.renameSync(foundPath, outPath);
+            const foundPath = path.join(subDir, imageFile);
+            moveFileSafe(foundPath, outPath);
             log.info('Found image via fallback:', imageFile);
+            try {
+                fs.rmSync(subDir, { recursive: true, force: true });
+            } catch {
+                // ignore cleanup errors
+            }
             return outPath;
         }
 
+        try {
+            fs.rmSync(subDir, { recursive: true, force: true });
+        } catch {
+            // ignore cleanup errors
+        }
         log.warn('Extracted file not found:', extractedPath);
         return null;
     } catch (error: any) {
-        // 隧ｳ邏ｰ繝ｭ繧ｰ
+        // 髫ｧ・ｳ驍擾ｽｰ郢晢ｽｭ郢ｧ・ｰ
         const errorDetail = {
             filePath,
             message: error?.message || String(error),
@@ -285,15 +336,17 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 }
 
 /**
- * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺九ｉ隍・焚縺ｮ繝励Ξ繝薙Η繝ｼ逕ｻ蜒上ｒ謚ｽ蜃ｺ
- * @param filePath - 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ繝代せ
- * @param limit - 蜿門ｾ励☆繧狗判蜒上・譛螟ｧ謨ｰ・医ョ繝輔か繝ｫ繝・ 9・・
+ * 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ邵ｺ荵晢ｽ蛾嚶繝ｻ辟夂ｸｺ・ｮ郢晏干ﾎ樒ｹ晁侭ﾎ礼ｹ晢ｽｼ騾包ｽｻ陷剃ｸ奇ｽ定ｬ夲ｽｽ陷・ｽｺ
+ * @param filePath - 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ郢昜ｻ｣縺・
+ * @param limit - 陷ｿ髢・ｾ蜉ｱ笘・ｹｧ迢怜愛陷剃ｸ翫・隴崢陞滂ｽｧ隰ｨ・ｰ繝ｻ蛹ｻ繝ｧ郢晁ｼ斐°郢晢ｽｫ郢昴・ 9繝ｻ繝ｻ
  */
 export async function getArchivePreviewFrames(
     filePath: string,
     limit: number = 9
 ): Promise<string[]> {
     try {
+        ensureDirectories();
+
         const metadata = await getArchiveMetadata(filePath);
         if (!metadata || !metadata.imageEntries || metadata.imageEntries.length === 0) {
             return [];
@@ -302,13 +355,13 @@ export async function getArchivePreviewFrames(
         const images = metadata.imageEntries;
         const selectedImages: string[] = [];
 
-        // 譛蛻昴・逕ｻ蜒擾ｼ医し繝�繝阪う繝ｫ・峨ｒ繧ｹ繧ｭ繝・・・亥香蛻・↑逕ｻ蜒上′縺ゅｋ蝣ｴ蜷茨ｼ・
+        // 隴崢陋ｻ譏ｴ繝ｻ騾包ｽｻ陷呈得・ｼ蛹ｻ縺礼ｹ晢ｿｽ郢晞亂縺・ｹ晢ｽｫ繝ｻ蟲ｨ・堤ｹｧ・ｹ郢ｧ・ｭ郢昴・繝ｻ繝ｻ莠･鬥呵崕繝ｻ竊鷹包ｽｻ陷剃ｸ岩ｲ邵ｺ繧・ｽ玖撻・ｴ陷ｷ闌ｨ・ｼ繝ｻ
         const pool = images.length > 1 ? images.slice(1) : images;
 
         if (pool.length <= limit) {
             selectedImages.push(...pool);
         } else {
-            // 蝮・ｭ峨↓蛻・淵縺励※驕ｸ謚・
+            // 陜ｮ繝ｻ・ｭ蟲ｨ竊楢崕繝ｻ豺ｵ邵ｺ蜉ｱ窶ｻ鬩包ｽｸ隰壹・
             const step = (pool.length - 1) / (limit - 1);
             for (let i = 0; i < limit; i++) {
                 const index = Math.round(i * step);
@@ -326,7 +379,7 @@ export async function getArchivePreviewFrames(
             const outPath = path.join(getTempDir(), outName);
 
             try {
-                // Phase 26: UUID サブフォルダに解凍して同名ファイル競合を防ぐ
+                // Phase 26: UUID 繧ｵ繝悶ヵ繧ｩ繝ｫ繝縺ｫ隗｣蜃阪＠縺ｦ蜷悟錐繝輔ぃ繧､繝ｫ遶ｶ蜷医ｒ髦ｲ縺・
                 fs.mkdirSync(subDir, { recursive: true });
 
                 await execFilePromise(SEVEN_ZA_PATH, [
@@ -337,19 +390,19 @@ export async function getArchivePreviewFrames(
                 const extractedPath = path.join(subDir, extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
-                    fs.renameSync(extractedPath, outPath);
+                    moveFileSafe(extractedPath, outPath);
                     previewPaths.push(outPath);
                 }
             } catch (e) {
                 log.warn(`Failed to extract preview frame: ${entryName}`, e);
             } finally {
-                // UUID サブフォルダを削除（残骸クリーンアップ）
+                // UUID 繧ｵ繝悶ヵ繧ｩ繝ｫ繝繧貞炎髯､・域ｮ矩ｪｸ繧ｯ繝ｪ繝ｼ繝ｳ繧｢繝・・・・
                 try {
                     if (fs.existsSync(subDir)) {
                         fs.rmSync(subDir, { recursive: true, force: true });
                     }
                 } catch {
-                    // クリーンアップ失敗は無視
+                    // 繧ｯ繝ｪ繝ｼ繝ｳ繧｢繝・・螟ｱ謨励・辟｡隕・
                 }
             }
         }
@@ -362,7 +415,7 @@ export async function getArchivePreviewFrames(
 }
 
 /**
- * 荳譎ゅョ繧｣繝ｬ繧ｯ繝医Μ繧偵け繝ｪ繝ｼ繝ｳ繧｢繝・・
+ * 闕ｳﾂ隴弱ｅ繝ｧ郢ｧ・｣郢晢ｽｬ郢ｧ・ｯ郢晏現ﾎ懃ｹｧ蛛ｵ縺醍ｹ晢ｽｪ郢晢ｽｼ郢晢ｽｳ郢ｧ・｢郢昴・繝ｻ
  */
 export function cleanTempArchives(): void {
     try {
@@ -377,7 +430,7 @@ export function cleanTempArchives(): void {
 }
 
 /**
- * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ蜀・・髻ｳ螢ｰ繝輔ぃ繧､繝ｫ繝ｪ繧ｹ繝医ｒ蜿門ｾ・
+ * 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ陷繝ｻ繝ｻ鬮ｻ・ｳ陞｢・ｰ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ郢晢ｽｪ郢ｧ・ｹ郢晏現・定愾髢・ｾ繝ｻ
  */
 export async function getArchiveAudioFiles(archivePath: string): Promise<string[]> {
     const metadata = await getArchiveMetadata(archivePath);
@@ -385,7 +438,7 @@ export async function getArchiveAudioFiles(archivePath: string): Promise<string[
 }
 
 /**
- * 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺九ｉ迚ｹ螳壹・髻ｳ螢ｰ繝輔ぃ繧､繝ｫ繧呈歓蜃ｺ縺励∽ｸ譎ゅヵ繧｡繧､繝ｫ繝代せ繧定ｿ斐☆
+ * 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ邵ｺ荵晢ｽ芽ｿ夲ｽｹ陞ｳ螢ｹ繝ｻ鬮ｻ・ｳ陞｢・ｰ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ郢ｧ蜻域ｭ楢怎・ｺ邵ｺ蜉ｱﾂ竏ｽ・ｸﾂ隴弱ｅ繝ｵ郢ｧ・｡郢ｧ・､郢晢ｽｫ郢昜ｻ｣縺帷ｹｧ螳夲ｽｿ譁絶・
  */
 export async function extractArchiveAudioFile(
     archivePath: string,
@@ -395,11 +448,13 @@ export async function extractArchiveAudioFile(
     const extractDir = path.join(getTempDir(), 'audio', extractId);
 
     try {
+        ensureDirectories();
+
         if (!fs.existsSync(extractDir)) {
             fs.mkdirSync(extractDir, { recursive: true });
         }
 
-        // 7za縺ｧ迚ｹ螳壹ヵ繧｡繧､繝ｫ繧呈歓蜃ｺ
+        // 7za邵ｺ・ｧ霑夲ｽｹ陞ｳ螢ｹ繝ｵ郢ｧ・｡郢ｧ・､郢晢ｽｫ郢ｧ蜻域ｭ楢怎・ｺ
         await execFilePromise(SEVEN_ZA_PATH, [
             'e', archivePath,
             `-o${extractDir}`,
@@ -408,7 +463,7 @@ export async function extractArchiveAudioFile(
             '-sccUTF-8'
         ]);
 
-        // 謚ｽ蜃ｺ縺励◆繝輔ぃ繧､繝ｫ繧呈爾縺・
+        // 隰夲ｽｽ陷・ｽｺ邵ｺ蜉ｱ笳・ｹ晁ｼ斐＜郢ｧ・､郢晢ｽｫ郢ｧ蜻育粟邵ｺ繝ｻ
         const extractedName = path.basename(entryName);
         const extractedPath = path.join(extractDir, extractedName);
 
@@ -416,7 +471,7 @@ export async function extractArchiveAudioFile(
             return extractedPath;
         }
 
-        // 繝・ぅ繝ｬ繧ｯ繝医Μ蜀・ｒ讀懃ｴ｢
+        // 郢昴・縺・ｹ晢ｽｬ郢ｧ・ｯ郢晏現ﾎ懆怙繝ｻ・定ｮ諛・ｽｴ・｢
         const files = fs.readdirSync(extractDir);
         if (files.length > 0) {
             return path.join(extractDir, files[0]);
@@ -428,4 +483,5 @@ export async function extractArchiveAudioFile(
         return null;
     }
 }
+
 

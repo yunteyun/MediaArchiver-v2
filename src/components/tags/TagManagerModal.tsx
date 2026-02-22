@@ -3,7 +3,8 @@
  * Phase 26-A: 左右ペイン構造に刷新
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, ChevronRight, GripVertical } from 'lucide-react';
 import { useTagStore, Tag, TagCategory } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
@@ -103,6 +104,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     const uncategorizedCount = useMemo(() => tags.filter(t => !t.categoryId).length, [tags]);
 
     if (!isOpen) return null;
+    if (typeof document === 'undefined') return null;
 
     // === Tag CRUD ===
     const handleCreateTag = async () => {
@@ -188,16 +190,16 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     };
 
     // === カテゴリ D&D ===
-    const handleDragStart = useCallback((catId: string) => {
+    const handleDragStart = (catId: string) => {
         setDragCategoryId(catId);
-    }, []);
+    };
 
-    const handleDragOver = useCallback((e: React.DragEvent, catId: string) => {
+    const handleDragOver = (e: React.DragEvent, catId: string) => {
         e.preventDefault();
         setDragOverCategoryId(catId);
-    }, []);
+    };
 
-    const handleDrop = useCallback(async (e: React.DragEvent, targetCatId: string) => {
+    const handleDrop = async (e: React.DragEvent, targetCatId: string) => {
         e.preventDefault();
         if (!dragCategoryId || dragCategoryId === targetCatId) {
             setDragCategoryId(null);
@@ -220,14 +222,14 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         );
         setDragCategoryId(null);
         setDragOverCategoryId(null);
-    }, [dragCategoryId, categories, updateCategory]);
+    };
 
     // 選択中カテゴリ名
     const selectedCategoryName = selectedCategoryId === UNCATEGORIZED_ID
         ? '未分類'
         : categories.find(c => c.id === selectedCategoryId)?.name || '';
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 flex items-center justify-center bg-black/70" onClick={onClose} style={{ zIndex: 'var(--z-modal)' }}>
             <div
                 className="bg-surface-900 rounded-lg border border-surface-700 shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col"
@@ -536,7 +538,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                     ) : null}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 });
 

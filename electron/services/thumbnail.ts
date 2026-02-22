@@ -4,18 +4,15 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { isArchive, getArchiveThumbnail } from './archiveHandler';
+import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { getBasePath } from './storageConfig';
+import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 
 const log = logger.scope('Thumbnail');
 
 // Phase 25: basePath から動的取得（モジュールロード時に確定させない）
-function getThumbnailDir(): string {
-    const dir = path.join(getBasePath(), 'thumbnails');
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-    return dir;
+function getCurrentProfileIdForThumbnails(): string | null {
+    return dbManager.getCurrentProfileId();
 }
 
 // Configure ffmpeg/ffprobe paths
@@ -61,8 +58,7 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
  * Phase 26: seekInput('%') を廃止 → ffprobe で秒数を取得して絶対値でシーク（Windowsでの Invalid argument 回避）
  */
 async function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
-    const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(getThumbnailDir(), filename);
+    const outputPath = createThumbnailOutputPath('video', '.webp', getCurrentProfileIdForThumbnails());
 
     try {
         // ffprobe で動画の長さを取得
@@ -108,8 +104,7 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
  * アルバムアートがない場合はnullを返す
  */
 function generateAudioThumbnail(audioPath: string): Promise<string | null> {
-    const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(getThumbnailDir(), filename);
+    const outputPath = createThumbnailOutputPath('audio', '.webp', getCurrentProfileIdForThumbnails());
 
     return new Promise((resolve) => {
         // FFmpegでアルバムアート（埋め込み画像）を抽出
@@ -136,7 +131,7 @@ function generateAudioThumbnail(audioPath: string): Promise<string | null> {
  */
 export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
     const videoId = uuidv4();
-    const frameDir = path.join(getThumbnailDir(), 'frames', videoId);
+    const frameDir = createPreviewFramesDir(videoId, getCurrentProfileIdForThumbnails());
 
     try {
         // フレームディレクトリ作成
@@ -219,8 +214,7 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
  * 静止画サムネイルを WebP で生成（quality: 82）
  */
 async function generateImageThumbnail(imagePath: string, resolution: number = 320): Promise<string | null> {
-    const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(getThumbnailDir(), filename);
+    const outputPath = createThumbnailOutputPath('image', '.webp', getCurrentProfileIdForThumbnails());
 
     try {
         await sharp(imagePath)

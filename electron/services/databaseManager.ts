@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { logger } from './logger';
 import { runMigrations } from '../migrations';
 import { getBasePath } from './storageConfig';
+import { getProfileThumbnailRootDir } from './thumbnailPaths';
 
 const log = logger.scope('DatabaseManager');
 
@@ -226,7 +227,7 @@ class DatabaseManager {
         }
 
         // サムネイルディレクトリ削除
-        const thumbnailDir = path.join(this.getDbBasePath(), 'thumbnails', id);
+        const thumbnailDir = getProfileThumbnailRootDir(id);
         if (fs.existsSync(thumbnailDir)) {
             try {
                 fs.rmSync(thumbnailDir, { recursive: true, force: true });
