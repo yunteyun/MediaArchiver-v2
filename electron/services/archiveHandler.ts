@@ -8,6 +8,7 @@
 import { path7za } from '7zip-bin';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import sharp from 'sharp';
 import { app } from 'electron';
 import { execFile } from 'child_process';
@@ -15,7 +16,7 @@ import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { createThumbnailOutputPath, getThumbnailRootDir } from './thumbnailPaths';
+import { createArchivePreviewFramesDir, createThumbnailOutputPath, getThumbnailRootDir } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 
 const log = logger.scope('ArchiveHandler');
@@ -41,6 +42,7 @@ const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 
 // 郢ｧ・ｵ郢晄亢繝ｻ郢晏現笘・ｹｧ遏ｩ豬ｹ陞｢・ｰ隲｡・｡陟托ｽｵ陝・・
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
+const ARCHIVE_PREVIEW_CACHE_TARGET_FRAMES = 12;
 
 // 7za 繝舌う繝翫Μ繝代せ縺ｮ隗｣豎ｺ
 function resolve7zaPath(): string {
@@ -129,13 +131,13 @@ async function saveArchiveThumbnailAsWebp(
 
 async function saveArchivePreviewFrameAsWebp(
     srcImagePath: string,
-    extractId: string,
-    profileId: string | null
+    outputDir: string,
+    frameIndex: number
 ): Promise<string | null> {
-    const outPath = createThumbnailOutputPath('archive-preview', '.webp', profileId);
+    const outPath = path.join(outputDir, `frame_${String(frameIndex).padStart(2, '0')}.webp`);
     try {
         await sharp(srcImagePath)
-            .resize(256, null, { fit: 'inside', withoutEnlargement: true })
+            .resize(384, null, { fit: 'inside', withoutEnlargement: true })
             .webp({ quality: THUMBNAIL_WEBP_QUALITY.previewFrame })
             .toFile(outPath);
         return outPath;
@@ -143,6 +145,25 @@ async function saveArchivePreviewFrameAsWebp(
         log.warn(`Archive preview frame WebP conversion failed: ${srcImagePath}`, e);
         return null;
     }
+}
+
+function buildArchivePreviewCacheKey(filePath: string): string {
+    try {
+        const stat = fs.statSync(filePath);
+        const keySrc = `${filePath}|${stat.size}|${stat.mtimeMs}`;
+        return crypto.createHash('sha1').update(keySrc).digest('hex');
+    } catch {
+        // Fallback key when stat fails; path-only keeps behavior deterministic enough.
+        return crypto.createHash('sha1').update(filePath).digest('hex');
+    }
+}
+
+function listCachedArchivePreviewFrames(cacheDir: string): string[] {
+    if (!fs.existsSync(cacheDir)) return [];
+    return fs.readdirSync(cacheDir)
+        .filter(name => /\.(webp|png|jpe?g|gif|bmp)$/i.test(name))
+        .sort()
+        .map(name => path.join(cacheDir, name));
 }
 
 // ========================
@@ -407,6 +428,15 @@ export async function getArchivePreviewFrames(
 ): Promise<string[]> {
     try {
         ensureDirectories();
+        const profileId = getCurrentProfileIdForThumbnails();
+        const cacheKey = buildArchivePreviewCacheKey(filePath);
+        const cacheDir = createArchivePreviewFramesDir(cacheKey, profileId);
+        const existingCached = listCachedArchivePreviewFrames(cacheDir);
+        const targetFrameCount = Math.max(limit, ARCHIVE_PREVIEW_CACHE_TARGET_FRAMES);
+
+        if (existingCached.length >= limit && existingCached.length >= targetFrameCount) {
+            return existingCached.slice(0, limit);
+        }
 
         const metadata = await getArchiveMetadata(filePath);
         if (!metadata || !metadata.imageEntries || metadata.imageEntries.length === 0) {
@@ -419,25 +449,34 @@ export async function getArchivePreviewFrames(
         // 隴崢陋ｻ譏ｴ繝ｻ騾包ｽｻ陷呈得・ｼ蛹ｻ縺礼ｹ晢ｿｽ郢晞亂縺・ｹ晢ｽｫ繝ｻ蟲ｨ・堤ｹｧ・ｹ郢ｧ・ｭ郢昴・繝ｻ繝ｻ莠･鬥呵崕繝ｻ竊鷹包ｽｻ陷剃ｸ岩ｲ邵ｺ繧・ｽ玖撻・ｴ陷ｷ闌ｨ・ｼ繝ｻ
         const pool = images.length > 1 ? images.slice(1) : images;
 
-        if (pool.length <= limit) {
+        if (pool.length <= targetFrameCount) {
             selectedImages.push(...pool);
         } else {
             // 陜ｮ繝ｻ・ｭ蟲ｨ竊楢崕繝ｻ豺ｵ邵ｺ蜉ｱ窶ｻ鬩包ｽｸ隰壹・
-            const step = (pool.length - 1) / (limit - 1);
-            for (let i = 0; i < limit; i++) {
+            const step = (pool.length - 1) / (targetFrameCount - 1);
+            for (let i = 0; i < targetFrameCount; i++) {
                 const index = Math.round(i * step);
                 selectedImages.push(pool[index]);
             }
         }
 
-        const previewPaths: string[] = [];
-        const profileId = getCurrentProfileIdForThumbnails();
+        // Regenerate cache deterministically for this archive version.
+        try {
+            fs.rmSync(cacheDir, { recursive: true, force: true });
+            fs.mkdirSync(cacheDir, { recursive: true });
+        } catch {
+            // ignore cache cleanup errors and continue
+        }
 
-        for (const entryName of selectedImages) {
+        const previewPaths: string[] = [];
+
+        for (let i = 0; i < selectedImages.length; i++) {
+            const entryName = selectedImages[i];
             const ext = path.extname(entryName) || '.jpg';
             const extractId = uuidv4();
             const subDir = path.join(getTempDir(), extractId);
-            const fallbackOutPath = createThumbnailOutputPath('archive-preview', ext, profileId);
+            const frameNo = i + 1;
+            const fallbackOutPath = path.join(cacheDir, `frame_${String(frameNo).padStart(2, '0')}${ext}`);
 
             try {
                 // Phase 26: UUID 繧ｵ繝悶ヵ繧ｩ繝ｫ繝縺ｫ隗｣蜃阪＠縺ｦ蜷悟錐繝輔ぃ繧､繝ｫ遶ｶ蜷医ｒ髦ｲ縺・
@@ -451,7 +490,7 @@ export async function getArchivePreviewFrames(
                 const extractedPath = path.join(subDir, extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
-                    const webpPath = await saveArchivePreviewFrameAsWebp(extractedPath, extractId, profileId);
+                    const webpPath = await saveArchivePreviewFrameAsWebp(extractedPath, cacheDir, frameNo);
                     if (webpPath) {
                         previewPaths.push(webpPath);
                     } else {
@@ -473,7 +512,7 @@ export async function getArchivePreviewFrames(
             }
         }
 
-        return previewPaths;
+        return previewPaths.slice(0, limit);
     } catch (error) {
         log.error(`Failed to get archive previews: ${filePath}`, error);
         return [];

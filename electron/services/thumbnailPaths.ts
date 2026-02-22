@@ -48,3 +48,7 @@ export function createThumbnailOutputPath(
 export function createPreviewFramesDir(videoId: string, profileId?: string | null): string {
     return ensureDir(path.join(ensureThumbnailKindDir('preview', profileId), videoId));
 }
+
+export function createArchivePreviewFramesDir(cacheKey: string, profileId?: string | null): string {
+    return ensureDir(path.join(ensureThumbnailKindDir('archive-preview', profileId), cacheKey));
+}

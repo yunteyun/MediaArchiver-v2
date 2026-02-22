@@ -1,226 +1,222 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-> **バージョン体系**: `dev-XX` は開発マイルストーン（Phase番号ベース）。
-> アプリのリリースバージョン（`v2.x.x`）とは別管理。
+> **繝舌・繧ｸ繝ｧ繝ｳ菴鍋ｳｻ**: `dev-XX` 縺ｯ髢狗匱繝槭う繝ｫ繧ｹ繝医・繝ｳ・・hase逡ｪ蜿ｷ繝吶・繧ｹ・峨・
+> 繧｢繝励Μ縺ｮ繝ｪ繝ｪ繝ｼ繧ｹ繝舌・繧ｸ繝ｧ繝ｳ・・v2.x.x`・峨→縺ｯ蛻･邂｡逅・・
 
 ---
 
 ## [Unreleased]
 ### Changed
-- **Thumbnail Storage Step 1**: `electron/services/thumbnailPaths.ts` を追加し、サムネイル保存先解決（root / profile / kind）を共通化。`thumbnail.ts` / `archiveHandler.ts` / `thumbnailCleanupService.ts` / `statisticsService.ts` / `databaseManager.ts` を共通ロジック参照へ切替
-- **Thumbnail Storage Step 2 (main producers)**: 主要なサムネイル生成処理（画像 / 動画 / 音声 / 書庫サムネイル / 動画プレビューフレーム）をプロファイル単位 + 種別単位の保存先へ切替
-- **Documentation / README**: README.md を利用者向け優先の構成に書き直し（概要 / 起動 / 更新 update.bat / 保存場所の要点 / 開発者向けコマンド / ドキュメント案内）
-- **Documentation / Docs Index**: docs/INDEX.md を書き直し、各ドキュメントの役割と更新ルール、docs/ 集約方針（段階的）を明文化
-- **Documentation / Encoding**: リポジトリ内のMarkdown（node_modules/release除外）を UTF-8 に統一
-- **Documentation / Memo Paths**: `アプリ使用メモ.md` / `不具合・要望リスト.md` / `思考メモ.md` を `docs/user` / `docs/dev` に移動し、参照先を更新
-- **Documentation / Roadmap**: ROADMAP.md を運用しやすい構成（進行中 / 今後の計画優先）に書き直し、旧フェーズ詳細版を ROADMAP_legacy.md として退避
-- **Documentation / Git Rules**: `docs/dev/思考メモ.md` に最小Git運用ルール（通常は `codex/...` ブランチ継続・大規模変更時のみ分岐）を追記
-- **Documentation / Git Rules**: 作業コード番号ルール（`C001` 形式）と推奨命名（`codex/c###-short-name` / `codex(c###): ...`）を追記
-
+- **Thumbnail Storage Step 1**: `electron/services/thumbnailPaths.ts` 繧定ｿｽ蜉縺励√し繝繝阪う繝ｫ菫晏ｭ伜・隗｣豎ｺ・・oot / profile / kind・峨ｒ蜈ｱ騾壼喧縲Ａthumbnail.ts` / `archiveHandler.ts` / `thumbnailCleanupService.ts` / `statisticsService.ts` / `databaseManager.ts` 繧貞・騾壹Ο繧ｸ繝・け蜿ら・縺ｸ蛻・崛
+- **Thumbnail Storage Step 2 (main producers)**: 荳ｻ隕√↑繧ｵ繝繝阪う繝ｫ逕滓・蜃ｦ逅・ｼ育判蜒・/ 蜍慕判 / 髻ｳ螢ｰ / 譖ｸ蠎ｫ繧ｵ繝繝阪う繝ｫ / 蜍慕判繝励Ξ繝薙Η繝ｼ繝輔Ξ繝ｼ繝・峨ｒ繝励Ο繝輔ぃ繧､繝ｫ蜊倅ｽ・+ 遞ｮ蛻･蜊倅ｽ阪・菫晏ｭ伜・縺ｸ蛻・崛
+- **Documentation / README**: README.md 繧貞茜逕ｨ閠・髄縺大━蜈医・讒区・縺ｫ譖ｸ縺咲峩縺暦ｼ域ｦりｦ・/ 襍ｷ蜍・/ 譖ｴ譁ｰ update.bat / 菫晏ｭ伜ｴ謇縺ｮ隕∫せ / 髢狗匱閠・髄縺代さ繝槭Φ繝・/ 繝峨く繝･繝｡繝ｳ繝域｡亥・・・
+- **Documentation / Docs Index**: docs/INDEX.md 繧呈嶌縺咲峩縺励∝推繝峨く繝･繝｡繝ｳ繝医・蠖ｹ蜑ｲ縺ｨ譖ｴ譁ｰ繝ｫ繝ｼ繝ｫ縲‥ocs/ 髮・ｴ・婿驥晢ｼ域ｮｵ髫守噪・峨ｒ譏取枚蛹・
+- **Documentation / Encoding**: 繝ｪ繝昴ず繝医Μ蜀・・Markdown・・ode_modules/release髯､螟厄ｼ峨ｒ UTF-8 縺ｫ邨ｱ荳
+- **Documentation / Memo Paths**: `繧｢繝励Μ菴ｿ逕ｨ繝｡繝｢.md` / `荳榊・蜷医・隕∵悍繝ｪ繧ｹ繝・md` / `諤晁・Γ繝｢.md` 繧・`docs/user` / `docs/dev` 縺ｫ遘ｻ蜍輔＠縲∝盾辣ｧ蜈医ｒ譖ｴ譁ｰ
+- **Documentation / Roadmap**: ROADMAP.md 繧帝°逕ｨ縺励ｄ縺吶＞讒区・・磯ｲ陦御ｸｭ / 莉雁ｾ後・險育判蜆ｪ蜈茨ｼ峨↓譖ｸ縺咲峩縺励∵立繝輔ぉ繝ｼ繧ｺ隧ｳ邏ｰ迚医ｒ ROADMAP_legacy.md 縺ｨ縺励※騾驕ｿ
+- **Documentation / Git Rules**: `docs/dev/諤晁・Γ繝｢.md` 縺ｫ譛蟆秀it驕狗畑繝ｫ繝ｼ繝ｫ・磯壼ｸｸ縺ｯ `codex/...` 繝悶Λ繝ｳ繝∫ｶ咏ｶ壹・螟ｧ隕乗ｨ｡螟画峩譎ゅ・縺ｿ蛻・ｲ撰ｼ峨ｒ霑ｽ險・- **Documentation / Git Rules**: 菴懈･ｭ繧ｳ繝ｼ繝臥分蜿ｷ繝ｫ繝ｼ繝ｫ・・C001` 蠖｢蠑擾ｼ峨→謗ｨ螂ｨ蜻ｽ蜷搾ｼ・codex/c###-short-name` / `codex(c###): ...`・峨ｒ霑ｽ險・
 ### Fixed
-- **Thumbnail cleanup/delete preview frame parsing compatibility**: `preview_frames` が JSON配列形式・カンマ区切り形式のどちらでも削除/診断処理が動くように互換パーサーを追加（移行途中の取りこぼし防止）
-- **Thumbnail cleanup legacy-dir fallback**: サムネイル診断/掃除で新しいプロファイル配下が空の場合、旧保存構造（`thumbnails` 直下）を診断対象としてフォールバックするよう改善（移行途中の運用を継続しやすく）
-- **Archive thumbnail (dev 7za path resolution)**: 開発版で `7zip-bin` の `path7za` が `dist-electron` 基準の壊れた相対パスを返す場合があり、`spawn ... ENOENT` で書庫サムネイル生成が失敗していた問題を修正。複数候補パスを順に探索するよう改善
-- **Statistics thumbnail size display (legacy fallback)**: サムネイル保存構造の移行途中に統計のサムネイル容量が `0` になりやすかったため、現行プロファイル配下が空の場合は旧保存構造（`thumbnails` 直下）も参照するフォールバックを追加
-- **Thumbnail cleanup profile scope (prep)**: サムネイル診断/掃除の対象ディレクトリを「現在プロファイルのサムネイル配下」に寄せる下準備を追加（将来のプロファイル単位管理に対応しやすく）
-- **Tag Manager Modal UI disappear**: `TagManagerModal` を React Portal (`document.body`) 経由で描画するよう変更し、サイドバー配下のレイアウト/重なり順の影響でモーダル表示時に UI 全体が消えたように見える問題を回避
-- **Tag Manager Modal hook order**: `isOpen` による早期 return と `useCallback` の位置関係で Hook 数が変化していたため、D&D ハンドラを通常関数に変更して `Rendered more hooks than during the previous render` を解消
-- **Archive thumbnail (initial scan only)**: `ArchiveHandler` が保存先初期化前に一度だけフォルダ作成していたため、初回スキャン時に `thumbnails` フォルダ未作成で `ENOENT` が発生する場合があった問題を修正。書庫サムネイル/プレビュー/音声抽出の直前にディレクトリ作成を実行するよう変更
-- **Archive thumbnail move robustness**: 書庫サムネイル移動時に保存先親フォルダを毎回作成するようにし、初回起動直後の保存先切り替えや初期化順の影響を受けにくくした
+- **Thumbnail cleanup/delete preview frame parsing compatibility**: `preview_frames` 縺・JSON驟榊・蠖｢蠑上・繧ｫ繝ｳ繝槫玄蛻・ｊ蠖｢蠑上・縺ｩ縺｡繧峨〒繧ょ炎髯､/險ｺ譁ｭ蜃ｦ逅・′蜍輔￥繧医≧縺ｫ莠呈鋤繝代・繧ｵ繝ｼ繧定ｿｽ蜉・育ｧｻ陦碁比ｸｭ縺ｮ蜿悶ｊ縺薙⊂縺鈴亟豁｢・・- **Thumbnail cleanup legacy-dir fallback**: 繧ｵ繝繝阪う繝ｫ險ｺ譁ｭ/謗・勁縺ｧ譁ｰ縺励＞繝励Ο繝輔ぃ繧､繝ｫ驟堺ｸ九′遨ｺ縺ｮ蝣ｴ蜷医∵立菫晏ｭ俶ｧ矩・・thumbnails` 逶ｴ荳具ｼ峨ｒ險ｺ譁ｭ蟇ｾ雎｡縺ｨ縺励※繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ縺吶ｋ繧医≧謾ｹ蝟・ｼ育ｧｻ陦碁比ｸｭ縺ｮ驕狗畑繧堤ｶ咏ｶ壹＠繧・☆縺擾ｼ・- **Archive thumbnail (dev 7za path resolution)**: 髢狗匱迚医〒 `7zip-bin` 縺ｮ `path7za` 縺・`dist-electron` 蝓ｺ貅悶・螢翫ｌ縺溽嶌蟇ｾ繝代せ繧定ｿ斐☆蝣ｴ蜷医′縺ゅｊ縲～spawn ... ENOENT` 縺ｧ譖ｸ蠎ｫ繧ｵ繝繝阪う繝ｫ逕滓・縺悟､ｱ謨励＠縺ｦ縺・◆蝠城｡後ｒ菫ｮ豁｣縲り､・焚蛟呵｣懊ヱ繧ｹ繧帝・↓謗｢邏｢縺吶ｋ繧医≧謾ｹ蝟・- **Statistics thumbnail size display (legacy fallback)**: 繧ｵ繝繝阪う繝ｫ菫晏ｭ俶ｧ矩縺ｮ遘ｻ陦碁比ｸｭ縺ｫ邨ｱ險医・繧ｵ繝繝阪う繝ｫ螳ｹ驥上′ `0` 縺ｫ縺ｪ繧翫ｄ縺吶°縺｣縺溘◆繧√∫樟陦後・繝ｭ繝輔ぃ繧､繝ｫ驟堺ｸ九′遨ｺ縺ｮ蝣ｴ蜷医・譌ｧ菫晏ｭ俶ｧ矩・・thumbnails` 逶ｴ荳具ｼ峨ｂ蜿ら・縺吶ｋ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ繧定ｿｽ蜉
+- **Thumbnail cleanup profile scope (prep)**: 繧ｵ繝繝阪う繝ｫ險ｺ譁ｭ/謗・勁縺ｮ蟇ｾ雎｡繝・ぅ繝ｬ繧ｯ繝医Μ繧偵檎樟蝨ｨ繝励Ο繝輔ぃ繧､繝ｫ縺ｮ繧ｵ繝繝阪う繝ｫ驟堺ｸ九阪↓蟇・○繧倶ｸ区ｺ門ｙ繧定ｿｽ蜉・亥ｰ・擂縺ｮ繝励Ο繝輔ぃ繧､繝ｫ蜊倅ｽ咲ｮ｡逅・↓蟇ｾ蠢懊＠繧・☆縺擾ｼ・- **Tag Manager Modal UI disappear**: `TagManagerModal` 繧・React Portal (`document.body`) 邨檎罰縺ｧ謠冗判縺吶ｋ繧医≧螟画峩縺励√し繧､繝峨ヰ繝ｼ驟堺ｸ九・繝ｬ繧､繧｢繧ｦ繝・驥阪↑繧企・・蠖ｱ髻ｿ縺ｧ繝｢繝ｼ繝繝ｫ陦ｨ遉ｺ譎ゅ↓ UI 蜈ｨ菴薙′豸医∴縺溘ｈ縺・↓隕九∴繧句撫鬘後ｒ蝗樣∩
+- **Tag Manager Modal hook order**: `isOpen` 縺ｫ繧医ｋ譌ｩ譛・return 縺ｨ `useCallback` 縺ｮ菴咲ｽｮ髢｢菫ゅ〒 Hook 謨ｰ縺悟､牙喧縺励※縺・◆縺溘ａ縲．&D 繝上Φ繝峨Λ繧帝壼ｸｸ髢｢謨ｰ縺ｫ螟画峩縺励※ `Rendered more hooks than during the previous render` 繧定ｧ｣豸・
+- **Archive thumbnail (initial scan only)**: `ArchiveHandler` 縺御ｿ晏ｭ伜・蛻晄悄蛹門燕縺ｫ荳蠎ｦ縺縺代ヵ繧ｩ繝ｫ繝菴懈・縺励※縺・◆縺溘ａ縲∝・蝗槭せ繧ｭ繝｣繝ｳ譎ゅ↓ `thumbnails` 繝輔か繝ｫ繝譛ｪ菴懈・縺ｧ `ENOENT` 縺檎匱逕溘☆繧句ｴ蜷医′縺ゅ▲縺溷撫鬘後ｒ菫ｮ豁｣縲よ嶌蠎ｫ繧ｵ繝繝阪う繝ｫ/繝励Ξ繝薙Η繝ｼ/髻ｳ螢ｰ謚ｽ蜃ｺ縺ｮ逶ｴ蜑阪↓繝・ぅ繝ｬ繧ｯ繝医Μ菴懈・繧貞ｮ溯｡後☆繧九ｈ縺・､画峩
+- **Archive thumbnail move robustness**: 譖ｸ蠎ｫ繧ｵ繝繝阪う繝ｫ遘ｻ蜍墓凾縺ｫ菫晏ｭ伜・隕ｪ繝輔か繝ｫ繝繧呈ｯ主屓菴懈・縺吶ｋ繧医≧縺ｫ縺励∝・蝗櫁ｵｷ蜍慕峩蠕後・菫晏ｭ伜・蛻・ｊ譖ｿ縺医ｄ蛻晄悄蛹夜・・蠖ｱ髻ｿ繧貞女縺代↓縺上￥縺励◆
 
 ---
 
 ## [1.1.3] - 2026-02-21
-### Phase 28〜: タグUI改善・バグ修正
+### Phase 28縲・ 繧ｿ繧ｰUI謾ｹ蝟・・繝舌げ菫ｮ豁｣
 
 #### Changed
 - **Archive thumbnail WebP conversion**: ?????????????????????? WebP ?????????????????????????????????????????????????
 - **Archive preview frames WebP conversion**: ??????????????????? WebP ??256px??????????????????????????????????????????
 - **Archive preview frame storage unification**: ???????????????????????? (userData/temp/archives) ??????????? (	humbnails/profiles/<profile>/archive-preview) ??????????????????????
+- **Archive preview frame cache reuse**: 右サイドバー（4枚）とLightbox（12枚）で同じ書庫プレビューキャッシュを再利用するよう改善し、重複生成を削減
+- **Preview frame quality tuning (final)**: Lightbox???????????????previewFrame ??? 70 -> 40 ??????????????????????? 256px -> 384px ?????????????????????
 - **Thumbnail WebP quality split (internal presets)**: UI??????????????? image / video / archive / previewFrame ???????????? image=82, video=75, archive=80, previewFrame=70
-- **TagSelector**: カテゴリカラードット表示・`sortOrder`順ソート・grid-cols-2の2列グリッド表示
-- **RightPanel/TagSection**: `<select>` を `TagSelector` に置換（Lightboxと同一UIに統一）
-- **TagManagerModal**: 右ペインのタグリストをgrid-cols-2多列表示、左ペインにカテゴリD&D実装
-- **useTagStore**: `updateCategory` に `sortOrder` 型追加
+- **TagSelector**: 繧ｫ繝・ざ繝ｪ繧ｫ繝ｩ繝ｼ繝峨ャ繝郁｡ｨ遉ｺ繝ｻ`sortOrder`鬆・た繝ｼ繝医・grid-cols-2縺ｮ2蛻励げ繝ｪ繝・ラ陦ｨ遉ｺ
+- **RightPanel/TagSection**: `<select>` 繧・`TagSelector` 縺ｫ鄂ｮ謠幢ｼ・ightbox縺ｨ蜷御ｸUI縺ｫ邨ｱ荳・・
+- **TagManagerModal**: 蜿ｳ繝壹う繝ｳ縺ｮ繧ｿ繧ｰ繝ｪ繧ｹ繝医ｒgrid-cols-2螟壼・陦ｨ遉ｺ縲∝ｷｦ繝壹う繝ｳ縺ｫ繧ｫ繝・ざ繝ｪD&D螳溯｣・
+- **useTagStore**: `updateCategory` 縺ｫ `sortOrder` 蝙玖ｿｽ蜉
 
 #### Fixed
-- **TagSelectorドロップダウン非表示バグ**: React Portalで `body` 直下に描画（`overflow:auto` 親コンテナでクリップされる問題を解消）
-- **孤立サムネイル診断ロジック**: 「DBにあるが実ファイルなし」→「サムネイルDirにあるがDBに未登録」に修正。フォルダ登録解除後に孤立サムネイルを正しく検出できるよう修正
-- **孤立サムネイル診断パス**: `app.getPath('userData')` ハードコード → `getBasePath()` 動的取得（Phase 25保存場所カスタマイズに対応）
-- **リリース版書庫サムネイル取得エラー**: `package.json` に `asarUnpack` 指定を追加し、`7za.exe` 等のバイナリが実行可能に
-- **DBディレクトリ未作成エラー**: `mode=install` 等で保存先にフォルダが存在しない場合、DB作成前に `ensureDbDirectory` で事前生成するように修正
-- **ビルド安全性向上**: `afterPack` フックを追加し、`app.asar.unpacked` 内の必須バイナリ存在をビルド時に検証
+- **TagSelector繝峨Ο繝・・繝繧ｦ繝ｳ髱櫁｡ｨ遉ｺ繝舌げ**: React Portal縺ｧ `body` 逶ｴ荳九↓謠冗判・・overflow:auto` 隕ｪ繧ｳ繝ｳ繝・リ縺ｧ繧ｯ繝ｪ繝・・縺輔ｌ繧句撫鬘後ｒ隗｣豸茨ｼ・
+- **蟄､遶九し繝繝阪う繝ｫ險ｺ譁ｭ繝ｭ繧ｸ繝・け**: 縲轡B縺ｫ縺ゅｋ縺悟ｮ溘ヵ繧｡繧､繝ｫ縺ｪ縺励坂・縲後し繝繝阪う繝ｫDir縺ｫ縺ゅｋ縺轡B縺ｫ譛ｪ逋ｻ骭ｲ縲阪↓菫ｮ豁｣縲ゅヵ繧ｩ繝ｫ繝逋ｻ骭ｲ隗｣髯､蠕後↓蟄､遶九し繝繝阪う繝ｫ繧呈ｭ｣縺励￥讀懷・縺ｧ縺阪ｋ繧医≧菫ｮ豁｣
+- **蟄､遶九し繝繝阪う繝ｫ險ｺ譁ｭ繝代せ**: `app.getPath('userData')` 繝上・繝峨さ繝ｼ繝・竊・`getBasePath()` 蜍慕噪蜿門ｾ暦ｼ・hase 25菫晏ｭ伜ｴ謇繧ｫ繧ｹ繧ｿ繝槭う繧ｺ縺ｫ蟇ｾ蠢懶ｼ・
+- **繝ｪ繝ｪ繝ｼ繧ｹ迚域嶌蠎ｫ繧ｵ繝繝阪う繝ｫ蜿門ｾ励お繝ｩ繝ｼ**: `package.json` 縺ｫ `asarUnpack` 謖・ｮ壹ｒ霑ｽ蜉縺励～7za.exe` 遲峨・繝舌う繝翫Μ縺悟ｮ溯｡悟庄閭ｽ縺ｫ
+- **DB繝・ぅ繝ｬ繧ｯ繝医Μ譛ｪ菴懈・繧ｨ繝ｩ繝ｼ**: `mode=install` 遲峨〒菫晏ｭ伜・縺ｫ繝輔か繝ｫ繝縺悟ｭ伜惠縺励↑縺・ｴ蜷医．B菴懈・蜑阪↓ `ensureDbDirectory` 縺ｧ莠句燕逕滓・縺吶ｋ繧医≧縺ｫ菫ｮ豁｣
+- **繝薙Ν繝牙ｮ牙・諤ｧ蜷台ｸ・*: `afterPack` 繝輔ャ繧ｯ繧定ｿｽ蜉縺励～app.asar.unpacked` 蜀・・蠢・医ヰ繧､繝翫Μ蟄伜惠繧偵ン繝ｫ繝画凾縺ｫ讀懆ｨｼ
 
 ---
 
 ## [1.1.2] - 2026-02-19
-### Phase 26: バグ修正・UX改善
+### Phase 26: 繝舌げ菫ｮ豁｣繝ｻUX謾ｹ蝟・
 
 #### Added
-- **音声書庫バッジ**: FileCard に Music アイコンバッジを追加（音声書庫の視覚的区別）
-- **書庫プレビューグリッド**: 右パネルの BASIC INFO 下に 2×2 グリッドプレビューを追加（画像書庫のみ）
-- **バージョン表記**: ヘッダータイトル横と設定モーダルフッターにアプリバージョンを表示
+- **髻ｳ螢ｰ譖ｸ蠎ｫ繝舌ャ繧ｸ**: FileCard 縺ｫ Music 繧｢繧､繧ｳ繝ｳ繝舌ャ繧ｸ繧定ｿｽ蜉・磯浹螢ｰ譖ｸ蠎ｫ縺ｮ隕冶ｦ夂噪蛹ｺ蛻･・・
+- **譖ｸ蠎ｫ繝励Ξ繝薙Η繝ｼ繧ｰ繝ｪ繝・ラ**: 蜿ｳ繝代ロ繝ｫ縺ｮ BASIC INFO 荳九↓ 2ﾃ・ 繧ｰ繝ｪ繝・ラ繝励Ξ繝薙Η繝ｼ繧定ｿｽ蜉・育判蜒乗嶌蠎ｫ縺ｮ縺ｿ・・
+- **繝舌・繧ｸ繝ｧ繝ｳ陦ｨ險・*: 繝倥ャ繝繝ｼ繧ｿ繧､繝医Ν讓ｪ縺ｨ險ｭ螳壹Δ繝ｼ繝繝ｫ繝輔ャ繧ｿ繝ｼ縺ｫ繧｢繝励Μ繝舌・繧ｸ繝ｧ繝ｳ繧定｡ｨ遉ｺ
 
 #### Fixed
-- **Bug 1**: 書庫プレビュー時のファイルロック問題（UUIDサブフォルダ展開で解決）
-- **Bug 2**: 動画サムネイル生成エラー（絶対秒数シーク方式に変更）
-- **Bug 3**: 音声書庫認識精度の改善（再帰的検索ロジック修正）
-- **UI 配置**: 書庫プレビューグリッドを独立セクション化（ユーザーフィードバック対応）
+- **Bug 1**: 譖ｸ蠎ｫ繝励Ξ繝薙Η繝ｼ譎ゅ・繝輔ぃ繧､繝ｫ繝ｭ繝・け蝠城｡鯉ｼ・UID繧ｵ繝悶ヵ繧ｩ繝ｫ繝螻暮幕縺ｧ隗｣豎ｺ・・
+- **Bug 2**: 蜍慕判繧ｵ繝繝阪う繝ｫ逕滓・繧ｨ繝ｩ繝ｼ・育ｵｶ蟇ｾ遘呈焚繧ｷ繝ｼ繧ｯ譁ｹ蠑上↓螟画峩・・
+- **Bug 3**: 髻ｳ螢ｰ譖ｸ蠎ｫ隱崎ｭ倡ｲｾ蠎ｦ縺ｮ謾ｹ蝟・ｼ亥・蟶ｰ逧・､懃ｴ｢繝ｭ繧ｸ繝・け菫ｮ豁｣・・
+- **UI 驟咲ｽｮ**: 譖ｸ蠎ｫ繝励Ξ繝薙Η繝ｼ繧ｰ繝ｪ繝・ラ繧堤峡遶九そ繧ｯ繧ｷ繝ｧ繝ｳ蛹厄ｼ医Θ繝ｼ繧ｶ繝ｼ繝輔ぅ繝ｼ繝峨ヰ繝・け蟇ｾ蠢懶ｼ・
 
 ---
 
 ## [1.1.0] - 2026-02-18
-### Phase 19.5〜25 まとめリリース
+### Phase 19.5縲・5 縺ｾ縺ｨ繧√Μ繝ｪ繝ｼ繧ｹ
 
 #### Added
-- **Phase 25**: 保存場所カスタマイズ（AppData / インストールフォルダ / 任意パス、原子的移行、旧データ削除）
-- **Phase 24**: サムネイル WebP 変換（静止画 q:82、動画 q:75、フレーム q:70）、一括再生成
-- **Phase 23**: 右サイドパネル（選択ファイルの詳細情報・プレビュー常時表示）
-- **Phase 22-C**: フォルダツリーナビゲーション（ドライブ/親フォルダ選択、ファイル移動ダイアログ）
-- **Phase 21**: グループ表示改善（今日・昨日・今週・先週・2週間前 の相対時間区分）
-- **Phase 20-B**: 動画キーボード操作（Space/←→/↑↓）
-- **Phase 20-A**: Lightbox UI 再設計（2カラム固定レイアウト）
+- **Phase 25**: 菫晏ｭ伜ｴ謇繧ｫ繧ｹ繧ｿ繝槭う繧ｺ・・ppData / 繧､繝ｳ繧ｹ繝医・繝ｫ繝輔か繝ｫ繝 / 莉ｻ諢上ヱ繧ｹ縲∝次蟄千噪遘ｻ陦後∵立繝・・繧ｿ蜑企勁・・
+- **Phase 24**: 繧ｵ繝繝阪う繝ｫ WebP 螟画鋤・磯撕豁｢逕ｻ q:82縲∝虚逕ｻ q:75縲√ヵ繝ｬ繝ｼ繝 q:70・峨∽ｸ諡ｬ蜀咲函謌・
+- **Phase 23**: 蜿ｳ繧ｵ繧､繝峨ヱ繝阪Ν・磯∈謚槭ヵ繧｡繧､繝ｫ縺ｮ隧ｳ邏ｰ諠・ｱ繝ｻ繝励Ξ繝薙Η繝ｼ蟶ｸ譎り｡ｨ遉ｺ・・
+- **Phase 22-C**: 繝輔か繝ｫ繝繝・Μ繝ｼ繝翫ン繧ｲ繝ｼ繧ｷ繝ｧ繝ｳ・医ラ繝ｩ繧､繝・隕ｪ繝輔か繝ｫ繝驕ｸ謚槭√ヵ繧｡繧､繝ｫ遘ｻ蜍輔ム繧､繧｢繝ｭ繧ｰ・・
+- **Phase 21**: 繧ｰ繝ｫ繝ｼ繝苓｡ｨ遉ｺ謾ｹ蝟・ｼ井ｻ頑律繝ｻ譏ｨ譌･繝ｻ莉企ｱ繝ｻ蜈磯ｱ繝ｻ2騾ｱ髢灘燕 縺ｮ逶ｸ蟇ｾ譎る俣蛹ｺ蛻・ｼ・
+- **Phase 20-B**: 蜍慕判繧ｭ繝ｼ繝懊・繝画桃菴懶ｼ・pace/竊絶・/竊鯛・・・
+- **Phase 20-A**: Lightbox UI 蜀崎ｨｭ險茨ｼ・繧ｫ繝ｩ繝蝗ｺ螳壹Ξ繧､繧｢繧ｦ繝茨ｼ・
 
 #### Fixed
-- **Phase 19.5**: EventEmitter メモリリーク、複数選択削除/移動、孤立サムネイル誤検出
+- **Phase 19.5**: EventEmitter 繝｡繝｢繝ｪ繝ｪ繝ｼ繧ｯ縲∬､・焚驕ｸ謚槫炎髯､/遘ｻ蜍輔∝ｭ､遶九し繝繝阪う繝ｫ隱､讀懷・
 
 ---
 
 ## [dev-25] - 2026-02-18
-### Phase 25: 保存場所カスタマイズ
+### Phase 25: 菫晏ｭ伜ｴ謇繧ｫ繧ｹ繧ｿ繝槭う繧ｺ
 
 #### Added
-- **`storageConfig.ts`**: 二段階ロード・原子的移行・権限チェック・旧データ削除・thumbnail_path 一括更新
-- **`electron/ipc/storage.ts`**: IPC ハンドラ（getConfig / setConfig / browseFolder / deleteOldData）
-- **`SettingsModal.tsx`**: サムネイルタブに「保存場所」セクション追加（ラジオ3択・参照・移行・旧データ削除ボタン）
+- **`storageConfig.ts`**: 莠梧ｮｵ髫弱Ο繝ｼ繝峨・蜴溷ｭ千噪遘ｻ陦後・讓ｩ髯舌メ繧ｧ繝・け繝ｻ譌ｧ繝・・繧ｿ蜑企勁繝ｻthumbnail_path 荳諡ｬ譖ｴ譁ｰ
+- **`electron/ipc/storage.ts`**: IPC 繝上Φ繝峨Λ・・etConfig / setConfig / browseFolder / deleteOldData・・
+- **`SettingsModal.tsx`**: 繧ｵ繝繝阪う繝ｫ繧ｿ繝悶↓縲御ｿ晏ｭ伜ｴ謇縲阪そ繧ｯ繧ｷ繝ｧ繝ｳ霑ｽ蜉・医Λ繧ｸ繧ｪ3謚槭・蜿ら・繝ｻ遘ｻ陦後・譌ｧ繝・・繧ｿ蜑企勁繝懊ち繝ｳ・・
 
 #### Changed
-- `thumbnail.ts`: `THUMBNAIL_DIR` 定数 → `getThumbnailDir()` 動的取得
-- `archiveHandler.ts`: `THUMBNAIL_DIR`・`TEMP_DIR` 定数 → 動的取得関数
-- `databaseManager.ts`: `userDataPath` → `getBasePath()` 動的取得、`walCheckpoint()`・`closeAll()`・`reopenMetaDb()` 追加
-- `main.ts`: `initStorageConfig()` を DB 初期化前に呼び出し
+- `thumbnail.ts`: `THUMBNAIL_DIR` 螳壽焚 竊・`getThumbnailDir()` 蜍慕噪蜿門ｾ・
+- `archiveHandler.ts`: `THUMBNAIL_DIR`繝ｻ`TEMP_DIR` 螳壽焚 竊・蜍慕噪蜿門ｾ鈴未謨ｰ
+- `databaseManager.ts`: `userDataPath` 竊・`getBasePath()` 蜍慕噪蜿門ｾ励～walCheckpoint()`繝ｻ`closeAll()`繝ｻ`reopenMetaDb()` 霑ｽ蜉
+- `main.ts`: `initStorageConfig()` 繧・DB 蛻晄悄蛹門燕縺ｫ蜻ｼ縺ｳ蜃ｺ縺・
 
 ---
 
 ## [dev-23] - 2026-02-18
 
-### Phase 23: 右サイドパネル
+### Phase 23: 蜿ｳ繧ｵ繧､繝峨ヱ繝阪Ν
 
 #### Added
-- **`RightPanel` コンポーネント群**: `PreviewSection`（動画autoplay/muted/loop、アニメーション対応）、`BasicInfoSection`（ファイル名・サイズ・解像度・再生時間・作成日）、`TagSection`（カラー表示・折り返しレイアウト）
-- **`useUIStore`**: `isRightPanelOpen`（デフォルトtrue）、`toggleRightPanel`、`previewContext`、`setPreviewContext` を追加
-- **ヘッダートグルボタン**: 右パネル開閉ボタンをヘッダー右上に追加（アクティブ時ハイライト）
-- **グリッドホバーとの排他制御**: `previewContext` で `'grid-hover'` / `'right-panel'` を管理
+- **`RightPanel` 繧ｳ繝ｳ繝昴・繝阪Φ繝育ｾ､**: `PreviewSection`・亥虚逕ｻautoplay/muted/loop縲√い繝九Γ繝ｼ繧ｷ繝ｧ繝ｳ蟇ｾ蠢懶ｼ峨～BasicInfoSection`・医ヵ繧｡繧､繝ｫ蜷阪・繧ｵ繧､繧ｺ繝ｻ隗｣蜒丞ｺｦ繝ｻ蜀咲函譎る俣繝ｻ菴懈・譌･・峨～TagSection`・医き繝ｩ繝ｼ陦ｨ遉ｺ繝ｻ謚倥ｊ霑斐＠繝ｬ繧､繧｢繧ｦ繝茨ｼ・
+- **`useUIStore`**: `isRightPanelOpen`・医ョ繝輔か繝ｫ繝・rue・峨～toggleRightPanel`縲～previewContext`縲～setPreviewContext` 繧定ｿｽ蜉
+- **繝倥ャ繝繝ｼ繝医げ繝ｫ繝懊ち繝ｳ**: 蜿ｳ繝代ロ繝ｫ髢矩哩繝懊ち繝ｳ繧偵・繝・ム繝ｼ蜿ｳ荳翫↓霑ｽ蜉・医い繧ｯ繝・ぅ繝匁凾繝上う繝ｩ繧､繝茨ｼ・
+- **繧ｰ繝ｪ繝・ラ繝帙ヰ繝ｼ縺ｨ縺ｮ謗剃ｻ門宛蠕｡**: `previewContext` 縺ｧ `'grid-hover'` / `'right-panel'` 繧堤ｮ｡逅・
 
 #### Changed
-- `App.tsx`: `<RightPanel />` を `isRightPanelOpen` 条件付きで組み込み
+- `App.tsx`: `<RightPanel />` 繧・`isRightPanelOpen` 譚｡莉ｶ莉倥″縺ｧ邨・∩霎ｼ縺ｿ
 
 ---
 
 ## [dev-24] - 2026-02-18
-### Phase 24: サムネイル軽量化
+### Phase 24: 繧ｵ繝繝阪う繝ｫ霆ｽ驥丞喧
 
 #### Added
-- **WebP変換**: 静止画サムネイル（quality:82）、動画サムネイル（quality:75）、プレビューフレーム（quality:70）をWebP出力に変更
-- **プレビューフレーム最適化**: 320px×10枚 → 256px×6枚に削減（容量約75%削減）
-- **一括再生成機能**: `thumbnail:regenerateAll` IPC ハンドラ追加（バッチ20件、進捗通知付き）
-- **統計画面**: サムネイルキャッシュ容量表示カードと「WebP一括変換」ボタンを追加
-- **容量計算**: `statisticsService.ts` に `getThumbnailDirSize()` 追加（統計画面表示時のみ計算）
+- **WebP螟画鋤**: 髱呎ｭ｢逕ｻ繧ｵ繝繝阪う繝ｫ・・uality:82・峨∝虚逕ｻ繧ｵ繝繝阪う繝ｫ・・uality:75・峨√・繝ｬ繝薙Η繝ｼ繝輔Ξ繝ｼ繝・・uality:70・峨ｒWebP蜃ｺ蜉帙↓螟画峩
+- **繝励Ξ繝薙Η繝ｼ繝輔Ξ繝ｼ繝譛驕ｩ蛹・*: 320pxﾃ・0譫・竊・256pxﾃ・譫壹↓蜑頑ｸ幢ｼ亥ｮｹ驥冗ｴ・5%蜑頑ｸ幢ｼ・
+- **荳諡ｬ蜀咲函謌先ｩ溯・**: `thumbnail:regenerateAll` IPC 繝上Φ繝峨Λ霑ｽ蜉・医ヰ繝・メ20莉ｶ縲・ｲ謐鈴夂衍莉倥″・・
+- **邨ｱ險育判髱｢**: 繧ｵ繝繝阪う繝ｫ繧ｭ繝｣繝・す繝･螳ｹ驥剰｡ｨ遉ｺ繧ｫ繝ｼ繝峨→縲係ebP荳諡ｬ螟画鋤縲阪・繧ｿ繝ｳ繧定ｿｽ蜉
+- **螳ｹ驥剰ｨ育ｮ・*: `statisticsService.ts` 縺ｫ `getThumbnailDirSize()` 霑ｽ蜉・育ｵｱ險育判髱｢陦ｨ遉ｺ譎ゅ・縺ｿ險育ｮ暦ｼ・
 
 #### Changed
-- `thumbnail.ts`: `generateImageThumbnail` → sharp WebP出力、`generateVideoThumbnail` → ffmpeg libwebp方式
-- `generatePreviewFrames`: フレーム数・解像度削減
-- `regenerateAllThumbnails`: 安全なDB更新順序（生成→DB更新→旧ファイル削除）
-- `preload.ts`: `regenerateAllThumbnails` / `onThumbnailRegenerateProgress` を expose
-- `electron.d.ts`: `LibraryStats.thumbnailSize`、Phase 24 API 型定義追加
-- `StatisticsView.tsx`: recharts 幅0警告対策（`visibility:hidden` + 遅延500ms）
+- `thumbnail.ts`: `generateImageThumbnail` 竊・sharp WebP蜃ｺ蜉帙～generateVideoThumbnail` 竊・ffmpeg libwebp譁ｹ蠑・
+- `generatePreviewFrames`: 繝輔Ξ繝ｼ繝謨ｰ繝ｻ隗｣蜒丞ｺｦ蜑頑ｸ・
+- `regenerateAllThumbnails`: 螳牙・縺ｪDB譖ｴ譁ｰ鬆・ｺ擾ｼ育函謌絶・DB譖ｴ譁ｰ竊呈立繝輔ぃ繧､繝ｫ蜑企勁・・
+- `preload.ts`: `regenerateAllThumbnails` / `onThumbnailRegenerateProgress` 繧・expose
+- `electron.d.ts`: `LibraryStats.thumbnailSize`縲￣hase 24 API 蝙句ｮ夂ｾｩ霑ｽ蜉
+- `StatisticsView.tsx`: recharts 蟷・隴ｦ蜻雁ｯｾ遲厄ｼ・visibility:hidden` + 驕・ｻｶ500ms・・
 
 ---
 
 ## [dev-22c] - 2026-02-18
-### Phase 22-C: フォルダツリーナビゲーション機能
+### Phase 22-C: 繝輔か繝ｫ繝繝・Μ繝ｼ繝翫ン繧ｲ繝ｼ繧ｷ繝ｧ繝ｳ讖溯・
 
 #### Added
-- **Phase 22-C-1**: ドライブ/親フォルダ選択機能
-  - ドライブヘッダークリックで配下全ファイル表示
-  - 親フォルダクリックで配下全ファイル表示（再帰）
-  - `getFilesByDrive`, `getFilesByFolderRecursive` IPC追加
-  - 特殊ID処理（`DRIVE_PREFIX`, `FOLDER_PREFIX`）
-- **Phase 22-C-2**: ファイル移動ダイアログ
-  - `MoveFolderDialog.tsx` 実装（フォルダツリー表示で移動先選択）
-  - 右クリックメニューに「移動」オプション追加
-  - `useUIStore` に移動ダイアログstate追加
+- **Phase 22-C-1**: 繝峨Λ繧､繝・隕ｪ繝輔か繝ｫ繝驕ｸ謚樊ｩ溯・
+  - 繝峨Λ繧､繝悶・繝・ム繝ｼ繧ｯ繝ｪ繝・け縺ｧ驟堺ｸ句・繝輔ぃ繧､繝ｫ陦ｨ遉ｺ
+  - 隕ｪ繝輔か繝ｫ繝繧ｯ繝ｪ繝・け縺ｧ驟堺ｸ句・繝輔ぃ繧､繝ｫ陦ｨ遉ｺ・亥・蟶ｰ・・
+  - `getFilesByDrive`, `getFilesByFolderRecursive` IPC霑ｽ蜉
+  - 迚ｹ谿蟹D蜃ｦ逅・ｼ・DRIVE_PREFIX`, `FOLDER_PREFIX`・・
+- **Phase 22-C-2**: 繝輔ぃ繧､繝ｫ遘ｻ蜍輔ム繧､繧｢繝ｭ繧ｰ
+  - `MoveFolderDialog.tsx` 螳溯｣・ｼ医ヵ繧ｩ繝ｫ繝繝・Μ繝ｼ陦ｨ遉ｺ縺ｧ遘ｻ蜍募・驕ｸ謚橸ｼ・
+  - 蜿ｳ繧ｯ繝ｪ繝・け繝｡繝九Η繝ｼ縺ｫ縲檎ｧｻ蜍輔阪が繝励す繝ｧ繝ｳ霑ｽ蜉
+  - `useUIStore` 縺ｫ遘ｻ蜍輔ム繧､繧｢繝ｭ繧ｰstate霑ｽ蜉
 
 #### Changed
-- DBマイグレーション（008_add_folder_hierarchy）: `folders`テーブルに`parent_id`, `drive`カラム追加
-- `addFolder`関数で`parent_id`, `drive`を自動設定
-- 循環移動防止（自分自身と子孫フォルダを除外）
+- DB繝槭う繧ｰ繝ｬ繝ｼ繧ｷ繝ｧ繝ｳ・・08_add_folder_hierarchy・・ `folders`繝・・繝悶Ν縺ｫ`parent_id`, `drive`繧ｫ繝ｩ繝霑ｽ蜉
+- `addFolder`髢｢謨ｰ縺ｧ`parent_id`, `drive`繧定・蜍戊ｨｭ螳・
+- 蠕ｪ迺ｰ遘ｻ蜍暮亟豁｢・郁・蛻・・霄ｫ縺ｨ蟄仙ｭｫ繝輔か繝ｫ繝繧帝勁螟厄ｼ・
 
 #### Fixed
-- Bug 3: ファイル移動後に古いパスで404エラーが発生する問題（移動後にファイルストアから削除）
+- Bug 3: 繝輔ぃ繧､繝ｫ遘ｻ蜍募ｾ後↓蜿､縺・ヱ繧ｹ縺ｧ404繧ｨ繝ｩ繝ｼ縺檎匱逕溘☆繧句撫鬘鯉ｼ育ｧｻ蜍募ｾ後↓繝輔ぃ繧､繝ｫ繧ｹ繝医い縺九ｉ蜑企勁・・
 
 #### Performance
-- parentIdベースの再帰検索（O(n)パフォーマンス）
-- `path.startsWith()`を使わず、parentMapで子孫検索
+- parentId繝吶・繧ｹ縺ｮ蜀榊ｸｰ讀懃ｴ｢・・(n)繝代ヵ繧ｩ繝ｼ繝槭Φ繧ｹ・・
+- `path.startsWith()`繧剃ｽｿ繧上★縲｝arentMap縺ｧ蟄仙ｭｫ讀懃ｴ｢
 
 ---
 
 ## [dev-21] - 2026-02-17
-### Phase 21: グループ表示改善
+### Phase 21: 繧ｰ繝ｫ繝ｼ繝苓｡ｨ遉ｺ謾ｹ蝟・
 
 #### Added
-- 相対時間区分追加（今日、昨日、今週、先週、2週間前）
-- グループキー仕様実装（`relative:today`など）
-- 表示順序実装（今日→昨日→今週→先週→2週間前→それ以降）
+- 逶ｸ蟇ｾ譎る俣蛹ｺ蛻・ｿｽ蜉・井ｻ頑律縲∵乖譌･縲∽ｻ企ｱ縲∝・騾ｱ縲・騾ｱ髢灘燕・・
+- 繧ｰ繝ｫ繝ｼ繝励く繝ｼ莉墓ｧ伜ｮ溯｣・ｼ・relative:today`縺ｪ縺ｩ・・
+- 陦ｨ遉ｺ鬆・ｺ丞ｮ溯｣・ｼ井ｻ頑律竊呈乖譌･竊剃ｻ企ｱ竊貞・騾ｱ竊・騾ｱ髢灘燕竊偵◎繧御ｻ･髯搾ｼ・
 
 #### Changed
-- 日付グループ化ロジックを拡張（相対時間区分を優先）
-- 日付境界は1回だけ計算（パフォーマンス最適化）
+- 譌･莉倥げ繝ｫ繝ｼ繝怜喧繝ｭ繧ｸ繝・け繧呈僑蠑ｵ・育嶌蟇ｾ譎る俣蛹ｺ蛻・ｒ蜆ｪ蜈茨ｼ・
+- 譌･莉伜｢・阜縺ｯ1蝗槭□縺題ｨ育ｮ暦ｼ医ヱ繝輔か繝ｼ繝槭Φ繧ｹ譛驕ｩ蛹厄ｼ・
 
 #### Performance
-- ループ外で日付境界を計算（O(n)を維持）
-- 既存のメモ化、React.memo、TanStack Virtualを活用
+- 繝ｫ繝ｼ繝怜､悶〒譌･莉伜｢・阜繧定ｨ育ｮ暦ｼ・(n)繧堤ｶｭ謖・ｼ・
+- 譌｢蟄倥・繝｡繝｢蛹悶ヽeact.memo縲ゝanStack Virtual繧呈ｴｻ逕ｨ
 
 ---
 
 ## [dev-20b] - 2026-02-17
-### Phase 20-B: 動画キーボード操作
+### Phase 20-B: 蜍慕判繧ｭ繝ｼ繝懊・繝画桃菴・
 
 #### Added
-- 動画再生時のキーボード操作（Space: 再生/停止、←→: 5秒シーク、↑↓: 音量調整）
-- 日本語入力対応（`e.code`使用）
+- 蜍慕判蜀咲函譎ゅ・繧ｭ繝ｼ繝懊・繝画桃菴懶ｼ・pace: 蜀咲函/蛛懈ｭ｢縲≫・竊・ 5遘偵す繝ｼ繧ｯ縲≫・竊・ 髻ｳ驥剰ｪｿ謨ｴ・・
+- 譌･譛ｬ隱槫・蜉帛ｯｾ蠢懶ｼ・e.code`菴ｿ逕ｨ・・
 
 #### Changed
-- 動画ファイル時はLightboxの矢印キーファイル移動を無効化（シーク操作優先）
+- 蜍慕判繝輔ぃ繧､繝ｫ譎ゅ・Lightbox縺ｮ遏｢蜊ｰ繧ｭ繝ｼ繝輔ぃ繧､繝ｫ遘ｻ蜍輔ｒ辟｡蜉ｹ蛹厄ｼ医す繝ｼ繧ｯ謫堺ｽ懷━蜈茨ｼ・
 
 #### Fixed
-- 日本語入力時にSpaceキーが機能しない問題
-- 矢印キーが既存のLightboxショートカットと競合する問題
+- 譌･譛ｬ隱槫・蜉帶凾縺ｫSpace繧ｭ繝ｼ縺梧ｩ溯・縺励↑縺・撫鬘・
+- 遏｢蜊ｰ繧ｭ繝ｼ縺梧里蟄倥・Lightbox繧ｷ繝ｧ繝ｼ繝医き繝・ヨ縺ｨ遶ｶ蜷医☆繧句撫鬘・
 
 ---
 
 ## [dev-20a] - 2026-02-17
-### Phase 20-A: Lightbox UI再設計
+### Phase 20-A: Lightbox UI蜀崎ｨｭ險・
 
 #### Added
-- Lightbox コンポーネント分離（MediaViewer, ControlOverlay, InfoPanel, MetaSection, TagSection, StatsSection, MemoSection）
-- 常に2カラム固定レイアウト（情報エリア左384px・メディア右可変）
-- 動画・音声音量分離機能（audioVolume設定追加）
-- 設定画面に音声音量スライダー追加
+- Lightbox 繧ｳ繝ｳ繝昴・繝阪Φ繝亥・髮｢・・ediaViewer, ControlOverlay, InfoPanel, MetaSection, TagSection, StatsSection, MemoSection・・
+- 蟶ｸ縺ｫ2繧ｫ繝ｩ繝蝗ｺ螳壹Ξ繧､繧｢繧ｦ繝茨ｼ域ュ蝣ｱ繧ｨ繝ｪ繧｢蟾ｦ384px繝ｻ繝｡繝・ぅ繧｢蜿ｳ蜿ｯ螟会ｼ・
+- 蜍慕判繝ｻ髻ｳ螢ｰ髻ｳ驥丞・髮｢讖溯・・・udioVolume險ｭ螳夊ｿｽ蜉・・
+- 險ｭ螳夂判髱｢縺ｫ髻ｳ螢ｰ髻ｳ驥上せ繝ｩ繧､繝繝ｼ霑ｽ蜉
 
 #### Changed
-- メディアサイズを情報エリアを考慮した値に調整（`calc(100vw - 450px)`）
-- ナビゲーション矢印を下部中央に移動（横並び配置）
-- 音声プレイヤーの幅を拡大（320px → 最大672px）
-- React.memo全適用、Zustand最小購読でパフォーマンス最適化
+- 繝｡繝・ぅ繧｢繧ｵ繧､繧ｺ繧呈ュ蝣ｱ繧ｨ繝ｪ繧｢繧定・・縺励◆蛟､縺ｫ隱ｿ謨ｴ・・calc(100vw - 450px)`・・
+- 繝翫ン繧ｲ繝ｼ繧ｷ繝ｧ繝ｳ遏｢蜊ｰ繧剃ｸ矩Κ荳ｭ螟ｮ縺ｫ遘ｻ蜍包ｼ域ｨｪ荳ｦ縺ｳ驟咲ｽｮ・・
+- 髻ｳ螢ｰ繝励Ξ繧､繝､繝ｼ縺ｮ蟷・ｒ諡｡螟ｧ・・20px 竊・譛螟ｧ672px・・
+- React.memo蜈ｨ驕ｩ逕ｨ縲〇ustand譛蟆剰ｳｼ隱ｭ縺ｧ繝代ヵ繧ｩ繝ｼ繝槭Φ繧ｹ譛驕ｩ蛹・
 
 #### Fixed
-- 音声ファイルで`audioRef`を使用するように修正（`videoRef`使用によるバグ）
-- 書庫内音声も`audioVolume`設定を使用するように修正
+- 髻ｳ螢ｰ繝輔ぃ繧､繝ｫ縺ｧ`audioRef`繧剃ｽｿ逕ｨ縺吶ｋ繧医≧縺ｫ菫ｮ豁｣・・videoRef`菴ｿ逕ｨ縺ｫ繧医ｋ繝舌げ・・
+- 譖ｸ蠎ｫ蜀・浹螢ｰ繧ＡaudioVolume`險ｭ螳壹ｒ菴ｿ逕ｨ縺吶ｋ繧医≧縺ｫ菫ｮ豁｣
 
 ---
 
@@ -228,365 +224,370 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Phase 19.5: Critical Bug Fixes
 
 #### Fixed
-- **EventEmitter メモリリーク警告**: FileCardでの重複イベントリスナー登録をFileGridに集約
-- **ファイル移動後の再スキャン問題**: ファイル移動後に即座にstoreから削除、404エラーとUI更新遅延を解決
-- **複数選択時の削除/移動の不具合**: コンテキストメニューで複数ファイルIDを渡すように修正、選択した全ファイルの削除/移動に対応
-- **重複ファイル検索の再実行不可**: finallyブロックで確実に検索状態をリセット、複数回の検索実行が可能に
-- **孤立サムネイル誤検出**: 孤立判定をDB基準に変更、他のプロファイルのサムネイル誤検出を解決
+- **EventEmitter 繝｡繝｢繝ｪ繝ｪ繝ｼ繧ｯ隴ｦ蜻・*: FileCard縺ｧ縺ｮ驥崎､・う繝吶Φ繝医Μ繧ｹ繝翫・逋ｻ骭ｲ繧巽ileGrid縺ｫ髮・ｴ・
+- **繝輔ぃ繧､繝ｫ遘ｻ蜍募ｾ後・蜀阪せ繧ｭ繝｣繝ｳ蝠城｡・*: 繝輔ぃ繧､繝ｫ遘ｻ蜍募ｾ後↓蜊ｳ蠎ｧ縺ｫstore縺九ｉ蜑企勁縲・04繧ｨ繝ｩ繝ｼ縺ｨUI譖ｴ譁ｰ驕・ｻｶ繧定ｧ｣豎ｺ
+- **隍・焚驕ｸ謚樊凾縺ｮ蜑企勁/遘ｻ蜍輔・荳榊・蜷・*: 繧ｳ繝ｳ繝・く繧ｹ繝医Γ繝九Η繝ｼ縺ｧ隍・焚繝輔ぃ繧､繝ｫID繧呈ｸ｡縺吶ｈ縺・↓菫ｮ豁｣縲・∈謚槭＠縺溷・繝輔ぃ繧､繝ｫ縺ｮ蜑企勁/遘ｻ蜍輔↓蟇ｾ蠢・
+- **驥崎､・ヵ繧｡繧､繝ｫ讀懃ｴ｢縺ｮ蜀榊ｮ溯｡御ｸ榊庄**: finally繝悶Ο繝・け縺ｧ遒ｺ螳溘↓讀懃ｴ｢迥ｶ諷九ｒ繝ｪ繧ｻ繝・ヨ縲∬､・焚蝗槭・讀懃ｴ｢螳溯｡後′蜿ｯ閭ｽ縺ｫ
+- **蟄､遶九し繝繝阪う繝ｫ隱､讀懷・**: 蟄､遶句愛螳壹ｒDB蝓ｺ貅悶↓螟画峩縲∽ｻ悶・繝励Ο繝輔ぃ繧､繝ｫ縺ｮ繧ｵ繝繝阪う繝ｫ隱､讀懷・繧定ｧ｣豎ｺ
 
 ---
 
 ## [dev-28] - 2026-02-21
-### Phase 28: タグUI改善 3パート
+### Phase 28: 繧ｿ繧ｰUI謾ｹ蝟・3繝代・繝・
 
 #### Changed
-- **`TagSelector`**: カテゴリ名横にカラードット表示、カテゴリ/タグを `sortOrder` 昇順ソート、タグ一覧を `grid-cols-2` の2列グリッド表示に変更
-- **`RightPanel/TagSection`**: `<select>`（TagAddDropdown）を `TagSelector` に置換（Lightbox と同一UIに統一）
-- **`TagManagerModal`**: 右ペインのタグリストを `grid-cols-2` 多列表示に変更（一覧性向上）
-- **`TagManagerModal`**: 左ペインにカテゴリD&D機能を実装（`GripVertical` ハンドル + HTML5 D&D、`sortOrder` 一括再採番）
-- **`useTagStore`**: `updateCategory` の引数型に `sortOrder?: number` を追加
+- **`TagSelector`**: 繧ｫ繝・ざ繝ｪ蜷肴ｨｪ縺ｫ繧ｫ繝ｩ繝ｼ繝峨ャ繝郁｡ｨ遉ｺ縲√き繝・ざ繝ｪ/繧ｿ繧ｰ繧・`sortOrder` 譏・・た繝ｼ繝医√ち繧ｰ荳隕ｧ繧・`grid-cols-2` 縺ｮ2蛻励げ繝ｪ繝・ラ陦ｨ遉ｺ縺ｫ螟画峩
+- **`RightPanel/TagSection`**: `<select>`・・agAddDropdown・峨ｒ `TagSelector` 縺ｫ鄂ｮ謠幢ｼ・ightbox 縺ｨ蜷御ｸUI縺ｫ邨ｱ荳・・
+- **`TagManagerModal`**: 蜿ｳ繝壹う繝ｳ縺ｮ繧ｿ繧ｰ繝ｪ繧ｹ繝医ｒ `grid-cols-2` 螟壼・陦ｨ遉ｺ縺ｫ螟画峩・井ｸ隕ｧ諤ｧ蜷台ｸ奇ｼ・
+- **`TagManagerModal`**: 蟾ｦ繝壹う繝ｳ縺ｫ繧ｫ繝・ざ繝ｪD&D讖溯・繧貞ｮ溯｣・ｼ・GripVertical` 繝上Φ繝峨Ν + HTML5 D&D縲～sortOrder` 荳諡ｬ蜀肴治逡ｪ・・
+- **`useTagStore`**: `updateCategory` 縺ｮ蠑墓焚蝙九↓ `sortOrder?: number` 繧定ｿｽ蜉
 
 ---
 
 ## [dev-27.5] - 2026-02-20
-### Phase 27.5: 詳細検索廃止・サイドバー評価フィルター統合
+### Phase 27.5: 隧ｳ邏ｰ讀懃ｴ｢蟒・ｭ｢繝ｻ繧ｵ繧､繝峨ヰ繝ｼ隧穂ｾ｡繝輔ぅ繝ｫ繧ｿ繝ｼ邨ｱ蜷・
 
 #### Removed
-- **AdvancedSearchPanel.tsx** 削除（左サイドバーと機能重複のため廃止）
-- `App.tsx` から詳細検索ボタン・`searchPanelOpen` state・JSX を除去
+- **AdvancedSearchPanel.tsx** 蜑企勁・亥ｷｦ繧ｵ繧､繝峨ヰ繝ｼ縺ｨ讖溯・驥崎､・・縺溘ａ蟒・ｭ｢・・
+- `App.tsx` 縺九ｉ隧ｳ邏ｰ讀懃ｴ｢繝懊ち繝ｳ繝ｻ`searchPanelOpen` state繝ｻJSX 繧帝勁蜴ｻ
 
 #### Added
-- **`RatingFilterPanel.tsx`** 新規作成（`src/components/ratings/`）
-  - blue系（`#2563eb`）の星で「★N以上」フィルターをクリック選択
-  - 同じ星を再クリックで解除（トグル）、評価軸が0件なら非表示
-  - 「全解除」ボタン
-- **Sidebar.tsx**: `TagFilterPanel` 直下に `RatingFilterPanel` を追加（折りたたみ時は非表示）
+- **`RatingFilterPanel.tsx`** 譁ｰ隕丈ｽ懈・・・src/components/ratings/`・・
+  - blue邉ｻ・・#2563eb`・峨・譏溘〒縲娯・N莉･荳翫阪ヵ繧｣繝ｫ繧ｿ繝ｼ繧偵け繝ｪ繝・け驕ｸ謚・
+  - 蜷後§譏溘ｒ蜀阪け繝ｪ繝・け縺ｧ隗｣髯､・医ヨ繧ｰ繝ｫ・峨∬ｩ穂ｾ｡霆ｸ縺・莉ｶ縺ｪ繧蛾撼陦ｨ遉ｺ
+  - 縲悟・隗｣髯､縲阪・繧ｿ繝ｳ
+- **Sidebar.tsx**: `TagFilterPanel` 逶ｴ荳九↓ `RatingFilterPanel` 繧定ｿｽ蜉・域釜繧翫◆縺溘∩譎ゅ・髱櫁｡ｨ遉ｺ・・
 
 #### Changed
-- **`useRatingStore`**: `ratingFilter` state・`setRatingFilter`・`clearRatingFilters` を追加
-- **`useFileStore`**: `getFilteredFiles` を純粋関数化（引数でtagFilter・ratingFilter・fileRatingsを受け取る形式に変更）
-- **`FileGrid.tsx`**: `useMemo` 内のフィルタリングに評価フィルターを統合（未評価ファイルは評価フィルター適用時に除外）
+- **`useRatingStore`**: `ratingFilter` state繝ｻ`setRatingFilter`繝ｻ`clearRatingFilters` 繧定ｿｽ蜉
+- **`useFileStore`**: `getFilteredFiles` 繧堤ｴ皮ｲ矩未謨ｰ蛹厄ｼ亥ｼ墓焚縺ｧtagFilter繝ｻratingFilter繝ｻfileRatings繧貞女縺大叙繧句ｽ｢蠑上↓螟画峩・・
+- **`FileGrid.tsx`**: `useMemo` 蜀・・繝輔ぅ繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ縺ｫ隧穂ｾ｡繝輔ぅ繝ｫ繧ｿ繝ｼ繧堤ｵｱ蜷茨ｼ域悴隧穂ｾ｡繝輔ぃ繧､繝ｫ縺ｯ隧穂ｾ｡繝輔ぅ繝ｫ繧ｿ繝ｼ驕ｩ逕ｨ譎ゅ↓髯､螟厄ｼ・
 
 ---
 
 ## [dev-27] - 2026-02-20
-### Phase 27: 検索UI統合・タググループ化
+### Phase 27: 讀懃ｴ｢UI邨ｱ蜷医・繧ｿ繧ｰ繧ｰ繝ｫ繝ｼ繝怜喧
 
 #### Changed
-- `AdvancedSearchPanel` をカテゴリ別折りたたみ対応に刷新
-- `useUIStore` による開閉状態一元管理を整備
+- `AdvancedSearchPanel` 繧偵き繝・ざ繝ｪ蛻･謚倥ｊ縺溘◆縺ｿ蟇ｾ蠢懊↓蛻ｷ譁ｰ
+- `useUIStore` 縺ｫ繧医ｋ髢矩哩迥ｶ諷倶ｸ蜈・ｮ｡逅・ｒ謨ｴ蛯・
 
 ---
 
 ## [dev-26b] - 2026-02-20
-### Phase 26 (Part 2): タグ・評価システム刷新
+### Phase 26 (Part 2): 繧ｿ繧ｰ繝ｻ隧穂ｾ｡繧ｷ繧ｹ繝・Β蛻ｷ譁ｰ
 
 #### Added
-- **26-A**: `TagManagerModal` を左右ペイン構造に刷新（タグ一覧と詳細編集の分離）
-- **26-B**: 評価軸 DB マイグレーション・`ratingService.ts`・IPC ハンドラ・`electron.d.ts` 型定義追加
-- **26-B3**: `useRatingStore`（Zustand）と評価軸管理UIを実装
-- **26-C1**: `StarRatingInput` コンポーネント・RightPanel 評価セクション実装
-- **26-C2**: Lightbox 評価セクション実装
-- **26-D1**: `searchService.ts`（SQL クエリビルダー）実装
-- **26-D2**: `AdvancedSearchPanel`（詳細検索UI）実装
+- **26-A**: `TagManagerModal` 繧貞ｷｦ蜿ｳ繝壹う繝ｳ讒矩縺ｫ蛻ｷ譁ｰ・医ち繧ｰ荳隕ｧ縺ｨ隧ｳ邏ｰ邱ｨ髮・・蛻・屬・・
+- **26-B**: 隧穂ｾ｡霆ｸ DB 繝槭う繧ｰ繝ｬ繝ｼ繧ｷ繝ｧ繝ｳ繝ｻ`ratingService.ts`繝ｻIPC 繝上Φ繝峨Λ繝ｻ`electron.d.ts` 蝙句ｮ夂ｾｩ霑ｽ蜉
+- **26-B3**: `useRatingStore`・・ustand・峨→隧穂ｾ｡霆ｸ邂｡逅・I繧貞ｮ溯｣・
+- **26-C1**: `StarRatingInput` 繧ｳ繝ｳ繝昴・繝阪Φ繝医・RightPanel 隧穂ｾ｡繧ｻ繧ｯ繧ｷ繝ｧ繝ｳ螳溯｣・
+- **26-C2**: Lightbox 隧穂ｾ｡繧ｻ繧ｯ繧ｷ繝ｧ繝ｳ螳溯｣・
+- **26-D1**: `searchService.ts`・・QL 繧ｯ繧ｨ繝ｪ繝薙Ν繝繝ｼ・牙ｮ溯｣・
+- **26-D2**: `AdvancedSearchPanel`・郁ｩｳ邏ｰ讀懃ｴ｢UI・牙ｮ溯｣・
 
 ---
 
 ## [Unreleased]
 
 ### Changed
-- **プロファイル管理DBの保存先統一**: `profiles.db` を `userData` 固定から `getBasePath()` 基準へ変更し、実データDBと同じ保存先スコープで管理するように変更
-- **metaDb 初期化タイミングの見直し**: `DatabaseManager` の metaDb を遅延初期化に変更し、`initStorageConfig()` 後の保存先設定を確実に反映
-- **旧データ削除処理の整合性向上**: `deleteOldStorageData` で `profiles.db` を除外せず `.db` 全体を削除対象に統一
-- **ZIP運用の更新導線**: `update.bat` を追加し、ZIPファイル選択→展開→上書き更新→再起動をワンステップ化
-- **配布物への同梱設定**: `electron-builder` の `extraFiles` で `update.bat` をリリース版に同梱
+- **繝励Ο繝輔ぃ繧､繝ｫ邂｡逅・B縺ｮ菫晏ｭ伜・邨ｱ荳**: `profiles.db` 繧・`userData` 蝗ｺ螳壹°繧・`getBasePath()` 蝓ｺ貅悶∈螟画峩縺励∝ｮ溘ョ繝ｼ繧ｿDB縺ｨ蜷後§菫晏ｭ伜・繧ｹ繧ｳ繝ｼ繝励〒邂｡逅・☆繧九ｈ縺・↓螟画峩
+- **metaDb 蛻晄悄蛹悶ち繧､繝溘Φ繧ｰ縺ｮ隕狗峩縺・*: `DatabaseManager` 縺ｮ metaDb 繧帝≦蟒ｶ蛻晄悄蛹悶↓螟画峩縺励～initStorageConfig()` 蠕後・菫晏ｭ伜・險ｭ螳壹ｒ遒ｺ螳溘↓蜿肴丐
+- **譌ｧ繝・・繧ｿ蜑企勁蜃ｦ逅・・謨ｴ蜷域ｧ蜷台ｸ・*: `deleteOldStorageData` 縺ｧ `profiles.db` 繧帝勁螟悶○縺・`.db` 蜈ｨ菴薙ｒ蜑企勁蟇ｾ雎｡縺ｫ邨ｱ荳
+- **ZIP驕狗畑縺ｮ譖ｴ譁ｰ蟆守ｷ・*: `update.bat` 繧定ｿｽ蜉縺励〇IP繝輔ぃ繧､繝ｫ驕ｸ謚樞・螻暮幕竊剃ｸ頑嶌縺肴峩譁ｰ竊貞・襍ｷ蜍輔ｒ繝ｯ繝ｳ繧ｹ繝・ャ繝怜喧
+- **驟榊ｸ・黄縺ｸ縺ｮ蜷梧｢ｱ險ｭ螳・*: `electron-builder` 縺ｮ `extraFiles` 縺ｧ `update.bat` 繧偵Μ繝ｪ繝ｼ繧ｹ迚医↓蜷梧｢ｱ
 
 ### Fixed
-- **Tag Manager Modal UI disappear**: `TagManagerModal` を React Portal (`document.body`) 経由で描画するよう変更し、サイドバー配下のレイアウト/重なり順の影響でモーダル表示時に UI 全体が消えたように見える問題を回避
-- **Tag Manager Modal hook order**: `isOpen` による早期 return と `useCallback` の位置関係で Hook 数が変化していたため、D&D ハンドラを通常関数に変更して `Rendered more hooks than during the previous render` を解消
-- **開発版/リリース版のプロファイル中途半端共有**: `appdata` モード時の保存先を `.../userData/dev` と `.../userData/release` に自動分離し、プロファイルが混在しないよう修正
-- **開発版/リリース版のログ共有**: ログ保存先を `.../userData/logs/dev` と `.../userData/logs/release` に自動分離し、検証ログが混在しないよう修正
-- **非Cドライブ環境でのサムネイル表示不安定化対策**: `media://` URL を `media://local/<encoded-path>` 形式に統一し、プロトコル側で新旧URLを両対応することでドライブ文字解釈の曖昧さを解消
-- **書庫サムネイル生成のEXDEVエラー修正**: ドライブ跨ぎ時に `rename` が失敗するケースへ `copy + unlink` フォールバックを追加し、`EXDEV: cross-device link not permitted` を解消
-- **書庫サムネイル抽出の競合対策**: 一時展開先を共通フォルダから UUID サブフォルダ単位に変更し、同時処理時の同名ファイル衝突で「1枚目サムネイルが表示されない」問題を修正
-- **書庫サムネイル抽出のフォールバック強化**: 主経路（entry名一致ファイル）の移動で `ENOENT` が発生した場合でも処理を中断せず、サブフォルダ内画像探索へ継続するよう修正
+- **Tag Manager Modal UI disappear**: `TagManagerModal` 繧・React Portal (`document.body`) 邨檎罰縺ｧ謠冗判縺吶ｋ繧医≧螟画峩縺励√し繧､繝峨ヰ繝ｼ驟堺ｸ九・繝ｬ繧､繧｢繧ｦ繝・驥阪↑繧企・・蠖ｱ髻ｿ縺ｧ繝｢繝ｼ繝繝ｫ陦ｨ遉ｺ譎ゅ↓ UI 蜈ｨ菴薙′豸医∴縺溘ｈ縺・↓隕九∴繧句撫鬘後ｒ蝗樣∩
+- **Tag Manager Modal hook order**: `isOpen` 縺ｫ繧医ｋ譌ｩ譛・return 縺ｨ `useCallback` 縺ｮ菴咲ｽｮ髢｢菫ゅ〒 Hook 謨ｰ縺悟､牙喧縺励※縺・◆縺溘ａ縲．&D 繝上Φ繝峨Λ繧帝壼ｸｸ髢｢謨ｰ縺ｫ螟画峩縺励※ `Rendered more hooks than during the previous render` 繧定ｧ｣豸・
+- **髢狗匱迚・繝ｪ繝ｪ繝ｼ繧ｹ迚医・繝励Ο繝輔ぃ繧､繝ｫ荳ｭ騾泌濠遶ｯ蜈ｱ譛・*: `appdata` 繝｢繝ｼ繝画凾縺ｮ菫晏ｭ伜・繧・`.../userData/dev` 縺ｨ `.../userData/release` 縺ｫ閾ｪ蜍募・髮｢縺励√・繝ｭ繝輔ぃ繧､繝ｫ縺梧ｷｷ蝨ｨ縺励↑縺・ｈ縺・ｿｮ豁｣
+- **髢狗匱迚・繝ｪ繝ｪ繝ｼ繧ｹ迚医・繝ｭ繧ｰ蜈ｱ譛・*: 繝ｭ繧ｰ菫晏ｭ伜・繧・`.../userData/logs/dev` 縺ｨ `.../userData/logs/release` 縺ｫ閾ｪ蜍募・髮｢縺励∵､懆ｨｼ繝ｭ繧ｰ縺梧ｷｷ蝨ｨ縺励↑縺・ｈ縺・ｿｮ豁｣
+- **髱曚繝峨Λ繧､繝也腸蠅・〒縺ｮ繧ｵ繝繝阪う繝ｫ陦ｨ遉ｺ荳榊ｮ牙ｮ壼喧蟇ｾ遲・*: `media://` URL 繧・`media://local/<encoded-path>` 蠖｢蠑上↓邨ｱ荳縺励√・繝ｭ繝医さ繝ｫ蛛ｴ縺ｧ譁ｰ譌ｧURL繧剃ｸ｡蟇ｾ蠢懊☆繧九％縺ｨ縺ｧ繝峨Λ繧､繝匁枚蟄苓ｧ｣驥医・譖匁乂縺輔ｒ隗｣豸・
+- **譖ｸ蠎ｫ繧ｵ繝繝阪う繝ｫ逕滓・縺ｮEXDEV繧ｨ繝ｩ繝ｼ菫ｮ豁｣**: 繝峨Λ繧､繝冶ｷｨ縺取凾縺ｫ `rename` 縺悟､ｱ謨励☆繧九こ繝ｼ繧ｹ縺ｸ `copy + unlink` 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ繧定ｿｽ蜉縺励～EXDEV: cross-device link not permitted` 繧定ｧ｣豸・
+- **譖ｸ蠎ｫ繧ｵ繝繝阪う繝ｫ謚ｽ蜃ｺ縺ｮ遶ｶ蜷亥ｯｾ遲・*: 荳譎ょｱ暮幕蜈医ｒ蜈ｱ騾壹ヵ繧ｩ繝ｫ繝縺九ｉ UUID 繧ｵ繝悶ヵ繧ｩ繝ｫ繝蜊倅ｽ阪↓螟画峩縺励∝酔譎ょ・逅・凾縺ｮ蜷悟錐繝輔ぃ繧､繝ｫ陦晉ｪ√〒縲・譫夂岼繧ｵ繝繝阪う繝ｫ縺瑚｡ｨ遉ｺ縺輔ｌ縺ｪ縺・榊撫鬘後ｒ菫ｮ豁｣
+- **譖ｸ蠎ｫ繧ｵ繝繝阪う繝ｫ謚ｽ蜃ｺ縺ｮ繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ蠑ｷ蛹・*: 荳ｻ邨瑚ｷｯ・・ntry蜷堺ｸ閾ｴ繝輔ぃ繧､繝ｫ・峨・遘ｻ蜍輔〒 `ENOENT` 縺檎匱逕溘＠縺溷ｴ蜷医〒繧ょ・逅・ｒ荳ｭ譁ｭ縺帙★縲√し繝悶ヵ繧ｩ繝ｫ繝蜀・判蜒乗爾邏｢縺ｸ邯咏ｶ壹☆繧九ｈ縺・ｿｮ豁｣
 
 ### Docs
-- README に `lint` / `build` の実行手順を追記
-- ARCHITECTURE のサービス構成例を現行実装寄りに更新
-- CONVENTIONS に lint/build 運用ルールを追加
-- ROADMAP の In Progress を更新
+- README 縺ｫ `lint` / `build` 縺ｮ螳溯｡梧焔鬆・ｒ霑ｽ險・
+- ARCHITECTURE 縺ｮ繧ｵ繝ｼ繝薙せ讒区・萓九ｒ迴ｾ陦悟ｮ溯｣・ｯ・ｊ縺ｫ譖ｴ譁ｰ
+- CONVENTIONS 縺ｫ lint/build 驕狗畑繝ｫ繝ｼ繝ｫ繧定ｿｽ蜉
+- ROADMAP 縺ｮ In Progress 繧呈峩譁ｰ
 
 ---
 
 ## [v1.0.0] - 2026-02-14
-### Release: 初回リリースビルド 🚀
+### Release: 蛻晏屓繝ｪ繝ｪ繝ｼ繧ｹ繝薙Ν繝・噫
 
 #### Added
-- **electron-builder セットアップ**: Windows向けビルド環境構築
-- **リリースビルド**: `MediaArchiver v2.exe` (180MB) 生成成功
-- **ネイティブモジュール対応**: `better-sqlite3`, `sharp`, `ffmpeg-static` の自動リビルド
+- **electron-builder 繧ｻ繝・ヨ繧｢繝・・**: Windows蜷代￠繝薙Ν繝臥腸蠅・ｧ狗ｯ・
+- **繝ｪ繝ｪ繝ｼ繧ｹ繝薙Ν繝・*: `MediaArchiver v2.exe` (180MB) 逕滓・謌仙粥
+- **繝阪う繝・ぅ繝悶Δ繧ｸ繝･繝ｼ繝ｫ蟇ｾ蠢・*: `better-sqlite3`, `sharp`, `ffmpeg-static` 縺ｮ閾ｪ蜍輔Μ繝薙Ν繝・
 
 #### Changed
-- TypeScript厳格モード無効化（個人利用のため`strict: false`）
-- ビルドスクリプト簡略化（TypeScriptチェックをスキップ）
+- TypeScript蜴ｳ譬ｼ繝｢繝ｼ繝臥┌蜉ｹ蛹厄ｼ亥倶ｺｺ蛻ｩ逕ｨ縺ｮ縺溘ａ`strict: false`・・
+- 繝薙Ν繝峨せ繧ｯ繝ｪ繝励ヨ邁｡逡･蛹厄ｼ・ypeScript繝√ぉ繝・け繧偵せ繧ｭ繝・・・・
 
 #### Fixed
-- `electron-squirrel-startup`エラー修正（main.tsから削除）
-- シンボリックリンクエラー対処（管理者権限で実行）
+- `electron-squirrel-startup`繧ｨ繝ｩ繝ｼ菫ｮ豁｣・・ain.ts縺九ｉ蜑企勁・・
+- 繧ｷ繝ｳ繝懊Μ繝・け繝ｪ繝ｳ繧ｯ繧ｨ繝ｩ繝ｼ蟇ｾ蜃ｦ・育ｮ｡逅・・ｨｩ髯舌〒螳溯｡鯉ｼ・
 
 ---
 
 ## [dev-18c] - 2026-02-14
-### Phase 18-C: ファイル操作機能（移動）
+### Phase 18-C: 繝輔ぃ繧､繝ｫ謫堺ｽ懈ｩ溯・・育ｧｻ蜍包ｼ・
 
 #### Added
-- **ファイル移動機能**: 右クリックメニューから登録済みフォルダへファイルを移動可能に
-- **クロスドライブ対応**: 異なるドライブ間の移動（D: → C: など）を自動サポート（copy + delete）
-- **トースト通知**: 移動成功/失敗時のフィードバックを追加
+- **繝輔ぃ繧､繝ｫ遘ｻ蜍墓ｩ溯・**: 蜿ｳ繧ｯ繝ｪ繝・け繝｡繝九Η繝ｼ縺九ｉ逋ｻ骭ｲ貂医∩繝輔か繝ｫ繝縺ｸ繝輔ぃ繧､繝ｫ繧堤ｧｻ蜍募庄閭ｽ縺ｫ
+- **繧ｯ繝ｭ繧ｹ繝峨Λ繧､繝門ｯｾ蠢・*: 逡ｰ縺ｪ繧九ラ繝ｩ繧､繝夜俣縺ｮ遘ｻ蜍包ｼ・: 竊・C: 縺ｪ縺ｩ・峨ｒ閾ｪ蜍輔し繝昴・繝茨ｼ・opy + delete・・
+- **繝医・繧ｹ繝磯夂衍**: 遘ｻ蜍墓・蜉・螟ｱ謨玲凾縺ｮ繝輔ぅ繝ｼ繝峨ヰ繝・け繧定ｿｽ蜉
 
 ---
 
 ## [dev-18b] - 2026-02-14
-### Phase 18-B: 外部アプリ連携UX強化
+### Phase 18-B: 螟夜Κ繧｢繝励Μ騾｣謳ｺUX蠑ｷ蛹・
 
 #### Added
-- **デフォルトアプリ設定機能**: 拡張子ごとに特定の外部アプリをデフォルトとして指定可能に
-- **フォールバック機能**: 指定アプリでの起動失敗時やデフォルト未設定時に自動でOS標準アプリを使用
-- **エラーハンドリング**: 外部アプリ起動失敗時にトースト通知で理由を表示
-- `useSettingsStore`: `defaultExternalApps` 状態と正規化ロジックを追加
+- **繝・ヵ繧ｩ繝ｫ繝医い繝励Μ險ｭ螳壽ｩ溯・**: 諡｡蠑ｵ蟄舌＃縺ｨ縺ｫ迚ｹ螳壹・螟夜Κ繧｢繝励Μ繧偵ョ繝輔か繝ｫ繝医→縺励※謖・ｮ壼庄閭ｽ縺ｫ
+- **繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ讖溯・**: 謖・ｮ壹い繝励Μ縺ｧ縺ｮ襍ｷ蜍募､ｱ謨玲凾繧・ョ繝輔か繝ｫ繝域悴險ｭ螳壽凾縺ｫ閾ｪ蜍輔〒OS讓呎ｺ悶い繝励Μ繧剃ｽｿ逕ｨ
+- **繧ｨ繝ｩ繝ｼ繝上Φ繝峨Μ繝ｳ繧ｰ**: 螟夜Κ繧｢繝励Μ襍ｷ蜍募､ｱ謨玲凾縺ｫ繝医・繧ｹ繝磯夂衍縺ｧ逅・罰繧定｡ｨ遉ｺ
+- `useSettingsStore`: `defaultExternalApps` 迥ｶ諷九→豁｣隕丞喧繝ｭ繧ｸ繝・け繧定ｿｽ蜉
 
 #### Changed
-- `app:openWithApp` IPC: 例外の代わりに `{ success, error }` を返す安全な設計に変更
-- `FileCard`: デフォルト設定がある場合のみ外部アプリを使用（なければ即OS標準）
+- `app:openWithApp` IPC: 萓句､悶・莉｣繧上ｊ縺ｫ `{ success, error }` 繧定ｿ斐☆螳牙・縺ｪ險ｭ險医↓螟画峩
+- `FileCard`: 繝・ヵ繧ｩ繝ｫ繝郁ｨｭ螳壹′縺ゅｋ蝣ｴ蜷医・縺ｿ螟夜Κ繧｢繝励Μ繧剃ｽｿ逕ｨ・医↑縺代ｌ縺ｰ蜊ｳOS讓呎ｺ厄ｼ・
 
 ---
 
 ## [dev-18a] - 2026-02-14
-### Phase 18-A: 外部アプリ起動カウント（最小構成）
+### Phase 18-A: 螟夜Κ繧｢繝励Μ襍ｷ蜍輔き繧ｦ繝ｳ繝茨ｼ域怙蟆乗ｧ区・・・
 
 #### Added
-- **外部アプリ起動カウント機能**: 外部アプリ起動時に `external_open_count` をインクリメント
-- Database: Migration 007 で `external_open_count` と `last_external_opened_at` カラム追加
-- FileCard: 起動回数表示（2行目に `↗N回` 表示）
-- `incrementExternalOpenCount` 関数追加（`database.ts`）
-- `useFileStore` に `updateFileExternalOpenCount` アクション追加
+- **螟夜Κ繧｢繝励Μ襍ｷ蜍輔き繧ｦ繝ｳ繝域ｩ溯・**: 螟夜Κ繧｢繝励Μ襍ｷ蜍墓凾縺ｫ `external_open_count` 繧偵う繝ｳ繧ｯ繝ｪ繝｡繝ｳ繝・
+- Database: Migration 007 縺ｧ `external_open_count` 縺ｨ `last_external_opened_at` 繧ｫ繝ｩ繝霑ｽ蜉
+- FileCard: 襍ｷ蜍募屓謨ｰ陦ｨ遉ｺ・・陦檎岼縺ｫ `竊湧蝗杼 陦ｨ遉ｺ・・
+- `incrementExternalOpenCount` 髢｢謨ｰ霑ｽ蜉・・database.ts`・・
+- `useFileStore` 縺ｫ `updateFileExternalOpenCount` 繧｢繧ｯ繧ｷ繝ｧ繝ｳ霑ｽ蜉
 
 #### Changed
-- `app:openWithApp` IPC ハンドラに `fileId` 引数追加、カウント統合
-- `electron.d.ts` の `openWithApp` 型定義更新
+- `app:openWithApp` IPC 繝上Φ繝峨Λ縺ｫ `fileId` 蠑墓焚霑ｽ蜉縲√き繧ｦ繝ｳ繝育ｵｱ蜷・
+- `electron.d.ts` 縺ｮ `openWithApp` 蝙句ｮ夂ｾｩ譖ｴ譁ｰ
 
 #### Fixed
-- `ipc/database.ts` の手動マッピング漏れ問題（前回の失敗原因）を解消
+- `ipc/database.ts` 縺ｮ謇句虚繝槭ャ繝斐Φ繧ｰ貍上ｌ蝠城｡鯉ｼ亥燕蝗槭・螟ｱ謨怜次蝗・峨ｒ隗｣豸・
 
 ---
 
 ## [dev-17] - 2026-02-12
-### Phase 17: アクセストラッキング機能
+### Phase 17: 繧｢繧ｯ繧ｻ繧ｹ繝医Λ繝・く繝ｳ繧ｰ讖溯・
 
 #### Added
-- **アクセス回数カウント機能**: Lightbox でファイルを開いた際に自動カウント（全ファイルタイプ対応）
-- **直近アクセス日時記録**: `last_accessed_at` カラム追加（タイムスタンプ）
-- **ソート機能拡張**: 「アクセス回数」「直近アクセス」の2つのソートオプション追加
-- Database: Migration 006 で `access_count` と `last_accessed_at` カラム追加、インデックス作成
-- FileCard: アクセス回数表示（2行目に統合、Eye アイコン）
+- **繧｢繧ｯ繧ｻ繧ｹ蝗樊焚繧ｫ繧ｦ繝ｳ繝域ｩ溯・**: Lightbox 縺ｧ繝輔ぃ繧､繝ｫ繧帝幕縺・◆髫帙↓閾ｪ蜍輔き繧ｦ繝ｳ繝茨ｼ亥・繝輔ぃ繧､繝ｫ繧ｿ繧､繝怜ｯｾ蠢懶ｼ・
+- **逶ｴ霑代い繧ｯ繧ｻ繧ｹ譌･譎りｨ倬鹸**: `last_accessed_at` 繧ｫ繝ｩ繝霑ｽ蜉・医ち繧､繝繧ｹ繧ｿ繝ｳ繝暦ｼ・
+- **繧ｽ繝ｼ繝域ｩ溯・諡｡蠑ｵ**: 縲後い繧ｯ繧ｻ繧ｹ蝗樊焚縲阪檎峩霑代い繧ｯ繧ｻ繧ｹ縲阪・2縺､縺ｮ繧ｽ繝ｼ繝医が繝励す繝ｧ繝ｳ霑ｽ蜉
+- Database: Migration 006 縺ｧ `access_count` 縺ｨ `last_accessed_at` 繧ｫ繝ｩ繝霑ｽ蜉縲√う繝ｳ繝・ャ繧ｯ繧ｹ菴懈・
+- FileCard: 繧｢繧ｯ繧ｻ繧ｹ蝗樊焚陦ｨ遉ｺ・・陦檎岼縺ｫ邨ｱ蜷医・ye 繧｢繧､繧ｳ繝ｳ・・
 
 #### Changed
-- 「再生回数」から「アクセス回数」に変更（より汎用的な機能に）
-- 3秒ルール削除: Lightbox 表示時に即座にカウント
-- 全ファイルタイプ対応: 画像・動画・音声・書庫すべてでカウント
+- 縲悟・逕溷屓謨ｰ縲阪°繧峨後い繧ｯ繧ｻ繧ｹ蝗樊焚縲阪↓螟画峩・医ｈ繧頑ｱ守畑逧・↑讖溯・縺ｫ・・
+- 3遘偵Ν繝ｼ繝ｫ蜑企勁: Lightbox 陦ｨ遉ｺ譎ゅ↓蜊ｳ蠎ｧ縺ｫ繧ｫ繧ｦ繝ｳ繝・
+- 蜈ｨ繝輔ぃ繧､繝ｫ繧ｿ繧､繝怜ｯｾ蠢・ 逕ｻ蜒上・蜍慕判繝ｻ髻ｳ螢ｰ繝ｻ譖ｸ蠎ｫ縺吶∋縺ｦ縺ｧ繧ｫ繧ｦ繝ｳ繝・
 
 ---
 
 ## [dev-16] - 2026-02-12
-### Phase 16: FileCard インタラクション修正
+### Phase 16: FileCard 繧､繝ｳ繧ｿ繝ｩ繧ｯ繧ｷ繝ｧ繝ｳ菫ｮ豁｣
 
 #### Fixed
-- FileCard のクリック挙動改善: サムネイルクリック時のみ Lightbox 起動
-- 複数選択機能の修復: Ctrl/Shift クリックでの複数選択が動作するように修正
+- FileCard 縺ｮ繧ｯ繝ｪ繝・け謖吝虚謾ｹ蝟・ 繧ｵ繝繝阪う繝ｫ繧ｯ繝ｪ繝・け譎ゅ・縺ｿ Lightbox 襍ｷ蜍・
+- 隍・焚驕ｸ謚樊ｩ溯・縺ｮ菫ｮ蠕ｩ: Ctrl/Shift 繧ｯ繝ｪ繝・け縺ｧ縺ｮ隍・焚驕ｸ謚槭′蜍穂ｽ懊☆繧九ｈ縺・↓菫ｮ豁｣
 
 ---
 
 ## [dev-15] - 2026-02-11
-### Phase 15: アニメーションバッジ修正 & UI改善
+### Phase 15: 繧｢繝九Γ繝ｼ繧ｷ繝ｧ繝ｳ繝舌ャ繧ｸ菫ｮ豁｣ & UI謾ｹ蝟・
 
 #### Added
-- FileCard: 作成日時表示の追加（Standardモード、YY/MM/DD形式）
-- FileCard: `getTagBackgroundColor` ヘルパー関数（色名→CSS hex値マッピング）
-- **タグ表示スタイル切替オプション**（塗りつぶし/左端ライン）: 設定画面で選択可能に
+- FileCard: 菴懈・譌･譎り｡ｨ遉ｺ縺ｮ霑ｽ蜉・・tandard繝｢繝ｼ繝峨〆Y/MM/DD蠖｢蠑擾ｼ・
+- FileCard: `getTagBackgroundColor` 繝倥Ν繝代・髢｢謨ｰ・郁牡蜷坂・CSS hex蛟､繝槭ャ繝斐Φ繧ｰ・・
+- **繧ｿ繧ｰ陦ｨ遉ｺ繧ｹ繧ｿ繧､繝ｫ蛻・崛繧ｪ繝励す繝ｧ繝ｳ**・亥｡励ｊ縺､縺ｶ縺・蟾ｦ遶ｯ繝ｩ繧､繝ｳ・・ 險ｭ螳夂判髱｢縺ｧ驕ｸ謚槫庄閭ｽ縺ｫ
 
 #### Changed
-- アニメーションバッジを「GIF」ラベルから Clapperboard アイコン（「ANIM」）に変更
-- ファイルサイズ表示を `formatFileSize` に統一（1MB未満の 0.0MB 問題を解消）
-- バッジ配色を半透明ダーク系に統一（`bg-xxx-800/80`）
-- タグ配色の視認性改善:
-  - 黄色系タグ（amber/yellow/lime/orange）の文字色を黒に変更
-  - TagManagerModal のカラーピッカーを Tailwind クラスに修正（CSS変数未定義問題を解消）
+- 繧｢繝九Γ繝ｼ繧ｷ繝ｧ繝ｳ繝舌ャ繧ｸ繧偵隈IF縲阪Λ繝吶Ν縺九ｉ Clapperboard 繧｢繧､繧ｳ繝ｳ・医窟NIM縲搾ｼ峨↓螟画峩
+- 繝輔ぃ繧､繝ｫ繧ｵ繧､繧ｺ陦ｨ遉ｺ繧・`formatFileSize` 縺ｫ邨ｱ荳・・MB譛ｪ貅縺ｮ 0.0MB 蝠城｡後ｒ隗｣豸茨ｼ・
+- 繝舌ャ繧ｸ驟崎牡繧貞濠騾乗・繝繝ｼ繧ｯ邉ｻ縺ｫ邨ｱ荳・・bg-xxx-800/80`・・
+- 繧ｿ繧ｰ驟崎牡縺ｮ隕冶ｪ肴ｧ謾ｹ蝟・
+  - 鮟・牡邉ｻ繧ｿ繧ｰ・・mber/yellow/lime/orange・峨・譁・ｭ苓牡繧帝ｻ偵↓螟画峩
+  - TagManagerModal 縺ｮ繧ｫ繝ｩ繝ｼ繝斐ャ繧ｫ繝ｼ繧・Tailwind 繧ｯ繝ｩ繧ｹ縺ｫ菫ｮ豁｣・・SS螟画焚譛ｪ螳夂ｾｩ蝠城｡後ｒ隗｣豸茨ｼ・
 
 #### Fixed
-- IPC層（`ipc/database.ts`）で `isAnimated` フィールドが欠落していた問題
-- FileCard インラインタグで色名文字列（`"amber"` 等）が無効なCSS値として適用されていた問題
-- ポップオーバー内のタグ色が表示されない問題（Tailwindクラス修正、型安全性向上）
+- IPC螻､・・ipc/database.ts`・峨〒 `isAnimated` 繝輔ぅ繝ｼ繝ｫ繝峨′谺關ｽ縺励※縺・◆蝠城｡・
+- FileCard 繧､繝ｳ繝ｩ繧､繝ｳ繧ｿ繧ｰ縺ｧ濶ｲ蜷肴枚蟄怜・・・"amber"` 遲会ｼ峨′辟｡蜉ｹ縺ｪCSS蛟､縺ｨ縺励※驕ｩ逕ｨ縺輔ｌ縺ｦ縺・◆蝠城｡・
+- 繝昴ャ繝励が繝ｼ繝舌・蜀・・繧ｿ繧ｰ濶ｲ縺瑚｡ｨ遉ｺ縺輔ｌ縺ｪ縺・撫鬘鯉ｼ・ailwind繧ｯ繝ｩ繧ｹ菫ｮ豁｣縲∝梛螳牙・諤ｧ蜷台ｸ奇ｼ・
 
 ---
 
 ## [dev-14] - 2026-02-10
-### Phase 14: 表示モードシステムとレイアウト改善
+### Phase 14: 陦ｨ遉ｺ繝｢繝ｼ繝峨す繧ｹ繝・Β縺ｨ繝ｬ繧､繧｢繧ｦ繝域隼蝟・
 
 #### Added
-- Compact / Standard 表示モード切り替え機能
-- タグポップオーバー表示（`+N` ボタンで全タグ展開、クリック/ホバー切り替え対応）
-- `DISPLAY_MODE_CONFIGS` 定数と Zustand 拡張
+- Compact / Standard 陦ｨ遉ｺ繝｢繝ｼ繝牙・繧頑崛縺域ｩ溯・
+- 繧ｿ繧ｰ繝昴ャ繝励が繝ｼ繝舌・陦ｨ遉ｺ・・+N` 繝懊ち繝ｳ縺ｧ蜈ｨ繧ｿ繧ｰ螻暮幕縲√け繝ｪ繝・け/繝帙ヰ繝ｼ蛻・ｊ譖ｿ縺亥ｯｾ蠢懶ｼ・
+- `DISPLAY_MODE_CONFIGS` 螳壽焚縺ｨ Zustand 諡｡蠑ｵ
 
 #### Changed
-- FileCard レイアウト刷新: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
-- Compact モード: 2行レイアウト（ファイル名 + サイズ＆タグ）、タグ最大2個表示
-- カード幅拡大（Standard: 300px）
-- グリッドレイアウトの高さ固定化（TanStack Virtual 対応）
-- フォント最適化、レスポンシブレイアウト（カード幅自動調整、余白最小化）
+- FileCard 繝ｬ繧､繧｢繧ｦ繝亥姐譁ｰ: 3陦後Ξ繧､繧｢繧ｦ繝茨ｼ医ヵ繧｡繧､繝ｫ蜷・+ 繝輔か繝ｫ繝蜷・+ 繧ｵ繧､繧ｺ・・ち繧ｰ・・
+- Compact 繝｢繝ｼ繝・ 2陦後Ξ繧､繧｢繧ｦ繝茨ｼ医ヵ繧｡繧､繝ｫ蜷・+ 繧ｵ繧､繧ｺ・・ち繧ｰ・峨√ち繧ｰ譛螟ｧ2蛟玖｡ｨ遉ｺ
+- 繧ｫ繝ｼ繝牙ｹ・僑螟ｧ・・tandard: 300px・・
+- 繧ｰ繝ｪ繝・ラ繝ｬ繧､繧｢繧ｦ繝医・鬮倥＆蝗ｺ螳壼喧・・anStack Virtual 蟇ｾ蠢懶ｼ・
+- 繝輔か繝ｳ繝域怙驕ｩ蛹悶√Ξ繧ｹ繝昴Φ繧ｷ繝悶Ξ繧､繧｢繧ｦ繝茨ｼ医き繝ｼ繝牙ｹ・・蜍戊ｪｿ謨ｴ縲∽ｽ咏區譛蟆丞喧・・
 
 ---
 
 ## [dev-13] - 2026-02-09 ~ 2026-02-10
-### Phase 13 & 13.5: FileCard 基礎設計 & タグ視認性改善
+### Phase 13 & 13.5: FileCard 蝓ｺ遉手ｨｭ險・& 繧ｿ繧ｰ隕冶ｪ肴ｧ謾ｹ蝟・
 
 #### Added
-- Database: `files` テーブルに `is_animated` カラム追加（Migration 005）
-- Scanner: GIF/WebP のアニメーション判定ロジック
-- FileCard: フォルダ名表示（`utils/path.ts`）、タグ省略表記（`utils/tag.ts`）
+- Database: `files` 繝・・繝悶Ν縺ｫ `is_animated` 繧ｫ繝ｩ繝霑ｽ蜉・・igration 005・・
+- Scanner: GIF/WebP 縺ｮ繧｢繝九Γ繝ｼ繧ｷ繝ｧ繝ｳ蛻､螳壹Ο繧ｸ繝・け
+- FileCard: 繝輔か繝ｫ繝蜷崎｡ｨ遉ｺ・・utils/path.ts`・峨√ち繧ｰ逵∫払陦ｨ險假ｼ・utils/tag.ts`・・
 
 #### Changed
-- FileCard: 情報エリアを下寄せ・縦積み構造に刷新（Virtual Scroll 対応）
-- タグ表示をサムネイル上から下段情報エリアへ移動し、常時表示・完全不透明化
-- タグ・バッジの配色を CSS 変数（デザイントークン）化
+- FileCard: 諠・ｱ繧ｨ繝ｪ繧｢繧剃ｸ句ｯ・○繝ｻ邵ｦ遨阪∩讒矩縺ｫ蛻ｷ譁ｰ・・irtual Scroll 蟇ｾ蠢懶ｼ・
+- 繧ｿ繧ｰ陦ｨ遉ｺ繧偵し繝繝阪う繝ｫ荳翫°繧我ｸ区ｮｵ諠・ｱ繧ｨ繝ｪ繧｢縺ｸ遘ｻ蜍輔＠縲∝ｸｸ譎り｡ｨ遉ｺ繝ｻ螳悟・荳埼乗・蛹・
+- 繧ｿ繧ｰ繝ｻ繝舌ャ繧ｸ縺ｮ驟崎牡繧・CSS 螟画焚・医ョ繧ｶ繧､繝ｳ繝医・繧ｯ繝ｳ・牙喧
 
 ---
 
 ## [dev-12c] - 2026-02-09
-### Phase 12 後半: UI/UX改善（削除・サムネイル・進捗表示）
+### Phase 12 蠕悟濠: UI/UX謾ｹ蝟・ｼ亥炎髯､繝ｻ繧ｵ繝繝阪う繝ｫ繝ｻ騾ｲ謐苓｡ｨ遉ｺ・・
 
 #### Added
-- ファイル削除の安全性向上: ゴミ箱移動（`shell.trashItem`）をデフォルト化、二重確認
-- `DeleteConfirmDialog.tsx`: チェックボックス付きカスタム削除ダイアログ（キーボード対応）
-- ストレージクリーンアップ: 孤立サムネイルの検出・削除機能
-- 設定 UI 改善: 独立した「サムネイル」タブを追加
-- サムネイル再生成時の進捗表示・トースト通知
+- 繝輔ぃ繧､繝ｫ蜑企勁縺ｮ螳牙・諤ｧ蜷台ｸ・ 繧ｴ繝溽ｮｱ遘ｻ蜍包ｼ・shell.trashItem`・峨ｒ繝・ヵ繧ｩ繝ｫ繝亥喧縲∽ｺ碁㍾遒ｺ隱・
+- `DeleteConfirmDialog.tsx`: 繝√ぉ繝・け繝懊ャ繧ｯ繧ｹ莉倥″繧ｫ繧ｹ繧ｿ繝蜑企勁繝繧､繧｢繝ｭ繧ｰ・医く繝ｼ繝懊・繝牙ｯｾ蠢懶ｼ・
+- 繧ｹ繝医Ξ繝ｼ繧ｸ繧ｯ繝ｪ繝ｼ繝ｳ繧｢繝・・: 蟄､遶九し繝繝阪う繝ｫ縺ｮ讀懷・繝ｻ蜑企勁讖溯・
+- 險ｭ螳・UI 謾ｹ蝟・ 迢ｬ遶九＠縺溘後し繝繝阪う繝ｫ縲阪ち繝悶ｒ霑ｽ蜉
+- 繧ｵ繝繝阪う繝ｫ蜀咲函謌先凾縺ｮ騾ｲ謐苓｡ｨ遉ｺ繝ｻ繝医・繧ｹ繝磯夂衍
 
 #### Changed
-- サムネイル再作成最適化: プレビューフレーム存在確認、不要な再生成スキップ
-- ffmpeg に `-threads 1` 指定（コイル鳴き軽減）
-- 重複ファイル削除は強制的にゴミ箱移動
+- 繧ｵ繝繝阪う繝ｫ蜀堺ｽ懈・譛驕ｩ蛹・ 繝励Ξ繝薙Η繝ｼ繝輔Ξ繝ｼ繝蟄伜惠遒ｺ隱阪∽ｸ崎ｦ√↑蜀咲函謌舌せ繧ｭ繝・・
+- ffmpeg 縺ｫ `-threads 1` 謖・ｮ夲ｼ医さ繧､繝ｫ魑ｴ縺崎ｻｽ貂幢ｼ・
+- 驥崎､・ヵ繧｡繧､繝ｫ蜑企勁縺ｯ蠑ｷ蛻ｶ逧・↓繧ｴ繝溽ｮｱ遘ｻ蜍・
 
 #### Fixed
-- サムネイル再作成時にプレビューフレームが再生成されない問題
-- プレビューフレーム設定 0 の場合にスキャナーが再スキャンし続ける問題
-- DB にフレーム記録があるが実ファイルが削除されている場合の検出・再生成
+- 繧ｵ繝繝阪う繝ｫ蜀堺ｽ懈・譎ゅ↓繝励Ξ繝薙Η繝ｼ繝輔Ξ繝ｼ繝縺悟・逕滓・縺輔ｌ縺ｪ縺・撫鬘・
+- 繝励Ξ繝薙Η繝ｼ繝輔Ξ繝ｼ繝險ｭ螳・0 縺ｮ蝣ｴ蜷医↓繧ｹ繧ｭ繝｣繝翫・縺悟・繧ｹ繧ｭ繝｣繝ｳ縺礼ｶ壹￠繧句撫鬘・
+- DB 縺ｫ繝輔Ξ繝ｼ繝險倬鹸縺後≠繧九′螳溘ヵ繧｡繧､繝ｫ縺悟炎髯､縺輔ｌ縺ｦ縺・ｋ蝣ｴ蜷医・讀懷・繝ｻ蜀咲函謌・
 
 ---
 
 ## [dev-12b] - 2026-02-07
-### Phase 12 中盤: タグ拡張・設定改善
+### Phase 12 荳ｭ逶､: 繧ｿ繧ｰ諡｡蠑ｵ繝ｻ險ｭ螳壽隼蝟・
 
 #### Added
-- タグにアイコン・説明文を追加（Migration 003: icon, description 列）
-- タグフィルターパネルに検索機能（名前・説明文で検索）、ツールチップ表示
-- 自動タグ割り当て機能 MVP: ファイル名/フォルダ名ベースのルール、一括適用ボタン
-- `auto_tag_rules` テーブル追加（Migration 004）
-- lucide-react アイコンの動的レンダリング
+- 繧ｿ繧ｰ縺ｫ繧｢繧､繧ｳ繝ｳ繝ｻ隱ｬ譏取枚繧定ｿｽ蜉・・igration 003: icon, description 蛻暦ｼ・
+- 繧ｿ繧ｰ繝輔ぅ繝ｫ繧ｿ繝ｼ繝代ロ繝ｫ縺ｫ讀懃ｴ｢讖溯・・亥錐蜑阪・隱ｬ譏取枚縺ｧ讀懃ｴ｢・峨√ヤ繝ｼ繝ｫ繝√ャ繝苓｡ｨ遉ｺ
+- 閾ｪ蜍輔ち繧ｰ蜑ｲ繧雁ｽ薙※讖溯・ MVP: 繝輔ぃ繧､繝ｫ蜷・繝輔か繝ｫ繝蜷阪・繝ｼ繧ｹ縺ｮ繝ｫ繝ｼ繝ｫ縲∽ｸ諡ｬ驕ｩ逕ｨ繝懊ち繝ｳ
+- `auto_tag_rules` 繝・・繝悶Ν霑ｽ蜉・・igration 004・・
+- lucide-react 繧｢繧､繧ｳ繝ｳ縺ｮ蜍慕噪繝ｬ繝ｳ繝繝ｪ繝ｳ繧ｰ
 
 #### Changed
-- Header 右上の設定ボタン削除（サイドバーに移設済み）
-- 音声書庫ファイルのアイコンを `FileMusic` に変更
+- Header 蜿ｳ荳翫・險ｭ螳壹・繧ｿ繝ｳ蜑企勁・医し繧､繝峨ヰ繝ｼ縺ｫ遘ｻ險ｭ貂医∩・・
+- 髻ｳ螢ｰ譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ縺ｮ繧｢繧､繧ｳ繝ｳ繧・`FileMusic` 縺ｫ螟画峩
 
 ---
 
 ## [dev-12a] - 2026-02-02 ~ 2026-02-06
-### Phase 12 前半: UI/UX改善と機能強化
+### Phase 12 蜑榊濠: UI/UX謾ｹ蝟・→讖溯・蠑ｷ蛹・
 
 #### Added
-- トースト通知システム（`useToastStore`: success/error/info）
-- フォルダビュー拡張: FileGrid にフォルダカード表示、代表サムネイル
-- スクラブモードシークバー（マウス位置連動、シアン色）
-- ファイルカード表示カスタマイズ: サイズ切替（S/M/L）、表示項目 ON/OFF
-- スキャン進捗表示改善: 最小化ボタン、サイドバーインジケーター、シマーアニメーション
+- 繝医・繧ｹ繝磯夂衍繧ｷ繧ｹ繝・Β・・useToastStore`: success/error/info・・
+- 繝輔か繝ｫ繝繝薙Η繝ｼ諡｡蠑ｵ: FileGrid 縺ｫ繝輔か繝ｫ繝繧ｫ繝ｼ繝芽｡ｨ遉ｺ縲∽ｻ｣陦ｨ繧ｵ繝繝阪う繝ｫ
+- 繧ｹ繧ｯ繝ｩ繝悶Δ繝ｼ繝峨す繝ｼ繧ｯ繝舌・・医・繧ｦ繧ｹ菴咲ｽｮ騾｣蜍輔√す繧｢繝ｳ濶ｲ・・
+- 繝輔ぃ繧､繝ｫ繧ｫ繝ｼ繝芽｡ｨ遉ｺ繧ｫ繧ｹ繧ｿ繝槭う繧ｺ: 繧ｵ繧､繧ｺ蛻・崛・・/M/L・峨∬｡ｨ遉ｺ鬆・岼 ON/OFF
+- 繧ｹ繧ｭ繝｣繝ｳ騾ｲ謐苓｡ｨ遉ｺ謾ｹ蝟・ 譛蟆丞喧繝懊ち繝ｳ縲√し繧､繝峨ヰ繝ｼ繧､繝ｳ繧ｸ繧ｱ繝ｼ繧ｿ繝ｼ縲√す繝槭・繧｢繝九Γ繝ｼ繧ｷ繝ｧ繝ｳ
 
 #### Changed
-- Z-Index 階層を CSS 変数化（8 コンポーネント更新）
-- カスタムプロトコル `media://` 導入（`file://` からの移行、webSecurity 有効化）
-- CSP 設定追加、PieChart 固定サイズ化、遅延レンダリング
-- タグ表示を Pop-over 展開方式に変更、`categoryColor` による動的ボーダー
-- 孤立サムネイル診断機能追加（設定画面）
+- Z-Index 髫主ｱ､繧・CSS 螟画焚蛹厄ｼ・ 繧ｳ繝ｳ繝昴・繝阪Φ繝域峩譁ｰ・・
+- 繧ｫ繧ｹ繧ｿ繝繝励Ο繝医さ繝ｫ `media://` 蟆主・・・file://` 縺九ｉ縺ｮ遘ｻ陦後『ebSecurity 譛牙柑蛹厄ｼ・
+- CSP 險ｭ螳夊ｿｽ蜉縲￣ieChart 蝗ｺ螳壹し繧､繧ｺ蛹悶・≦蟒ｶ繝ｬ繝ｳ繝繝ｪ繝ｳ繧ｰ
+- 繧ｿ繧ｰ陦ｨ遉ｺ繧・Pop-over 螻暮幕譁ｹ蠑上↓螟画峩縲～categoryColor` 縺ｫ繧医ｋ蜍慕噪繝懊・繝繝ｼ
+- 蟄､遶九し繝繝阪う繝ｫ險ｺ譁ｭ讖溯・霑ｽ蜉・郁ｨｭ螳夂判髱｢・・
 
 #### Fixed
-- Lightbox 表示問題: `object-fit: contain` + `max-width/max-height` 適用
-- 書庫内音声の音量設定が反映されない問題
-- `media://` プロトコルの Range リクエスト対応（動画シーク修正）
+- Lightbox 陦ｨ遉ｺ蝠城｡・ `object-fit: contain` + `max-width/max-height` 驕ｩ逕ｨ
+- 譖ｸ蠎ｫ蜀・浹螢ｰ縺ｮ髻ｳ驥剰ｨｭ螳壹′蜿肴丐縺輔ｌ縺ｪ縺・撫鬘・
+- `media://` 繝励Ο繝医さ繝ｫ縺ｮ Range 繝ｪ繧ｯ繧ｨ繧ｹ繝亥ｯｾ蠢懶ｼ亥虚逕ｻ繧ｷ繝ｼ繧ｯ菫ｮ豁｣・・
 
 ---
 
 ## [dev-11] - 2026-02-02
-### Phase 11: 統計・ログ機能
+### Phase 11: 邨ｱ險医・繝ｭ繧ｰ讖溯・
 
 #### Added
-- カテゴリ別統計: ファイルタイプ別円グラフ、タグ別棒グラフ、フォルダ別棒グラフ、月別推移
-- 追加統計: 評価分布、巨大ファイル Top 10、拡張子ランキング、解像度分布
-- アクティビティログ: タイムライン表示、フィルタ機能、30日自動削除
+- 繧ｫ繝・ざ繝ｪ蛻･邨ｱ險・ 繝輔ぃ繧､繝ｫ繧ｿ繧､繝怜挨蜀・げ繝ｩ繝輔√ち繧ｰ蛻･譽偵げ繝ｩ繝輔√ヵ繧ｩ繝ｫ繝蛻･譽偵げ繝ｩ繝輔∵怦蛻･謗ｨ遘ｻ
+- 霑ｽ蜉邨ｱ險・ 隧穂ｾ｡蛻・ｸ・∝ｷｨ螟ｧ繝輔ぃ繧､繝ｫ Top 10縲∵僑蠑ｵ蟄舌Λ繝ｳ繧ｭ繝ｳ繧ｰ縲∬ｧ｣蜒丞ｺｦ蛻・ｸ・
+- 繧｢繧ｯ繝・ぅ繝薙ユ繧｣繝ｭ繧ｰ: 繧ｿ繧､繝繝ｩ繧､繝ｳ陦ｨ遉ｺ縲√ヵ繧｣繝ｫ繧ｿ讖溯・縲・0譌･閾ｪ蜍募炎髯､
 
 ---
 
 ## [dev-10] - 2026-02-02
-### Phase 10: データベース基盤強化
+### Phase 10: 繝・・繧ｿ繝吶・繧ｹ蝓ｺ逶､蠑ｷ蛹・
 
 #### Added
-- DB スキーママイグレーションシステム（`migrations/index.ts`）
-- 初期スキーマ定義、バージョン管理
+- DB 繧ｹ繧ｭ繝ｼ繝槭・繧､繧ｰ繝ｬ繝ｼ繧ｷ繝ｧ繝ｳ繧ｷ繧ｹ繝・Β・・migrations/index.ts`・・
+- 蛻晄悄繧ｹ繧ｭ繝ｼ繝槫ｮ夂ｾｩ縲√ヰ繝ｼ繧ｸ繝ｧ繝ｳ邂｡逅・
 
 ---
 
 ## [dev-9] - 2026-02-02
-### Phase 9: コア機能の拡張
+### Phase 9: 繧ｳ繧｢讖溯・縺ｮ諡｡蠑ｵ
 
 #### Added
-- 音声ファイル対応（mp3, wav, flac, m4a, ogg, aac, wma）、アルバムアート抽出
-- ファイルハッシュ計算（SHA256）と重複検出（サイズ衝突戦略）
-- 「すべてのファイル」ビュー
-- メモ機能（LightBox 内自動保存 UI）
+- 髻ｳ螢ｰ繝輔ぃ繧､繝ｫ蟇ｾ蠢懶ｼ・p3, wav, flac, m4a, ogg, aac, wma・峨√い繝ｫ繝舌Β繧｢繝ｼ繝域歓蜃ｺ
+- 繝輔ぃ繧､繝ｫ繝上ャ繧ｷ繝･險育ｮ暦ｼ・HA256・峨→驥崎､・､懷・・医し繧､繧ｺ陦晉ｪ∵姶逡･・・
+- 縲後☆縺ｹ縺ｦ縺ｮ繝輔ぃ繧､繝ｫ縲阪ン繝･繝ｼ
+- 繝｡繝｢讖溯・・・ightBox 蜀・・蜍穂ｿ晏ｭ・UI・・
 
 ---
 
 ## [dev-8] - 2026-02-02
-### Phase 8: データ整合性の強化
+### Phase 8: 繝・・繧ｿ謨ｴ蜷域ｧ縺ｮ蠑ｷ蛹・
 
 #### Added
-- サムネイル・プレビューフレームの自動削除（ファイル/フォルダ/プロファイル削除時）
-- トランザクション処理（100件ごとバッチ、10〜100倍高速化）
-- エラーログシステム（`electron-log`、ログビューアー）
+- 繧ｵ繝繝阪う繝ｫ繝ｻ繝励Ξ繝薙Η繝ｼ繝輔Ξ繝ｼ繝縺ｮ閾ｪ蜍募炎髯､・医ヵ繧｡繧､繝ｫ/繝輔か繝ｫ繝/繝励Ο繝輔ぃ繧､繝ｫ蜑企勁譎ゑｼ・
+- 繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ蜃ｦ逅・ｼ・00莉ｶ縺斐→繝舌ャ繝√・0縲・00蛟埼ｫ倬溷喧・・
+- 繧ｨ繝ｩ繝ｼ繝ｭ繧ｰ繧ｷ繧ｹ繝・Β・・electron-log`縲√Ο繧ｰ繝薙Η繝ｼ繧｢繝ｼ・・
 
 ---
 
 ## [dev-1~7] - 2026-01-30 ~ 2026-02-02
-### Phase 1-7: コア実装・UI機能・ブラッシュアップ
+### Phase 1-7: 繧ｳ繧｢螳溯｣・・UI讖溯・繝ｻ繝悶Λ繝・す繝･繧｢繝・・
 
 #### Added
-- **Phase 1**: Vite + Electron + TypeScript 基盤、Zustand ストア、SQLite DB、IPC 通信
-- **Phase 2**: フォルダスキャン、ファイル操作、UI連携（Sidebar/FileGrid/FileCard/TanStack Virtual）、サムネイル生成（FFmpeg/Sharp）
-- **Phase 3**: サイドバー開閉、フォルダ右クリックメニュー、ファイルソート、LightBox、ファイルコンテキストメニュー
-- **Phase 4**: 書庫ファイル対応（ZIP/RAR/7Z/CBZ/CBR）、書庫内プレビュー
-- **Phase 5**: タグ管理システム（CRUD/フィルタ/AND・OR モード）、検索機能、設定画面
-- **Phase 6**: プロファイル切り替え（DB 分割）、サムネイルホバー（scrub/play）
-- **Phase 7**: キーボードショートカット、パフォーマンス最適化、アニメーション
+- **Phase 1**: Vite + Electron + TypeScript 蝓ｺ逶､縲〇ustand 繧ｹ繝医い縲ヾQLite DB縲！PC 騾壻ｿ｡
+- **Phase 2**: 繝輔か繝ｫ繝繧ｹ繧ｭ繝｣繝ｳ縲√ヵ繧｡繧､繝ｫ謫堺ｽ懊ゞI騾｣謳ｺ・・idebar/FileGrid/FileCard/TanStack Virtual・峨√し繝繝阪う繝ｫ逕滓・・・Fmpeg/Sharp・・
+- **Phase 3**: 繧ｵ繧､繝峨ヰ繝ｼ髢矩哩縲√ヵ繧ｩ繝ｫ繝蜿ｳ繧ｯ繝ｪ繝・け繝｡繝九Η繝ｼ縲√ヵ繧｡繧､繝ｫ繧ｽ繝ｼ繝医´ightBox縲√ヵ繧｡繧､繝ｫ繧ｳ繝ｳ繝・く繧ｹ繝医Γ繝九Η繝ｼ
+- **Phase 4**: 譖ｸ蠎ｫ繝輔ぃ繧､繝ｫ蟇ｾ蠢懶ｼ・IP/RAR/7Z/CBZ/CBR・峨∵嶌蠎ｫ蜀・・繝ｬ繝薙Η繝ｼ
+- **Phase 5**: 繧ｿ繧ｰ邂｡逅・す繧ｹ繝・Β・・RUD/繝輔ぅ繝ｫ繧ｿ/AND繝ｻOR 繝｢繝ｼ繝会ｼ峨∵､懃ｴ｢讖溯・縲∬ｨｭ螳夂判髱｢
+- **Phase 6**: 繝励Ο繝輔ぃ繧､繝ｫ蛻・ｊ譖ｿ縺茨ｼ・B 蛻・牡・峨√し繝繝阪う繝ｫ繝帙ヰ繝ｼ・・crub/play・・
+- **Phase 7**: 繧ｭ繝ｼ繝懊・繝峨す繝ｧ繝ｼ繝医き繝・ヨ縲√ヱ繝輔か繝ｼ繝槭Φ繧ｹ譛驕ｩ蛹悶√い繝九Γ繝ｼ繧ｷ繝ｧ繝ｳ
 
 #### Fixed
-- Preload script ESM→CJS ビルド問題
-- `thumbnail_path` / `thumbnailPath` 命名不一致
-- `tagService.ts` が古い `media.db` を参照していた問題
-- ソート設定の永続化問題
+- Preload script ESM竊辰JS 繝薙Ν繝牙撫鬘・
+- `thumbnail_path` / `thumbnailPath` 蜻ｽ蜷堺ｸ堺ｸ閾ｴ
+- `tagService.ts` 縺悟商縺・`media.db` 繧貞盾辣ｧ縺励※縺・◆蝠城｡・
+- 繧ｽ繝ｼ繝郁ｨｭ螳壹・豌ｸ邯壼喧蝠城｡・
 
 ---
 
-## バージョン管理方針
+## 繝舌・繧ｸ繝ｧ繝ｳ邂｡逅・婿驥・
 
-- **`dev-XX`**: 開発マイルストーン（Phase 番号ベース）。CHANGELOGの管理単位。
-- **`v2.x.x`**: アプリのリリースバージョン。正式リリース時に `dev-XX` をまとめて付与。
-- 複数 Phase を同日にまとめた場合は `dev-1~7` のように範囲表記。
-- Phase 12 のように大きなフェーズはサブバージョン（`dev-12a`, `dev-12b`, `dev-12c`）で分割。
+- **`dev-XX`**: 髢狗匱繝槭う繝ｫ繧ｹ繝医・繝ｳ・・hase 逡ｪ蜿ｷ繝吶・繧ｹ・峨・HANGELOG縺ｮ邂｡逅・腰菴阪・
+- **`v2.x.x`**: 繧｢繝励Μ縺ｮ繝ｪ繝ｪ繝ｼ繧ｹ繝舌・繧ｸ繝ｧ繝ｳ縲よｭ｣蠑上Μ繝ｪ繝ｼ繧ｹ譎ゅ↓ `dev-XX` 繧偵∪縺ｨ繧√※莉倅ｸ弱・
+- 隍・焚 Phase 繧貞酔譌･縺ｫ縺ｾ縺ｨ繧√◆蝣ｴ蜷医・ `dev-1~7` 縺ｮ繧医≧縺ｫ遽・峇陦ｨ險倥・
+- Phase 12 縺ｮ繧医≧縺ｫ螟ｧ縺阪↑繝輔ぉ繝ｼ繧ｺ縺ｯ繧ｵ繝悶ヰ繝ｼ繧ｸ繝ｧ繝ｳ・・dev-12a`, `dev-12b`, `dev-12c`・峨〒蛻・牡縲・
+
+
+
+
+
