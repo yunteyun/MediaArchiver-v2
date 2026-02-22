@@ -7,6 +7,7 @@ import { isArchive, getArchiveThumbnail } from './archiveHandler';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
+import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 
 const log = logger.scope('Thumbnail');
 
@@ -81,7 +82,7 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
                     '-vframes', '1',
                     '-vf', `scale=${resolution}:-1`,
                     '-vcodec', 'libwebp',
-                    '-quality', '75',
+                    '-quality', String(THUMBNAIL_WEBP_QUALITY.video),
                     '-threads', '1',  // コイル鳴き軽減
                 ])
                 .seekInput(seekSec)
@@ -166,7 +167,7 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                 .outputOptions([
                     '-threads', '1',  // コイル鳴き軽減
                     '-vcodec', 'libwebp',
-                    '-quality', '70',
+                    '-quality', String(THUMBNAIL_WEBP_QUALITY.previewFrame),
                 ])
                 .screenshots({
                     count: frameCount,
@@ -211,7 +212,7 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
 }
 
 /**
- * 静止画サムネイルを WebP で生成（quality: 82）
+ * 静止画サムネイルを WebP で生成
  */
 async function generateImageThumbnail(imagePath: string, resolution: number = 320): Promise<string | null> {
     const outputPath = createThumbnailOutputPath('image', '.webp', getCurrentProfileIdForThumbnails());
@@ -219,7 +220,7 @@ async function generateImageThumbnail(imagePath: string, resolution: number = 32
     try {
         await sharp(imagePath)
             .resize(resolution, null, { fit: 'inside', withoutEnlargement: true })
-            .webp({ quality: 82 })
+            .webp({ quality: THUMBNAIL_WEBP_QUALITY.image })
             .toFile(outputPath);
         return outputPath;
     } catch (err) {

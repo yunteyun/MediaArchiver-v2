@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { createThumbnailOutputPath, getThumbnailRootDir } from './thumbnailPaths';
+import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 
 const log = logger.scope('ArchiveHandler');
 
@@ -117,7 +118,7 @@ async function saveArchiveThumbnailAsWebp(
     try {
         await sharp(srcImagePath)
             .resize(320, null, { fit: 'inside', withoutEnlargement: true })
-            .webp({ quality: 82 })
+            .webp({ quality: THUMBNAIL_WEBP_QUALITY.archive })
             .toFile(outPath);
         return outPath;
     } catch (e) {
