@@ -8,6 +8,7 @@
 import { path7za } from '7zip-bin';
 import path from 'path';
 import fs from 'fs';
+import sharp from 'sharp';
 import { app } from 'electron';
 import { execFile } from 'child_process';
 import util from 'util';
@@ -105,6 +106,23 @@ function moveFileSafe(src: string, dst: string): void {
             return;
         }
         throw e;
+    }
+}
+
+async function saveArchiveThumbnailAsWebp(
+    srcImagePath: string,
+    profileId: string | null
+): Promise<string | null> {
+    const outPath = createThumbnailOutputPath('archive', '.webp', profileId);
+    try {
+        await sharp(srcImagePath)
+            .resize(320, null, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: 82 })
+            .toFile(outPath);
+        return outPath;
+    } catch (e) {
+        log.warn(`Archive thumbnail WebP conversion failed: ${srcImagePath}`, e);
+        return null;
     }
 }
 
@@ -241,7 +259,7 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 
         const entryName = metadata.firstImageEntry;
         const ext = path.extname(entryName) || '.jpg';
-        const outPath = createThumbnailOutputPath('archive', ext, getCurrentProfileIdForThumbnails());
+        const profileId = getCurrentProfileIdForThumbnails();
         const extractId = uuidv4();
         const subDir = path.join(getTempDir(), extractId);
         fs.mkdirSync(subDir, { recursive: true });
@@ -282,13 +300,24 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 
         if (fs.existsSync(extractedPath)) {
             try {
-                moveFileSafe(extractedPath, outPath);
+                const webpPath = await saveArchiveThumbnailAsWebp(extractedPath, profileId);
+                if (webpPath) {
+                    try {
+                        fs.rmSync(subDir, { recursive: true, force: true });
+                    } catch {
+                        // ignore cleanup errors
+                    }
+                    return webpPath;
+                }
+
+                const fallbackOutPath = createThumbnailOutputPath('archive', ext, profileId);
+                moveFileSafe(extractedPath, fallbackOutPath);
                 try {
                     fs.rmSync(subDir, { recursive: true, force: true });
                 } catch {
                     // ignore cleanup errors
                 }
-                return outPath;
+                return fallbackOutPath;
             } catch (moveErr) {
                 // If exact filename move fails (e.g. race or archive extraction variance),
                 // continue to fallback scan in subDir instead of aborting thumbnail generation.
@@ -305,14 +334,27 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 
         if (imageFile) {
             const foundPath = path.join(subDir, imageFile);
-            moveFileSafe(foundPath, outPath);
+            const fallbackExt = path.extname(imageFile) || ext;
+            const webpPath = await saveArchiveThumbnailAsWebp(foundPath, profileId);
+            if (webpPath) {
+                log.info('Found image via fallback:', imageFile);
+                try {
+                    fs.rmSync(subDir, { recursive: true, force: true });
+                } catch {
+                    // ignore cleanup errors
+                }
+                return webpPath;
+            }
+
+            const fallbackOutPath = createThumbnailOutputPath('archive', fallbackExt, profileId);
+            moveFileSafe(foundPath, fallbackOutPath);
             log.info('Found image via fallback:', imageFile);
             try {
                 fs.rmSync(subDir, { recursive: true, force: true });
             } catch {
                 // ignore cleanup errors
             }
-            return outPath;
+            return fallbackOutPath;
         }
 
         try {
