@@ -3,7 +3,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { getBasePath } from './storageConfig';
 
-export type ThumbnailKind = 'image' | 'video' | 'audio' | 'archive' | 'preview';
+export type ThumbnailKind = 'image' | 'video' | 'audio' | 'archive' | 'preview' | 'archive-preview';
 
 const PROFILE_ROOT_DIR = 'profiles';
 const FALLBACK_PROFILE_ID = '_global';

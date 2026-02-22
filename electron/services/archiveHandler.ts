@@ -129,9 +129,10 @@ async function saveArchiveThumbnailAsWebp(
 
 async function saveArchivePreviewFrameAsWebp(
     srcImagePath: string,
-    extractId: string
+    extractId: string,
+    profileId: string | null
 ): Promise<string | null> {
-    const outPath = path.join(getTempDir(), `preview_${extractId}.webp`);
+    const outPath = createThumbnailOutputPath('archive-preview', '.webp', profileId);
     try {
         await sharp(srcImagePath)
             .resize(256, null, { fit: 'inside', withoutEnlargement: true })
@@ -430,13 +431,13 @@ export async function getArchivePreviewFrames(
         }
 
         const previewPaths: string[] = [];
+        const profileId = getCurrentProfileIdForThumbnails();
 
         for (const entryName of selectedImages) {
             const ext = path.extname(entryName) || '.jpg';
             const extractId = uuidv4();
             const subDir = path.join(getTempDir(), extractId);
-            const fallbackOutName = `preview_${extractId}${ext}`;
-            const fallbackOutPath = path.join(getTempDir(), fallbackOutName);
+            const fallbackOutPath = createThumbnailOutputPath('archive-preview', ext, profileId);
 
             try {
                 // Phase 26: UUID 繧ｵ繝悶ヵ繧ｩ繝ｫ繝縺ｫ隗｣蜃阪＠縺ｦ蜷悟錐繝輔ぃ繧､繝ｫ遶ｶ蜷医ｒ髦ｲ縺・
@@ -450,7 +451,7 @@ export async function getArchivePreviewFrames(
                 const extractedPath = path.join(subDir, extractedBasename);
 
                 if (fs.existsSync(extractedPath)) {
-                    const webpPath = await saveArchivePreviewFrameAsWebp(extractedPath, extractId);
+                    const webpPath = await saveArchivePreviewFrameAsWebp(extractedPath, extractId, profileId);
                     if (webpPath) {
                         previewPaths.push(webpPath);
                     } else {
