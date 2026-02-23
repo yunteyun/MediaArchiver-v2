@@ -1,6 +1,15 @@
-# implementation_plan.md
+# implementation_plan.md（更新版 / 現状追従）
+
+## この文書の位置づけ
+
+- 初版の「着手前計画」をベースに、`1.1.3d5` 時点の実績を反映した継続実装計画
+- 目的は「次に着手する人が、完了済み/未完了をすぐ判断できる状態」を維持すること
+- 実コードの仕様書ではなく、残作業と確認観点の整理を主目的とする
+
+---
 
 ## 対象
+
 - 対象機能: サムネイル保存管理（thumbnail / preview frames / archive thumbnail）
 - 対象範囲: Electron main 側の生成・保存・削除・クリーンアップ・統計・保存先移行
 - 目的:
@@ -10,142 +19,458 @@
 
 ---
 
-## 背景（現状の問題）
+## 現状（実績反映済みの整理）
 
-- サムネイル保存先は主に `getBasePath()/thumbnails` 直下だが、サービスごとに前提が揺れている
-- `databaseManager.ts` ではプロファイル削除時に `thumbnails/<profileId>` を削除しようとしている（将来構造前提）
-- `statisticsService.ts` に `userData/thumbnails` 固定参照が残っており、保存モードとズレる可能性がある
-- `thumbnailCleanupService.ts` は「現在DB」と「ディスク上サムネイルDir」を突き合わせるため、共有構造だとプロファイル間で誤検出の余地がある
-- `storageConfig.ts` は DB 内の `thumbnail_path` / `preview_frames` 文字列置換で移行しており、絶対パス保存前提のコストが高い
+### 解消済み（完了）
+
+- 共通パス解決 `electron/services/thumbnailPaths.ts` を導入済み（Step 1）
+- 主要生成系（画像 / 動画 / 音声 / 書庫 / 動画プレビュー）の新保存構造への切替を実施済み（Step 2）
+- 書庫サムネイルの優先 WebP 保存 + 失敗時フォールバックを実施済み
+- 書庫プレビューフレームの WebP 化、および `archive-preview` 配下への統一を実施済み
+- 書庫プレビューフレームの固定キャッシュ化（右サイドバー / Lightbox 間の重複生成削減）を実施済み
+
+### 一部解消済み（要追確認）
+
+- `thumbnailCleanupService.ts` / 削除処理で `preview_frames` 形式差（JSON配列 / カンマ区切り）への両対応を追加済み
+- cleanup 診断で旧保存構造（`thumbnails` 直下）フォールバックを追加済み（移行途中向け）
+- `statisticsService.ts` の容量表示は旧構造フォールバックを追加済みだが、新旧混在時の整合確認は継続対象
+
+### 未対応 / 残課題
+
+- `storageConfig.ts` の保存場所切替/移行ロジックに対する新構造影響の整理
+- `thumbnail_path` / `preview_frames` の絶対パス前提コスト（文字列置換ベース）の評価
+- cleanup / 統計 / 削除 / profile delete の新旧構造共存時の総合確認
 
 ---
 
-## 設計案（比較）
+## 採用済みの設計方針（比較フェーズの結論）
 
-### 案1: プロファイル単位ディレクトリ（推奨）
-- 構造例:
-  - `<basePath>/thumbnails/<profileId>/thumbs/...`
-  - `<basePath>/thumbnails/<profileId>/previews/...`
-- 長所:
-  - プロファイル削除・cleanup・切り分けが簡単
-  - 現在の `databaseManager.ts` の削除方針と整合しやすい
-  - 実装コストが比較的低い
-- 短所:
-  - プロファイルをまたいだ重複サムネイルは共有しない
+- 採用済み方針: **種別 + プロファイル単位**
+- 現在のベース構造:
+  - `<basePath>/thumbnails/profiles/<profileId>/image/`
+  - `<basePath>/thumbnails/profiles/<profileId>/video/`
+  - `<basePath>/thumbnails/profiles/<profileId>/audio/`
+  - `<basePath>/thumbnails/profiles/<profileId>/archive/`
+  - `<basePath>/thumbnails/profiles/<profileId>/preview/`
+  - `<basePath>/thumbnails/profiles/<profileId>/archive-preview/`
+- グローバル共有キャッシュ（参照カウント管理あり）は今回は採用しない
 
-### 案2: 種別 + プロファイル単位（整理強化）
-- 構造例:
-  - `<basePath>/thumbnails/<profileId>/image/`
-  - `<basePath>/thumbnails/<profileId>/video/`
-  - `<basePath>/thumbnails/<profileId>/archive/`
-  - `<basePath>/thumbnails/<profileId>/preview_frames/`
-- 長所:
-  - 診断・削除・将来の容量管理がさらにやりやすい
-  - 不具合切り分け時に「どの生成系が作ったか」が見えやすい
-- 短所:
-  - 実装箇所が案1より増える
+---
 
-### 案3: グローバル共有キャッシュ（ハッシュベース）
-- 長所:
-  - 重複削減の余地
-- 短所:
-  - 参照カウント/整合性管理が必要
-  - 今回の安定化目的に対して過剰
+## `thumbnailPaths.ts` 現行インターフェース（実コード準拠）
 
-### 推奨結論
-- 今回は **案2（種別 + プロファイル単位）** を推奨
-- ただし実装は段階化して、まずは案1相当の「プロファイル単位」を先に成立させる
+### `ThumbnailKind`
+
+- `'image' | 'video' | 'audio' | 'archive' | 'preview' | 'archive-preview'`
+
+### 代表関数（現行名）
+
+- `getThumbnailRootDir()`
+- `getProfileThumbnailRootDir(profileId?)`
+- `getThumbnailKindDir(kind, profileId?)`
+- `ensureThumbnailKindDir(kind, profileId?)`
+- `createThumbnailOutputPath(kind, ext, profileId?)`
+- `createPreviewFramesDir(videoId, profileId?)`
+- `createArchivePreviewFramesDir(cacheKey, profileId?)`
 
 ---
 
 ## パス表現（DB保存形式）方針
 
-### 方式A: 絶対パスのまま（短期）
-- 既存コードに合わせやすい
-- 実装が速い
-- ただし保存場所変更時の文字列置換コストは継続
+### 現在の運用（継続）
 
-### 方式B: 相対パス保存（中期推奨）
-- DBには `thumbnails/<profileId>/...` など相対パスを保存
-- 表示/FSアクセス時に `getBasePath()` で解決
-- 保存場所変更時のDB書換え負担を減らせる
+- 当面は絶対パス保存を維持（既存コードと整合しやすく、変更リスクが低い）
+- 保存場所切替時は `thumbnail_path` / `preview_frames` の更新ロジック影響を確認する
 
-### 今回の提案
-- **段階1:** 絶対パスのまま保存構造だけ統一（安全・速い）
-- **段階2:** 相対パス化を別タスクで実施（必要なら）
+### 別タスク候補（今回は未着手）
+
+- 相対パス保存化（例: `thumbnails/profiles/<profileId>/...` をDB保存）
+- 目的: 保存場所変更時のDB書換えコスト削減
+- 本計画では「評価・影響整理」まで。実装は別タスク扱い
 
 ---
 
-## 実装ステップ（提案）
+## 実装ステップ（進捗反映版）
 
-### Step 1: 共通パス解決の導入
-- 新規サービス（例: `electron/services/thumbnailPaths.ts`）を追加
-- 提供関数（案）
-  - `getThumbnailsRoot()`
-  - `getProfileThumbnailRoot(profileId?: string)`
-  - `getThumbnailOutputDir(kind: 'image' | 'video' | 'archive' | 'preview')`
-  - `ensureThumbnailDirs(profileId?: string)`
+### Step 1: 共通パス解決の導入（完了）
 
-### Step 2: 生成系の切替
-- `electron/services/thumbnail.ts`
-- `electron/services/archiveHandler.ts`
-- preview frame 生成処理
-- 生成先を共通 resolver 経由に統一
+- `electron/services/thumbnailPaths.ts` 導入済み
+- 主要サービスでパス解決共通化の土台を整備済み
 
-### Step 3: 消費系の切替
-- `electron/services/thumbnailCleanupService.ts`
-- `electron/services/statisticsService.ts`
-- `electron/services/database.ts`（削除時のファイル削除）
-- `electron/services/databaseManager.ts`（プロファイル削除時のサムネイルDir削除）
+### Step 2: 生成系の切替（完了）
 
-### Step 4: 保存先移行/切替との整合
-- `electron/services/storageConfig.ts`
-- 保存場所切替時のコピー/移行対象ディレクトリを新構造に対応
-- `thumbnail_path` / `preview_frames` 更新ロジックの影響確認
+- 対象: `electron/services/thumbnail.ts`, `electron/services/archiveHandler.ts`, preview frame 生成処理
+- 新保存構造（プロファイル + 種別）への切替済み
+- 追加調整（完了）:
+  - 書庫サムネイル WebP 化 + フォールバック
+  - 書庫プレビューフレーム WebP 化 + `archive-preview` 統一
+  - 固定キャッシュ化
+  - 品質値調整（`previewFrame=40`, `384px`）
 
-### Step 5: cleanup / 再生成 / 検証
-- 既存クリーンアップが誤検出しないか確認
-- 再生成（単体 / 全件）が新構造に保存されるか確認
-- 初回スキャン/再スキャン/プロファイル切替/保存場所切替を確認
+### Step 3: 消費系の切替（一部完了 / 継続）
+
+- 対象:
+  - `electron/services/thumbnailCleanupService.ts`
+  - `electron/services/statisticsService.ts`
+  - `electron/services/database.ts`（削除時のファイル削除）
+  - `electron/services/databaseManager.ts`（プロファイル削除時のサムネイルDir削除）
+- 実施済み（部分）:
+  - `preview_frames` 形式差の両対応（cleanup / 削除）
+  - cleanup 診断で旧構造フォールバック
+  - cleanup 診断の旧構造フォールバック時に、全プロファイルDB参照を集約してプロファイル跨ぎ誤検出を抑制
+  - 統計で旧構造フォールバック
+- 残作業:
+  - 新旧構造共存時の挙動確認（cleanup / 統計 / 削除 / profile delete）
+  - プロファイル跨ぎ誤検出の再確認
+- 確認状況メモ（現時点）:
+  - 新構造での稼働確認は概ね正常に完了
+  - 旧構造データが存在しないため、旧構造 fallback の実地確認は未実施
+  - 現時点は「新構造正常稼働」をもって Step 3 を実質前進扱いとし、旧構造実地確認は保留（必要時のみ再実施）
+
+### Step 4: 保存先移行/切替との整合（実質完了 / 継続監視）
+
+- 対象: `electron/services/storageConfig.ts`
+- 実施内容:
+  - 保存場所切替時のコピー/移行対象ディレクトリが新構造を取りこぼさないか確認
+  - `thumbnail_path` / `preview_frames` 更新ロジックの影響整理
+  - 絶対パス前提コストの評価（相対パス化は別タスクのまま維持）
+- 確認状況メモ（現時点）:
+  - サムネイル保存場所の移動/削除機能は正常動作を確認
+  - 書庫プレビューフレーム固定キャッシュ（`archive-preview`）が孤立サムネイル判定に含まれる問題を修正済み
+  - `storageConfig.ts` の移行処理は `thumbnails` を再帰コピーしており、新構造（`profiles/<profile>/<kind>`）の取りこぼしは見当たらない
+  - `thumbnail_path` / `preview_frames` のパス更新判定を `instr()` ベースに調整し、JSON配列/カンマ区切り/形式差での取りこぼしを抑制
+  - 現行運用（絶対パス保存 + 移行時文字列更新）としては実用上の整合を確認
+  - 残件は「相対パス化を別タスクで行うか」の設計判断・優先度評価（実装不具合の解消ではない）
+
+### Step 5: cleanup / 再生成 / 検証（実質完了 / 回帰監視）
+
+- 手動検証シナリオをチェックリスト化し、再現性のある確認手順にする
+- 確認対象:
+  - 初回スキャン
+  - 再スキャン
+  - プロファイル切替
+  - 保存場所切替
+  - cleanup
+  - 再生成（単体 / 全件）
+- 現状整理（2026-02-23）:
+  - 主要導線（保存場所切替 / cleanup / 単体再生成 / 表示確認）で実害となる不具合を検出・修正済み
+  - フォルダカード代表サムネイル `404` は修正後に復旧確認済み
+  - 最小回帰確認（再スキャン / 再生成 / プロファイル切替 / cleanup 後確認）を一通り実施
+  - 現時点では致命的な回帰は未検出。以後は回帰監視として扱う
 
 ---
 
-## 今回の非機能方針（ユーザー前提）
+## Step 5 の手動検証チェックリスト（新構造運用）
+
+### 目的
+
+- 新保存構造（`thumbnails/profiles/<profile>/<kind>`）で、主要操作の前後整合が崩れないことを確認する
+- UI表示（サムネイル / 書庫プレビュー）と保存実体（ディスク / DB / cleanup）が一致することを確認する
+
+### 事前準備（推奨）
+
+- テスト用プロファイルを2つ用意する（例: `default`, `test-profile`）
+- 以下のファイル種別を最低1件ずつ含むフォルダを用意する
+  - 画像
+  - 動画
+  - 音声
+  - 書庫（画像入り）
+- 書庫プレビューの確認用に、ページ数が十分ある書庫（10ページ以上推奨）を1件用意する
+- 保存場所切替テスト前に、現在の `basePath` と切替先パスを控える
+
+### A. 初回スキャン
+
+- 手順
+  - 新規プロファイルまたは未登録フォルダでスキャンを実行する
+  - スキャン完了後、各種ファイルを一覧表示・選択する
+- 期待結果
+  - 画像/動画/音声/書庫のサムネイルが表示される
+  - 書庫プレビュー（右サイドバー / Lightbox）が表示される
+  - ディスク上に `thumbnails/profiles/<profile>/...` 配下が生成される
+  - `archive-preview` 配下に書庫プレビューフレーム固定キャッシュが生成される
+
+### B. 再スキャン
+
+- 手順
+  - 同じフォルダを再スキャンする
+  - スキャン前後で代表ファイルの表示を比較する
+- 期待結果
+  - サムネイル表示が崩れない
+  - 書庫プレビューフレームが過剰に再生成されない（固定キャッシュ再利用）
+  - DBエラーや重複生成由来の警告が目立って増えない
+
+### C. プロファイル切替
+
+- 手順
+  - プロファイルAでサムネイル生成済み状態を作る
+  - プロファイルBへ切替し、別データセットまたは空状態を表示する
+  - 再度プロファイルAへ戻る
+- 期待結果
+  - プロファイルごとにサムネイル表示が混ざらない
+  - `thumbnails/profiles/<profileA>` と `<profileB>` が分離される
+  - cleanup / 統計表示がアクティブプロファイル基準で動く
+
+### D. 保存場所切替（Step 4連動）
+
+- 手順
+  - 保存場所を別パスへ切替する（appdata/install/custom の想定操作）
+  - 切替後にアプリ表示を確認する
+  - 書庫プレビュー（右サイドバー / Lightbox）も開く
+- 期待結果
+  - `thumbnails` ディレクトリが新保存先へ移動/コピーされる
+  - `thumbnail_path` / `preview_frames` の参照が切替後も有効
+  - `preview_frames` が JSON配列形式 / カンマ区切り形式いずれでも参照切れにならない
+  - 書庫プレビュー固定キャッシュ（`archive-preview`）も新保存先で利用できる
+
+### E. cleanup（孤立サムネイル診断 / 削除）
+
+- 手順
+  - 孤立サムネイル診断を実行する
+  - 必要なら削除を実行する
+  - 書庫プレビュー表示を再確認する
+- 期待結果
+  - `archive-preview` 固定キャッシュが孤立扱いされない
+  - DB参照中の `thumbnail_path` / `preview_frames` は削除されない
+  - 削除後も通常表示・書庫プレビュー表示が維持される（必要なものは残る）
+
+### F. 再生成（単体 / 全件）
+
+- 手順
+  - 単体ファイルのサムネイル再生成を実行する
+  - 全件再生成（可能なら）を実行する
+  - 書庫ファイルは Lightbox / サイドバー両方で確認する
+- 期待結果
+  - 新構造配下へ再生成される
+  - 既存表示が再生成後も参照切れにならない
+  - 書庫プレビュー取得数（Lightbox 6枚 / 右サイドバー4枚）と表示が維持される
+
+### G. 統計 / 容量表示
+
+- 手順
+  - 統計画面でサムネイル容量を確認する
+  - cleanup / 再生成 / 保存場所切替の前後で比較する
+- 期待結果
+  - 極端な `0` 表示や急変が起きない（実行内容に応じた変動に留まる）
+  - 新構造優先の容量計算が概ね妥当
+
+### 合格条件（Step 5）
+
+- 初回スキャン / 再スキャン / プロファイル切替 / 保存場所切替 / cleanup / 再生成の一連で表示崩れ・参照切れが発生しない
+- 書庫プレビュー（`archive-preview`）が cleanup で誤削除されない
+- 保存場所切替後も `thumbnail_path` / `preview_frames` の参照が維持される
+- 新構造運用における致命的な回帰が見つからない
+
+### 実施結果メモ（記入欄）
+
+- 実施日: 2026-02-23
+- 実施環境: Windows（開発環境）
+- 実施したシナリオ:
+  - 保存場所切替（移動/削除）
+  - cleanup / 再生成（単体）
+  - Lightbox / 右サイドバー / フォルダカード表示確認
+- 問題なし:
+  - 保存場所移動/削除は正常
+  - 孤立サムネイル cleanup（`archive-preview` 除外後）は正常
+  - 個別サムネイル再生成で表示復旧を確認
+- 残課題 / 保留:
+  - 旧構造 fallback 実地確認は旧データ不在のため未実施
+  - 相対パス化は別タスク候補
+
+### Step 5 追加メモ（不具合検出→修正）
+
+- 現象:
+  - 一部サムネイルが `404`（`media://local/.../thumbnails/...webp`）で表示されない
+  - 個別再生成で当該ファイル表示は復旧するが、「すべてのファイル」内のフォルダカード代表画像は復旧しないケースを確認
+- 原因:
+  - フォルダカード代表サムネイル取得（`getFolderThumbnails()`）が、DB上の先頭 `thumbnail_path` を固定採用しており、古い絶対パス（実体なし）を掴み続ける場合がある
+- 対応:
+  - `electron/services/database.ts#getFolderThumbnails()` を修正
+  - 各フォルダ内の候補を `created_at` 順に走査し、`fs.existsSync()` で実在するサムネイルを最初に採用
+- 再確認結果:
+  - フォルダカード表示は復旧（表示確認OK）
+
+### Step 5 残タスク（回帰観点の整理）
+
+- 優先度: 低（致命的な実害は現時点で未検出）
+- 次回リリース前の最小確認項目:
+  - 再スキャン後にフォルダカード代表画像が `404` へ戻らないこと
+  - 全件再生成後にフォルダカード / 一覧 / Lightbox で参照切れが出ないこと
+  - プロファイル切替往復後に、他プロファイルのサムネイルが混在表示されないこと
+  - cleanup 実行後に `archive-preview` と通常サムネイル表示が維持されること
+- 判定方針:
+  - 上記4点に問題がなければ Step 5 は「実質完了」として扱う
+  - 旧構造 fallback 実地確認は Step 3 側の保留項目として管理継続
+
+### Step 5 判定（現時点）
+
+- 判定: 実質完了（回帰監視）
+- 理由:
+  - 保存場所切替 / cleanup / 再生成 / 表示復旧の実害は修正済みかつ再確認済み
+  - フォルダカード代表サムネイル `404`（古い `thumbnail_path` 固定採用）を修正済み
+  - 最小回帰確認 4 項目を一通り実施し、現時点で致命的な回帰は未検出
+
+### Step 5 最小回帰確認（推奨実行順 / 5〜10分）
+
+1. 再スキャン（同一フォルダ）
+   - 目的: フォルダカード代表サムネイル `404` 再発有無を確認
+   - チェック:
+     - 一覧サムネイル表示 OK
+     - フォルダカード代表画像 OK
+     - Console に `media://.../thumbnails/... 404` が連続発生しない
+   - 結果: [✓] OK / [ ] NG
+
+2. 単体再生成（1件）→ 全件再生成（可能なら）
+   - 目的: 再生成後の参照切れ再発有無を確認
+   - チェック:
+     - 再生成後に対象ファイルサムネイルが表示される
+     - フォルダカード代表画像が維持される
+     - Lightbox / 右サイドバーの書庫プレビュー表示が維持される
+   - 結果: [✓] OK / [ ] NG / [ ] 全件再生成未実施
+
+3. プロファイル切替（A→B→A）
+   - 目的: サムネイル混在表示の有無を確認
+   - チェック:
+     - A/B の一覧表示が混ざらない
+     - A に戻った後もフォルダカード代表画像が表示される
+     - cleanup / 統計表示がアクティブプロファイル基準で崩れない（ざっくり確認）
+   - 結果: [✓] OK / [ ] NG / [ ] 未実施
+
+4. cleanup 後の最終確認（短縮版）
+   - 目的: `archive-preview` と通常サムネイル表示の維持確認
+   - チェック:
+     - 書庫プレビュー表示 OK
+     - 通常サムネイル表示 OK
+     - フォルダカード代表画像 OK
+   - 結果: [✓] OK / [ ] NG
+
+---
+
+## Step 3 残の手動確認チェックリスト（新旧構造共存）
+
+### 事前準備
+
+- 2つ以上のプロファイルを用意する（例: `default`, `test-profile`）
+- 少なくとも一方のプロファイルに旧保存構造（`<basePath>/thumbnails` 直下）のサムネイルを残す
+- 少なくとも一方のプロファイルに新保存構造（`thumbnails/profiles/<profileId>/<kind>`）のサムネイルを作成する
+- `preview_frames` が JSON配列形式のデータと、カンマ区切り形式のデータを各1件以上用意する
+
+### `thumbnailCleanupService.ts`（診断 / cleanup）
+
+- 診断（新構造のみ存在）
+  - アクティブプロファイルの新構造配下だけを対象に件数が出る
+  - 他プロファイル配下のファイルを孤立扱いしない
+- 診断（旧構造 fallback 発動）
+  - `profiles/<profileId>` 配下が空でも診断が失敗しない
+  - 旧構造参照中のファイルを孤立扱いしない
+  - 他プロファイルDBが参照する旧構造ファイルを孤立扱いしない（今回修正ポイント）
+- cleanup 実行
+  - 孤立ファイルのみ削除される
+  - DB参照中ファイル（`thumbnail_path` / `preview_frames`）は削除されない
+  - `preview_frames` が JSON配列/カンマ区切りの両形式で取りこぼしがない
+
+### `statisticsService.ts`（サムネイル容量表示）
+
+- 新構造にファイルがある場合
+  - `thumbnailSize` が新構造配下の容量を返す
+  - 旧構造も存在していても、まず新構造の容量が優先される（現行仕様）
+- 新構造が空で旧構造のみ存在する場合
+  - 旧構造フォールバックで `thumbnailSize > 0` になる
+- エラー系
+  - 読み取り不能ファイルがあっても統計取得全体が落ちず、0または部分値で返る
+
+### `database.ts`（単体削除 / フォルダ削除）
+
+- 単体削除 `deleteFile()`
+  - `thumbnail_path` が存在する場合、対象ファイルのみ削除される
+  - `preview_frames` が JSON配列形式でもカンマ区切り形式でも削除できる
+  - 既に消えているサムネイルがあってもDB削除処理は継続する
+- フォルダ削除 `deleteFolder()`
+  - 内部で `deleteFile()` が呼ばれ、サムネイル/プレビューフレームも追従して削除される
+  - 新旧構造混在でもエラーで中断しない
+
+### `databaseManager.ts`（プロファイル削除）
+
+- `deleteProfile()` 実行時
+  - 対象プロファイルDBファイルが削除される
+  - 対象プロファイルの新構造サムネイルディレクトリ（`thumbnails/profiles/<id>`）が削除される
+  - 他プロファイルのサムネイルディレクトリは削除されない
+  - アクティブプロファイル削除時は `default` へ切替後に処理される
+- 注意点（現行仕様）
+  - 旧構造（`thumbnails` 直下）はプロファイル単位で切れないため、`deleteProfile()` での完全掃除対象ではない
+
+### 合格条件（Step 3 残）
+
+- cleanup / 統計 / 削除 / profile delete が新旧構造混在で破綻しない
+- 誤削除（他プロファイル参照中ファイル削除）が発生しない
+- `preview_frames` 形式差による取りこぼしが再発しない
+
+### 実施結果メモ（現時点）
+
+- 新構造での運用確認: 問題なし（cleanup / 統計 / 削除 / profile delete は概ね正常）
+- 旧構造 fallback 実地確認: 旧構造データ不在のため未実施
+- 判断:
+  - 旧構造のコード上保守対応は維持
+  - 実運用は新構造中心のため、Step 3 は「実質完了（旧構造実地確認保留）」として扱う
+
+---
+
+## 今回の非機能方針（継続）
 
 - データ損失許容: あり（実用運用前）
-- そのため互換処理は最小化できる
-- 必要なら「再生成前提」で旧サムネイルを整理してもよい
+- そのため互換処理は最小化を優先
+- 旧構造データは必要に応じて「再生成前提」で整理可能
+- ただし移行途中の運用を考慮し、cleanup / 統計では旧構造フォールバックを当面維持する
 
 ---
 
-## リスクと対策
+## リスクと対策（現時点）
 
-### リスク
-- 生成先変更後、cleanup が他プロファイル分を誤検出する
-- 統計のサムネイル容量表示がズレる
+### 主なリスク
+
+- cleanup が他プロファイル分を誤検出する
+- 統計のサムネイル容量表示が新旧混在時にズレる
 - 保存場所切替時の移行ロジックが新構造を取りこぼす
 
-### 対策
-- resolver 導入後に「生成系→消費系」の順で切替
-- 各Stepごとにビルド確認 + 手動確認
-- `CHANGELOG.md` / `ROADMAP.md` / devlog を毎Stepで更新
+### 対策方針
+
+- 生成系は完了済みとして固定し、次は消費系・移行系の確認を優先
+- Step 3〜5 は手動確認観点を明文化してから進める
+- ドキュメント更新は「毎Step固定」ではなく、セッション単位またはリリース単位で反映する
 
 ---
 
-## 提出物（この計画で作るもの）
+## 提出物 / 更新対象（運用基準）
 
-- 実装コード（thumbnail path resolver + 既存サービス修正）
-- `CHANGELOG.md` 更新
-- `ROADMAP.md` 更新
-- `.agent/devlog/YYYY-MM-DD.md` 更新（セッション終了時）
+- 実装コード（残作業実施時）
+- `CHANGELOG.md`（リリース差分が確定した時点）
+- `ROADMAP.md`（進行中 / 完了の状態が変わった時点）
+- `.agent/devlog/YYYY-MM-DD.md`（セッション終了時）
 
 ---
 
-## 推奨の進め方（今回）
+## 次に着手する作業（意思決定不要レベル）
 
-1. 設計確定（この計画の承認）
-2. Step 1-2 を実装（生成系先行）
-3. 小さく確認
-4. Step 3-4 を実装（cleanup / 統計 / 移行）
-5. 総合確認
-6. リリース版ビルド
+1. Step 3 残の確認
+   - `thumbnailCleanupService.ts` / `statisticsService.ts` / `database.ts` / `databaseManager.ts` を対象に、新旧構造共存時の挙動を確認する
+   - プロファイル跨ぎ誤検出が起きないことを確認する
+2. Step 4 の方針整理（残件）
+   - 現行の絶対パス保存運用を継続する前提で問題ないかを評価する
+   - 相対パス化を別タスクとして切り出す場合の優先度を決める
+3. Step 5 の検証チェックリスト化
+   - 初回スキャン / 再スキャン / プロファイル切替 / 保存場所切替 / cleanup / 再生成（単体・全件）を手順化する
+4. 確認結果を `ROADMAP.md` と `CHANGELOG.md` に反映
+   - `ROADMAP.md`: 進捗と残課題
+   - `CHANGELOG.md`: リリース対象の変更点のみ
+
+### 直近セッション反映メモ（2026-02-23）
+
+- Lightbox（書庫プレビュー）UI を 6枚前提で調整
+  - 取得数/キャッシュ生成数を `12 -> 6`
+  - 情報パネルとプレビュー領域の視覚分離
+  - `×` / `Esc` / 背景クリックの段階動作
+  - プレビュー外クリックで前段階に戻る動作
+- タグバッジ表示の色反映を修正
+  - `getAllTags()` でカテゴリ色を返すよう修正
+  - `TagBadge` のカテゴリ色解決と左ボーダー表示を修正
+- 保存場所移動/削除、孤立サムネイル cleanup の動作確認を実施
+  - `archive-preview` 誤判定修正後、正常動作を確認
