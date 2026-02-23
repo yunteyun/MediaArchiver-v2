@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Lightbox の `×` / `Esc` / 背景クリックを段階動作に調整（書庫プレビュー単独表示中は一覧へ戻り、一覧時は Lightbox を閉じる）。
 - Lightbox 情報パネルに大きめのファイル名表示を追加し、書庫プレビュー操作時の識別性を改善。
 - 右サイドバー / Lightbox のタグバッジ表示でカテゴリ色が反映されるよう改善（カテゴリ色返却 + タグ色解決）。
+- FileCard 表示モード定義を `src/components/fileCard/displayModes.ts` に分離し、`FileGrid` / `SortMenu` と共有する構成へ整理。
+- FileCard の情報欄を `FileCardInfoArea` / `FileCardInfoCompact` / `FileCardInfoDetailed` に分離し、モード別UI調整の保守性を改善。
+- 表示モードラベルとメニュー構成を整理（`標準（S/簡易）` / `標準（M）` / `標準（L）` / `動画（ワイド）` / `漫画`）。
+- 漫画モードの表示バランスを調整（`2:3` 維持、`cardWidth=210` 採用、漫画モード専用の情報欄余白配分を追加）。
 
 ### Fixed
 - サムネイル cleanup 診断の旧保存構造フォールバック時に、全プロファイルDB参照を集約してプロファイル跨ぎ誤検出を抑制。
@@ -22,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 保存場所切替時の `thumbnail_path` / `preview_frames` パス更新判定を `instr()` ベースに調整（JSON配列/カンマ区切り形式差に配慮）。
 - `media://` で `thumbnails` 配下の古い絶対パスを参照した場合、現在の保存先（`getBasePath()`）配下へフォールバック解決するよう改善（移行後の表示復旧性向上）。
 - フォルダカード代表サムネイル取得で、古い `thumbnail_path` による `404` を避けるため、各フォルダ内で実在するサムネイル候補を優先採用するよう改善。
+- 表示モード切替直後に発生するグリッドの一時レイアウト崩れを抑えるため、仮想行サイズの再計測を追加。
+- `FileCard` の aspect-ratio 描画化に伴い、`動画（ワイド）` / `標準（S/簡易）` の `aspectRatio` 定義不整合で情報欄が崩れる問題を修正。
 
 ---
 
