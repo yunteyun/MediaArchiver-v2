@@ -21,6 +21,8 @@ export const Sidebar = React.memo(() => {
     const toggleSidebar = useUIStore((s) => s.toggleSidebar);
     const scanProgress = useUIStore((s) => s.scanProgress);
     const isScanProgressVisible = useUIStore((s) => s.isScanProgressVisible);
+    const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
+    const mainView = useUIStore((s) => s.mainView);
 
     const [folders, setFolders] = useState<MediaFolder[]>([]);
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
@@ -139,7 +141,7 @@ export const Sidebar = React.memo(() => {
                 p-4 border-b border-surface-700 flex items-center
                 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}
             `}>
-                {!sidebarCollapsed && <h2 className="font-bold text-white truncate">Library</h2>}
+                {!sidebarCollapsed && <h2 className="text-sm font-semibold text-white truncate tracking-wide">ライブラリ</h2>}
 
                 <button
                     onClick={handleAddFolder}
@@ -156,14 +158,14 @@ export const Sidebar = React.memo(() => {
                     onClick={handleSelectAllFiles}
                     className={`
                         flex items-center gap-2 p-2 rounded cursor-pointer mb-2 transition-colors
-                        ${currentFolderId === ALL_FILES_ID
-                            ? 'bg-primary-600 text-white'
+                        ${(currentFolderId === ALL_FILES_ID || currentFolderId === null)
+                            ? 'bg-blue-600 text-white'
                             : 'hover:bg-surface-800 text-surface-300'}
                         ${sidebarCollapsed ? 'justify-center' : ''}
                     `}
                     title="すべてのファイル"
                 >
-                    <Library size={20} className="flex-shrink-0" />
+                    <Library size={18} className="flex-shrink-0" />
                     {!sidebarCollapsed && (
                         <span className="truncate text-sm font-medium">
                             すべてのファイル
@@ -210,14 +212,16 @@ export const Sidebar = React.memo(() => {
                     }}
                     className={`
                         flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                        hover:bg-surface-800 text-surface-300
+                        ${duplicateViewOpen
+                            ? 'bg-blue-600 text-white'
+                            : 'hover:bg-surface-800 text-surface-300'}
                         ${sidebarCollapsed ? 'justify-center' : ''}
                     `}
                     title="重複ファイルを検出"
                 >
-                    <Copy size={20} className="flex-shrink-0 text-primary-400" />
+                    <Copy size={18} className="flex-shrink-0 text-current" />
                     {!sidebarCollapsed && (
-                        <span className="truncate text-sm">重複チェック</span>
+                        <span className="truncate text-sm font-medium">重複チェック</span>
                     )}
                 </div>
 
@@ -229,16 +233,16 @@ export const Sidebar = React.memo(() => {
                     }}
                     className={`
                         flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                        ${useUIStore.getState().mainView === 'statistics'
-                            ? 'bg-primary-600 text-white'
+                        ${mainView === 'statistics'
+                            ? 'bg-blue-600 text-white'
                             : 'hover:bg-surface-800 text-surface-300'}
                         ${sidebarCollapsed ? 'justify-center' : ''}
                     `}
                     title="ライブラリ統計"
                 >
-                    <BarChart3 size={20} className="flex-shrink-0 text-primary-400" />
+                    <BarChart3 size={18} className="flex-shrink-0 text-current" />
                     {!sidebarCollapsed && (
-                        <span className="truncate text-sm">統計</span>
+                        <span className="truncate text-sm font-medium">統計</span>
                     )}
                 </div>
 
@@ -252,9 +256,9 @@ export const Sidebar = React.memo(() => {
                     `}
                     title="設定"
                 >
-                    <Settings size={20} className="flex-shrink-0 text-primary-400" />
+                    <Settings size={18} className="flex-shrink-0 text-current" />
                     {!sidebarCollapsed && (
-                        <span className="truncate text-sm">設定</span>
+                        <span className="truncate text-sm font-medium">設定</span>
                     )}
                 </div>
 
@@ -269,9 +273,9 @@ export const Sidebar = React.memo(() => {
                         `}
                         title="スキャン中 - クリックで表示"
                     >
-                        <Loader2 size={20} className="flex-shrink-0 animate-spin" />
+                        <Loader2 size={18} className="flex-shrink-0 animate-spin" />
                         {!sidebarCollapsed && (
-                            <span className="truncate text-sm">スキャン中...</span>
+                            <span className="truncate text-sm font-medium">スキャン中...</span>
                         )}
                     </div>
                 )}

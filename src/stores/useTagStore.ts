@@ -138,7 +138,16 @@ export const useTagStore = create<TagState>((set, get) => ({
     loadCategories: async () => {
         try {
             const categories = await window.electronAPI.getTagCategories();
-            set({ categories });
+            set((state) => {
+                const validCategoryIds = new Set(categories.map((c) => c.id));
+                const preservedCollapsed = state.collapsedCategoryIds.filter((id) => validCategoryIds.has(id));
+                const shouldInitializeCollapse = state.categories.length === 0 && state.collapsedCategoryIds.length === 0;
+                const collapsedCategoryIds = preservedCollapsed.length > 0
+                    ? preservedCollapsed
+                    : (shouldInitializeCollapse ? categories.map((c) => c.id) : state.collapsedCategoryIds);
+
+                return { categories, collapsedCategoryIds };
+            });
         } catch (error) {
             console.error('Failed to load categories:', error);
         }

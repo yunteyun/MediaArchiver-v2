@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { Folder, FolderOpen, ChevronRight, ChevronDown, HardDrive } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
 import { buildFolderTreeByDrive, type FolderTreeNode } from '../utils/buildFolderTree';
@@ -20,6 +20,16 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
 
     // ドライブ単位の折りたたみ（Phase 22-B）
     const [collapsedDrives, setCollapsedDrives] = useState<Set<string>>(new Set());
+    const initializedDriveCollapseRef = useRef(false);
+
+    useEffect(() => {
+        if (initializedDriveCollapseRef.current) return;
+        if (treeByDrive.size === 0) return;
+
+        // 初回表示はドライブ配下を閉じて、情報量を抑える
+        setCollapsedDrives(new Set(Array.from(treeByDrive.keys())));
+        initializedDriveCollapseRef.current = true;
+    }, [treeByDrive]);
 
     // フォルダトグル
     const toggleFolder = useCallback((folderId: string) => {
@@ -85,7 +95,7 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
                     )}
                     {!hasChildren && <div className="w-5 flex-shrink-0" />}
                     {isSelected ? <FolderOpen size={16} className="flex-shrink-0" /> : <Folder size={16} className="flex-shrink-0" />}
-                    {!collapsed && <span className="truncate text-sm">{node.name}</span>}
+                    {!collapsed && <span className="truncate text-sm font-medium">{node.name}</span>}
                 </div>
 
                 {hasChildren && !isCollapsed && (
@@ -107,26 +117,37 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
         <div>
             {Array.from(treeByDrive.entries()).map(([drive, nodes]) => {
                 const isDriveCollapsed = collapsedDrives.has(drive);
+                const isDriveSelected = currentFolderId === `${DRIVE_PREFIX}${drive}`;
 
                 return (
                     <div key={drive} className="mb-2">
                         {/* ドライブヘッダー */}
                         <div
-                            className="flex items-center gap-2 p-2 font-semibold text-surface-400 cursor-pointer hover:bg-surface-800 rounded transition-colors"
-                            onClick={(e) => {
+                            className={`
+                                flex items-center gap-2 p-2 rounded transition-colors
+                                ${isDriveSelected
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-surface-300 hover:bg-surface-800 cursor-pointer'}
+                            `}
+                            onClick={() => {
                                 // Phase 22-C: ドライブクリックで配下全ファイル表示
-                                if (e.shiftKey || e.ctrlKey) {
-                                    // 修飾キー押下時は折りたたみトグル
-                                    toggleDrive(drive);
-                                } else {
-                                    // 通常クリックはドライブ選択
-                                    onSelectFolder(`${DRIVE_PREFIX}${drive}`);
-                                }
+                                onSelectFolder(`${DRIVE_PREFIX}${drive}`);
                             }}
                         >
-                            {isDriveCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                            <HardDrive size={16} className="flex-shrink-0" />
-                            {!collapsed && <span className="text-sm">{drive}</span>}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleDrive(drive);
+                                }}
+                                className={`p-0.5 rounded transition-colors ${isDriveSelected ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
+                                aria-label={`${drive} を${isDriveCollapsed ? '展開' : '折りたたみ'}`}
+                                title={`${isDriveCollapsed ? '展開' : '折りたたみ'}`}
+                            >
+                                {isDriveCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                            <HardDrive size={18} className={`flex-shrink-0 ${isDriveSelected ? 'text-white' : ''}`} />
+                            {!collapsed && <span className="text-sm font-medium">{drive}</span>}
                         </div>
 
                         {/* フォルダツリー */}
