@@ -28,6 +28,7 @@ export const TagSelector = React.memo(({
 
     const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
+    const categoryColorById = new Map(categories.map(c => [c.id, c.color]));
 
     // Filter tags by search
     const filteredTags = search
@@ -210,6 +211,9 @@ export const TagSelector = React.memo(({
                             key={tag.id}
                             name={tag.name}
                             color={tag.color}
+                            categoryColor={tag.categoryColor || (tag.categoryId ? categoryColorById.get(tag.categoryId) : undefined)}
+                            icon={tag.icon}
+                            description={tag.description}
                             removable
                             onRemove={() => onRemove(tag.id)}
                         />
@@ -254,7 +258,13 @@ const TagItem = React.memo(({
             }`}>
             {isSelected && <Check size={12} className="text-white" />}
         </div>
-        <TagBadge name={tag.name} color={tag.color} />
+        <TagBadge
+            name={tag.name}
+            color={tag.color}
+            categoryColor={tag.categoryColor}
+            icon={tag.icon}
+            description={tag.description}
+        />
     </button>
 ));
 

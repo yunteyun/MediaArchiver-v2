@@ -8,6 +8,7 @@
 import { protocol } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { getBasePath } from './services/storageConfig';
 
 /**
  * Get MIME type from file extension
@@ -31,6 +32,28 @@ function getMimeType(filePath: string): string {
         '.svg': 'image/svg+xml'
     };
     return mimeTypes[ext] || 'application/octet-stream';
+}
+
+function tryResolveThumbnailPathFallback(originalPath: string): string {
+    if (fs.existsSync(originalPath)) {
+        return originalPath;
+    }
+
+    const normalized = path.normalize(originalPath);
+    const marker = `${path.sep}thumbnails${path.sep}`;
+    const markerIndex = normalized.toLowerCase().indexOf(marker.toLowerCase());
+    if (markerIndex < 0) {
+        return originalPath;
+    }
+
+    const relativeFromThumbnails = normalized.slice(markerIndex + marker.length);
+    const fallbackPath = path.join(getBasePath(), 'thumbnails', relativeFromThumbnails);
+
+    if (fs.existsSync(fallbackPath)) {
+        return fallbackPath;
+    }
+
+    return originalPath;
 }
 
 /**
@@ -72,6 +95,10 @@ export function registerMediaProtocol() {
             if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
                 filePath = filePath.substring(1);
             }
+
+            // Thumbnail paths can become stale after storage migration / path updates.
+            // Try resolving to current basePath thumbnails as a fallback before failing.
+            filePath = tryResolveThumbnailPathFallback(filePath);
 
             // Stat file
             const stat = fs.statSync(filePath);

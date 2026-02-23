@@ -7,6 +7,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import Database from 'better-sqlite3';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { getProfileThumbnailRootDir } from './thumbnailPaths';
@@ -95,6 +96,57 @@ function parsePreviewFrames(previewFramesRaw?: string): string[] {
     return raw.split(',').map(v => v.trim()).filter(Boolean);
 }
 
+function isArchivePreviewCacheFile(filePath: string): boolean {
+    const normalized = path.normalize(filePath).toLowerCase();
+    const marker = `${path.sep}archive-preview${path.sep}`;
+    return normalized.includes(marker);
+}
+
+type ThumbnailRow = { thumbnail_path?: string; preview_frames?: string };
+
+function loadRegisteredThumbnailRowsFromDb(db: Database.Database): ThumbnailRow[] {
+    return db.prepare(`
+        SELECT thumbnail_path, preview_frames FROM files
+        WHERE thumbnail_path IS NOT NULL OR preview_frames IS NOT NULL
+    `).all() as ThumbnailRow[];
+}
+
+/**
+ * 旧保存構造（thumbnails 直下）fallback時は、現行プロファイルDBだけだと
+ * 他プロファイル参照中のファイルを誤って孤立扱いする可能性がある。
+ * そのため profiles.db に登録されている全プロファイルDBの参照を集約する。
+ */
+function loadRegisteredThumbnailRowsForLegacyFallback(): ThumbnailRow[] {
+    const rows: ThumbnailRow[] = [];
+    const profiles = dbManager.getProfiles();
+
+    for (const profile of profiles) {
+        const dbPath = path.join(getBasePath(), profile.dbFilename);
+        if (!fs.existsSync(dbPath)) {
+            log.warn(`Profile DB not found during legacy fallback scan: ${dbPath}`);
+            continue;
+        }
+
+        let profileDb: Database.Database | null = null;
+        try {
+            profileDb = new Database(dbPath, { readonly: true });
+            rows.push(...loadRegisteredThumbnailRowsFromDb(profileDb));
+        } catch (error) {
+            log.warn(`Failed to scan profile DB during legacy fallback: ${dbPath}`, error);
+        } finally {
+            try {
+                if (profileDb && profileDb.open) {
+                    profileDb.close();
+                }
+            } catch {
+                // ignore close errors for diagnostic path
+            }
+        }
+    }
+
+    return rows;
+}
+
 // --- Public API ---
 
 /**
@@ -111,6 +163,7 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
     log.info(`Starting thumbnail diagnostic for profile: ${profileId}`);
 
     let thumbnailDir = getThumbnailDir(profileId);
+    let usingLegacyFallback = false;
     const db = dbManager.getDb();
 
     // 1. サムネイルDir上の全ファイルを取得
@@ -123,6 +176,7 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
         if (legacyFiles.length > 0) {
             thumbnailDir = legacyDir;
             diskFiles = legacyFiles;
+            usingLegacyFallback = true;
             log.info(`Using legacy thumbnail dir fallback for diagnostic: ${legacyDir}`);
         }
     }
@@ -139,12 +193,11 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
     }
 
     // 2. DBから登録済みサムネイルパスを収集（正規化して Set に）
-    const registeredRows = db.prepare(`
-        SELECT thumbnail_path, preview_frames FROM files
-        WHERE thumbnail_path IS NOT NULL OR preview_frames IS NOT NULL
-    `).all() as Array<{ thumbnail_path?: string; preview_frames?: string }>;
+    const registeredRows = usingLegacyFallback
+        ? loadRegisteredThumbnailRowsForLegacyFallback()
+        : loadRegisteredThumbnailRowsFromDb(db);
 
-    log.debug(`Found ${registeredRows.length} files with thumbnails or preview frames in DB`);
+    log.debug(`Found ${registeredRows.length} files with thumbnails or preview frames in DB${usingLegacyFallback ? ' (all profiles, legacy fallback)' : ''}`);
 
     const registeredSet = new Set<string>();
     for (const row of registeredRows) {
@@ -167,6 +220,11 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
 
     for (const diskPath of diskFiles) {
         const normalizedPath = path.normalize(path.resolve(diskPath));
+
+        // archive-preview は固定キャッシュ（DB未登録）なので孤立判定対象から除外する
+        if (isArchivePreviewCacheFile(normalizedPath)) {
+            continue;
+        }
 
         if (!registeredSet.has(normalizedPath)) {
             let size = 0;

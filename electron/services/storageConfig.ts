@@ -329,25 +329,29 @@ function updateThumbnailPathsInDbs(newBase: string, oldBase: string): void {
                 db.prepare(`
                     UPDATE files
                     SET thumbnail_path = REPLACE(thumbnail_path, ?, ?)
-                    WHERE thumbnail_path LIKE ?
-                `).run(oldNorm, newNorm, `${oldNorm}%`);
+                    WHERE instr(thumbnail_path, ?) > 0
+                `).run(oldNorm, newNorm, oldNorm);
                 // バックスラッシュ形式も対応
                 db.prepare(`
                     UPDATE files
                     SET thumbnail_path = REPLACE(thumbnail_path, ?, ?)
-                    WHERE thumbnail_path LIKE ?
-                `).run(oldBase, newBase, `${oldBase}%`);
+                    WHERE instr(thumbnail_path, ?) > 0
+                `).run(oldBase, newBase, oldBase);
                 // preview_frames も同様に更新
+                // 形式差に対応:
+                // - comma-separated absolute paths（旧/現行）
+                // - JSON array string（移行途中の互換形式）
+                // JSON配列は先頭が `[` のため先頭一致判定では取りこぼしうる。
                 db.prepare(`
                     UPDATE files
                     SET preview_frames = REPLACE(preview_frames, ?, ?)
-                    WHERE preview_frames LIKE ?
-                `).run(oldNorm, newNorm, `${oldNorm}%`);
+                    WHERE instr(preview_frames, ?) > 0
+                `).run(oldNorm, newNorm, oldNorm);
                 db.prepare(`
                     UPDATE files
                     SET preview_frames = REPLACE(preview_frames, ?, ?)
-                    WHERE preview_frames LIKE ?
-                `).run(oldBase, newBase, `${oldBase}%`);
+                    WHERE instr(preview_frames, ?) > 0
+                `).run(oldBase, newBase, oldBase);
                 db.close();
                 log.info(`thumbnail_path updated in ${dbFile}`);
             } catch (e) {

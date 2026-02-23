@@ -52,6 +52,20 @@ const borderColorMap: Record<string, string> = {
     rose: '#e11d48',
 };
 
+function resolveTagAccentColor(colorName?: string): string | undefined {
+    if (!colorName) return undefined;
+    const normalized = colorName.trim().toLowerCase();
+    if (!normalized) return undefined;
+
+    // Tailwind系の色名を実色へ変換
+    if (borderColorMap[normalized]) {
+        return borderColorMap[normalized];
+    }
+
+    // 既にCSS色（#hex / rgb / hsl / named color）として使える場合はそのまま渡す
+    return colorName;
+}
+
 interface TagBadgeProps {
     name: string;
     color?: string;
@@ -88,10 +102,10 @@ export const TagBadge = React.memo(({
 
     if (isBorderMode) {
         // border モード: ダーク背景 + 左端色ライン
-        const borderColor = categoryColor || borderColorMap[color] || borderColorMap.gray;
+        const borderColor = resolveTagAccentColor(categoryColor) || borderColorMap[color] || borderColorMap.gray;
         return (
             <span
-                className={`inline-flex items-center gap-1 rounded border-l-3 bg-surface-700/90 text-gray-200 transition-all ${sizeClass} ${selectedClass} ${onClick ? 'cursor-pointer hover:bg-surface-600' : ''}`}
+                className={`inline-flex items-center gap-1 rounded border-l-[3px] bg-surface-700/90 text-gray-200 transition-all ${sizeClass} ${selectedClass} ${onClick ? 'cursor-pointer hover:bg-surface-600' : ''}`}
                 style={{ borderLeftColor: borderColor }}
                 onClick={onClick}
                 title={description && description.trim() ? description : undefined}
@@ -117,13 +131,14 @@ export const TagBadge = React.memo(({
     const colorClass = colorClasses[color] || colorClasses.gray;
 
     // カテゴリ色がある場合は左ボーダーを動的に適用
-    const hasCategoryBorder = !!categoryColor;
+    const resolvedCategoryColor = resolveTagAccentColor(categoryColor);
+    const hasCategoryBorder = !!resolvedCategoryColor;
     const categoryBorderClass = hasCategoryBorder ? 'border-l-4' : '';
 
     return (
         <span
             className={`inline-flex items-center gap-1 rounded border transition-all ${colorClass} ${sizeClass} ${selectedClass} ${categoryBorderClass} ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
-            style={hasCategoryBorder ? { borderLeftColor: categoryColor } : undefined}
+            style={hasCategoryBorder ? { borderLeftColor: resolvedCategoryColor } : undefined}
             onClick={onClick}
             title={description && description.trim() ? description : undefined}
         >

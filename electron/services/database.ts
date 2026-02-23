@@ -473,26 +473,30 @@ export function getFolderFileCounts(): Record<string, number> {
 export function getFolderThumbnails(): Record<string, string> {
     const db = getDb();
 
-    // 各フォルダの最初のファイル（created_atが最小）のサムネイルを取得
+    // created_at順に候補を列挙し、実在するサムネイルを各フォルダで最初に採用する。
+    // 保存先移行や再生成の途中で古い thumbnail_path が残っていても、
+    // 同フォルダ内に有効なサムネイルがあればフォルダカード表示を復旧しやすくする。
     const rows = db.prepare(`
-        SELECT 
-            f1.root_folder_id,
-            f1.thumbnail_path
-        FROM files f1
-        INNER JOIN (
-            SELECT root_folder_id, MIN(created_at) as min_created
-            FROM files
-            WHERE root_folder_id IS NOT NULL
-              AND thumbnail_path IS NOT NULL
-            GROUP BY root_folder_id
-        ) f2 ON f1.root_folder_id = f2.root_folder_id 
-            AND f1.created_at = f2.min_created
-        WHERE f1.thumbnail_path IS NOT NULL
+        SELECT
+            root_folder_id,
+            thumbnail_path
+        FROM files
+        WHERE root_folder_id IS NOT NULL
+          AND thumbnail_path IS NOT NULL
+        ORDER BY root_folder_id ASC, created_at ASC, id ASC
     `).all() as { root_folder_id: string; thumbnail_path: string }[];
 
     const result: Record<string, string> = {};
     for (const row of rows) {
-        result[row.root_folder_id] = row.thumbnail_path;
+        if (result[row.root_folder_id]) {
+            continue;
+        }
+        if (!row.thumbnail_path) {
+            continue;
+        }
+        if (fs.existsSync(row.thumbnail_path)) {
+            result[row.root_folder_id] = row.thumbnail_path;
+        }
     }
     return result;
 }

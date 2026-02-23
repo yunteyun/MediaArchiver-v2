@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Loader2, Archive, Music } from 'lucide-react';
+import { Loader2, Archive, Music, X } from 'lucide-react';
 import { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 
@@ -8,9 +8,12 @@ interface MediaViewerProps {
     videoVolume: number;
     audioVolume: number;
     onVolumeChange: () => void;
+    selectedArchiveImage: string | null;
+    onSelectArchiveImage: (imagePath: string | null) => void;
+    onRequestClose: () => void;
 }
 
-export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, audioVolume, onVolumeChange }) => {
+export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, audioVolume, onVolumeChange, selectedArchiveImage, onSelectArchiveImage, onRequestClose }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -21,7 +24,6 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
     const [currentAudioIndex, setCurrentAudioIndex] = useState<number>(-1);
     const [autoPlayEnabled, setAutoPlayEnabled] = useState(true);
     const [archiveLoading, setArchiveLoading] = useState(false);
-    const [selectedArchiveImage, setSelectedArchiveImage] = useState<string | null>(null);
 
     // 動画・音声の音量を同期
     useEffect(() => {
@@ -47,12 +49,12 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
             setArchiveLoading(true);
             setArchivePreviewFrames([]);
             setArchiveAudioFiles([]);
-            setSelectedArchiveImage(null);
+            onSelectArchiveImage(null);
             setCurrentArchiveAudioPath(null);
 
             // 画像プレビューと音声ファイルリストを並行取得
             Promise.all([
-                window.electronAPI.getArchivePreviewFrames(file.path, 12),
+                window.electronAPI.getArchivePreviewFrames(file.path, 6),
                 window.electronAPI.getArchiveAudioFiles(file.path)
             ])
                 .then(([frames, audioFiles]) => {
@@ -68,10 +70,10 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
         } else {
             setArchivePreviewFrames([]);
             setArchiveAudioFiles([]);
-            setSelectedArchiveImage(null);
+            onSelectArchiveImage(null);
             setCurrentArchiveAudioPath(null);
         }
-    }, [file])
+    }, [file, onSelectArchiveImage])
 
     // Keyboard controls for video playback
     useEffect(() => {
@@ -149,34 +151,88 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
 
     // Archive type
     if (file.type === 'archive') {
+        const hasArchivePreviews = archivePreviewFrames.length > 0;
+        const hasArchiveAudio = archiveAudioFiles.length > 0;
+
         return (
-            <div className="w-full h-full flex items-center justify-center p-4">
+            <div
+                className="w-full h-full flex items-center justify-center p-2 md:p-4"
+                onClick={() => onRequestClose()}
+            >
                 {/* Selected image full view */}
                 {selectedArchiveImage ? (
-                    <img
-                        src={toMediaUrl(selectedArchiveImage)}
-                        alt="Archive preview"
-                        style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedArchiveImage(null)}
-                    />
+                    <div
+                        className="relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRequestClose();
+                            }}
+                            className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
+                            title="戻る / 閉じる (ESC)"
+                        >
+                            <X size={22} />
+                        </button>
+                        <img
+                            src={toMediaUrl(selectedArchiveImage)}
+                            alt="Archive preview"
+                            style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
+                            className="cursor-pointer"
+                            onClick={() => onSelectArchiveImage(null)}
+                        />
+                    </div>
                 ) : archiveLoading ? (
-                    <div className="flex flex-col items-center gap-4 text-white">
+                    <div
+                        className="relative flex flex-col items-center gap-4 text-white"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRequestClose();
+                            }}
+                            className="absolute top-0 right-0 translate-x-[calc(100%+8px)] -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
+                            title="戻る / 閉じる (ESC)"
+                        >
+                            <X size={22} />
+                        </button>
                         <Loader2 className="animate-spin" size={48} />
                         <p>書庫を読み込み中...</p>
                     </div>
                 ) : (
                     /* コンテンツエリア: 画像と音声を横並び */
-                    <div className="flex gap-6 max-w-6xl w-full max-h-[70vh]">
+                    <div
+                        className={`relative flex gap-5 xl:gap-6 max-h-[74vh] items-stretch ${hasArchiveAudio
+                            ? 'w-full max-w-[1180px]'
+                            : 'w-fit max-w-[calc(100vw-420px)]'
+                            }`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onRequestClose();
+                            }}
+                            className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
+                            title="戻る / 閉じる (ESC)"
+                        >
+                            <X size={22} />
+                        </button>
                         {/* 左側: 画像グリッド */}
-                        {archivePreviewFrames.length > 0 ? (
-                            <div className="flex-1 min-w-0">
-                                <div className="grid grid-cols-3 gap-2 max-h-[65vh] overflow-auto p-2">
+                        {hasArchivePreviews ? (
+                            <div className={hasArchiveAudio ? 'flex-1 min-w-0' : 'w-fit'}>
+                                <div className="bg-black/35 border border-white/10 rounded-xl p-3 md:p-4 shadow-2xl">
+                                    <div className={`grid grid-cols-3 gap-3 md:gap-4 ${hasArchiveAudio ? 'max-w-[920px] mx-auto' : 'w-fit'}`}>
                                     {archivePreviewFrames.map((frame, index) => (
                                         <div
                                             key={index}
-                                            className="aspect-square bg-surface-800 rounded overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
-                                            onClick={() => setSelectedArchiveImage(frame)}
+                                            className="aspect-square bg-surface-800/90 rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500/90 hover:shadow-lg transition-all"
+                                            onClick={() => onSelectArchiveImage(frame)}
                                         >
                                             <img
                                                 src={toMediaUrl(frame)}
@@ -185,9 +241,10 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
                                             />
                                         </div>
                                     ))}
+                                    </div>
                                 </div>
                             </div>
-                        ) : archiveAudioFiles.length > 0 ? (
+                        ) : hasArchiveAudio ? (
                             /* 音声のみの場合: ダミーアルバムアート */
                             <div className="w-48 h-48 flex-shrink-0 bg-gradient-to-br from-surface-700 to-surface-900 rounded-xl flex items-center justify-center shadow-xl">
                                 <Music size={72} className="text-primary-400" />
@@ -195,9 +252,9 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
                         ) : null}
 
                         {/* 右側: 音声ファイルリスト */}
-                        {archiveAudioFiles.length > 0 && (
+                        {hasArchiveAudio && (
                             <div className="flex-1 min-w-96">
-                                <div className="bg-surface-900/80 rounded-lg p-6 h-full flex flex-col">
+                                <div className="bg-black/45 border border-white/10 rounded-xl p-6 h-full flex flex-col shadow-2xl">
                                     <p className="text-white text-lg mb-4 font-medium flex items-center gap-3">
                                         <Music size={24} />
                                         音声ファイル ({archiveAudioFiles.length})
@@ -279,7 +336,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
                         )}
 
                         {/* 画像も音声もない場合 */}
-                        {archivePreviewFrames.length === 0 && archiveAudioFiles.length === 0 && (
+                        {!hasArchivePreviews && !hasArchiveAudio && (
                             <div className="flex flex-col items-center gap-4 text-white">
                                 <Archive size={64} className="text-surface-500" />
                                 <p className="text-xl">プレビューを取得できませんでした</p>

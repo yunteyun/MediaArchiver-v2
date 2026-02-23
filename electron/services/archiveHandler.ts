@@ -42,7 +42,7 @@ const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'];
 
 // 郢ｧ・ｵ郢晄亢繝ｻ郢晏現笘・ｹｧ遏ｩ豬ｹ陞｢・ｰ隲｡・｡陟托ｽｵ陝・・
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
-const ARCHIVE_PREVIEW_CACHE_TARGET_FRAMES = 12;
+const ARCHIVE_PREVIEW_CACHE_TARGET_FRAMES = 6;
 
 // 7za 繝舌う繝翫Μ繝代せ縺ｮ隗｣豎ｺ
 function resolve7zaPath(): string {

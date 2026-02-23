@@ -28,6 +28,16 @@ export const LightBox = React.memo(() => {
     const [notes, setNotes] = useState('');
     const [notesSaveStatus, setNotesSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [selectedArchiveImage, setSelectedArchiveImage] = useState<string | null>(null);
+    const isArchiveSingleView = lightboxFile?.type === 'archive' && !!selectedArchiveImage;
+
+    const handleCloseRequest = useCallback(() => {
+        if (isArchiveSingleView) {
+            setSelectedArchiveImage(null);
+            return;
+        }
+        closeLightbox();
+    }, [isArchiveSingleView, closeLightbox]);
 
     const currentIndex = files.findIndex(f => f.id === lightboxFile?.id);
 
@@ -144,7 +154,7 @@ export const LightBox = React.memo(() => {
             if ((e.target as HTMLElement).tagName === 'TEXTAREA') return;
 
             if (e.key === 'Escape') {
-                closeLightbox();
+                handleCloseRequest();
             }
 
             // 動画ファイルの場合は矢印キーをMediaViewerに任せる（シーク操作優先）
@@ -161,11 +171,12 @@ export const LightBox = React.memo(() => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [lightboxFile, closeLightbox, goToPrevious, goToNext, handleQuickTag]);
+    }, [lightboxFile, handleCloseRequest, goToPrevious, goToNext, handleQuickTag]);
 
     // Load file tags and notes when lightbox opens
     useEffect(() => {
         if (lightboxFile) {
+            setSelectedArchiveImage(null);
             loadTags();
             loadCategories();
             window.electronAPI.getFileTagIds(lightboxFile.id)
@@ -209,17 +220,19 @@ export const LightBox = React.memo(() => {
         <div
             className="fixed inset-0 bg-black/95 flex items-center justify-center"
             style={{ zIndex: 'var(--z-lightbox)' }}
+            onClick={handleCloseRequest}
         >
             <ControlOverlay
-                onClose={closeLightbox}
+                onClose={handleCloseRequest}
                 onPrevious={goToPrevious}
                 onNext={goToNext}
                 showPrevious={currentIndex > 0}
                 showNext={currentIndex < files.length - 1}
+                showCloseButton={lightboxFile.type !== 'archive'}
             />
 
             {/* 常に2カラムレイアウト: 情報エリア（左）| メディア（右） */}
-            <div className="flex w-full h-full">
+            <div className="flex items-center w-full h-full" onClick={(e) => e.stopPropagation()}>
                 <InfoPanel
                     file={lightboxFile}
                     fileTagIds={fileTagIds}
@@ -230,12 +243,15 @@ export const LightBox = React.memo(() => {
                     onNotesChange={handleNotesChange}
                     onNotesBlur={handleNotesBlur}
                 />
-                <div className="flex-1 flex items-center justify-center p-8">
+                <div className="flex-1 flex items-center justify-center p-6 md:p-8 bg-gradient-to-br from-black/30 via-surface-950/60 to-black/50">
                     <MediaViewer
                         file={lightboxFile}
                         videoVolume={videoVolume}
                         audioVolume={audioVolume}
                         onVolumeChange={handleVolumeChange}
+                        selectedArchiveImage={selectedArchiveImage}
+                        onSelectArchiveImage={setSelectedArchiveImage}
+                        onRequestClose={handleCloseRequest}
                     />
                 </div>
             </div>
