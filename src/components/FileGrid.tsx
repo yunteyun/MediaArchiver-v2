@@ -308,6 +308,14 @@ export const FileGrid = React.memo(() => {
         overscan: 3,
     });
 
+    // 表示モード切替直後は仮想行サイズのキャッシュが一瞬古いまま残ることがあるため再計測する
+    useEffect(() => {
+        const rafId = window.requestAnimationFrame(() => {
+            rowVirtualizer.measure();
+        });
+        return () => window.cancelAnimationFrame(rafId);
+    }, [rowVirtualizer, cardHeight, columns, rows, displayMode]);
+
     // 現在のフォーカスインデックスを計算（Phase 12-4: gridItems対応）
     const focusedIndex = useMemo(() => {
         if (!focusedId) return -1;

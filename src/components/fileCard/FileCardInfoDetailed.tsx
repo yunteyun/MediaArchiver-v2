@@ -6,19 +6,29 @@ import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
 export const FileCardInfoDetailed = React.memo(({
     file,
+    displayMode,
     infoAreaHeight,
     showFileSize,
     renderTagSummary,
 }: FileCardInfoCommonProps) => {
+    const isMangaMode = displayMode === 'manga';
+
     return (
         <div
-            className="px-3.5 py-2 flex flex-col justify-start bg-surface-800"
+            className={`flex flex-col bg-surface-800 ${
+                isMangaMode ? 'px-3 py-1.5 justify-between' : 'px-3.5 py-2 justify-start'
+            }`}
             style={{ height: `${infoAreaHeight}px` }}
         >
-            <h3 className="text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
+            <h3
+                className={`text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors ${
+                    isMangaMode ? 'mb-0 leading-tight' : 'mb-0.5'
+                }`}
+                title={file.name}
+            >
                 {file.name}
             </h3>
-            <div className="text-[10px] text-surface-500 truncate leading-tight mb-1">
+            <div className={`text-[10px] text-surface-500 truncate leading-tight ${isMangaMode ? 'mb-0.5' : 'mb-1'}`}>
                 {getDisplayFolderName(file.path)}
                 {file.createdAt && (
                     <>
@@ -44,7 +54,7 @@ export const FileCardInfoDetailed = React.memo(({
                     </>
                 )}
             </div>
-            <div className="flex items-start justify-between gap-1">
+            <div className={`flex justify-between gap-1 ${isMangaMode ? 'items-center' : 'items-start'}`}>
                 {showFileSize && file.size && (
                     <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
                         {formatFileSize(file.size)}
@@ -57,4 +67,3 @@ export const FileCardInfoDetailed = React.memo(({
 });
 
 FileCardInfoDetailed.displayName = 'FileCardInfoDetailed';
-

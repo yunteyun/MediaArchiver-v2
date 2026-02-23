@@ -588,9 +588,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             {/* Thumbnail Area - Phase 14: 固定高さ */}
             <div
                 onClick={handleThumbnailClick}
-                className="relative bg-surface-900 flex items-center justify-center overflow-hidden group"
+                className="relative bg-surface-900 flex items-center justify-center overflow-hidden group w-full flex-shrink-0"
                 style={{
-                    height: `${config.thumbnailHeight}px`,
                     aspectRatio: config.aspectRatio
                 }}
             >
@@ -692,6 +691,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             {showFileName && (
                 <FileCardInfoArea
                     file={file}
+                    displayMode={displayMode}
                     infoVariant={displayModeDefinition.infoVariant}
                     infoAreaHeight={config.infoAreaHeight}
                     showFileSize={showFileSize}

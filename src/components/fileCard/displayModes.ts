@@ -41,10 +41,10 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         infoVariant: 'detailed',
         layout: {
             aspectRatio: '2/3',
-            cardWidth: 200,
-            thumbnailHeight: 300,
+            cardWidth: 210,
+            thumbnailHeight: 315,
             infoAreaHeight: 70,
-            totalHeight: 370,
+            totalHeight: 385,
         },
     },
     video: {
@@ -54,7 +54,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         iconKey: 'film',
         infoVariant: 'detailed',
         layout: {
-            aspectRatio: '1/1',
+            aspectRatio: '25/16',
             cardWidth: 250,
             thumbnailHeight: 160,
             infoAreaHeight: 70,
@@ -71,7 +71,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         infoVariant: 'compact',
         hideThumbnailBadges: true,
         layout: {
-            aspectRatio: '1/1',
+            aspectRatio: '5/4',
             cardWidth: 200,
             thumbnailHeight: 160,
             infoAreaHeight: 48,
@@ -97,4 +97,3 @@ export const getDisplayModeMenuOptions = (): FileCardDisplayModeDefinition[] => 
         .slice()
         .sort((a, b) => a.menuOrder - b.menuOrder);
 };
-
