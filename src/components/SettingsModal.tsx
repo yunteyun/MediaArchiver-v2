@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive, Star } from 'lucide-react';
-import { useUIStore } from '../stores/useUIStore';
+import { useUIStore, type SettingsModalTab } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { StorageCleanupSection } from './settings/StorageCleanupSection';
@@ -15,10 +15,11 @@ type StorageMode = 'appdata' | 'install' | 'custom';
 interface StorageConfig { mode: StorageMode; customPath?: string; resolvedPath: string; }
 
 
-type TabType = 'general' | 'thumbnails' | 'apps' | 'logs' | 'backup' | 'ratings';
+type TabType = SettingsModalTab;
 
 export const SettingsModal = React.memo(() => {
     const isOpen = useUIStore((s) => s.settingsModalOpen);
+    const requestedTab = useUIStore((s) => s.settingsModalRequestedTab);
     const closeModal = useUIStore((s) => s.closeSettingsModal);
 
     const videoVolume = useSettingsStore((s) => s.videoVolume);
@@ -130,10 +131,16 @@ export const SettingsModal = React.memo(() => {
     }, []);
 
     useEffect(() => {
+        if (isOpen && requestedTab) {
+            setActiveTab(requestedTab);
+        }
+    }, [isOpen, requestedTab]);
+
+    useEffect(() => {
         if (isOpen && activeTab === 'logs') {
             loadLogs();
         }
-        if (isOpen && activeTab === 'thumbnails') {
+        if (isOpen && activeTab === 'storage') {
             loadStorageConfig();
         }
     }, [isOpen, activeTab, loadLogs, loadStorageConfig]);
@@ -165,7 +172,7 @@ export const SettingsModal = React.memo(() => {
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60" style={{ zIndex: 'var(--z-modal)' }}>
             <div
-                className="bg-surface-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col"
+                className="bg-surface-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 h-[80vh] max-h-[80vh] min-h-[560px] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -183,10 +190,10 @@ export const SettingsModal = React.memo(() => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-surface-700">
+                <div className="flex flex-nowrap overflow-x-auto border-b border-surface-700">
                     <button
                         onClick={() => setActiveTab('general')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'general'
+                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'general'
                             ? 'text-primary-400 border-b-2 border-primary-400'
                             : 'text-surface-400 hover:text-surface-200'
                             }`}
@@ -198,7 +205,7 @@ export const SettingsModal = React.memo(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab('thumbnails')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'thumbnails'
+                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'thumbnails'
                             ? 'text-primary-400 border-b-2 border-primary-400'
                             : 'text-surface-400 hover:text-surface-200'
                             }`}
@@ -209,8 +216,20 @@ export const SettingsModal = React.memo(() => {
                         </span>
                     </button>
                     <button
+                        onClick={() => setActiveTab('storage')}
+                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'storage'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <HardDrive size={16} />
+                            ストレージ
+                        </span>
+                    </button>
+                    <button
                         onClick={() => setActiveTab('apps')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'apps'
+                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'apps'
                             ? 'text-primary-400 border-b-2 border-primary-400'
                             : 'text-surface-400 hover:text-surface-200'
                             }`}
@@ -222,7 +241,7 @@ export const SettingsModal = React.memo(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab('logs')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'logs'
+                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'logs'
                             ? 'text-primary-400 border-b-2 border-primary-400'
                             : 'text-surface-400 hover:text-surface-200'
                             }`}
@@ -234,7 +253,7 @@ export const SettingsModal = React.memo(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab('backup')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'backup'
+                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'backup'
                             ? 'text-primary-400 border-b-2 border-primary-400'
                             : 'text-surface-400 hover:text-surface-200'
                             }`}
@@ -242,18 +261,6 @@ export const SettingsModal = React.memo(() => {
                         <span className="flex items-center gap-2">
                             <Database size={16} />
                             バックアップ
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('ratings')}
-                        className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'ratings'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <Star size={16} />
-                            評価軸
                         </span>
                     </button>
                 </div>
@@ -586,12 +593,19 @@ export const SettingsModal = React.memo(() => {
                                 </div>
                             </div>
 
-                            {/* 保存場所設定セクション */}
+                        </div>
+                    )}
+
+                    {activeTab === 'storage' && (
+                        <div className="px-4 py-4 space-y-6">
                             <div className="space-y-4">
                                 <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2 flex items-center gap-2">
                                     <HardDrive size={15} />
                                     保存場所
                                 </h3>
+                                <p className="text-xs text-surface-500">
+                                    データベース、サムネイル、プレビューキャッシュ、ログなどの保存先をまとめて切り替えます。
+                                </p>
 
                                 {storageConfig && (
                                     <p className="text-xs text-surface-400">
@@ -674,7 +688,6 @@ export const SettingsModal = React.memo(() => {
                                 </p>
                             </div>
 
-                            {/* サムネイル管理セクション */}
                             <div className="space-y-4">
                                 <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
                                     サムネイル管理

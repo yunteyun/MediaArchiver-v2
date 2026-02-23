@@ -9,8 +9,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Star } from 'lucide-react';
+import { Settings, Star } from 'lucide-react';
 import { useRatingStore } from '../../stores/useRatingStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 // Blue 系カラー（アプリ primary-600 系）
 const COLOR_FILLED = '#2563eb';   // 選択済み
@@ -181,18 +182,42 @@ export const RatingFilterPanel: React.FC = () => {
     const ratingFilter = useRatingStore((s) => s.ratingFilter);
     const setRatingFilter = useRatingStore((s) => s.setRatingFilter);
     const clearRatingFilters = useRatingStore((s) => s.clearRatingFilters);
+    const openSettingsModal = useUIStore((s) => s.openSettingsModal);
 
     // 起動時に評価軸をロード。多重実行ガードはストア側が担う。
     useEffect(() => {
         loadAxes();
     }, [loadAxes]);
 
-    // ロード前 or 軸が0件なら非表示
-    if (!isLoaded || axes.length === 0) return null;
+    // ロード前は非表示
+    if (!isLoaded) return null;
 
     const hasAnyFilter = Object.values(ratingFilter).some(
         (r) => r.min !== undefined || r.max !== undefined
     );
+
+    if (axes.length === 0) {
+        return (
+            <div className="mt-2 border-t border-surface-700 pt-2 space-y-1">
+                <div className="flex items-center justify-between px-1 py-1">
+                    <span className="text-xs font-semibold text-surface-400 uppercase tracking-wider">
+                        評価フィルター
+                    </span>
+                    <button
+                        onClick={() => openSettingsModal('ratings')}
+                        className="inline-flex items-center gap-1 text-[10px] text-surface-500 hover:text-surface-200 transition-colors"
+                        title="評価軸を管理"
+                    >
+                        <Settings size={11} />
+                        軸管理
+                    </button>
+                </div>
+                <div className="px-1">
+                    <p className="text-[11px] text-surface-500">評価軸が未作成です。右の「軸管理」から追加できます。</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="mt-2 border-t border-surface-700 pt-2 space-y-1">
@@ -201,15 +226,25 @@ export const RatingFilterPanel: React.FC = () => {
                 <span className="text-xs font-semibold text-surface-400 uppercase tracking-wider">
                     評価フィルター
                 </span>
-                {hasAnyFilter && (
+                <div className="flex items-center gap-2">
                     <button
-                        onClick={clearRatingFilters}
-                        className="text-[10px] text-surface-500 hover:text-surface-300 transition-colors"
-                        title="すべて解除"
+                        onClick={() => openSettingsModal('ratings')}
+                        className="inline-flex items-center gap-1 text-[10px] text-surface-500 hover:text-surface-200 transition-colors"
+                        title="評価軸を管理"
                     >
-                        全解除
+                        <Settings size={11} />
+                        軸管理
                     </button>
-                )}
+                    {hasAnyFilter && (
+                        <button
+                            onClick={clearRatingFilters}
+                            className="text-[10px] text-surface-500 hover:text-surface-300 transition-colors"
+                            title="すべて解除"
+                        >
+                            全解除
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* 軸ごとのフィルター行 */}

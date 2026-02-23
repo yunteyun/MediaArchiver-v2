@@ -15,6 +15,8 @@ export interface ScanProgress {
     };
 }
 
+export type SettingsModalTab = 'general' | 'thumbnails' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
+
 interface UIState {
     sidebarWidth: number;
     sidebarCollapsed: boolean;
@@ -24,6 +26,7 @@ interface UIState {
     sortOrder: 'asc' | 'desc';
     searchQuery: string;
     settingsModalOpen: boolean;
+    settingsModalRequestedTab: SettingsModalTab | null;
     scanProgress: ScanProgress | null;
     toasts: ToastData[];
     duplicateViewOpen: boolean;
@@ -48,7 +51,7 @@ interface UIState {
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
     setSortOrder: (order: 'asc' | 'desc') => void;
     setSearchQuery: (query: string) => void;
-    openSettingsModal: () => void;
+    openSettingsModal: (tab?: SettingsModalTab) => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
     showToast: (message: string, type?: ToastData['type'], duration?: number) => void;
@@ -79,6 +82,7 @@ export const useUIStore = create<UIState>((set) => ({
     sortOrder: 'asc',
     searchQuery: '',
     settingsModalOpen: false,
+    settingsModalRequestedTab: null,
     scanProgress: null,
     toasts: [],
     duplicateViewOpen: false,
@@ -104,7 +108,7 @@ export const useUIStore = create<UIState>((set) => ({
     setSortBy: (sortBy) => set({ sortBy }),
     setSortOrder: (order) => set({ sortOrder: order }),
     setSearchQuery: (query) => set({ searchQuery: query }),
-    openSettingsModal: () => set({ settingsModalOpen: true }),
+    openSettingsModal: (tab) => set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null }),
     closeSettingsModal: () => set({ settingsModalOpen: false }),
     setScanProgress: (progress) => set((state) => ({
         scanProgress: progress,
