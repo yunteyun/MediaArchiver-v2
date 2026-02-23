@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard, Eye } from 'lucide-react';
+import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
-import { useSettingsStore, type DisplayMode } from '../stores/useSettingsStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import type { Tag } from '../stores/useTagStore';
 
 import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
-import { getDisplayFolderName } from '../utils/path';
-import { formatFileSize } from '../utils/groupFiles';
+import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
+import { getDisplayModeDefinition } from './fileCard/displayModes';
 
 // 明るい背景色のタグで暗い文字色を使うためのヘルパー
 function getTagTextColor(bgColor: string): string {
@@ -83,48 +83,6 @@ interface FileCardProps {
 
 
 
-// Phase 14: 表示モード別の定数定義（Phase 13実測値ベース）
-export const DISPLAY_MODE_CONFIGS: Record<DisplayMode, {
-    aspectRatio: string;
-    cardWidth: number;
-    thumbnailHeight: number;
-    infoAreaHeight: number;
-    totalHeight: number;
-}> = {
-    // 標準モード: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
-    standard: {
-        aspectRatio: '1/1',
-        cardWidth: 250,  // Phase 14-6: 表示密度向上のため縮小
-        thumbnailHeight: 160,  // 250 * (192/300) ≈ 160
-        infoAreaHeight: 70,  // 3行レイアウト用の固定高さ
-        totalHeight: 230  // 160 + 70
-    },
-    // 漫画モード: 縦長アスペクト比
-    manga: {
-        aspectRatio: '2/3',
-        cardWidth: 200,
-        thumbnailHeight: 300,
-        infoAreaHeight: 70,
-        totalHeight: 370
-    },
-    // 動画モード: 横長アスペクト比
-    video: {
-        aspectRatio: '16/9',
-        cardWidth: 350,
-        thumbnailHeight: 197,
-        infoAreaHeight: 70,
-        totalHeight: 267
-    },
-    // Compactモード: ファイル表示量が多い形式（2行レイアウト）
-    compact: {
-        aspectRatio: '1/1',
-        cardWidth: 200,
-        thumbnailHeight: 160,
-        infoAreaHeight: 48,
-        totalHeight: 208
-    }
-};
-
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
     // アイコン選択ロジック
     const Icon = useMemo(() => {
@@ -147,7 +105,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const showFileSize = useSettingsStore((s) => s.showFileSize);
     // Phase 14: 表示モード取得
     const displayMode = useSettingsStore((s) => s.displayMode);
-    const config = DISPLAY_MODE_CONFIGS[displayMode];
+    const displayModeDefinition = getDisplayModeDefinition(displayMode);
+    const config = displayModeDefinition.layout;
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
     // タグ表示スタイル設定
@@ -159,8 +118,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const thumbnailBadges = useMemo(() => {
         const badges = { attributes: [] as Array<{ label: string; color: string }>, extension: '' };
 
-        // Compactモード時はバッジ非表示
-        if (displayMode === 'compact') return badges;
+        if (displayModeDefinition.hideThumbnailBadges) return badges;
 
         // 拡張子バッジ（右上）
         const ext = file.name.split('.').pop()?.toUpperCase() || '';
@@ -183,7 +141,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }
 
         return badges;
-    }, [file.name, file.isAnimated, file.metadata, displayMode]);
+    }, [file.name, file.isAnimated, file.metadata, displayModeDefinition.hideThumbnailBadges]);
 
     // 拡張子の色分け（半透明ダーク系で洗練された印象に）
     const extensionColor = useMemo(() => {
@@ -312,6 +270,62 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showTagPopover, tagPopoverTrigger]);
+
+    // TODO(refactor-phase2): renderTagSummary callback is intentionally kept in FileCard
+    // to preserve triggerRef/popover state ownership. Revisit after tag popover extraction.
+    const renderTagSummary = useCallback((visibleCount: number) => {
+        if (!showTags || sortedTags.length === 0) return null;
+
+        return (
+            <div className="flex flex-wrap gap-1">
+                {sortedTags.slice(0, visibleCount).map(tag => (
+                    <span
+                        key={tag.id}
+                        className={`px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
+                        style={isTagBorderMode ? {
+                            backgroundColor: 'rgba(55, 65, 81, 0.9)',
+                            color: '#e5e7eb',
+                            borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                            opacity: 0.85
+                        } : {
+                            backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                            color: getTagTextColor(tag.categoryColor || tag.color || ''),
+                            borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                            opacity: 0.85
+                        }}
+                    >
+                        #{tag.name}
+                    </span>
+                ))}
+                {sortedTags.length > visibleCount && (
+                    <button
+                        ref={triggerRef}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
+                        }}
+                        onMouseEnter={() => {
+                            if (tagPopoverTrigger === 'hover') openPopover();
+                        }}
+                        onMouseLeave={() => {
+                            if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
+                        }}
+                        className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                    >
+                        +{sortedTags.length - visibleCount}
+                    </button>
+                )}
+            </div>
+        );
+    }, [
+        showTags,
+        sortedTags,
+        isTagBorderMode,
+        tagPopoverTrigger,
+        showTagPopover,
+        openPopover,
+        closePopoverWithDelay,
+    ]);
 
 
     // ★ onMouseEnter でプリロード開始
@@ -676,156 +690,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
             {/* 情報エリア - Phase 14: モード別レイアウト */}
             {showFileName && (
-                displayMode === 'compact' ? (
-                    // Compactモード: 2行レイアウト（ファイル名 + サイズ＆タグ）
-                    <div
-                        className="px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0"
-                        style={{ height: `${config.infoAreaHeight}px` }}
-                    >
-                        {/* ファイル名 */}
-                        <div className="text-xs text-white truncate leading-tight font-semibold mb-0.5" title={file.name}>
-                            {file.name}
-                        </div>
-                        {/* サイズ＆タグ */}
-                        <div className="flex items-start justify-between gap-1">
-                            {showFileSize && file.size && (
-                                <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
-                                    {formatFileSize(file.size)}
-                                </span>
-                            )}
-                            {showTags && sortedTags.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                    {sortedTags.slice(0, 2).map(tag => (
-                                        <span
-                                            key={tag.id}
-                                            className={`px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
-                                            style={isTagBorderMode ? {
-                                                backgroundColor: 'rgba(55, 65, 81, 0.9)',
-                                                color: '#e5e7eb',
-                                                borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                                opacity: 0.85
-                                            } : {
-                                                backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                                color: getTagTextColor(tag.categoryColor || tag.color || ''),
-                                                borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                                opacity: 0.85
-                                            }}
-                                        >
-                                            #{tag.name}
-                                        </span>
-                                    ))}
-                                    {sortedTags.length > 2 && (
-                                        <button
-                                            ref={triggerRef}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
-                                            }}
-                                            onMouseEnter={() => {
-                                                if (tagPopoverTrigger === 'hover') openPopover();
-                                            }}
-                                            onMouseLeave={() => {
-                                                if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
-                                            }}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
-                                        >
-                                            +{sortedTags.length - 2}
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    // Standard/Manga/Videoモード: 3行レイアウト（ファイル名 + フォルダ名 + サイズ＆タグ）
-                    <div
-                        className="px-3.5 py-2 flex flex-col justify-start bg-surface-800"
-                        style={{ height: `${config.infoAreaHeight}px` }}
-                    >
-                        {/* 1行目: ファイル名（最優先） */}
-                        <h3 className="text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors mb-0.5" title={file.name}>
-                            {file.name}
-                        </h3>
-                        {/* 2行目: フォルダ名 · 作成日時 · アクセス回数（控えめ） */}
-                        <div className="text-[10px] text-surface-500 truncate leading-tight mb-1">
-                            {getDisplayFolderName(file.path)}
-                            {file.createdAt && (
-                                <>
-                                    {' · '}
-                                    {new Date(file.createdAt).toLocaleDateString('ja-JP', {
-                                        year: '2-digit',
-                                        month: '2-digit',
-                                        day: '2-digit'
-                                    }).replace(/\//g, '/')}
-                                </>
-                            )}
-                            {/* Phase 17: アクセス回数（1回以上） */}
-                            {file.accessCount > 0 && (
-                                <>
-                                    {' · '}
-                                    <Eye size={9} className="inline-block" style={{ verticalAlign: 'text-top' }} />
-                                    {' '}{file.accessCount}回
-                                </>
-                            )}
-                            {/* Phase 18-A: 外部アプリ起動回数（1回以上） */}
-                            {file.externalOpenCount > 0 && (
-                                <>
-                                    {' · '}
-                                    <span title="外部アプリで開いた回数">↗{file.externalOpenCount}回</span>
-                                </>
-                            )}
-                        </div>
-                        {/* 3行目: サイズ（左）＆タグ（右） */}
-                        <div className="flex items-start justify-between gap-1">
-                            {showFileSize && file.size && (
-                                <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
-                                    {formatFileSize(file.size)}
-                                </span>
-                            )}
-                            {showTags && sortedTags.length > 0 && (
-                                <div className="flex flex-wrap gap-1">
-                                    {sortedTags.slice(0, 3).map(tag => (
-                                        <span
-                                            key={tag.id}
-                                            className={`px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
-                                            style={isTagBorderMode ? {
-                                                backgroundColor: 'rgba(55, 65, 81, 0.9)',
-                                                color: '#e5e7eb',
-                                                borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                                opacity: 0.85
-                                            } : {
-                                                backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                                color: getTagTextColor(tag.categoryColor || tag.color || ''),
-                                                borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                                opacity: 0.85
-                                            }}
-                                        >
-                                            #{tag.name}
-                                        </span>
-                                    ))}
-                                    {sortedTags.length > 3 && (
-                                        <button
-                                            ref={triggerRef}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
-                                            }}
-                                            onMouseEnter={() => {
-                                                if (tagPopoverTrigger === 'hover') openPopover();
-                                            }}
-                                            onMouseLeave={() => {
-                                                if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
-                                            }}
-                                            className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
-                                        >
-                                            +{sortedTags.length - 3}
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )
+                <FileCardInfoArea
+                    file={file}
+                    infoVariant={displayModeDefinition.infoVariant}
+                    infoAreaHeight={config.infoAreaHeight}
+                    showFileSize={showFileSize}
+                    renderTagSummary={renderTagSummary}
+                />
             )}
 
             {/* Phase 14-7: タグポップオーバー (Portal) */}

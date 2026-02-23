@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 export type CardLayout = 'grid' | 'list';
 
 // 表示モード型定義（Phase 14）
-export type DisplayMode = 'standard' | 'manga' | 'video' | 'compact';
+export type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'compact';
 
 // グループ化型定義（Phase 12-10）
 export type GroupBy = 'none' | 'date' | 'size' | 'type';

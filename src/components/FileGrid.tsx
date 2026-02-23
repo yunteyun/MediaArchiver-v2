@@ -6,7 +6,8 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { FileCard, DISPLAY_MODE_CONFIGS } from './FileCard';
+import { FileCard } from './FileCard';
+import { DISPLAY_MODE_LAYOUT_CONFIGS } from './fileCard/displayModes';
 import { FolderCard } from './FolderCard';
 import { Header } from './SortMenu';
 import { GroupHeader } from './GroupHeader';
@@ -38,7 +39,7 @@ export const FileGrid = React.memo(() => {
     const sortOrder = useSettingsStore((s) => s.sortOrder);
     // Phase 14: 表示モード取得
     const displayMode = useSettingsStore((s) => s.displayMode);
-    const config = DISPLAY_MODE_CONFIGS[displayMode];
+    const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);

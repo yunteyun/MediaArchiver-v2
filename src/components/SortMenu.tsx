@@ -3,11 +3,23 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2 } from 'lucide-react';
 import { useSettingsStore, type GroupBy } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useToastStore } from '../stores/useToastStore';
 import { SearchBar } from './SearchBar';
+import { getDisplayModeDefinition, getDisplayModeMenuOptions } from './fileCard/displayModes';
+import type { DisplayModeIconKey } from './fileCard/displayModeTypes';
+
+const ICON_BY_KEY: Record<DisplayModeIconKey, React.ComponentType<{ size?: number; className?: string }>> = {
+    grid: Grid,
+    maximize: Maximize2,
+    layoutGrid: LayoutGrid,
+    film: Film,
+    minimize: Minimize2,
+};
+
+const DISPLAY_MODE_MENU_OPTIONS = getDisplayModeMenuOptions();
 
 export const Header = React.memo(() => {
     const sortBy = useSettingsStore((s) => s.sortBy);
@@ -22,6 +34,8 @@ export const Header = React.memo(() => {
     const setDisplayMode = useSettingsStore((s) => s.setDisplayMode);
     const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
     const modeMenuRef = useRef<HTMLDivElement>(null);
+    const selectedDisplayModeOption = getDisplayModeDefinition(displayMode);
+    const SelectedDisplayModeIcon = ICON_BY_KEY[selectedDisplayModeOption.iconKey];
 
     // ドロップダウンのクリックアウトサイドハンドラー
     useEffect(() => {
@@ -89,52 +103,26 @@ export const Header = React.memo(() => {
                     className="flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors bg-surface-700 text-surface-300 hover:bg-surface-600"
                     title="表示モードを切り替え"
                 >
-                    {displayMode === 'standard' && <Grid size={14} />}
-                    {displayMode === 'manga' && <LayoutGrid size={14} />}
-                    {displayMode === 'video' && <Film size={14} />}
-                    {displayMode === 'compact' && <Minimize2 size={14} />}
-                    <span>
-                        {displayMode === 'standard' && '標準'}
-                        {displayMode === 'manga' && '漫画'}
-                        {displayMode === 'video' && '動画'}
-                        {displayMode === 'compact' && 'コンパクト'}
-                    </span>
+                    <SelectedDisplayModeIcon size={14} />
+                    <span>{selectedDisplayModeOption.label}</span>
                 </button>
 
                 {isModeMenuOpen && (
-                    <div className="absolute top-full mt-1 right-0 bg-surface-800 rounded shadow-lg border border-surface-700 py-1 z-50 min-w-[120px]">
-                        <button
-                            onClick={() => { setDisplayMode('standard'); setIsModeMenuOpen(false); }}
-                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'standard' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
-                                }`}
-                        >
-                            <Grid size={16} />
-                            <span>標準</span>
-                        </button>
-                        <button
-                            onClick={() => { setDisplayMode('manga'); setIsModeMenuOpen(false); }}
-                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'manga' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
-                                }`}
-                        >
-                            <LayoutGrid size={16} />
-                            <span>漫画</span>
-                        </button>
-                        <button
-                            onClick={() => { setDisplayMode('video'); setIsModeMenuOpen(false); }}
-                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'video' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
-                                }`}
-                        >
-                            <Film size={16} />
-                            <span>動画</span>
-                        </button>
-                        <button
-                            onClick={() => { setDisplayMode('compact'); setIsModeMenuOpen(false); }}
-                            className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${displayMode === 'compact' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'
-                                }`}
-                        >
-                            <Minimize2 size={16} />
-                            <span>コンパクト</span>
-                        </button>
+                    <div className="absolute top-full mt-1 right-0 bg-surface-800 rounded shadow-lg border border-surface-700 py-1 z-50 min-w-[160px]">
+                        {DISPLAY_MODE_MENU_OPTIONS.map((option) => {
+                            const Icon = ICON_BY_KEY[option.iconKey];
+                            const isActive = displayMode === option.mode;
+                            return (
+                                <button
+                                    key={option.mode}
+                                    onClick={() => { setDisplayMode(option.mode); setIsModeMenuOpen(false); }}
+                                    className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${isActive ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'}`}
+                                >
+                                    <Icon size={16} />
+                                    <span>{option.label}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 )}
             </div>
