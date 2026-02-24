@@ -3,17 +3,30 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive, Star } from 'lucide-react';
+import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive, Star, FileSpreadsheet, FileCode2 } from 'lucide-react';
 import { useUIStore, type SettingsModalTab } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useFileStore } from '../stores/useFileStore';
+import { useTagStore } from '../stores/useTagStore';
+import { useProfileStore } from '../stores/useProfileStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { StorageCleanupSection } from './settings/StorageCleanupSection';
 import { RatingAxesManager } from './settings/RatingAxesManager';
+import { buildCsvContent, buildFileExportRows, buildHtmlContent } from '../utils/fileExport';
+import {
+    parseLegacyAppCsvFromBytes,
+    parseMediaArchiverExportCsvFromBytes,
+    type CsvImportDryRunSummary,
+    type MediaArchiverCsvImportRow
+} from '../utils/fileImport';
 
 // Phase 25: ローカル型定義
 type StorageMode = 'appdata' | 'install' | 'custom';
 interface StorageConfig { mode: StorageMode; customPath?: string; resolvedPath: string; }
 
+const ALL_FILES_ID = '__all__';
+const DRIVE_PREFIX = '__drive:';
+const FOLDER_PREFIX = '__folder:';
 
 type TabType = SettingsModalTab;
 
@@ -68,12 +81,313 @@ export const SettingsModal = React.memo(() => {
     // Phase 26: バージョン表記
     const [appVersion, setAppVersion] = useState<string>('');
 
+    // Export context (current visible list basis)
+    const rawFiles = useFileStore((s) => s.files);
+    const fileTagsCache = useFileStore((s) => s.fileTagsCache);
+    const currentFolderId = useFileStore((s) => s.currentFolderId);
+    const allTags = useTagStore((s) => s.tags);
+    const profiles = useProfileStore((s) => s.profiles);
+    const activeProfileId = useProfileStore((s) => s.activeProfileId);
+    const [isExporting, setIsExporting] = useState<'csv' | 'html' | null>(null);
+    const [exportScope, setExportScope] = useState<'profile' | 'folder'>('profile');
+    const [isImportingCsv, setIsImportingCsv] = useState(false);
+    const [selectedImportCsvPath, setSelectedImportCsvPath] = useState<string>('');
+    const [parsedImportRows, setParsedImportRows] = useState<MediaArchiverCsvImportRow[] | null>(null);
+    const [importWarnings, setImportWarnings] = useState<string[]>([]);
+    const [importDryRun, setImportDryRun] = useState<CsvImportDryRunSummary | null>(null);
+    const [importSourceLabel, setImportSourceLabel] = useState<string>('');
+
     // Phase 25: ストレージ設定
     const [storageConfig, setStorageConfig] = useState<StorageConfig | null>(null);
     const [selectedMode, setSelectedMode] = useState<StorageMode>('appdata');
     const [customPath, setCustomPath] = useState('');
     const [isMigrating, setIsMigrating] = useState(false);
     const [migrationMsg, setMigrationMsg] = useState<{ type: 'success' | 'error'; text: string; oldBase?: string } | null>(null);
+
+    const currentLoadedExportRows = React.useMemo(() => {
+        return buildFileExportRows(rawFiles, fileTagsCache, allTags);
+    }, [rawFiles, fileTagsCache, allTags]);
+
+    const activeProfileLabel = React.useMemo(() => {
+        const profile = profiles.find((p) => p.id === activeProfileId);
+        return profile ? `${profile.name} (${profile.id})` : activeProfileId;
+    }, [profiles, activeProfileId]);
+
+    const exportScopeLabel = React.useMemo(() => {
+        if (!currentFolderId || currentFolderId === ALL_FILES_ID) return 'すべてのファイル';
+        if (currentFolderId.startsWith(DRIVE_PREFIX)) {
+            return `ドライブ: ${currentFolderId.slice(DRIVE_PREFIX.length)}`;
+        }
+        if (currentFolderId.startsWith(FOLDER_PREFIX)) {
+            return 'フォルダ（再帰）';
+        }
+        return 'フォルダ（直下）';
+    }, [currentFolderId]);
+
+    const canExportCurrentFolderScope = React.useMemo(() => {
+        if (!currentFolderId || currentFolderId === ALL_FILES_ID) return false;
+        if (currentFolderId.startsWith(DRIVE_PREFIX)) return false;
+        return true;
+    }, [currentFolderId]);
+
+    const handleExportFromSettings = useCallback(async (format: 'csv' | 'html') => {
+        setIsExporting(format);
+        try {
+            let targetFiles = rawFiles;
+            let scopeLabel = exportScopeLabel;
+
+            if (exportScope === 'profile') {
+                targetFiles = await window.electronAPI.getFiles();
+                scopeLabel = 'プロファイル全体';
+            } else {
+                if (!canExportCurrentFolderScope || !currentFolderId) {
+                    useUIStore.getState().showToast('フォルダ全体エクスポートにはフォルダを選択してください', 'info');
+                    return;
+                }
+                if (currentFolderId.startsWith(FOLDER_PREFIX)) {
+                    targetFiles = await window.electronAPI.getFilesByFolderRecursive(currentFolderId.slice(FOLDER_PREFIX.length));
+                    scopeLabel = '現在選択フォルダ全体（再帰）';
+                } else {
+                    targetFiles = await window.electronAPI.getFilesByFolderRecursive(currentFolderId);
+                    scopeLabel = '現在選択フォルダ全体';
+                }
+            }
+
+            const exportRows = buildFileExportRows(targetFiles, fileTagsCache, allTags);
+            if (exportRows.length === 0) {
+                useUIStore.getState().showToast('エクスポート対象のファイルがありません', 'info');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const ext = format === 'csv' ? 'csv' : 'html';
+            const content = format === 'csv'
+                ? buildCsvContent(exportRows)
+                : buildHtmlContent(exportRows, {
+                    profileLabel: activeProfileLabel,
+                    scopeLabel,
+                });
+
+            const result = await window.electronAPI.saveTextFile({
+                title: format === 'csv' ? 'CSVエクスポート' : 'HTMLエクスポート',
+                defaultPath: `mediaarchiver-export-${timestamp}.${ext}`,
+                filters: [
+                    format === 'csv'
+                        ? { name: 'CSV Files', extensions: ['csv'] }
+                        : { name: 'HTML Files', extensions: ['html', 'htm'] },
+                    { name: 'All Files', extensions: ['*'] }
+                ],
+                content,
+            });
+
+            if (!result.canceled) {
+                useUIStore.getState().showToast(`${exportRows.length}件を${format.toUpperCase()}出力しました`, 'success');
+            }
+        } catch (error) {
+            console.error('Export failed:', error);
+            useUIStore.getState().showToast(`${format.toUpperCase()}出力に失敗しました`, 'error');
+        } finally {
+            setIsExporting(null);
+        }
+    }, [rawFiles, exportScope, exportScopeLabel, canExportCurrentFolderScope, currentFolderId, fileTagsCache, allTags, activeProfileLabel]);
+
+    const runCsvImportDryRun = useCallback(async (rows: MediaArchiverCsvImportRow[]) => {
+        const profileFiles = await window.electronAPI.getFiles();
+        const fileByPath = new Map(profileFiles.map((f) => [f.path, f]));
+        const existingTags = await window.electronAPI.getAllTags();
+        const existingTagByName = new Map(existingTags.map((t) => [t.name, t]));
+        const fileTagIdsMap = await window.electronAPI.getAllFileTagIds();
+        const ratingAxes = await window.electronAPI.getRatingAxes();
+        const overallAxis = ratingAxes.find((a) => a.isSystem) ?? ratingAxes[0] ?? null;
+
+        let matchedRows = 0;
+        let unmatchedRows = 0;
+        let rowsWithTags = 0;
+        let tagLinksToAdd = 0;
+        let rowsWithRating = 0;
+        let ratingUpdates = 0;
+        const unmatchedPaths: string[] = [];
+        const missingTagNames = new Set<string>();
+
+        for (const row of rows) {
+            const file = fileByPath.get(row.path);
+            if (!file) {
+                unmatchedRows += 1;
+                unmatchedPaths.push(row.path);
+                continue;
+            }
+            matchedRows += 1;
+            if (row.tags.length > 0) rowsWithTags += 1;
+            if (typeof row.ratingValue === 'number') {
+                rowsWithRating += 1;
+                if (overallAxis) ratingUpdates += 1;
+            }
+
+            const currentTagIds = new Set(fileTagIdsMap[file.id] ?? []);
+            for (const tagName of row.tags) {
+                const existing = existingTagByName.get(tagName);
+                if (!existing) {
+                    missingTagNames.add(tagName);
+                    tagLinksToAdd += 1;
+                    continue;
+                }
+                if (!currentTagIds.has(existing.id)) {
+                    tagLinksToAdd += 1;
+                }
+            }
+        }
+
+        const summary: CsvImportDryRunSummary = {
+            totalRows: rows.length,
+            matchedRows,
+            unmatchedRows,
+            rowsWithTags,
+            tagLinksToAdd,
+            newTagsToCreate: missingTagNames.size,
+            rowsWithRating,
+            ratingUpdates,
+            unmatchedPaths: unmatchedPaths.slice(0, 20),
+            missingTagNames: Array.from(missingTagNames).sort().slice(0, 30),
+        };
+        setImportDryRun(summary);
+        return summary;
+    }, []);
+
+    const handleSelectImportCsv = useCallback(async () => {
+        try {
+            const result = await window.electronAPI.openBinaryFile({
+                title: 'このアプリのエクスポートCSVを選択',
+                filters: [
+                    { name: 'CSV Files', extensions: ['csv'] },
+                    { name: 'All Files', extensions: ['*'] },
+                ],
+            });
+
+            if (result.canceled || !result.filePath || !result.bytes) return;
+
+            const parsed = parseMediaArchiverExportCsvFromBytes(result.bytes);
+            setSelectedImportCsvPath(result.filePath);
+            setParsedImportRows(parsed.rows);
+            setImportWarnings(parsed.warnings);
+            setImportSourceLabel('このアプリ形式CSV');
+            await runCsvImportDryRun(parsed.rows);
+            useUIStore.getState().showToast(`CSVを解析しました（${parsed.rows.length}行）`, 'success');
+        } catch (error) {
+            console.error('CSV parse failed:', error);
+            setParsedImportRows(null);
+            setImportDryRun(null);
+            setImportWarnings([]);
+            setImportSourceLabel('');
+            useUIStore.getState().showToast(`CSV解析に失敗しました: ${(error as Error).message}`, 'error', 5000);
+        }
+    }, [runCsvImportDryRun]);
+
+    const handleSelectLegacyImportCsv = useCallback(async () => {
+        try {
+            const result = await window.electronAPI.openBinaryFile({
+                title: '旧アプリのCSVを選択（互換インポート）',
+                filters: [
+                    { name: 'CSV Files', extensions: ['csv'] },
+                    { name: 'All Files', extensions: ['*'] },
+                ],
+            });
+
+            if (result.canceled || !result.filePath || !result.bytes) return;
+
+            const parsed = parseLegacyAppCsvFromBytes(result.bytes);
+            setSelectedImportCsvPath(result.filePath);
+            setParsedImportRows(parsed.rows);
+            setImportWarnings(parsed.warnings);
+            setImportSourceLabel('旧アプリCSV（互換）');
+            await runCsvImportDryRun(parsed.rows);
+            useUIStore.getState().showToast(`旧CSVを解析しました（${parsed.rows.length}行）`, 'success');
+        } catch (error) {
+            console.error('Legacy CSV parse failed:', error);
+            setParsedImportRows(null);
+            setImportDryRun(null);
+            setImportWarnings([]);
+            setImportSourceLabel('');
+            useUIStore.getState().showToast(`旧CSV解析に失敗しました: ${(error as Error).message}`, 'error', 5000);
+        }
+    }, [runCsvImportDryRun]);
+
+    const handleApplyCsvImport = useCallback(async () => {
+        if (!parsedImportRows || parsedImportRows.length === 0) {
+            useUIStore.getState().showToast('先にCSVを選択して解析してください', 'info');
+            return;
+        }
+
+        setIsImportingCsv(true);
+        try {
+            const profileFiles = await window.electronAPI.getFiles();
+            const fileByPath = new Map(profileFiles.map((f) => [f.path, f]));
+
+            const allTagsLatest = await window.electronAPI.getAllTags();
+            const tagByName = new Map(allTagsLatest.map((t) => [t.name, t]));
+            const allFileTagIds = await window.electronAPI.getAllFileTagIds();
+            const ratingAxes = await window.electronAPI.getRatingAxes();
+            const overallAxis = ratingAxes.find((a) => a.isSystem) ?? ratingAxes[0] ?? null;
+
+            let createdTags = 0;
+            let addedLinks = 0;
+            let skippedRows = 0;
+            let updatedRatings = 0;
+
+            for (const row of parsedImportRows) {
+                const targetFile = fileByPath.get(row.path);
+                if (!targetFile) {
+                    skippedRows += 1;
+                    continue;
+                }
+
+                const currentTagIds = new Set(allFileTagIds[targetFile.id] ?? []);
+
+                for (const tagName of row.tags) {
+                    if (!tagName) continue;
+
+                    let tag = tagByName.get(tagName);
+                    if (!tag) {
+                        const color = row.tagColorByName.get(tagName) || 'gray';
+                        tag = await window.electronAPI.createTag(tagName, color);
+                        tagByName.set(tagName, tag);
+                        createdTags += 1;
+                    }
+
+                    if (!currentTagIds.has(tag.id)) {
+                        await window.electronAPI.addTagToFile(targetFile.id, tag.id);
+                        currentTagIds.add(tag.id);
+                        addedLinks += 1;
+                    }
+                }
+
+                if (overallAxis && typeof row.ratingValue === 'number') {
+                    await window.electronAPI.setFileRating(targetFile.id, overallAxis.id, row.ratingValue);
+                    updatedRatings += 1;
+                }
+            }
+
+            // Store cache refresh (tag filter / list consistency)
+            await useTagStore.getState().loadTags();
+            await useFileStore.getState().loadFileTagsCache();
+            await useRatingStore.getState().loadAllFileRatings();
+
+            useUIStore.getState().showToast(
+                `CSVインポート完了: タグ作成 ${createdTags}件 / タグ付与 ${addedLinks}件 / 未一致 ${skippedRows}行`,
+                'success',
+                5000
+            );
+            if (updatedRatings > 0) {
+                useUIStore.getState().showToast(`評価を ${updatedRatings} 件更新しました`, 'info', 4000);
+            }
+
+            await runCsvImportDryRun(parsedImportRows);
+        } catch (error) {
+            console.error('CSV import failed:', error);
+            useUIStore.getState().showToast(`CSVインポートに失敗しました: ${(error as Error).message}`, 'error', 5000);
+        } finally {
+            setIsImportingCsv(false);
+        }
+    }, [parsedImportRows, runCsvImportDryRun]);
 
     const loadStorageConfig = useCallback(async () => {
         try {
@@ -823,6 +1137,177 @@ export const SettingsModal = React.memo(() => {
                                     <li>リストアを実行するとアプリが再起動されます</li>
                                     <li>バックアップファイルは自動的に世代管理されます（最大5世代）</li>
                                 </ul>
+                            </div>
+
+                            <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">
+                                <div className="flex items-center justify-between gap-3 mb-2">
+                                    <div>
+                                        <h3 className="text-sm font-medium text-surface-200">一覧エクスポート（CSV / HTML）</h3>
+                                        <p className="text-xs text-surface-500 mt-0.5">
+                                            利用頻度が低い操作のためバックアップ系タブに集約。タグ色も出力に含めます。
+                                        </p>
+                                        <p className="text-xs text-surface-500">
+                                            ※ インポート対応は現在 `CSV` のみです（`HTML` は閲覧用）。
+                                        </p>
+                                    </div>
+                                    <span className="text-xs text-surface-400 whitespace-nowrap">現在読込 {currentLoadedExportRows.length} 件</span>
+                                </div>
+
+                                <div className="space-y-2 text-xs mb-3">
+                                    <div className="text-surface-400">
+                                        プロファイル: <span className="text-surface-300">{activeProfileLabel}</span>
+                                    </div>
+                                    <div className="text-surface-400">
+                                        現在選択: <span className="text-surface-300">{exportScopeLabel}</span>
+                                    </div>
+                                    <div className="text-surface-400">
+                                        タグ色: <span className="text-surface-300">含める（CSV列 / HTMLタグチップ）</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 mb-3">
+                                    <label className="flex items-start gap-2 cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="exportScope"
+                                            value="profile"
+                                            checked={exportScope === 'profile'}
+                                            onChange={() => setExportScope('profile')}
+                                            className="mt-0.5 w-4 h-4 accent-primary-500"
+                                        />
+                                        <div>
+                                            <span className="text-sm text-surface-200">プロファイル全体</span>
+                                            <span className="block text-xs text-surface-500">現在のアクティブプロファイルに登録されている全ファイルを出力</span>
+                                        </div>
+                                    </label>
+                                    <label className={`flex items-start gap-2 ${canExportCurrentFolderScope ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
+                                        <input
+                                            type="radio"
+                                            name="exportScope"
+                                            value="folder"
+                                            checked={exportScope === 'folder'}
+                                            onChange={() => canExportCurrentFolderScope && setExportScope('folder')}
+                                            disabled={!canExportCurrentFolderScope}
+                                            className="mt-0.5 w-4 h-4 accent-primary-500"
+                                        />
+                                        <div>
+                                            <span className="text-sm text-surface-200">現在選択フォルダ全体</span>
+                                            <span className="block text-xs text-surface-500">
+                                                {canExportCurrentFolderScope
+                                                    ? '現在選択しているフォルダ配下を再帰的に出力'
+                                                    : 'フォルダを選択している時のみ使用できます（全ファイル/ドライブ選択中は不可）'}
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => { void handleExportFromSettings('csv'); }}
+                                        disabled={isExporting !== null || (exportScope === 'folder' && !canExportCurrentFolderScope)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
+                                    >
+                                        <FileSpreadsheet size={15} />
+                                        {isExporting === 'csv' ? 'CSV出力中...' : 'CSV出力'}
+                                    </button>
+                                    <button
+                                        onClick={() => { void handleExportFromSettings('html'); }}
+                                        disabled={isExporting !== null || (exportScope === 'folder' && !canExportCurrentFolderScope)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
+                                    >
+                                        <FileCode2 size={15} />
+                                        {isExporting === 'html' ? 'HTML出力中...' : 'HTML出力'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">
+                                <div className="flex items-center justify-between gap-3 mb-2">
+                                    <div>
+                                        <h3 className="text-sm font-medium text-surface-200">CSVインポート（このアプリ形式 / 旧アプリ互換）</h3>
+                                        <p className="text-xs text-surface-500 mt-0.5">
+                                            `path` をキーにタグを復元します（追記型）。旧アプリCSV（Shift_JIS / 可変列）は互換モードで解析します。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 mb-3">
+                                    <button
+                                        onClick={() => { void handleSelectImportCsv(); }}
+                                        disabled={isImportingCsv}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
+                                    >
+                                        <FolderOpen size={15} />
+                                        このアプリCSVを解析
+                                    </button>
+                                    <button
+                                        onClick={() => { void handleSelectLegacyImportCsv(); }}
+                                        disabled={isImportingCsv}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
+                                    >
+                                        <FolderOpen size={15} />
+                                        旧アプリCSVを解析（互換）
+                                    </button>
+                                    <button
+                                        onClick={() => { void handleApplyCsvImport(); }}
+                                        disabled={isImportingCsv || !parsedImportRows || parsedImportRows.length === 0}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary-700 hover:bg-primary-600 disabled:bg-surface-800/60 disabled:text-surface-600 text-white border border-primary-700 text-sm transition-colors"
+                                    >
+                                        <FileSpreadsheet size={15} />
+                                        {isImportingCsv ? 'インポート中...' : 'インポート実行（タグ）'}
+                                    </button>
+                                </div>
+
+                                {selectedImportCsvPath && (
+                                    <div className="mb-3 text-xs text-surface-400">
+                                        {importSourceLabel && <div>形式: <span className="text-surface-300">{importSourceLabel}</span></div>}
+                                        CSV: <span className="text-surface-300 break-all">{selectedImportCsvPath}</span>
+                                    </div>
+                                )}
+
+                                {importDryRun && (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs mb-3">
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">行数: {importDryRun.totalRows}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">一致: {importDryRun.matchedRows}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">未一致: {importDryRun.unmatchedRows}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">タグ行: {importDryRun.rowsWithTags}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">追加予定タグ付与: {importDryRun.tagLinksToAdd}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">新規タグ作成予定: {importDryRun.newTagsToCreate}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">評価行: {importDryRun.rowsWithRating}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">評価更新予定: {importDryRun.ratingUpdates}</div>
+                                    </div>
+                                )}
+
+                                {(importWarnings.length > 0 || (importDryRun?.unmatchedPaths.length ?? 0) > 0 || (importDryRun?.missingTagNames.length ?? 0) > 0) && (
+                                    <div className="space-y-2">
+                                        {importWarnings.length > 0 && (
+                                            <div className="text-xs text-yellow-300 bg-yellow-900/20 border border-yellow-800/40 rounded p-2">
+                                                <div className="font-semibold mb-1">解析警告（先頭{Math.min(importWarnings.length, 5)}件）</div>
+                                                {importWarnings.slice(0, 5).map((w, i) => (
+                                                    <div key={`${w}-${i}`}>{w}</div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {(importDryRun?.unmatchedPaths.length ?? 0) > 0 && (
+                                            <div className="text-xs text-surface-300 bg-surface-800 border border-surface-700 rounded p-2">
+                                                <div className="font-semibold mb-1">未一致パス（先頭{importDryRun!.unmatchedPaths.length}件）</div>
+                                                {importDryRun!.unmatchedPaths.map((p) => (
+                                                    <div key={p} className="break-all text-surface-400">{p}</div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {(importDryRun?.missingTagNames.length ?? 0) > 0 && (
+                                            <div className="text-xs text-surface-300 bg-surface-800 border border-surface-700 rounded p-2">
+                                                <div className="font-semibold mb-1">新規作成されるタグ（先頭{importDryRun!.missingTagNames.length}件）</div>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {importDryRun!.missingTagNames.map((name) => (
+                                                        <span key={name} className="px-2 py-0.5 rounded bg-surface-700 text-surface-200">#{name}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

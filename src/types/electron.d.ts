@@ -103,6 +103,20 @@ declare global {
 
             // Dialog
             selectFolder: () => Promise<string | null>;
+            saveTextFile: (options: {
+                title?: string;
+                defaultPath?: string;
+                filters?: Array<{ name: string; extensions: string[] }>;
+                content: string;
+            }) => Promise<{ canceled: boolean; filePath?: string }>;
+            openTextFile: (options?: {
+                title?: string;
+                filters?: Array<{ name: string; extensions: string[] }>;
+            }) => Promise<{ canceled: boolean; filePath?: string; content?: string }>;
+            openBinaryFile: (options?: {
+                title?: string;
+                filters?: Array<{ name: string; extensions: string[] }>;
+            }) => Promise<{ canceled: boolean; filePath?: string; bytes?: Uint8Array }>;
 
             // Events
             onScanProgress: (callback: (progress: any) => void) => () => void;

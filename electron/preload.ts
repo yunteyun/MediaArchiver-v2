@@ -48,6 +48,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // === Dialog ===
     selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
+    saveTextFile: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }>; content: string }) =>
+        ipcRenderer.invoke('dialog:saveTextFile', options),
+    openTextFile: (options?: { title?: string; filters?: Array<{ name: string; extensions: string[] }> }) =>
+        ipcRenderer.invoke('dialog:openTextFile', options),
+    openBinaryFile: (options?: { title?: string; filters?: Array<{ name: string; extensions: string[] }> }) =>
+        ipcRenderer.invoke('dialog:openBinaryFile', options),
 
     // === Events (Main -> Renderer) ===
     onScanProgress: (callback: (progress: any) => void) => {
