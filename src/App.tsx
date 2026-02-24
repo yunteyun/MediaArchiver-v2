@@ -17,6 +17,7 @@ import { useTagStore } from './stores/useTagStore';
 import { useUIStore } from './stores/useUIStore';
 import { useSettingsStore } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
+import { useRatingStore } from './stores/useRatingStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 import { MoveFolderDialog } from './components/MoveFolderDialog';
 import { useDuplicateStore } from './stores/useDuplicateStore';
@@ -72,6 +73,13 @@ function App() {
         loadProfiles();
     }, [loadProfiles]);
 
+    // 評価フィルター用キャッシュを起動時に一括ロード
+    useEffect(() => {
+        useRatingStore.getState().loadAllFileRatings().catch((e) => {
+            console.error('Failed to preload rating cache:', e);
+        });
+    }, []);
+
     // 起動時自動スキャン（初回マウント時のみ）
     useEffect(() => {
         if (autoScanOnStartupRef.current) {
@@ -118,10 +126,16 @@ function App() {
                 setFiles([]);
                 setCurrentFolderId(null);
                 clearTagFilter();
+                useRatingStore.getState().clearRatingFilters();
                 // 重複検索ストアをリセット（前プロファイルの結果を残さない）
                 useDuplicateStore.getState().reset();
                 // コンポーネントを再マウント
                 setRefreshKey((k) => k + 1);
+
+                // 新プロファイルの評価キャッシュを再ロード
+                useRatingStore.getState().loadAllFileRatings().catch((e) => {
+                    console.error('Failed to reload rating cache after profile switch:', e);
+                });
             };
             handleProfileSwitch();
         });

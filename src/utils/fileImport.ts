@@ -4,6 +4,7 @@ export interface MediaArchiverCsvImportRow {
     tags: string[];
     tagColorByName: Map<string, string>;
     ratingValue?: number;
+    memoText?: string;
     source?: 'mediaarchiver' | 'legacy';
 }
 
@@ -162,6 +163,8 @@ export interface CsvImportDryRunSummary {
     newTagsToCreate: number;
     rowsWithRating: number;
     ratingUpdates: number;
+    rowsWithMemo: number;
+    memoUpdates: number;
     unmatchedPaths: string[];
     missingTagNames: string[];
 }
@@ -218,13 +221,12 @@ export function parseLegacyAppCsvFromBytes(bytes: Uint8Array): MediaArchiverCsvI
         const tags: string[] = [];
         let ratingValue: number | undefined;
 
-        // コメント1 もタグ/評価候補として扱う（旧アプリ側で列ずれしているケースがある）
-        const candidates = [
-            ...(comment1Index >= 0 ? [r[comment1Index] ?? ''] : []),
-            ...r.slice(Math.max(header.length, 5)),
-        ]
+        // 末尾の追加列をタグ/評価候補として扱う（旧アプリCSVの可変列対応）
+        const candidates = r.slice(Math.max(header.length, 5))
             .map((v) => (v ?? '').trim())
             .filter(Boolean);
+
+        const memoText = comment1Index >= 0 ? (r[comment1Index] ?? '').trim() : '';
 
         for (const token of candidates) {
             const stars = parseStarRatingToken(token);
@@ -241,6 +243,7 @@ export function parseLegacyAppCsvFromBytes(bytes: Uint8Array): MediaArchiverCsvI
             tags: Array.from(new Set(tags)),
             tagColorByName: new Map(),
             ratingValue,
+            memoText: memoText || undefined,
             source: 'legacy',
         });
     }

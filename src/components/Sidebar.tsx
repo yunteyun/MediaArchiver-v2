@@ -14,6 +14,7 @@ export const FOLDER_PREFIX = '__folder:';
 
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
+    const files = useFileStore((s) => s.files);
     const setFiles = useFileStore((s) => s.setFiles);
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
 
@@ -91,6 +92,13 @@ export const Sidebar = React.memo(() => {
     useEffect(() => {
         loadFolders();
 
+        // 起動直後/プロファイル切替直後:
+        // 見た目上は「すべてのファイル」選択状態（currentFolderId=null）なので、
+        // 実データも全件ロードしてフィルター対象を一致させる。
+        if (currentFolderId === null && files.length === 0) {
+            void handleSelectFolder(ALL_FILES_ID);
+        }
+
         const cleanupDelete = window.electronAPI.onFolderDeleted((folderId) => {
             console.log('Folder deleted:', folderId);
             loadFolders();
@@ -112,7 +120,7 @@ export const Sidebar = React.memo(() => {
             cleanupDelete();
             cleanupRescan();
         };
-    }, [loadFolders, currentFolderId, setCurrentFolderId, setFiles, handleSelectFolder]);
+    }, [loadFolders, currentFolderId, files.length, setCurrentFolderId, setFiles, handleSelectFolder]);
 
 
     return (

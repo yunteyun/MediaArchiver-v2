@@ -8,6 +8,7 @@ import { useUIStore, type SettingsModalTab } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useTagStore } from '../stores/useTagStore';
+import { useRatingStore } from '../stores/useRatingStore';
 import { useProfileStore } from '../stores/useProfileStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { StorageCleanupSection } from './settings/StorageCleanupSection';
@@ -206,6 +207,8 @@ export const SettingsModal = React.memo(() => {
         let tagLinksToAdd = 0;
         let rowsWithRating = 0;
         let ratingUpdates = 0;
+        let rowsWithMemo = 0;
+        let memoUpdates = 0;
         const unmatchedPaths: string[] = [];
         const missingTagNames = new Set<string>();
 
@@ -221,6 +224,10 @@ export const SettingsModal = React.memo(() => {
             if (typeof row.ratingValue === 'number') {
                 rowsWithRating += 1;
                 if (overallAxis) ratingUpdates += 1;
+            }
+            if (row.memoText?.trim()) {
+                rowsWithMemo += 1;
+                memoUpdates += 1;
             }
 
             const currentTagIds = new Set(fileTagIdsMap[file.id] ?? []);
@@ -246,6 +253,8 @@ export const SettingsModal = React.memo(() => {
             newTagsToCreate: missingTagNames.size,
             rowsWithRating,
             ratingUpdates,
+            rowsWithMemo,
+            memoUpdates,
             unmatchedPaths: unmatchedPaths.slice(0, 20),
             missingTagNames: Array.from(missingTagNames).sort().slice(0, 30),
         };
@@ -332,6 +341,7 @@ export const SettingsModal = React.memo(() => {
             let addedLinks = 0;
             let skippedRows = 0;
             let updatedRatings = 0;
+            let updatedMemos = 0;
 
             for (const row of parsedImportRows) {
                 const targetFile = fileByPath.get(row.path);
@@ -364,6 +374,15 @@ export const SettingsModal = React.memo(() => {
                     await window.electronAPI.setFileRating(targetFile.id, overallAxis.id, row.ratingValue);
                     updatedRatings += 1;
                 }
+
+                if (row.memoText?.trim()) {
+                    const nextMemo = targetFile.notes?.trim()
+                        ? `${targetFile.notes}\n\n[旧CSVコメント]\n${row.memoText}`
+                        : row.memoText;
+                    await window.electronAPI.updateFileNotes(targetFile.id, nextMemo);
+                    targetFile.notes = nextMemo;
+                    updatedMemos += 1;
+                }
             }
 
             // Store cache refresh (tag filter / list consistency)
@@ -378,6 +397,9 @@ export const SettingsModal = React.memo(() => {
             );
             if (updatedRatings > 0) {
                 useUIStore.getState().showToast(`評価を ${updatedRatings} 件更新しました`, 'info', 4000);
+            }
+            if (updatedMemos > 0) {
+                useUIStore.getState().showToast(`メモを ${updatedMemos} 件追記しました`, 'info', 4000);
             }
 
             await runCsvImportDryRun(parsedImportRows);
@@ -1228,6 +1250,9 @@ export const SettingsModal = React.memo(() => {
                                         <p className="text-xs text-surface-500 mt-0.5">
                                             `path` をキーにタグを復元します（追記型）。旧アプリCSV（Shift_JIS / 可変列）は互換モードで解析します。
                                         </p>
+                                        <p className="text-xs text-surface-500">
+                                            旧アプリCSVは `コメント１` をメモへ追記し、末尾の追加列をタグ/星評価として解釈します。
+                                        </p>
                                     </div>
                                 </div>
 
@@ -1275,6 +1300,8 @@ export const SettingsModal = React.memo(() => {
                                         <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">新規タグ作成予定: {importDryRun.newTagsToCreate}</div>
                                         <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">評価行: {importDryRun.rowsWithRating}</div>
                                         <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">評価更新予定: {importDryRun.ratingUpdates}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">メモ行: {importDryRun.rowsWithMemo}</div>
+                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">メモ追記予定: {importDryRun.memoUpdates}</div>
                                     </div>
                                 )}
 
