@@ -66,7 +66,7 @@ interface TagState {
     loadTags: () => Promise<void>;
     loadCategories: () => Promise<void>;
     createTag: (name: string, color?: string, categoryId?: string, icon?: string, description?: string) => Promise<Tag>;
-    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; icon?: string; description?: string }) => Promise<void>;
+    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number; icon?: string; description?: string }) => Promise<void>;
     deleteTag: (id: string) => Promise<void>;
     createCategory: (name: string, color?: string) => Promise<TagCategory>;
     updateCategory: (id: string, updates: { name?: string; color?: string; sortOrder?: number }) => Promise<void>;

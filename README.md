@@ -66,8 +66,8 @@ npm run build:electron
 
 ### 開発・運用
 
-- `ROADMAP.md` : 今後の計画 / 進行中 / 直近リリース対象
-- `CHANGELOG.md` : リリース単位の変更履歴
+- `ROADMAP.md` : 今後の計画 / 進行中（未完了中心） / 直近リリース対象
+- `CHANGELOG.md` : リリース単位の変更履歴（完了済み変更の詳細）
 - `ROADMAP_legacy.md` : 旧ロードマップ（過去フェーズ詳細）
 - `.agent/devlog/YYYY-MM-DD.md` : 日次作業記録
 
@@ -80,4 +80,4 @@ npm run build:electron
 ## 注意
 
 - `update.bat` は文字コードの都合で ASCII 中心にしています（仕様）
-- ドキュメントは順次 UTF-8 に統一中です
+- Markdown ドキュメントは UTF-8 前提で運用しています

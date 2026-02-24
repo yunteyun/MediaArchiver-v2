@@ -5,7 +5,7 @@ import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
-import type { Tag } from '../stores/useTagStore';
+import { useTagStore, type Tag } from '../stores/useTagStore';
 
 import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
@@ -47,6 +47,59 @@ function getTagBackgroundColor(colorName: string | undefined): string {
     };
     const color = colorMap[colorName];
     return color !== undefined ? color : (colorMap.gray as string); // フォールバック: gray
+}
+
+// FileCard の要約タグは、カテゴリが偏りすぎないようにカテゴリ単位で1つずつ選ぶ。
+// 既存の sortOrder 順は維持しつつ、未分類タグはカテゴリタグの後ろに回す。
+function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
+    if (visibleCount <= 0) return [];
+    if (tags.length <= visibleCount) return tags.slice(0, visibleCount);
+
+    const categorizedBuckets: Tag[][] = [];
+    const bucketIndexByCategoryId = new Map<string, number>();
+    const uncategorizedBucket: Tag[] = [];
+
+    for (const tag of tags) {
+        if (!tag.categoryId) {
+            uncategorizedBucket.push(tag);
+            continue;
+        }
+
+        let bucketIndex = bucketIndexByCategoryId.get(tag.categoryId);
+        if (bucketIndex === undefined) {
+            bucketIndex = categorizedBuckets.length;
+            bucketIndexByCategoryId.set(tag.categoryId, bucketIndex);
+            categorizedBuckets.push([]);
+        }
+        categorizedBuckets[bucketIndex]!.push(tag);
+    }
+
+    const buckets = uncategorizedBucket.length > 0
+        ? [...categorizedBuckets, uncategorizedBucket]
+        : categorizedBuckets;
+
+    const bucketPositions = new Array(buckets.length).fill(0);
+    const result: Tag[] = [];
+
+    while (result.length < visibleCount) {
+        let pickedInRound = false;
+
+        for (let i = 0; i < buckets.length; i += 1) {
+            const bucket = buckets[i];
+            const pos = bucketPositions[i];
+            if (!bucket || pos >= bucket.length) continue;
+
+            result.push(bucket[pos]!);
+            bucketPositions[i] = pos + 1;
+            pickedInRound = true;
+
+            if (result.length >= visibleCount) break;
+        }
+
+        if (!pickedInRound) break;
+    }
+
+    return result;
 }
 
 // Phase 17-3: ランダムジャンプ再生の定数
@@ -112,6 +165,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     // タグ表示スタイル設定
     const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
     const isTagBorderMode = tagDisplayStyle === 'border';
+    const fileCardTagOrderMode = useSettingsStore((s) => s.fileCardTagOrderMode);
 
 
     // Phase 15-2: サムネイルバッジの計算（メモ化）
@@ -183,6 +237,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // Phase 17-3: playMode 設定を取得
     const playMode = useSettingsStore((s) => s.playMode);
+    const tagCategories = useTagStore((s) => s.categories);
 
     // Phase 17-3: shouldPlayVideo を計算
     const shouldPlayVideo = useMemo(() => {
@@ -225,10 +280,28 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return () => { isMounted = false; };
     }, [file.id]);
 
-    // タグをsortOrderでソート（メモ化でパフォーマンス最適化）
+    const categorySortOrderById = useMemo(
+        () => new Map(tagCategories.map((c) => [c.id, c.sortOrder])),
+        [tagCategories]
+    );
+
+    // タグをカテゴリ順 -> タグ順でソート（未分類は後ろ）
     const sortedTags = useMemo(() => {
-        return [...fileTags].sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999));
-    }, [fileTags]);
+        return [...fileTags].sort((a, b) => {
+            const aCategoryOrder = a.categoryId
+                ? (categorySortOrderById.get(a.categoryId) ?? 999)
+                : Number.MAX_SAFE_INTEGER;
+            const bCategoryOrder = b.categoryId
+                ? (categorySortOrderById.get(b.categoryId) ?? 999)
+                : Number.MAX_SAFE_INTEGER;
+
+            if (aCategoryOrder !== bCategoryOrder) {
+                return aCategoryOrder - bCategoryOrder;
+            }
+
+            return (a.sortOrder || 999) - (b.sortOrder || 999);
+        });
+    }, [fileTags, categorySortOrderById]);
 
     // Phase 14-8: タグポップオーバー hover 制御
     const openPopover = useCallback(() => {
@@ -275,13 +348,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     // to preserve triggerRef/popover state ownership. Revisit after tag popover extraction.
     const renderTagSummary = useCallback((visibleCount: number) => {
         if (!showTags || sortedTags.length === 0) return null;
+        const visibleTags = fileCardTagOrderMode === 'strict'
+            ? sortedTags.slice(0, visibleCount)
+            : getBalancedSummaryTags(sortedTags, visibleCount);
 
         return (
-            <div className="flex flex-wrap gap-1">
-                {sortedTags.slice(0, visibleCount).map(tag => (
+            <div className="flex min-w-0 flex-nowrap justify-end gap-1 overflow-hidden">
+                {visibleTags.map(tag => (
                     <span
                         key={tag.id}
-                        className={`px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
+                        className={`inline-flex min-w-0 max-w-[54px] items-center px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
                         style={isTagBorderMode ? {
                             backgroundColor: 'rgba(55, 65, 81, 0.9)',
                             color: '#e5e7eb',
@@ -294,7 +370,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             opacity: 0.85
                         }}
                     >
-                        #{tag.name}
+                        <span className="truncate">#{tag.name}</span>
                     </span>
                 ))}
                 {sortedTags.length > visibleCount && (
@@ -321,6 +397,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         showTags,
         sortedTags,
         isTagBorderMode,
+        fileCardTagOrderMode,
         tagPopoverTrigger,
         showTagPopover,
         openPopover,

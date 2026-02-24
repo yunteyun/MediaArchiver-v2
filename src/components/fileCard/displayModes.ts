@@ -15,8 +15,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             aspectRatio: '1/1',
             cardWidth: 240,
             thumbnailHeight: 240,
-            infoAreaHeight: 70,
-            totalHeight: 310,
+            infoAreaHeight: 74,
+            totalHeight: 314,
         },
     },
     standardLarge: {
@@ -29,8 +29,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             aspectRatio: '1/1',
             cardWidth: 250,
             thumbnailHeight: 250,
-            infoAreaHeight: 70,
-            totalHeight: 320,
+            infoAreaHeight: 74,
+            totalHeight: 324,
         },
     },
     manga: {

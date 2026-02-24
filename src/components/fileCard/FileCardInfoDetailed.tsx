@@ -12,11 +12,12 @@ export const FileCardInfoDetailed = React.memo(({
     renderTagSummary,
 }: FileCardInfoCommonProps) => {
     const isMangaMode = displayMode === 'manga';
+    const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
 
     return (
         <div
             className={`flex flex-col bg-surface-800 ${
-                isMangaMode ? 'px-3 py-1.5 justify-between' : 'px-3.5 py-2 justify-start'
+                isMangaMode ? 'px-3 py-1.5 justify-between' : 'px-3.5 py-2.5 justify-start'
             }`}
             style={{ height: `${infoAreaHeight}px` }}
         >
@@ -28,7 +29,7 @@ export const FileCardInfoDetailed = React.memo(({
             >
                 {file.name}
             </h3>
-            <div className={`text-[10px] text-surface-500 truncate leading-tight ${isMangaMode ? 'mb-0.5' : 'mb-1'}`}>
+            <div className={`text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`}>
                 {getDisplayFolderName(file.path)}
                 {file.createdAt && (
                     <>
@@ -54,9 +55,19 @@ export const FileCardInfoDetailed = React.memo(({
                     </>
                 )}
             </div>
-            <div className={`flex justify-between gap-1 ${isMangaMode ? 'items-center' : 'items-start'}`}>
+            <div
+                className={`flex justify-between gap-1 ${
+                    isMangaMode ? 'items-center' : isStandardMode ? 'items-center mt-auto' : 'items-start mt-auto'
+                }`}
+            >
                 {showFileSize && file.size && (
-                    <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
+                    <span
+                        className={`flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap ${
+                            isStandardMode
+                                ? 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80'
+                                : 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60'
+                        }`}
+                    >
                         {formatFileSize(file.size)}
                     </span>
                 )}

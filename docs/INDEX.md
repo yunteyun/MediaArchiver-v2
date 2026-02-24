@@ -12,11 +12,13 @@
 
 - `ROADMAP.md`
   - 今後の計画
-  - 進行中の計画
+  - 進行中の計画（未完了 / 継続中）
   - 直近リリース対象
+  - 完了済み項目は要約中心（詳細は `CHANGELOG.md`）
 
 - `CHANGELOG.md`
   - リリース単位の変更履歴
+  - 完了済み変更の詳細（調整内容 / 修正内容）
 
 - `ROADMAP_legacy.md`
   - 旧ロードマップ（過去フェーズの詳細履歴）
@@ -47,6 +49,7 @@
 ## 更新ルール（簡易）
 
 1. 実装完了後に `CHANGELOG.md` と `ROADMAP.md` を更新する
+   - `ROADMAP.md` は未完了 / 直近優先を中心に保つ（完了詳細は `CHANGELOG.md`）
 2. 不具合は `docs/dev/不具合・要望リスト.md`、検討中は `docs/dev/思考メモ.md` に分ける
 3. 使い方変更は `docs/user/アプリ使用メモ.md` を更新する
 4. セッション終わりに `.agent/devlog/YYYY-MM-DD.md` を記録する

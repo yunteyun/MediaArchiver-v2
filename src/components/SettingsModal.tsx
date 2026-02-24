@@ -54,6 +54,8 @@ export const SettingsModal = React.memo(() => {
     // タグ表示スタイル設定
     const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
     const setTagDisplayStyle = useSettingsStore((s) => s.setTagDisplayStyle);
+    const fileCardTagOrderMode = useSettingsStore((s) => s.fileCardTagOrderMode);
+    const setFileCardTagOrderMode = useSettingsStore((s) => s.setFileCardTagOrderMode);
     // Phase 17-3: playモード詳細設定
     const playMode = useSettingsStore((s) => s.playMode);
     const setPlayModeJumpType = useSettingsStore((s) => s.setPlayModeJumpType);
@@ -390,6 +392,22 @@ export const SettingsModal = React.memo(() => {
                                                 <option value="filled">塗りつぶし（フル背景色）</option>
                                                 <option value="border">左端ライン（ダーク背景）</option>
                                             </select>
+                                        </div>
+                                    )}
+                                    {showTags && (
+                                        <div className="ml-6 mt-1">
+                                            <label className="block text-xs text-surface-400 mb-1">ファイルカード要約タグの並び</label>
+                                            <select
+                                                value={fileCardTagOrderMode}
+                                                onChange={(e) => setFileCardTagOrderMode(e.target.value as 'balanced' | 'strict')}
+                                                className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                                            >
+                                                <option value="balanced">カテゴリ分散（カテゴリ偏りを抑える）</option>
+                                                <option value="strict">厳密順（カテゴリ順→タグ順）</option>
+                                            </select>
+                                            <p className="mt-1 text-[11px] text-surface-500">
+                                                ファイルカードの省略タグ表示（3件表示など）にのみ適用されます。
+                                            </p>
                                         </div>
                                     )}
                                     <label className="flex items-center gap-2 cursor-pointer">

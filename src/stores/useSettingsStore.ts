@@ -14,6 +14,7 @@ export type TagPopoverTrigger = 'click' | 'hover';
 
 // タグ表示スタイル型定義
 export type TagDisplayStyle = 'filled' | 'border';
+export type FileCardTagOrderMode = 'balanced' | 'strict';
 
 // Phase 17-3: Playモード詳細設定型定義
 export type PlayModeJumpType = 'light' | 'random' | 'sequential';
@@ -67,6 +68,8 @@ interface SettingsState {
 
     // タグ表示スタイル設定
     tagDisplayStyle: TagDisplayStyle;
+    // FileCard 要約タグの並びルール
+    fileCardTagOrderMode: FileCardTagOrderMode;
 
     // Phase 17-3: Playモード詳細設定
     playMode: {
@@ -105,6 +108,7 @@ interface SettingsState {
     setTagPopoverTrigger: (trigger: TagPopoverTrigger) => void;
     // タグ表示スタイルアクション
     setTagDisplayStyle: (style: TagDisplayStyle) => void;
+    setFileCardTagOrderMode: (mode: FileCardTagOrderMode) => void;
     // Phase 17-3: Playモード詳細設定アクション
     setPlayModeJumpType: (type: PlayModeJumpType) => void;
     setPlayModeJumpInterval: (interval: PlayModeJumpInterval) => void;
@@ -151,6 +155,7 @@ export const useSettingsStore = create<SettingsState>()(
 
             // タグ表示スタイル設定
             tagDisplayStyle: 'filled' as TagDisplayStyle,
+            fileCardTagOrderMode: 'balanced' as FileCardTagOrderMode,
 
             // Phase 17-3: Playモード詳細設定
             playMode: {
@@ -227,6 +232,7 @@ export const useSettingsStore = create<SettingsState>()(
             setTagPopoverTrigger: (tagPopoverTrigger) => set({ tagPopoverTrigger }),
             // タグ表示スタイルアクション
             setTagDisplayStyle: (tagDisplayStyle) => set({ tagDisplayStyle }),
+            setFileCardTagOrderMode: (fileCardTagOrderMode) => set({ fileCardTagOrderMode }),
             // Phase 17-3: Playモード詳細設定アクション
             setPlayModeJumpType: (jumpType) => set((state) => ({
                 playMode: { ...state.playMode, jumpType }

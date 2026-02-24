@@ -69,14 +69,26 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
         );
     }, [tags, searchQuery]);
 
-    // Group tags by category
-    const uncategorizedTags = filteredTags.filter(t => !t.categoryId);
-    const categorizedGroups = categories
+    // Group tags by category（カテゴリ順 + タグ順）
+    const uncategorizedTags = useMemo(() => (
+        filteredTags
+            .filter(t => !t.categoryId)
+            .slice()
+            .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
+    ), [filteredTags]);
+
+    const categorizedGroups = useMemo(() => (
+        [...categories]
+        .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
         .map(cat => ({
             category: cat,
-            tags: filteredTags.filter(t => t.categoryId === cat.id)
+            tags: filteredTags
+                .filter(t => t.categoryId === cat.id)
+                .slice()
+                .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
         }))
-        .filter(g => g.tags.length > 0);
+        .filter(g => g.tags.length > 0)
+    ), [categories, filteredTags]);
 
     const hasFilters = selectedTagIds.length > 0;
 

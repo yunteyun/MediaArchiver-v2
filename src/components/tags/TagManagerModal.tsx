@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, ChevronRight, GripVertical } from 'lucide-react';
+import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, ChevronRight, GripVertical, Info } from 'lucide-react';
 import { useTagStore, Tag, TagCategory } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
 import { AutoTagRulesTab } from '../AutoTagRulesTab';
@@ -15,6 +15,28 @@ const COLOR_OPTIONS = [
     'gray', 'red', 'orange', 'amber', 'yellow', 'lime', 'green',
     'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet',
     'purple', 'fuchsia', 'pink', 'rose'
+];
+
+// タグで使いやすい lucide-react アイコン名の候補（入力補助用）
+const COMMON_TAG_ICON_NAMES = [
+    'Tag',
+    'Star',
+    'Heart',
+    'Music',
+    'Image',
+    'Film',
+    'Gamepad2',
+    'BookOpen',
+    'Folder',
+    'Sparkles',
+    'Zap',
+    'Flame',
+    'Palette',
+    'Camera',
+    'Headphones',
+    'Mic',
+    'Bookmark',
+    'Shield',
 ];
 
 /** カテゴリ色→背景CSSクラス */
@@ -34,6 +56,7 @@ interface TagManagerModalProps {
 
 export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalProps) => {
     const [activeTab, setActiveTab] = useState<'tags' | 'autoRules'>('tags');
+    const [showPriorityHelp, setShowPriorityHelp] = useState(false);
 
     // カテゴリ選択（左ペイン）
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -54,6 +77,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     // D&D state
     const [dragCategoryId, setDragCategoryId] = useState<string | null>(null);
     const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
+    const [dragTagId, setDragTagId] = useState<string | null>(null);
+    const [dragOverTagId, setDragOverTagId] = useState<string | null>(null);
 
     const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
@@ -70,6 +95,9 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         if (isOpen) {
             loadTags();
             loadCategories();
+            setShowPriorityHelp(false);
+            setDragTagId(null);
+            setDragOverTagId(null);
         }
     }, [isOpen, loadTags, loadCategories]);
 
@@ -94,10 +122,20 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     // 選択中カテゴリに属するタグ
     const filteredTags = useMemo(() => {
         if (selectedCategoryId === UNCATEGORIZED_ID) {
-            return tags.filter(t => !t.categoryId);
+            return tags
+                .filter(t => !t.categoryId)
+                .slice()
+                .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
         }
-        if (selectedCategoryId === null) return tags;
-        return tags.filter(t => t.categoryId === selectedCategoryId);
+        if (selectedCategoryId === null) {
+            return tags
+                .slice()
+                .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
+        }
+        return tags
+            .filter(t => t.categoryId === selectedCategoryId)
+            .slice()
+            .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
     }, [tags, selectedCategoryId]);
 
     // 未分類タグ数
@@ -131,6 +169,53 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         if (confirm(`タグ "${tag.name}" を削除しますか？`)) {
             await deleteTag(tag.id);
         }
+    };
+
+    const handleTagDragStart = (tagId: string) => {
+        setDragTagId(tagId);
+    };
+
+    const handleTagDragOver = (e: React.DragEvent, tagId: string) => {
+        e.preventDefault();
+        if (dragTagId === tagId) return;
+        setDragOverTagId(tagId);
+    };
+
+    const handleTagDrop = async (e: React.DragEvent, targetTagId: string) => {
+        e.preventDefault();
+        if (!dragTagId || dragTagId === targetTagId) {
+            setDragTagId(null);
+            setDragOverTagId(null);
+            return;
+        }
+
+        const sorted = [...filteredTags];
+        const fromIdx = sorted.findIndex(t => t.id === dragTagId);
+        const toIdx = sorted.findIndex(t => t.id === targetTagId);
+        if (fromIdx === -1 || toIdx === -1) {
+            setDragTagId(null);
+            setDragOverTagId(null);
+            return;
+        }
+
+        const reordered = [...sorted];
+        const [moved] = reordered.splice(fromIdx, 1);
+        reordered.splice(toIdx, 0, moved);
+
+        const sortOrderSlots = sorted.map(t => t.sortOrder).sort((a, b) => a - b);
+
+        await Promise.all(
+            reordered.map((tag, idx) => {
+                const nextSortOrder = sortOrderSlots[idx];
+                if (nextSortOrder === undefined || nextSortOrder === tag.sortOrder) {
+                    return Promise.resolve();
+                }
+                return updateTag(tag.id, { sortOrder: nextSortOrder });
+            })
+        );
+
+        setDragTagId(null);
+        setDragOverTagId(null);
     };
 
     const startEditTag = (tag: Tag) => {
@@ -232,8 +317,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
     return createPortal(
         <div className="fixed inset-0 flex items-center justify-center bg-black/70" onClick={onClose} style={{ zIndex: 'var(--z-modal)' }}>
             <div
-                className="bg-surface-900 rounded-lg border border-surface-700 shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col"
-                style={{ minWidth: '720px' }}
+                className="bg-surface-900 rounded-lg border border-surface-700 shadow-2xl w-full max-w-5xl max-h-[82vh] flex flex-col"
+                style={{ minWidth: '820px' }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -273,12 +358,15 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                     {activeTab === 'tags' ? (
                         <div className="flex h-full" style={{ minHeight: '400px' }}>
                             {/* === 左ペイン: カテゴリ一覧 === */}
-                            <div className="w-56 flex-shrink-0 border-r border-surface-700 flex flex-col">
+                            <div className="w-64 flex-shrink-0 border-r border-surface-700 flex flex-col bg-surface-900/40">
                                 <div className="p-3 border-b border-surface-700">
                                     <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider flex items-center gap-1">
                                         <FolderOpen size={12} />
                                         カテゴリ
                                     </h3>
+                                    <p className="mt-1 text-[10px] leading-snug text-surface-500">
+                                        ドラッグでカテゴリ順を変更。右ペインのタグ表示・編集対象を切り替えます。
+                                    </p>
                                 </div>
 
                                 {/* カテゴリリスト */}
@@ -405,17 +493,76 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                             {/* === 右ペイン: タグ一覧 === */}
                             <div className="flex-1 flex flex-col min-w-0">
                                 {/* 右ペインヘッダー */}
-                                <div className="p-3 border-b border-surface-700 flex items-center justify-between">
-                                    <h3 className="text-sm font-medium text-surface-200 flex items-center gap-1.5">
-                                        <ChevronRight size={14} className="text-surface-500" />
-                                        {selectedCategoryName}
-                                        <span className="text-xs text-surface-500 ml-1">({filteredTags.length} タグ)</span>
-                                    </h3>
+                                <div className="px-4 py-3 border-b border-surface-700 bg-surface-900/50 relative">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h3 className="text-sm font-medium text-surface-200 flex items-center gap-1.5 min-w-0">
+                                            <ChevronRight size={14} className="text-surface-500 flex-shrink-0" />
+                                            <span className="truncate">{selectedCategoryName}</span>
+                                            <span className="text-xs text-surface-500 ml-1 flex-shrink-0">({filteredTags.length} タグ)</span>
+                                        </h3>
+                                        <div className="flex items-center gap-1.5 text-[10px] text-surface-400 flex-shrink-0">
+                                            <span
+                                                className="px-1.5 py-0.5 rounded border border-surface-700 bg-surface-800/70"
+                                                title="タグの表示優先順（内部名: sortOrder）"
+                                            >
+                                                タグ順: 表示優先順
+                                            </span>
+                                            <span
+                                                className="px-1.5 py-0.5 rounded border border-surface-700 bg-surface-800/70"
+                                                title="カテゴリの並び順（ドラッグで変更）"
+                                            >
+                                                カテゴリ順: ドラッグ順
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPriorityHelp(v => !v)}
+                                                className="p-1 rounded border border-surface-700 bg-surface-800/70 hover:bg-surface-700 text-surface-400 hover:text-surface-200 transition-colors"
+                                                title="表示優先順位の基準"
+                                                aria-label="表示優先順位の基準を表示"
+                                            >
+                                                <Info size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="mt-1 text-[10px] leading-snug text-surface-500 truncate">
+                                        タグの編集・作成を行います。詳細な表示ルールは右上の情報ボタンから確認できます。
+                                    </p>
+                                    {showPriorityHelp && (
+                                        <div className="absolute top-[calc(100%-4px)] right-4 z-10 w-[360px] rounded-md border border-surface-700 bg-surface-900 shadow-2xl p-3">
+                                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                <div className="text-[11px] font-semibold text-surface-200">表示優先順位の基準</div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPriorityHelp(false)}
+                                                    className="text-[10px] text-surface-500 hover:text-surface-300"
+                                                >
+                                                    閉じる
+                                                </button>
+                                            </div>
+                                            <div className="text-[10px] leading-snug text-surface-400 space-y-1">
+                                                <div>1. タグの基本順: 「表示優先順」（内部名: `sortOrder`、小さい値ほど優先）</div>
+                                                <div>2. ファイルカードの省略タグ表示: 上記順をベースにカテゴリが偏らないよう分散表示</div>
+                                                <div>3. カテゴリ順: 左ペインのドラッグ順（カテゴリ管理上の並び順）</div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* タグ作成フォーム */}
-                                <div className="p-3 border-b border-surface-700 bg-surface-800/50">
+                                <div className="px-4 py-3 border-b border-surface-700 bg-surface-800/40">
                                     <div className="space-y-2">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="text-xs font-semibold text-surface-300">
+                                                {editingTag ? 'タグ編集' : '新規タグ作成'}
+                                            </div>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                                                editingTag
+                                                    ? 'border-amber-500/40 text-amber-300 bg-amber-500/10'
+                                                    : 'border-emerald-500/30 text-emerald-300 bg-emerald-500/10'
+                                            }`}>
+                                                {editingTag ? '編集モード' : '追加モード'}
+                                            </span>
+                                        </div>
                                         <div className="flex gap-2">
                                             <input
                                                 type="text"
@@ -461,18 +608,55 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                             </div>
                                         </div>
                                         {/* アイコン/説明 は折りたたみで表示可能にする */}
-                                        <details className="text-xs">
+                                        <details className="text-xs rounded border border-surface-700/80 bg-surface-900/40 px-2 py-1.5">
                                             <summary className="text-surface-500 cursor-pointer hover:text-surface-300 select-none">
                                                 詳細設定（アイコン・説明）
                                             </summary>
                                             <div className="mt-2 space-y-1.5">
-                                                <input
-                                                    type="text"
-                                                    placeholder="アイコン名 (例: Star, Heart)"
-                                                    value={newTagIcon}
-                                                    onChange={(e) => setNewTagIcon(e.target.value)}
-                                                    className="w-full px-2 py-1 bg-surface-900 border border-surface-600 rounded text-xs focus:outline-none focus:border-primary-500"
-                                                />
+                                                <div className="space-y-1">
+                                                    <input
+                                                        type="text"
+                                                        list="tag-icon-name-suggestions"
+                                                        placeholder="アイコン名 (例: Star, Heart)"
+                                                        value={newTagIcon}
+                                                        onChange={(e) => setNewTagIcon(e.target.value)}
+                                                        className="w-full px-2 py-1 bg-surface-900 border border-surface-600 rounded text-xs focus:outline-none focus:border-primary-500"
+                                                    />
+                                                    <datalist id="tag-icon-name-suggestions">
+                                                        {COMMON_TAG_ICON_NAMES.map((iconName) => (
+                                                            <option key={iconName} value={iconName} />
+                                                        ))}
+                                                    </datalist>
+                                                    <div className="flex flex-wrap items-center gap-1">
+                                                        <span className="text-[10px] text-surface-500">候補:</span>
+                                                        {COMMON_TAG_ICON_NAMES.slice(0, 10).map((iconName) => (
+                                                            <button
+                                                                key={iconName}
+                                                                type="button"
+                                                                onClick={() => setNewTagIcon(iconName)}
+                                                                className={`px-1.5 py-0.5 rounded border text-[10px] transition-colors ${
+                                                                    newTagIcon === iconName
+                                                                        ? 'border-primary-500/60 bg-primary-500/15 text-primary-300'
+                                                                        : 'border-surface-700 bg-surface-800/70 text-surface-400 hover:text-surface-200 hover:bg-surface-700'
+                                                                }`}
+                                                            >
+                                                                {iconName}
+                                                            </button>
+                                                        ))}
+                                                        {newTagIcon && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setNewTagIcon('')}
+                                                                className="px-1.5 py-0.5 rounded border border-surface-700 bg-surface-800/70 text-[10px] text-surface-400 hover:text-surface-200 hover:bg-surface-700"
+                                                            >
+                                                                解除
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] leading-snug text-surface-500">
+                                                        `lucide-react` のアイコン名を指定します。未対応名は表示されないだけで保存はできます。
+                                                    </p>
+                                                </div>
                                                 <textarea
                                                     placeholder="説明文 (オプション)"
                                                     value={newTagDescription}
@@ -486,46 +670,77 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                 </div>
 
                                 {/* タグリスト */}
-                                <div className="flex-1 overflow-auto p-2">
+                                <div className="flex-1 overflow-auto p-3">
+                                    <div className="flex items-center justify-between mb-2 px-1">
+                                        <div className="text-[11px] font-semibold text-surface-400 uppercase tracking-wide">
+                                            Tag List
+                                        </div>
+                                        <div className="text-[10px] text-surface-500" title="ドラッグで表示優先順を変更">
+                                            表示順: 表示優先順（ドラッグで変更）
+                                        </div>
+                                    </div>
                                     {filteredTags.length === 0 ? (
-                                        <p className="text-center text-surface-500 py-8 text-sm">
-                                            {selectedCategoryId === UNCATEGORIZED_ID
-                                                ? '未分類のタグはありません'
-                                                : 'このカテゴリにタグはありません'}
-                                        </p>
+                                        <div className="rounded-md border border-dashed border-surface-700 bg-surface-900/40">
+                                            <p className="text-center text-surface-500 py-10 text-sm">
+                                                {selectedCategoryId === UNCATEGORIZED_ID
+                                                    ? '未分類のタグはありません'
+                                                    : 'このカテゴリにタグはありません'}
+                                            </p>
+                                        </div>
                                     ) : (
-                                        <div className="grid grid-cols-2 gap-1">
-                                            {filteredTags.map(tag => (
-                                                <div
-                                                    key={tag.id}
-                                                    className="flex items-center justify-between px-2 py-1.5 hover:bg-surface-800 rounded group"
-                                                >
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <TagBadge name={tag.name} color={tag.color} />
-                                                        {tag.description && (
-                                                            <span className="text-[10px] text-surface-500 truncate">
-                                                                {tag.description}
-                                                            </span>
-                                                        )}
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {filteredTags.map(tag => {
+                                                const isDragging = dragTagId === tag.id;
+                                                const isDragOver = dragOverTagId === tag.id && dragTagId !== tag.id;
+
+                                                return (
+                                                    <div
+                                                        key={tag.id}
+                                                        draggable
+                                                        onDragStart={() => handleTagDragStart(tag.id)}
+                                                        onDragOver={(e) => handleTagDragOver(e, tag.id)}
+                                                        onDrop={(e) => handleTagDrop(e, tag.id)}
+                                                        onDragEnd={() => { setDragTagId(null); setDragOverTagId(null); }}
+                                                        className={`flex items-center justify-between px-2.5 py-2 rounded-md border group transition-colors ${
+                                                            isDragging
+                                                                ? 'opacity-40 border-surface-700 bg-surface-800/50'
+                                                                : isDragOver
+                                                                    ? 'border-primary-400 bg-primary-500/10'
+                                                                    : 'border-transparent hover:border-surface-700 hover:bg-surface-800'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <GripVertical
+                                                                size={13}
+                                                                className="text-surface-600 group-hover:text-surface-400 flex-shrink-0 cursor-grab"
+                                                                title="ドラッグで表示優先順を変更"
+                                                            />
+                                                            <TagBadge name={tag.name} color={tag.color} />
+                                                            {tag.description && (
+                                                                <span className="text-[10px] text-surface-500 truncate">
+                                                                    {tag.description}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
+                                                            <button
+                                                                onClick={() => startEditTag(tag)}
+                                                                className="p-1 hover:bg-surface-700 rounded"
+                                                                title="編集"
+                                                            >
+                                                                <Edit2 size={13} className="text-surface-400" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteTag(tag)}
+                                                                className="p-1 hover:bg-red-500/20 rounded"
+                                                                title="削除"
+                                                            >
+                                                                <Trash2 size={13} className="text-red-400" />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2">
-                                                        <button
-                                                            onClick={() => startEditTag(tag)}
-                                                            className="p-1 hover:bg-surface-700 rounded"
-                                                            title="編集"
-                                                        >
-                                                            <Edit2 size={13} className="text-surface-400" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteTag(tag)}
-                                                            className="p-1 hover:bg-red-500/20 rounded"
-                                                            title="削除"
-                                                        >
-                                                            <Trash2 size={13} className="text-red-400" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
