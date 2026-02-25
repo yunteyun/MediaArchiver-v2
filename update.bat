@@ -65,11 +65,15 @@ echo [INFO] Closing running app (if any)...
 taskkill /IM "%APP_EXE%" /F >nul 2>&1
 
 echo [INFO] Copying updated files...
-robocopy "%SRC_DIR%" "%APP_DIR%" /E /R:1 /W:1 /NFL /NDL /NJH /NJS /NP >nul
+rem NOTE: Do not overwrite the running updater script itself.
+rem Overwriting update.bat while cmd.exe is still executing it can break the remaining steps.
+rem NOTE: APP_DIR ends with "\" (%~dp0). For robocopy, quoted trailing "\" can break arg parsing.
+rem Use "%APP_DIR%." to avoid the trailing-backslash quote edge case while keeping the same directory.
+robocopy "%SRC_DIR%" "%APP_DIR%." /E /XF "update.bat" /R:1 /W:1 /NFL /NDL /NJH /NJS /NP >nul
 set "RC=%ERRORLEVEL%"
 
 if %RC% GEQ 8 (
-  echo [ERROR] Update copy failed (robocopy=%RC%).
+  echo [ERROR] Update copy failed ^(robocopy=%RC%^).
   rmdir /s /q "%TEMP_DIR%" >nul 2>&1
   echo Press any key to exit.
   pause
