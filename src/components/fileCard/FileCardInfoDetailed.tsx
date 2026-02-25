@@ -17,6 +17,21 @@ type DetailedInfoUiConfig = {
     tagSummaryVisibleCount: number;
 };
 
+type DetailedBadgeMetaRowProps = {
+    ui: DetailedInfoUiConfig;
+    showSecondLineSizeBadge: boolean;
+    fileSize?: number | null;
+    createdDateLabel: string | null;
+    folderName: string;
+};
+
+type DetailedBottomRowProps = {
+    ui: DetailedInfoUiConfig;
+    showFileSize: boolean;
+    fileSize?: number | null;
+    renderTagSummary: FileCardInfoCommonProps['renderTagSummary'];
+};
+
 function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
     const isMangaMode = displayMode === 'manga';
     const isVideoMode = displayMode === 'video';
@@ -45,6 +60,68 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
         tagSummaryVisibleCount: isMangaMode ? 2 : 3,
     };
 }
+
+const DetailedBadgeMetaRow = React.memo(({
+    ui,
+    showSecondLineSizeBadge,
+    fileSize,
+    createdDateLabel,
+    folderName,
+}: DetailedBadgeMetaRowProps) => {
+    return (
+        <div className="mt-0.5 mb-0.5 min-h-[16px] flex min-w-0 items-center gap-1 overflow-hidden">
+            {showSecondLineSizeBadge && !!fileSize && (
+                <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/80">
+                    {formatFileSize(fileSize)}
+                </span>
+            )}
+            {createdDateLabel && (
+                <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60">
+                    {createdDateLabel}
+                </span>
+            )}
+            {folderName && (
+                <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${ui.folderBadgeMaxWidthClass}`}>
+                    <span className="truncate">{folderName}</span>
+                </span>
+            )}
+        </div>
+    );
+});
+
+DetailedBadgeMetaRow.displayName = 'DetailedBadgeMetaRow';
+
+const DetailedBottomRow = React.memo(({
+    ui,
+    showFileSize,
+    fileSize,
+    renderTagSummary,
+}: DetailedBottomRowProps) => {
+    return (
+        <div className={ui.bottomRowClass}>
+            {!ui.isBadgeMetaMode && showFileSize && !!fileSize && (
+                <span
+                    className={`flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap ${
+                        ui.isStandardMode
+                            ? 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80'
+                            : 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60'
+                    }`}
+                >
+                    {formatFileSize(fileSize)}
+                </span>
+            )}
+            {ui.isBadgeMetaMode ? (
+                <div className="min-w-0 flex-1">
+                    {renderTagSummary(ui.tagSummaryVisibleCount)}
+                </div>
+            ) : (
+                renderTagSummary(3)
+            )}
+        </div>
+    );
+});
+
+DetailedBottomRow.displayName = 'DetailedBottomRow';
 
 export const FileCardInfoDetailed = React.memo(({
     file,
@@ -100,46 +177,20 @@ export const FileCardInfoDetailed = React.memo(({
                     )}
                 </div>
             ) : (
-                <div className="mt-0.5 mb-0.5 min-h-[16px] flex min-w-0 items-center gap-1 overflow-hidden">
-                    {showSecondLineSizeBadge && (
-                        <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/80">
-                            {formatFileSize(file.size!)}
-                        </span>
-                    )}
-                    {createdDateLabel && (
-                        <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60">
-                            {createdDateLabel}
-                        </span>
-                    )}
-                    {folderName && (
-                        <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${ui.folderBadgeMaxWidthClass}`}>
-                            <span className="truncate">{folderName}</span>
-                        </span>
-                    )}
-                </div>
+                <DetailedBadgeMetaRow
+                    ui={ui}
+                    showSecondLineSizeBadge={showSecondLineSizeBadge}
+                    fileSize={file.size}
+                    createdDateLabel={createdDateLabel}
+                    folderName={folderName}
+                />
             )}
-            <div
-                className={ui.bottomRowClass}
-            >
-                {!ui.isBadgeMetaMode && showFileSize && file.size && (
-                    <span
-                        className={`flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap ${
-                            ui.isStandardMode
-                                ? 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80'
-                                : 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60'
-                        }`}
-                    >
-                        {formatFileSize(file.size)}
-                    </span>
-                )}
-                {ui.isBadgeMetaMode ? (
-                    <div className="min-w-0 flex-1">
-                        {renderTagSummary(ui.tagSummaryVisibleCount)}
-                    </div>
-                ) : (
-                    renderTagSummary(3)
-                )}
-            </div>
+            <DetailedBottomRow
+                ui={ui}
+                showFileSize={showFileSize}
+                fileSize={file.size}
+                renderTagSummary={renderTagSummary}
+            />
         </div>
     );
 });
