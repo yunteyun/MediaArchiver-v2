@@ -1,7 +1,6 @@
 ﻿# ROADMAP
 
 ## 進行中 (In Progress)
-- FileCard 再設計メモ整理: `FileCardInfoDetailed` 起点の段階再設計案を整理中
 
 ## 予定 (Planned)
 ### 直近
