@@ -141,10 +141,14 @@ export const LightBox = React.memo(() => {
     }, [lightboxFile, fileTagIds, updateFileTagCache]);
 
     // 音量変更
-    const handleVolumeChange = useCallback(() => {
-        // MediaViewerから呼ばれる
-        // 実際の音量変更はMediaViewer内で処理される
-    }, []);
+    const handleVolumeChange = useCallback((mediaType: 'video' | 'audio', volume: number) => {
+        const safeVolume = Math.max(0, Math.min(1, volume));
+        if (mediaType === 'video') {
+            setVideoVolume(safeVolume);
+            return;
+        }
+        setAudioVolume(safeVolume);
+    }, [setVideoVolume, setAudioVolume]);
 
     // キーボードイベント
     useEffect(() => {

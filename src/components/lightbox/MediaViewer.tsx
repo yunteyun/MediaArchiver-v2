@@ -9,7 +9,7 @@ interface MediaViewerProps {
     archiveOpenMode: LightboxOpenMode;
     videoVolume: number;
     audioVolume: number;
-    onVolumeChange: () => void;
+    onVolumeChange: (mediaType: 'video' | 'audio', volume: number) => void;
     selectedArchiveImage: string | null;
     onSelectArchiveImage: (imagePath: string | null) => void;
     onRequestClose: () => void;
@@ -36,7 +36,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
             // audioRefは音声ファイルと書庫内音声の両方で使用されるため、常にaudioVolumeを使用
             audioRef.current.volume = audioVolume;
         }
-    }, [videoVolume, audioVolume, file, currentArchiveAudioPath]);
+    }, [videoVolume, audioVolume, file, currentArchiveAudioPath, selectedArchiveImage]);
 
     // Set initial volume when video loads
     useEffect(() => {
@@ -135,7 +135,10 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                 controls
                 autoPlay
                 style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
-                onVolumeChange={onVolumeChange}
+                onLoadedMetadata={(e) => {
+                    e.currentTarget.volume = videoVolume;
+                }}
+                onVolumeChange={(e) => onVolumeChange('video', e.currentTarget.volume)}
             />
         );
     }
@@ -160,6 +163,13 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
         const showArchivePreviewGrid = hasArchivePreviews && !audioFocusedArchiveView;
         const showArchiveAudioList = hasArchiveAudio && !imageFocusedArchiveView;
         const isMixedArchiveView = showArchivePreviewGrid && showArchiveAudioList;
+        const previewCount = archivePreviewFrames.length;
+        const useWideArchiveGridPanel = isMixedArchiveView && previewCount >= 4;
+        const archiveGridColumnClass = previewCount <= 1
+            ? 'grid-cols-1'
+            : previewCount === 2
+                ? 'grid-cols-2'
+                : 'grid-cols-3';
 
         return (
             <div
@@ -232,9 +242,9 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                         </button>
                         {/* 左側: 画像グリッド */}
                         {showArchivePreviewGrid ? (
-                            <div className={showArchiveAudioList ? 'flex-1 min-w-0' : 'w-fit'}>
+                            <div className={useWideArchiveGridPanel ? 'flex-1 min-w-0' : 'w-fit max-w-[min(42vw,520px)]'}>
                                 <div className={`border border-white/10 rounded-xl shadow-2xl ${isMixedArchiveView ? 'bg-black/45 p-4 md:p-5 h-full flex items-center' : 'bg-black/35 p-3 md:p-4'}`}>
-                                    <div className={`grid grid-cols-3 gap-3 md:gap-4 ${showArchiveAudioList ? 'max-w-[920px] mx-auto w-full' : 'w-fit'}`}>
+                                    <div className={`grid ${archiveGridColumnClass} gap-3 md:gap-4 ${useWideArchiveGridPanel ? 'max-w-[920px] mx-auto w-full' : 'w-fit'}`}>
                                     {archivePreviewFrames.map((frame, index) => (
                                         <div
                                             key={index}
@@ -310,7 +320,10 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                                                 controls
                                                 autoPlay
                                                 className="w-full"
-                                                onVolumeChange={onVolumeChange}
+                                                onLoadedMetadata={(e) => {
+                                                    e.currentTarget.volume = audioVolume;
+                                                }}
+                                                onVolumeChange={(e) => onVolumeChange('audio', e.currentTarget.volume)}
                                                 onEnded={async () => {
                                                     if (autoPlayEnabled && currentAudioIndex < archiveAudioFiles.length - 1) {
                                                         const nextIndex = currentAudioIndex + 1;
@@ -379,7 +392,10 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                     controls
                     autoPlay
                     className="w-full"
-                    onVolumeChange={onVolumeChange}
+                    onLoadedMetadata={(e) => {
+                        e.currentTarget.volume = audioVolume;
+                    }}
+                    onVolumeChange={(e) => onVolumeChange('audio', e.currentTarget.volume)}
                 />
             </div>
         );
