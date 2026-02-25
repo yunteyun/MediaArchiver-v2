@@ -49,9 +49,9 @@ export const SettingsModal = React.memo(() => {
     const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
     const setProfilePreviewFrameCount = useSettingsStore((s) => s.setProfilePreviewFrameCount);
     const scanThrottleMs = useSettingsStore((s) => s.scanThrottleMs);
-    const setScanThrottleMs = useSettingsStore((s) => s.setScanThrottleMs);
+    const setProfileScanThrottleMs = useSettingsStore((s) => s.setProfileScanThrottleMs);
     const thumbnailResolution = useSettingsStore((s) => s.thumbnailResolution);
-    const setThumbnailResolution = useSettingsStore((s) => s.setThumbnailResolution);
+    const setProfileThumbnailResolution = useSettingsStore((s) => s.setProfileThumbnailResolution);
     const profileFileTypeFilters = useSettingsStore((s) => s.profileFileTypeFilters);
     const setProfileFileTypeFilters = useSettingsStore((s) => s.setProfileFileTypeFilters);
 
@@ -164,6 +164,32 @@ export const SettingsModal = React.memo(() => {
             useUIStore.getState().showToast('プレビューフレーム数の保存に失敗しました', 'error');
         }
     }, [setProfilePreviewFrameCount]);
+
+    const handleProfileScanThrottleMsChange = useCallback(async (ms: number) => {
+        setProfileScanThrottleMs(ms);
+        try {
+            await Promise.all([
+                window.electronAPI.setProfileScopedSettings({ scanThrottleMs: ms }),
+                window.electronAPI.setScanThrottleMs(ms),
+            ]);
+        } catch (error) {
+            console.error('Failed to update profile scan throttle:', error);
+            useUIStore.getState().showToast('スキャン速度設定の保存に失敗しました', 'error');
+        }
+    }, [setProfileScanThrottleMs]);
+
+    const handleProfileThumbnailResolutionChange = useCallback(async (resolution: number) => {
+        setProfileThumbnailResolution(resolution);
+        try {
+            await Promise.all([
+                window.electronAPI.setProfileScopedSettings({ thumbnailResolution: resolution }),
+                window.electronAPI.setThumbnailResolution(resolution),
+            ]);
+        } catch (error) {
+            console.error('Failed to update profile thumbnail resolution:', error);
+            useUIStore.getState().showToast('サムネイル解像度の保存に失敗しました', 'error');
+        }
+    }, [setProfileThumbnailResolution]);
 
     const handleExportFromSettings = useCallback(async (format: 'csv' | 'html') => {
         setIsExporting(format);
@@ -908,20 +934,15 @@ export const SettingsModal = React.memo(() => {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
-                                        全体設定
-                                    </h4>
-
                                     <div>
                                         <label className="block text-sm font-medium text-surface-300 mb-2">
-                                            スキャン速度調整（コイル鳴き対策）
+                                            スキャン速度調整（プロファイル別 / コイル鳴き対策）
                                         </label>
                                         <select
                                             value={scanThrottleMs}
                                             onChange={(e) => {
                                                 const ms = Number(e.target.value);
-                                                setScanThrottleMs(ms);
-                                                window.electronAPI.setScanThrottleMs(ms);
+                                                void handleProfileScanThrottleMsChange(ms);
                                             }}
                                             className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
                                         >
@@ -978,16 +999,10 @@ export const SettingsModal = React.memo(() => {
                                     </p>
                                 </div>
 
-                                <div className="pt-1">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
-                                        全体設定
-                                    </h4>
-                                </div>
-
                                 {/* Thumbnail Resolution */}
                                 <div>
                                     <label className="block text-sm font-medium text-surface-300 mb-2">
-                                        サムネイル解像度: {thumbnailResolution}px
+                                        サムネイル解像度（プロファイル別）: {thumbnailResolution}px
                                     </label>
                                     <input
                                         type="range"
@@ -997,8 +1012,7 @@ export const SettingsModal = React.memo(() => {
                                         value={thumbnailResolution}
                                         onChange={(e) => {
                                             const resolution = Number(e.target.value);
-                                            setThumbnailResolution(resolution);
-                                            window.electronAPI.setThumbnailResolution(resolution);
+                                            void handleProfileThumbnailResolutionChange(resolution);
                                         }}
                                         className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
                                     />
@@ -1007,8 +1021,14 @@ export const SettingsModal = React.memo(() => {
                                         <span>480px</span>
                                     </div>
                                     <p className="text-xs text-surface-500 mt-1">
-                                        次回スキャンから反映。拡大表示時や高DPI環境で効果が出ます。
+                                        現在のプロファイルに保存されます。次回スキャンから反映。拡大表示時や高DPI環境で効果が出ます。
                                     </p>
+                                </div>
+
+                                <div className="pt-1">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
+                                        全体設定
+                                    </h4>
                                 </div>
 
                                 {/* Thumbnail Hover Action */}

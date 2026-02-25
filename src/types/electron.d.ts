@@ -40,6 +40,8 @@ interface FileTypeCategoryFilters {
 interface ProfileScopedSettingsV1 {
     fileTypeFilters: FileTypeCategoryFilters;
     previewFrameCount: number;
+    scanThrottleMs: number;
+    thumbnailResolution: number;
 }
 
 interface ProfileScopedSettingsResponse {

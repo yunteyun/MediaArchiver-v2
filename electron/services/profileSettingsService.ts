@@ -17,6 +17,8 @@ export interface FileTypeCategoryFilters {
 export interface ProfileScopedSettingsV1 {
     fileTypeFilters: FileTypeCategoryFilters;
     previewFrameCount: number;
+    scanThrottleMs: number;
+    thumbnailResolution: number;
 }
 
 export interface ProfileScopedSettingsResponse {
@@ -34,6 +36,8 @@ const DEFAULT_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
 export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
     fileTypeFilters: DEFAULT_FILE_TYPE_FILTERS,
     previewFrameCount: 10,
+    scanThrottleMs: 0,
+    thumbnailResolution: 320,
 };
 
 function ensureProfileSettingsTable(): void {
@@ -53,6 +57,22 @@ function clampPreviewFrameCount(count: unknown): number {
     return Math.max(0, Math.min(30, Math.round(n)));
 }
 
+function clampScanThrottleMs(ms: unknown): number {
+    const n = Number(ms);
+    const allowed = new Set([0, 50, 100, 200]);
+    if (!Number.isFinite(n)) return DEFAULT_PROFILE_SCOPED_SETTINGS_V1.scanThrottleMs;
+    const rounded = Math.round(n);
+    return allowed.has(rounded) ? rounded : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.scanThrottleMs;
+}
+
+function clampThumbnailResolution(resolution: unknown): number {
+    const n = Number(resolution);
+    const allowed = new Set([160, 200, 240, 280, 320, 360, 400, 440, 480]);
+    if (!Number.isFinite(n)) return DEFAULT_PROFILE_SCOPED_SETTINGS_V1.thumbnailResolution;
+    const rounded = Math.round(n);
+    return allowed.has(rounded) ? rounded : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.thumbnailResolution;
+}
+
 function normalizeFileTypeFilters(input: unknown): FileTypeCategoryFilters {
     const candidate = (input && typeof input === 'object') ? (input as Partial<FileTypeCategoryFilters>) : {};
     return {
@@ -68,6 +88,8 @@ function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettings
     return {
         fileTypeFilters: normalizeFileTypeFilters(candidate.fileTypeFilters),
         previewFrameCount: clampPreviewFrameCount(candidate.previewFrameCount),
+        scanThrottleMs: clampScanThrottleMs(candidate.scanThrottleMs),
+        thumbnailResolution: clampThumbnailResolution(candidate.thumbnailResolution),
     };
 }
 

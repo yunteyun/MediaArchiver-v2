@@ -27,6 +27,8 @@ export interface FileTypeCategoryFilters {
 export interface ProfileScopedSettingsV1 {
     fileTypeFilters: FileTypeCategoryFilters;
     previewFrameCount: number;
+    scanThrottleMs: number;
+    thumbnailResolution: number;
 }
 
 export const DEFAULT_PROFILE_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
@@ -114,6 +116,8 @@ interface SettingsState {
     exportProfileScopedSettings: () => ProfileScopedSettingsV1;
     setProfileFileTypeFilters: (filters: FileTypeCategoryFilters) => void;
     setProfilePreviewFrameCount: (count: number) => void;
+    setProfileScanThrottleMs: (ms: number) => void;
+    setProfileThumbnailResolution: (resolution: number) => void;
     setProfileSettingsMigrationV1Done: (done: boolean) => void;
     // カード設定アクション
     setCardLayout: (layout: CardLayout) => void;
@@ -204,14 +208,22 @@ export const useSettingsStore = create<SettingsState>()(
             setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
             applyProfileScopedSettings: (settings) => set({
                 profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS, ...settings.fileTypeFilters },
-                previewFrameCount: Math.max(0, Math.min(30, Math.round(Number(settings.previewFrameCount) || 0)))
+                previewFrameCount: Math.max(0, Math.min(30, Math.round(Number(settings.previewFrameCount) || 0))),
+                scanThrottleMs: [0, 50, 100, 200].includes(Number(settings.scanThrottleMs)) ? Number(settings.scanThrottleMs) : 0,
+                thumbnailResolution: [160, 200, 240, 280, 320, 360, 400, 440, 480].includes(Number(settings.thumbnailResolution))
+                    ? Number(settings.thumbnailResolution)
+                    : 320
             }),
             exportProfileScopedSettings: () => ({
                 fileTypeFilters: { ...get().profileFileTypeFilters },
-                previewFrameCount: get().previewFrameCount
+                previewFrameCount: get().previewFrameCount,
+                scanThrottleMs: get().scanThrottleMs,
+                thumbnailResolution: get().thumbnailResolution
             }),
             setProfileFileTypeFilters: (profileFileTypeFilters) => set({ profileFileTypeFilters }),
             setProfilePreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
+            setProfileScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
+            setProfileThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
             setProfileSettingsMigrationV1Done: (profileSettingsMigrationV1Done) => set({ profileSettingsMigrationV1Done }),
             // カード設定セッター
             setCardLayout: (cardLayout) => set({ cardLayout }),

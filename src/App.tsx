@@ -70,10 +70,14 @@ function App() {
     const syncProfileScopedSettingsToScanner = useCallback(async (settings: {
         previewFrameCount: number;
         fileTypeFilters: { video: boolean; image: boolean; archive: boolean; audio: boolean };
+        scanThrottleMs: number;
+        thumbnailResolution: number;
     }) => {
         await Promise.all([
             window.electronAPI.setPreviewFrameCount(settings.previewFrameCount),
             window.electronAPI.setScanFileTypeCategories(settings.fileTypeFilters),
+            window.electronAPI.setScanThrottleMs(settings.scanThrottleMs),
+            window.electronAPI.setThumbnailResolution(settings.thumbnailResolution),
         ]);
     }, []);
 
@@ -99,6 +103,8 @@ function App() {
                     initialSettings = {
                         fileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
                         previewFrameCount: shouldMigrate ? settingsStore.previewFrameCount : 10,
+                        scanThrottleMs: shouldMigrate ? settingsStore.scanThrottleMs : 0,
+                        thumbnailResolution: shouldMigrate ? settingsStore.thumbnailResolution : 320,
                     };
 
                     response = await window.electronAPI.replaceProfileScopedSettings(initialSettings);
