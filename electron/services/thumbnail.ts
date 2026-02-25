@@ -315,6 +315,52 @@ async function isAnimatedWebp(filePath: string): Promise<boolean> {
     }
 }
 
+// Binary check for APNG (PNG + acTL chunk)
+async function isAnimatedPng(filePath: string): Promise<boolean> {
+    try {
+        const handle = await fs.promises.open(filePath, 'r');
+        const buf = Buffer.alloc(1024 * 256); // First 256KB is enough for PNG chunks header scan
+        const { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+        await handle.close();
+
+        if (bytesRead < 16) return false;
+
+        // PNG signature
+        const pngSignature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        if (!buf.subarray(0, 8).equals(pngSignature)) return false;
+
+        let offset = 8;
+        while (offset + 8 <= bytesRead) {
+            const chunkLength = buf.readUInt32BE(offset);
+            const typeStart = offset + 4;
+            const dataStart = offset + 8;
+            const dataEnd = dataStart + chunkLength;
+            const crcEnd = dataEnd + 4;
+
+            if (crcEnd > bytesRead) {
+                return false;
+            }
+
+            const chunkType = buf.toString('ascii', typeStart, typeStart + 4);
+
+            if (chunkType === 'acTL') {
+                return true;
+            }
+
+            // APNG control chunks must appear before first IDAT. Once image data starts without acTL, treat as static PNG.
+            if (chunkType === 'IDAT' || chunkType === 'IEND') {
+                return false;
+            }
+
+            offset = crcEnd;
+        }
+
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 export async function checkIsAnimated(filePath: string): Promise<boolean> {
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.gif') {
@@ -322,6 +368,9 @@ export async function checkIsAnimated(filePath: string): Promise<boolean> {
     }
     if (ext === '.webp') {
         return isAnimatedWebp(filePath);
+    }
+    if (ext === '.png') {
+        return isAnimatedPng(filePath);
     }
     return false;
 }
