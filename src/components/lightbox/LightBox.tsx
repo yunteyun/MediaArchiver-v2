@@ -9,6 +9,7 @@ import { InfoPanel } from './InfoPanel';
 
 export const LightBox = React.memo(() => {
     const lightboxFile = useUIStore((s) => s.lightboxFile);
+    const lightboxOpenMode = useUIStore((s) => s.lightboxOpenMode);
     const closeLightbox = useUIStore((s) => s.closeLightbox);
     const files = useFileStore((s) => s.files);
     const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
@@ -246,6 +247,7 @@ export const LightBox = React.memo(() => {
                 <div className="flex-1 flex items-center justify-center p-6 md:p-8 bg-gradient-to-br from-black/30 via-surface-950/60 to-black/50">
                     <MediaViewer
                         file={lightboxFile}
+                        archiveOpenMode={lightboxOpenMode}
                         videoVolume={videoVolume}
                         audioVolume={audioVolume}
                         onVolumeChange={handleVolumeChange}

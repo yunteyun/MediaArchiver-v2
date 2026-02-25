@@ -109,6 +109,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('file:externalOpenCountUpdated', handler);
         return () => ipcRenderer.removeListener('file:externalOpenCountUpdated', handler);
     },
+    onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' }) => void) => {
+        const handler = (_event: any, data: any) => callback(data);
+        ipcRenderer.on('file:openAsMode', handler);
+        return () => ipcRenderer.removeListener('file:openAsMode', handler);
+    },
 
     // Phase 22-C-2: ファイル移動ダイアログ
     onOpenMoveDialog: (callback: (data: { fileIds: string[]; currentFolderId: string | null }) => void) => {

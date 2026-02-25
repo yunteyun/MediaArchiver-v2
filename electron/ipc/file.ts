@@ -11,6 +11,7 @@ export function registerFileHandlers() {
         // Bug 2修正: 複数選択対応
         const effectiveFileIds = selectedFileIds && selectedFileIds.length > 0 ? selectedFileIds : [fileId];
         const isMultiple = effectiveFileIds.length > 1;
+        const singleFile = !isMultiple ? findFileById(fileId) : null;
 
         const ext = path.extname(filePath).toLowerCase().substring(1);
         const cachedApps = getCachedExternalApps();
@@ -36,6 +37,35 @@ export function registerFileHandlers() {
                 }
             },
         ];
+
+        // 「別のモードで開く」(初回: 音声書庫)
+        if (!isMultiple && singleFile?.type === 'archive') {
+            let hasAudioInArchive = false;
+            try {
+                const metadata = singleFile.metadata ? JSON.parse(singleFile.metadata) : null;
+                hasAudioInArchive = !!metadata?.hasAudio;
+            } catch {
+                hasAudioInArchive = false;
+            }
+
+            const openAsSubmenu: Electron.MenuItemConstructorOptions[] = [];
+            if (hasAudioInArchive) {
+                openAsSubmenu.push({
+                    label: '音声書庫として開く',
+                    click: () => {
+                        event.sender.send('file:openAsMode', { fileId, mode: 'archive-audio' });
+                    }
+                });
+            }
+
+            if (openAsSubmenu.length > 0) {
+                menuTemplate.push({ type: 'separator' });
+                menuTemplate.push({
+                    label: '別のモードで開く',
+                    submenu: openAsSubmenu,
+                });
+            }
+        }
 
         // 登録済み外部アプリを追加
         if (compatibleApps.length > 0) {

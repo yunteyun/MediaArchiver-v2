@@ -2,9 +2,11 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Loader2, Archive, Music, X } from 'lucide-react';
 import { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
+import type { LightboxOpenMode } from '../../stores/useUIStore';
 
 interface MediaViewerProps {
     file: MediaFile;
+    archiveOpenMode: LightboxOpenMode;
     videoVolume: number;
     audioVolume: number;
     onVolumeChange: () => void;
@@ -13,7 +15,7 @@ interface MediaViewerProps {
     onRequestClose: () => void;
 }
 
-export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, audioVolume, onVolumeChange, selectedArchiveImage, onSelectArchiveImage, onRequestClose }) => {
+export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode, videoVolume, audioVolume, onVolumeChange, selectedArchiveImage, onSelectArchiveImage, onRequestClose }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -153,6 +155,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
     if (file.type === 'archive') {
         const hasArchivePreviews = archivePreviewFrames.length > 0;
         const hasArchiveAudio = archiveAudioFiles.length > 0;
+        const audioFocusedArchiveView = archiveOpenMode === 'archive-audio' && hasArchiveAudio;
 
         return (
             <div
@@ -224,7 +227,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, videoVolume, au
                             <X size={22} />
                         </button>
                         {/* 左側: 画像グリッド */}
-                        {hasArchivePreviews ? (
+                        {hasArchivePreviews && !audioFocusedArchiveView ? (
                             <div className={hasArchiveAudio ? 'flex-1 min-w-0' : 'w-fit'}>
                                 <div className="bg-black/35 border border-white/10 rounded-xl p-3 md:p-4 shadow-2xl">
                                     <div className={`grid grid-cols-3 gap-3 md:gap-4 ${hasArchiveAudio ? 'max-w-[920px] mx-auto' : 'w-fit'}`}>

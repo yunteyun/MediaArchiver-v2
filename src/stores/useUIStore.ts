@@ -16,12 +16,14 @@ export interface ScanProgress {
 }
 
 export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
+export type LightboxOpenMode = 'default' | 'archive-audio';
 
 interface UIState {
     sidebarWidth: number;
     sidebarCollapsed: boolean;
     viewMode: 'grid' | 'list';
     lightboxFile: MediaFile | null;
+    lightboxOpenMode: LightboxOpenMode;
     sortBy: 'name' | 'date' | 'size' | 'type';
     sortOrder: 'asc' | 'desc';
     searchQuery: string;
@@ -46,7 +48,7 @@ interface UIState {
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
     setViewMode: (mode: 'grid' | 'list') => void;
-    openLightbox: (file: MediaFile) => void;
+    openLightbox: (file: MediaFile, mode?: LightboxOpenMode) => void;
     closeLightbox: () => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
     setSortOrder: (order: 'asc' | 'desc') => void;
@@ -78,6 +80,7 @@ export const useUIStore = create<UIState>((set) => ({
     sidebarCollapsed: false,
     viewMode: 'grid',
     lightboxFile: null,
+    lightboxOpenMode: 'default',
     sortBy: 'name',
     sortOrder: 'asc',
     searchQuery: '',
@@ -103,8 +106,8 @@ export const useUIStore = create<UIState>((set) => ({
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
     setViewMode: (viewMode) => set({ viewMode }),
-    openLightbox: (file) => set({ lightboxFile: file }),
-    closeLightbox: () => set({ lightboxFile: null }),
+    openLightbox: (file, mode = 'default') => set({ lightboxFile: file, lightboxOpenMode: mode }),
+    closeLightbox: () => set({ lightboxFile: null, lightboxOpenMode: 'default' }),
     setSortBy: (sortBy) => set({ sortBy }),
     setSortOrder: (order) => set({ sortOrder: order }),
     setSearchQuery: (query) => set({ searchQuery: query }),

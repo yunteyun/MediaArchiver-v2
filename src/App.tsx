@@ -215,6 +215,21 @@ function App() {
         return cleanup;
     }, []);
 
+    // 別モードで開く（コンテキストメニュー）
+    useEffect(() => {
+        const cleanup = window.electronAPI.onOpenFileAsMode(async (data) => {
+            try {
+                const localFile = useFileStore.getState().files.find((f) => f.id === data.fileId);
+                const targetFile = localFile ?? await window.electronAPI.getFileById(data.fileId);
+                if (!targetFile) return;
+                useUIStore.getState().openLightbox(targetFile, data.mode);
+            } catch (e) {
+                console.error('Failed to open file as mode:', e);
+            }
+        });
+        return cleanup;
+    }, []);
+
     // スキャンキャンセル
     const handleCancelScan = useCallback(async () => {
         try {
