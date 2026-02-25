@@ -317,8 +317,12 @@ export function groupFiles(
 
     files.forEach(file => {
         const key = getGroupKey(file, groupBy, boundaries);
-        const existing = groupMap.get(key) || [];
-        groupMap.set(key, [...existing, file]);
+        const existing = groupMap.get(key);
+        if (existing) {
+            existing.push(file);
+            return;
+        }
+        groupMap.set(key, [file]);
     });
 
     // 各グループ内でソート

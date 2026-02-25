@@ -19,6 +19,7 @@ const CARD_GAP = 8;
 
 
 export const FileGrid = React.memo(() => {
+    const isDev = import.meta.env.DEV;
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const focusedId = useFileStore((s) => s.focusedId);
@@ -159,8 +160,25 @@ export const FileGrid = React.memo(() => {
 
     // グループ化されたファイル（Phase 12-10）
     const groupedFiles = useMemo(() => {
-        return groupFiles(files, groupBy, sortBy, sortOrder);
-    }, [files, groupBy, sortBy, sortOrder]);
+        if (!isDev || groupBy === 'none') {
+            return groupFiles(files, groupBy, sortBy, sortOrder);
+        }
+
+        const start = performance.now();
+        const result = groupFiles(files, groupBy, sortBy, sortOrder);
+        const elapsedMs = performance.now() - start;
+        const totalGroupedFiles = result.reduce((sum, group) => sum + group.files.length, 0);
+
+        console.debug('[perf][FileGrid][grouping]', {
+            groupBy,
+            files: files.length,
+            groups: result.length,
+            groupedFiles: totalGroupedFiles,
+            elapsedMs: Number(elapsedMs.toFixed(2)),
+        });
+
+        return result;
+    }, [files, groupBy, sortBy, sortOrder, isDev]);
 
     // GridItem統合リスト生成（Phase 12-4）
     const gridItems = useMemo((): GridItem[] => {
@@ -300,6 +318,23 @@ export const FileGrid = React.memo(() => {
             effectiveThumbnailHeight: effectiveThumbnailH
         };
     }, [config, containerWidth, gridItems.length]);
+
+    useEffect(() => {
+        if (!isDev || groupBy === 'none') return;
+
+        const totalGroupedFiles = groupedFiles.reduce((sum, group) => sum + group.files.length, 0);
+        const largestGroupSize = groupedFiles.reduce((max, group) => Math.max(max, group.files.length), 0);
+
+        console.debug('[perf][FileGrid][grouped-render-input]', {
+            groupBy,
+            groups: groupedFiles.length,
+            totalGroupedFiles,
+            largestGroupSize,
+            columns,
+            cardWidth: effectiveCardWidth,
+            cardHeight,
+        });
+    }, [isDev, groupBy, groupedFiles, columns, effectiveCardWidth, cardHeight]);
 
     const rowVirtualizer = useVirtualizer({
         count: rows,
