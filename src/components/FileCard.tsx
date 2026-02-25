@@ -12,6 +12,7 @@ import { isAudioArchive } from '../utils/fileHelpers';
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import { getDisplayModeDefinition } from './fileCard/displayModes';
 import type { DisplayMode, FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
+import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
 
 // 明るい背景色のタグで暗い文字色を使うためのヘルパー
 function getTagTextColor(bgColor: string): string {
@@ -503,7 +504,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // FileCardInfoDetailed 側の visibleCount 指定は維持しつつ、
     // タグ要約の選定/描画ロジックは専用コンポーネントへ移譲する。
-    const renderTagSummary = useCallback((visibleCount: number) => {
+    const TagSummaryRenderer = useCallback(({ visibleCount }: FileCardTagSummaryRendererProps) => {
         return (
             <FileCardTagSummary
                 visibleCount={visibleCount}
@@ -900,7 +901,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     infoVariant={displayModeDefinition.infoVariant}
                     infoAreaHeight={config.infoAreaHeight}
                     showFileSize={showFileSize}
-                    renderTagSummary={renderTagSummary}
+                    TagSummaryRenderer={TagSummaryRenderer}
                 />
             )}
 

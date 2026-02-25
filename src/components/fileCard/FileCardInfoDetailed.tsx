@@ -29,7 +29,7 @@ type DetailedBottomRowProps = {
     ui: DetailedInfoUiConfig;
     showFileSize: boolean;
     fileSize?: number | null;
-    renderTagSummary: FileCardInfoCommonProps['renderTagSummary'];
+    TagSummaryRenderer: FileCardInfoCommonProps['TagSummaryRenderer'];
 };
 
 function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
@@ -95,7 +95,7 @@ const DetailedBottomRow = React.memo(({
     ui,
     showFileSize,
     fileSize,
-    renderTagSummary,
+    TagSummaryRenderer,
 }: DetailedBottomRowProps) => {
     return (
         <div className={ui.bottomRowClass}>
@@ -112,10 +112,10 @@ const DetailedBottomRow = React.memo(({
             )}
             {ui.isBadgeMetaMode ? (
                 <div className="min-w-0 flex-1">
-                    {renderTagSummary(ui.tagSummaryVisibleCount)}
+                    <TagSummaryRenderer visibleCount={ui.tagSummaryVisibleCount} />
                 </div>
             ) : (
-                renderTagSummary(3)
+                <TagSummaryRenderer visibleCount={3} />
             )}
         </div>
     );
@@ -128,7 +128,7 @@ export const FileCardInfoDetailed = React.memo(({
     displayMode,
     infoAreaHeight,
     showFileSize,
-    renderTagSummary,
+    TagSummaryRenderer,
 }: FileCardInfoCommonProps) => {
     const ui = getDetailedInfoUiConfig(displayMode);
     const showMetaLine = !ui.isBadgeMetaMode;
@@ -189,7 +189,7 @@ export const FileCardInfoDetailed = React.memo(({
                 ui={ui}
                 showFileSize={showFileSize}
                 fileSize={file.size}
-                renderTagSummary={renderTagSummary}
+                TagSummaryRenderer={TagSummaryRenderer}
             />
         </div>
     );

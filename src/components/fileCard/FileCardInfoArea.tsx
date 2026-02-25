@@ -5,12 +5,16 @@ import type { FileCardInfoVariant } from './displayModeTypes';
 import { FileCardInfoCompact } from './FileCardInfoCompact';
 import { FileCardInfoDetailed } from './FileCardInfoDetailed';
 
+export interface FileCardTagSummaryRendererProps {
+    visibleCount: number;
+}
+
 export interface FileCardInfoCommonProps {
     file: MediaFile;
     displayMode: DisplayMode;
     infoAreaHeight: number;
     showFileSize: boolean;
-    renderTagSummary: (visibleCount: number) => React.ReactNode;
+    TagSummaryRenderer: React.ComponentType<FileCardTagSummaryRendererProps>;
 }
 
 export interface FileCardInfoAreaProps extends FileCardInfoCommonProps {

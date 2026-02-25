@@ -6,7 +6,7 @@ export const FileCardInfoCompact = React.memo(({
     file,
     infoAreaHeight,
     showFileSize,
-    renderTagSummary,
+    TagSummaryRenderer,
 }: FileCardInfoCommonProps) => {
     return (
         <div
@@ -22,7 +22,7 @@ export const FileCardInfoCompact = React.memo(({
                         {formatFileSize(file.size)}
                     </span>
                 )}
-                {renderTagSummary(2)}
+                <TagSummaryRenderer visibleCount={2} />
             </div>
         </div>
     );
