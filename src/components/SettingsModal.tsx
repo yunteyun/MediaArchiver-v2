@@ -863,7 +863,7 @@ export const SettingsModal = React.memo(() => {
                                 <div className="space-y-4 rounded-lg border border-primary-900/40 bg-primary-950/10 p-3">
                                     <div>
                                         <h4 className="text-sm font-medium text-primary-200">
-                                            プロファイル別プレビュー設定
+                                            プロファイル別スキャン設定
                                         </h4>
                                         <p className="text-xs text-surface-400 mt-1">
                                             この設定は現在のプロファイルにのみ適用されます。
@@ -871,8 +871,38 @@ export const SettingsModal = React.memo(() => {
                                         <p className="text-xs text-surface-500 mt-1">
                                             対象: <span className="text-surface-300">{activeProfileLabel}</span>
                                         </p>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            対応形式（動画/画像/書庫/音声）の切替は「スキャン」タブに移動しました。
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-surface-300 mb-2">
+                                            対応形式（カテゴリON/OFF）
+                                        </label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {([
+                                                { key: 'video', label: '動画', hint: '.mp4 / .mkv / .webm' },
+                                                { key: 'image', label: '画像', hint: '.jpg / .png / .webp' },
+                                                { key: 'archive', label: '書庫', hint: '.zip / .cbz / .7z' },
+                                                { key: 'audio', label: '音声', hint: '.mp3 / .flac / .m4a' },
+                                            ] as const).map((item) => (
+                                                <label
+                                                    key={item.key}
+                                                    className="flex items-center justify-between gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-2 cursor-pointer hover:border-surface-600"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm text-surface-200">{item.label}</div>
+                                                        <div className="text-[11px] text-surface-500 truncate">{item.hint}</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={profileFileTypeFilters[item.key]}
+                                                        onChange={(e) => { void handleProfileFileTypeToggle(item.key, e.target.checked); }}
+                                                        className="w-4 h-4 accent-primary-500 rounded shrink-0"
+                                                    />
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-surface-500 mt-2">
+                                            OFFにしたカテゴリは新規スキャン対象外になります。既に登録済みの対象は再スキャン時に一覧/DBから整理されます（元ファイルは削除しません）。
                                         </p>
                                     </div>
                                 </div>
@@ -926,7 +956,7 @@ export const SettingsModal = React.memo(() => {
                                 <div className="space-y-4 rounded-lg border border-primary-900/40 bg-primary-950/10 p-3">
                                     <div>
                                         <h4 className="text-sm font-medium text-primary-200">
-                                            プロファイル別スキャン設定
+                                            プロファイル別プレビュー設定
                                         </h4>
                                         <p className="text-xs text-surface-400 mt-1">
                                             この設定は現在のプロファイルにのみ適用されます。
@@ -934,38 +964,8 @@ export const SettingsModal = React.memo(() => {
                                         <p className="text-xs text-surface-500 mt-1">
                                             対象: <span className="text-surface-300">{activeProfileLabel}</span>
                                         </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                                            対応形式（カテゴリON/OFF）
-                                        </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            {([
-                                                { key: 'video', label: '動画', hint: '.mp4 / .mkv / .webm' },
-                                                { key: 'image', label: '画像', hint: '.jpg / .png / .webp' },
-                                                { key: 'archive', label: '書庫', hint: '.zip / .cbz / .7z' },
-                                                { key: 'audio', label: '音声', hint: '.mp3 / .flac / .m4a' },
-                                            ] as const).map((item) => (
-                                                <label
-                                                    key={item.key}
-                                                    className="flex items-center justify-between gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-2 cursor-pointer hover:border-surface-600"
-                                                >
-                                                    <div className="min-w-0">
-                                                        <div className="text-sm text-surface-200">{item.label}</div>
-                                                        <div className="text-[11px] text-surface-500 truncate">{item.hint}</div>
-                                                    </div>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={profileFileTypeFilters[item.key]}
-                                                        onChange={(e) => { void handleProfileFileTypeToggle(item.key, e.target.checked); }}
-                                                        className="w-4 h-4 accent-primary-500 rounded shrink-0"
-                                                    />
-                                                </label>
-                                            ))}
-                                        </div>
-                                        <p className="text-xs text-surface-500 mt-2">
-                                            OFFにしたカテゴリは新規スキャン対象外になります。既に登録済みの対象は再スキャン時に一覧/DBから整理されます（元ファイルは削除しません）。
+                                        <p className="text-xs text-surface-500 mt-1">
+                                            対応形式（動画/画像/書庫/音声）の切替は「スキャン」タブに移動しました。
                                         </p>
                                     </div>
 
