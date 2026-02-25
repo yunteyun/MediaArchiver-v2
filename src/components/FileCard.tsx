@@ -631,7 +631,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
         clearFlipbookInterval();
         const flipbookIntervalMs =
-            flipbookSpeed === 'slow' ? 360 :
+            flipbookSpeed === 'slow' ? 520 :
                 flipbookSpeed === 'fast' ? 140 :
                     220;
         flipbookIntervalRef.current = window.setInterval(() => {
