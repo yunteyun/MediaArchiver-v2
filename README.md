@@ -23,9 +23,11 @@ Electron + React で動作します。
 1. 新しいZIPをダウンロードする
 2. 既存フォルダ内の `update.bat` を実行する
 3. ZIPを選択して更新する
+4. アプリが再起動したら、ヘッダーのバージョン表示と通常操作を確認する
 
 補足:
 - `update.bat` はアプリ本体と同じフォルダで使う前提です
+- `update.bat` は `MediaArchiver v2.exe` を自動終了して上書き更新します
 - 詳細手順は `docs/user/アプリ使用メモ.md` を参照してください
 
 ### 保存場所・ログについて（要点）
@@ -52,6 +54,14 @@ npm run build
 # Windows リリースZIP作成
 npm run build:electron
 ```
+
+### リリース作業（最小手順）
+
+1. `package.json` の `version` を更新する
+2. `CHANGELOG.md` を更新する（Unreleased を整理）
+3. `npm run build`
+4. `npm run build:electron`
+5. 出力ZIPを展開して `update.bat` 更新が通るか確認する（可能なら既存版から更新テスト）
 
 ### バージョン運用（修正版）
 
