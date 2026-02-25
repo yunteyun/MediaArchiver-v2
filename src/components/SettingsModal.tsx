@@ -916,7 +916,7 @@ export const SettingsModal = React.memo(() => {
                                             <span>30枚</span>
                                         </div>
                                         <p className="text-xs text-surface-500 mt-1">
-                                            スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
+                                            現在のプロファイルに保存されます。スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
                                         </p>
                                     </div>
                                 </div>
