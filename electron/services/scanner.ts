@@ -67,6 +67,37 @@ function isScannableMediaType(ext: string): 'video' | 'image' | 'archive' | 'aud
     return isScanTypeEnabled(type) ? type : null;
 }
 
+const IMAGE_ANIMATION_CHECK_BACKFILL_VERSION = 1;
+
+function getImageAnimationCheckBackfillVersion(metadata?: string): number {
+    if (!metadata) return 0;
+    try {
+        const parsed = JSON.parse(metadata);
+        const version = Number(parsed?.animationCheckBackfillVersion ?? 0);
+        return Number.isFinite(version) ? version : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function attachImageAnimationCheckBackfillMarker(metadata?: string): string | undefined {
+    if (!metadata) return metadata;
+    try {
+        const parsed = JSON.parse(metadata);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return metadata;
+        if ((parsed as Record<string, unknown>).animationCheckBackfillVersion === IMAGE_ANIMATION_CHECK_BACKFILL_VERSION) {
+            return metadata;
+        }
+        const next = {
+            ...(parsed as Record<string, unknown>),
+            animationCheckBackfillVersion: IMAGE_ANIMATION_CHECK_BACKFILL_VERSION
+        };
+        return JSON.stringify(next);
+    } catch {
+        return metadata;
+    }
+}
+
 export type ScanProgressCallback = (progress: {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
     current: number;
@@ -291,10 +322,17 @@ async function scanDirectoryInternal(
                             ? (hasThumbnail && hasMetadata)
                             : (!isMedia || hasThumbnail);
 
+                    const needsPngAnimationBackfillCheck = type === 'image'
+                        && ext === '.png'
+                        && !!existing
+                        && existing.is_animated === 0
+                        && getImageAnimationCheckBackfillVersion(existing.metadata) < IMAGE_ANIMATION_CHECK_BACKFILL_VERSION;
+
                     if (existing &&
                         existing.size === fileStats.size &&
                         existing.mtime_ms === Math.floor(fileStats.mtimeMs) &&
-                        isComplete
+                        isComplete &&
+                        !needsPngAnimationBackfillCheck
                     ) {
                         state.stats.skipCount++;
                         // Throttled progress update
@@ -443,6 +481,10 @@ async function scanDirectoryInternal(
                         } else {
                             isAnimated = existing.is_animated === 1;
                         }
+                    }
+
+                    if (type === 'image' && ext === '.png') {
+                        metadata = attachImageAnimationCheckBackfillMarker(metadata);
                     }
 
                     // Insert or Update - バッチに追加
