@@ -233,33 +233,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                 className="w-full h-full flex items-center justify-center p-2 md:p-4"
                 onClick={() => onRequestClose()}
             >
-                {/* Selected image full view */}
-                {selectedArchiveImage ? (
-                    <div
-                        className="relative"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onRequestClose();
-                            }}
-                            className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
-                            title="戻る / 閉じる (ESC)"
-                        >
-                            <X size={22} />
-                        </button>
-                        <img
-                            src={toMediaUrl(selectedArchiveImage)}
-                            alt="Archive preview"
-                            style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
-                            className="cursor-pointer"
-                            onClick={() => onSelectArchiveImage(null)}
-                        />
-                        {currentArchiveAudioPath && renderArchiveAudioPlayer('absolute w-px h-px opacity-0 pointer-events-none overflow-hidden')}
-                    </div>
-                ) : archiveLoading ? (
+                {archiveLoading ? (
                     <div
                         className="relative flex flex-col items-center gap-4 text-white"
                         onClick={(e) => e.stopPropagation()}
@@ -280,122 +254,148 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                     </div>
                 ) : (
                     /* コンテンツエリア: 画像と音声を横並び */
-                    <div
-                        className={`relative flex gap-5 xl:gap-6 max-h-[74vh] items-stretch ${hasArchiveAudio
-                            ? (showArchiveAudioList ? 'w-full max-w-[1180px]' : 'w-fit max-w-[calc(100vw-420px)]')
-                            : 'w-fit max-w-[calc(100vw-420px)]'
-                            }`}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onRequestClose();
-                            }}
-                            className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
-                            title="戻る / 閉じる (ESC)"
+                    <div className="relative" onClick={(e) => e.stopPropagation()}>
+                        <div
+                            className={`relative flex gap-5 xl:gap-6 max-h-[74vh] items-stretch transition-opacity ${hasArchiveAudio
+                                ? (showArchiveAudioList ? 'w-full max-w-[1180px]' : 'w-fit max-w-[calc(100vw-420px)]')
+                                : 'w-fit max-w-[calc(100vw-420px)]'
+                                } ${selectedArchiveImage ? 'opacity-0 pointer-events-none select-none' : 'opacity-100'}`}
                         >
-                            <X size={22} />
-                        </button>
-                        {/* 左側: 画像グリッド */}
-                        {showArchivePreviewGrid ? (
-                            <div className={useWideArchiveGridPanel ? 'flex-1 min-w-0' : 'w-fit max-w-[min(42vw,520px)]'}>
-                                <div className={`border border-white/10 rounded-xl shadow-2xl ${isMixedArchiveView ? 'bg-black/45 p-4 md:p-5 h-full flex items-center' : 'bg-black/35 p-3 md:p-4'}`}>
-                                    <div className={`grid ${archiveGridColumnClass} gap-3 md:gap-4 ${useWideArchiveGridPanel ? 'max-w-[920px] mx-auto w-full' : 'w-fit'}`}>
-                                    {archivePreviewFrames.map((frame, index) => (
-                                        <div
-                                            key={index}
-                                            className="aspect-square bg-surface-800/90 rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500/90 hover:shadow-lg transition-all"
-                                            onClick={() => onSelectArchiveImage(frame)}
-                                        >
-                                            <img
-                                                src={toMediaUrl(frame)}
-                                                alt={`Page ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : hasArchiveAudio ? (
-                            /* 音声のみの場合: ダミーアルバムアート */
-                            <div className="w-48 h-48 flex-shrink-0 bg-gradient-to-br from-surface-700 to-surface-900 rounded-xl flex items-center justify-center shadow-xl">
-                                <Music size={72} className="text-primary-400" />
-                            </div>
-                        ) : null}
-
-                        {/* 右側: 音声ファイルリスト */}
-                        {showArchiveAudioList && (
-                            <div className="flex-1 min-w-96">
-                                <div className="bg-black/45 border border-white/10 rounded-xl p-6 h-full flex flex-col shadow-2xl">
-                                    <p className="text-white text-lg mb-4 font-medium flex items-center gap-3">
-                                        <Music size={24} />
-                                        音声ファイル ({archiveAudioFiles.length})
-                                    </p>
-                                    <div className="flex-1 overflow-y-auto max-h-[50vh]">
-                                        {archiveAudioFiles.map((audioEntry, index) => {
-                                            const isPlaying = currentAudioIndex === index;
-                                            return (
-                                                <button
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRequestClose();
+                                }}
+                                className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
+                                title="戻る / 閉じる (ESC)"
+                            >
+                                <X size={22} />
+                            </button>
+                            {/* 左側: 画像グリッド */}
+                            {showArchivePreviewGrid ? (
+                                <div className={useWideArchiveGridPanel ? 'flex-1 min-w-0' : 'w-fit max-w-[min(42vw,520px)]'}>
+                                    <div className={`border border-white/10 rounded-xl shadow-2xl ${isMixedArchiveView ? 'bg-black/45 p-4 md:p-5 h-full flex items-center' : 'bg-black/35 p-3 md:p-4'}`}>
+                                        <div className={`grid ${archiveGridColumnClass} gap-3 md:gap-4 ${useWideArchiveGridPanel ? 'max-w-[920px] mx-auto w-full' : 'w-fit'}`}>
+                                            {archivePreviewFrames.map((frame, index) => (
+                                                <div
                                                     key={index}
-                                                    className={`w-full text-left px-4 py-3 text-base rounded-lg flex items-center gap-3 transition-all mb-1 ${isPlaying
-                                                        ? 'bg-primary-600 text-white shadow-lg'
-                                                        : 'text-surface-200 hover:bg-surface-700'
-                                                        }`}
-                                                    onClick={async () => {
-                                                        const extractedPath = await window.electronAPI.extractArchiveAudioFile(
-                                                            file.path,
-                                                            audioEntry
-                                                        );
-                                                        if (extractedPath) {
-                                                            setCurrentArchiveAudioPath(extractedPath);
-                                                            setCurrentAudioIndex(index);
-                                                            setArchiveAudioCurrentTime(0);
-                                                            setArchiveAudioIsPlaying(true);
-                                                        }
-                                                    }}
+                                                    className="aspect-square bg-surface-800/90 rounded-md overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500/90 hover:shadow-lg transition-all"
+                                                    onClick={() => onSelectArchiveImage(frame)}
                                                 >
-                                                    <Music
-                                                        size={18}
-                                                        className={`flex-shrink-0 ${isPlaying
-                                                            ? 'text-white animate-pulse'
-                                                            : 'text-primary-400'
-                                                            }`}
+                                                    <img
+                                                        src={toMediaUrl(frame)}
+                                                        alt={`Page ${index + 1}`}
+                                                        className="w-full h-full object-cover"
                                                     />
-                                                    <span className={`truncate ${isPlaying ? 'font-semibold' : ''}`}>
-                                                        {audioEntry.split('/').pop() || audioEntry}
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    {/* 音声プレイヤー */}
-                                    {currentArchiveAudioPath && (
-                                        <div className="mt-3 pt-3 border-t border-surface-700">
-                                            {renderArchiveAudioPlayer()}
-                                            <label className="flex items-center gap-2 mt-2 text-sm text-surface-300 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={autoPlayEnabled}
-                                                    onChange={(e) => setAutoPlayEnabled(e.target.checked)}
-                                                    className="w-4 h-4 accent-primary-500"
-                                                />
-                                                連続再生
-                                            </label>
+                                                </div>
+                                            ))}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            ) : hasArchiveAudio ? (
+                                /* 音声のみの場合: ダミーアルバムアート */
+                                <div className="w-48 h-48 flex-shrink-0 bg-gradient-to-br from-surface-700 to-surface-900 rounded-xl flex items-center justify-center shadow-xl">
+                                    <Music size={72} className="text-primary-400" />
+                                </div>
+                            ) : null}
 
-                        {/* 画像も音声もない場合 */}
-                        {!hasArchivePreviews && !hasArchiveAudio && (
-                            <div className="flex flex-col items-center gap-4 text-white">
-                                <Archive size={64} className="text-surface-500" />
-                                <p className="text-xl">プレビューを取得できませんでした</p>
-                                <p className="text-surface-400">ダブルクリックで外部アプリケーションで開きます</p>
+                            {/* 右側: 音声ファイルリスト */}
+                            {showArchiveAudioList && (
+                                <div className="flex-1 min-w-96">
+                                    <div className="bg-black/45 border border-white/10 rounded-xl p-6 h-full flex flex-col shadow-2xl">
+                                        <p className="text-white text-lg mb-4 font-medium flex items-center gap-3">
+                                            <Music size={24} />
+                                            音声ファイル ({archiveAudioFiles.length})
+                                        </p>
+                                        <div className="flex-1 overflow-y-auto max-h-[50vh]">
+                                            {archiveAudioFiles.map((audioEntry, index) => {
+                                                const isPlaying = currentAudioIndex === index;
+                                                return (
+                                                    <button
+                                                        key={index}
+                                                        className={`w-full text-left px-4 py-3 text-base rounded-lg flex items-center gap-3 transition-all mb-1 ${isPlaying
+                                                            ? 'bg-primary-600 text-white shadow-lg'
+                                                            : 'text-surface-200 hover:bg-surface-700'
+                                                            }`}
+                                                        onClick={async () => {
+                                                            const extractedPath = await window.electronAPI.extractArchiveAudioFile(
+                                                                file.path,
+                                                                audioEntry
+                                                            );
+                                                            if (extractedPath) {
+                                                                setCurrentArchiveAudioPath(extractedPath);
+                                                                setCurrentAudioIndex(index);
+                                                                setArchiveAudioCurrentTime(0);
+                                                                setArchiveAudioIsPlaying(true);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Music
+                                                            size={18}
+                                                            className={`flex-shrink-0 ${isPlaying
+                                                                ? 'text-white animate-pulse'
+                                                                : 'text-primary-400'
+                                                                }`}
+                                                        />
+                                                        <span className={`truncate ${isPlaying ? 'font-semibold' : ''}`}>
+                                                            {audioEntry.split('/').pop() || audioEntry}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {/* 音声プレイヤー */}
+                                        {currentArchiveAudioPath && (
+                                            <div className="mt-3 pt-3 border-t border-surface-700">
+                                                {renderArchiveAudioPlayer()}
+                                                <label className="flex items-center gap-2 mt-2 text-sm text-surface-300 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={autoPlayEnabled}
+                                                        onChange={(e) => setAutoPlayEnabled(e.target.checked)}
+                                                        className="w-4 h-4 accent-primary-500"
+                                                    />
+                                                    連続再生
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 画像も音声もない場合 */}
+                            {!hasArchivePreviews && !hasArchiveAudio && (
+                                <div className="flex flex-col items-center gap-4 text-white">
+                                    <Archive size={64} className="text-surface-500" />
+                                    <p className="text-xl">プレビューを取得できませんでした</p>
+                                    <p className="text-surface-400">ダブルクリックで外部アプリケーションで開きます</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {selectedArchiveImage && (
+                            <div className="absolute inset-0 flex items-center justify-center z-20">
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onRequestClose();
+                                        }}
+                                        className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
+                                        title="戻る / 閉じる (ESC)"
+                                    >
+                                        <X size={22} />
+                                    </button>
+                                    <img
+                                        src={toMediaUrl(selectedArchiveImage)}
+                                        alt="Archive preview"
+                                        style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
+                                        className="cursor-pointer"
+                                        onClick={() => onSelectArchiveImage(null)}
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
