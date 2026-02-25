@@ -1052,6 +1052,17 @@ export const SettingsModal = React.memo(() => {
                                             <input
                                                 type="radio"
                                                 name="thumbnailAction"
+                                                value="flipbook"
+                                                checked={thumbnailAction === 'flipbook'}
+                                                onChange={() => setThumbnailAction('flipbook')}
+                                                className="w-4 h-4 accent-primary-500"
+                                            />
+                                            <span className="text-surface-200">自動パラパラ</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="thumbnailAction"
                                                 value="play"
                                                 checked={thumbnailAction === 'play'}
                                                 onChange={() => setThumbnailAction('play')}

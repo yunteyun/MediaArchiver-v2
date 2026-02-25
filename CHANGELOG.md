@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 標準（M/L）/ 漫画モードの情報欄高さを再調整（`80 / 80 / 76`）し、バッジ化後の詰まりを回避。
 - 動画（ワイド）モードの詳細情報欄も同型レイアウトへ寄せ、2段目バッジ列化と情報欄高さ調整（`70 -> 76`）でファイル名が潰れやすい問題を改善。
 - FileCard の詳細情報欄リファクタを段階的に整理し、モード別UI設定（`getDetailedInfoUiConfig` / `getTagSummaryUiConfig`）、2段目バッジ列/下段行の小分け、タグ要約描画・受け渡し（`TagSummaryRenderer`）の責務分離を進めた（見た目変更なし）。
+- サムネイルホバー動作に `自動パラパラ` モードを追加し、動画プレビューフレームを hover 中に自動送りで表示できるようにした（`スクラブ` のプリロード経路と進捗バー表示を共通化）。
 #### プロファイル / スキャン設定
 - 各プロファイルDBに `profile_settings` テーブル（`profile_scoped_settings_v1`）を追加し、プロファイル別設定の保存基盤を実装（初回対象: `対応形式カテゴリON/OFF` / `プレビューフレーム数`）。
 - `profileSettings:get/set/replace` IPC と preload / renderer API を追加し、起動時・プロファイル切替時にアクティブプロファイルの設定を読み込んで UI とスキャナ実行時設定へ同期するよう改善。

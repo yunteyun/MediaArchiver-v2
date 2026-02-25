@@ -383,6 +383,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const [preloadState, setPreloadState] = useState<'idle' | 'loading' | 'ready'>('idle');
     const preloadedImages = useRef<HTMLImageElement[]>([]);
     const hoverTimeoutRef = useRef<number | null>(null);
+    const flipbookIntervalRef = useRef<number | null>(null);
 
     // Play mode state
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -407,6 +408,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         if (jumpIntervalRef.current) {
             clearInterval(jumpIntervalRef.current);
             jumpIntervalRef.current = null;
+        }
+    }, []);
+
+    const clearFlipbookInterval = useCallback(() => {
+        if (flipbookIntervalRef.current) {
+            clearInterval(flipbookIntervalRef.current);
+            flipbookIntervalRef.current = null;
         }
     }, []);
 
@@ -485,6 +493,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         };
     }, []);
 
+    useEffect(() => {
+        return () => {
+            clearFlipbookInterval();
+        };
+    }, [clearFlipbookInterval]);
+
     // Phase 14-7: Click-outside handler for tag popover (Phase 14-8: click モード限定)
     useEffect(() => {
         if (tagPopoverTrigger !== 'click') return;  // click モード限定
@@ -546,8 +560,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         hoverTimeoutRef.current = window.setTimeout(() => {
             setIsHovered(true);
 
-            // Scrubモード: 動画で、まだロードしていない場合のみプリロード
-            if (thumbnailAction === 'scrub' && file.type === 'video' && previewFrames.length > 0 && preloadState === 'idle') {
+            // Scrub / 自動パラパラ: 動画で、まだロードしていない場合のみプリロード
+            if (
+                (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook') &&
+                file.type === 'video' &&
+                previewFrames.length > 0 &&
+                preloadState === 'idle'
+            ) {
                 setPreloadState('loading');
 
                 const images = previewFrames.map((framePath) => {
@@ -576,12 +595,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             clearTimeout(playDelayRef.current);
             playDelayRef.current = null;
         }
+        clearFlipbookInterval();
         setIsHovered(false);
         setScrubIndex(0);
 
         // Phase 17-3: 同時再生制御
         setHoveredPreview(null);
-    }, [setHoveredPreview]);
+    }, [clearFlipbookInterval, setHoveredPreview]);
 
     // Scrub: マウス位置からフレームインデックスを計算
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -593,6 +613,30 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         const index = Math.floor(percentage * previewFrames.length);
         setScrubIndex(Math.max(0, Math.min(index, previewFrames.length - 1)));
     }, [thumbnailAction, preloadState, previewFrames.length]);
+
+    // 自動パラパラモード: ホバー中にプレビューフレームを自動再生
+    useEffect(() => {
+        const shouldFlipbook =
+            isHovered &&
+            thumbnailAction === 'flipbook' &&
+            file.type === 'video' &&
+            preloadState === 'ready' &&
+            previewFrames.length > 1;
+
+        if (!shouldFlipbook) {
+            clearFlipbookInterval();
+            return;
+        }
+
+        clearFlipbookInterval();
+        flipbookIntervalRef.current = window.setInterval(() => {
+            setScrubIndex((prev) => (prev + 1) % previewFrames.length);
+        }, 220);
+
+        return () => {
+            clearFlipbookInterval();
+        };
+    }, [isHovered, thumbnailAction, file.type, preloadState, previewFrames.length, clearFlipbookInterval]);
 
     // Phase 17-3: Video 要素の制御（3モード対応 + interval管理強化）
     useEffect(() => {
@@ -682,7 +726,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // 表示する画像を決定
     const displayImage = useMemo(() => {
-        if (isHovered && preloadState === 'ready' && previewFrames.length > 0 && thumbnailAction === 'scrub') {
+        if (
+            isHovered &&
+            preloadState === 'ready' &&
+            previewFrames.length > 0 &&
+            (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook')
+        ) {
             return previewFrames[scrubIndex];
         }
         return file.thumbnailPath;
@@ -833,16 +882,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     />
                 )}
 
-                {/* ローディングインジケーター（Scrub ロード中） */}
-                {isHovered && preloadState === 'loading' && file.type === 'video' && thumbnailAction === 'scrub' && (
+                {/* ローディングインジケーター（Scrub / 自動パラパラ ロード中） */}
+                {isHovered && preloadState === 'loading' && file.type === 'video' && (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook') && (
                     <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
                         <Loader size={10} className="animate-spin" />
                         <span>Loading...</span>
                     </div>
                 )}
 
-                {/* スクラブモードシークバー（Phase 12-5a） */}
-                {isHovered && thumbnailAction === 'scrub' && preloadState === 'ready' && previewFrames.length > 0 && (
+                {/* スクラブ / 自動パラパラ 進捗バー */}
+                {isHovered && (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook') && preloadState === 'ready' && previewFrames.length > 0 && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
                         <div
                             className="h-full bg-cyan-400 transition-all duration-100"

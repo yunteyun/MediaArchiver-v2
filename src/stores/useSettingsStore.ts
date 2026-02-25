@@ -53,7 +53,7 @@ export interface ExternalApp {
 
 interface SettingsState {
     activeProfileId: string;
-    thumbnailAction: 'scrub' | 'play';
+    thumbnailAction: 'scrub' | 'flipbook' | 'play';
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
@@ -102,7 +102,7 @@ interface SettingsState {
     };
 
     // アクション
-    setThumbnailAction: (action: 'scrub' | 'play') => void;
+    setThumbnailAction: (action: 'scrub' | 'flipbook' | 'play') => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
