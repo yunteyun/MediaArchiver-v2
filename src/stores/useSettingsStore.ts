@@ -16,6 +16,7 @@ export type TagPopoverTrigger = 'click' | 'hover';
 export type TagDisplayStyle = 'filled' | 'border';
 export type FileCardTagOrderMode = 'balanced' | 'strict';
 export type FileTypeCategory = 'video' | 'image' | 'archive' | 'audio';
+export type FlipbookSpeed = 'slow' | 'normal' | 'fast';
 
 export interface FileTypeCategoryFilters {
     video: boolean;
@@ -54,6 +55,7 @@ export interface ExternalApp {
 interface SettingsState {
     activeProfileId: string;
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
+    flipbookSpeed: FlipbookSpeed;
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
@@ -103,6 +105,7 @@ interface SettingsState {
 
     // アクション
     setThumbnailAction: (action: 'scrub' | 'flipbook' | 'play') => void;
+    setFlipbookSpeed: (speed: FlipbookSpeed) => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
@@ -150,6 +153,7 @@ export const useSettingsStore = create<SettingsState>()(
         (set, get) => ({
             activeProfileId: 'default',
             thumbnailAction: 'scrub',
+            flipbookSpeed: 'normal',
             sortBy: 'date',
             sortOrder: 'desc',
             videoVolume: 0.5,
@@ -197,6 +201,7 @@ export const useSettingsStore = create<SettingsState>()(
             },
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
+            setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),
             setSortBy: (sortBy) => set({ sortBy }),
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setVideoVolume: (volume) => set({ videoVolume: volume }),

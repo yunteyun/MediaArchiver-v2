@@ -396,6 +396,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     // Phase 17-3: playMode 設定を取得
     const playMode = useSettingsStore((s) => s.playMode);
+    const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
     const tagCategories = useTagStore((s) => s.categories);
 
     // Phase 17-3: shouldPlayVideo を計算
@@ -629,14 +630,18 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }
 
         clearFlipbookInterval();
+        const flipbookIntervalMs =
+            flipbookSpeed === 'slow' ? 360 :
+                flipbookSpeed === 'fast' ? 140 :
+                    220;
         flipbookIntervalRef.current = window.setInterval(() => {
             setScrubIndex((prev) => (prev + 1) % previewFrames.length);
-        }, 220);
+        }, flipbookIntervalMs);
 
         return () => {
             clearFlipbookInterval();
         };
-    }, [isHovered, thumbnailAction, file.type, preloadState, previewFrames.length, clearFlipbookInterval]);
+    }, [isHovered, thumbnailAction, file.type, preloadState, previewFrames.length, flipbookSpeed, clearFlipbookInterval]);
 
     // Phase 17-3: Video 要素の制御（3モード対応 + interval管理強化）
     useEffect(() => {

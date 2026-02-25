@@ -42,6 +42,8 @@ export const SettingsModal = React.memo(() => {
     const setAudioVolume = useSettingsStore((s) => s.setAudioVolume);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const setThumbnailAction = useSettingsStore((s) => s.setThumbnailAction);
+    const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
+    const setFlipbookSpeed = useSettingsStore((s) => s.setFlipbookSpeed);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
     const autoScanOnStartup = useSettingsStore((s) => s.autoScanOnStartup);
@@ -1072,6 +1074,26 @@ export const SettingsModal = React.memo(() => {
                                         </label>
                                     </div>
                                 </div>
+
+                                {thumbnailAction === 'flipbook' && (
+                                    <div className="ml-6 mt-2">
+                                        <label className="block text-sm font-medium text-surface-300 mb-1">
+                                            自動パラパラ速度
+                                        </label>
+                                        <select
+                                            value={flipbookSpeed}
+                                            onChange={(e) => setFlipbookSpeed(e.target.value as 'slow' | 'normal' | 'fast')}
+                                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                        >
+                                            <option value="slow">遅い</option>
+                                            <option value="normal">標準</option>
+                                            <option value="fast">速い</option>
+                                        </select>
+                                        <p className="text-xs text-surface-500 mt-1">
+                                            プレビューフレーム枚数が少ないほど速く見えやすいです。
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Phase 17-3: Playモード詳細設定 */}
                                 {thumbnailAction === 'play' && (
