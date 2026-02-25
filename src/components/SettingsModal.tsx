@@ -1077,23 +1077,6 @@ export const SettingsModal = React.memo(() => {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-300 mb-1">
-                                        アニメ画像プレビュー
-                                    </label>
-                                    <select
-                                        value={animatedImagePreviewMode}
-                                        onChange={(e) => setAnimatedImagePreviewMode(e.target.value as 'off' | 'hover')}
-                                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                                    >
-                                        <option value="off">オフ</option>
-                                        <option value="hover">ホバーで再生</option>
-                                    </select>
-                                    <p className="text-xs text-surface-500 mt-1">
-                                        GIF / アニメーションWebP が対象。パフォーマンスモード時は無効になります。
-                                    </p>
-                                </div>
-
                                 {thumbnailAction === 'flipbook' && (
                                     <div className="ml-6 mt-2">
                                         <label className="block text-sm font-medium text-surface-300 mb-1">
@@ -1113,6 +1096,23 @@ export const SettingsModal = React.memo(() => {
                                         </p>
                                     </div>
                                 )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                                        アニメ画像プレビュー
+                                    </label>
+                                    <select
+                                        value={animatedImagePreviewMode}
+                                        onChange={(e) => setAnimatedImagePreviewMode(e.target.value as 'off' | 'hover')}
+                                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                    >
+                                        <option value="off">オフ</option>
+                                        <option value="hover">ホバーで再生</option>
+                                    </select>
+                                    <p className="text-xs text-surface-500 mt-1">
+                                        GIF / アニメーションWebP が対象。パフォーマンスモード時は無効になります。
+                                    </p>
+                                </div>
 
                                 {/* Phase 17-3: Playモード詳細設定 */}
                                 {thumbnailAction === 'play' && (
