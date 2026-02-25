@@ -15,7 +15,7 @@ import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
 import { useUIStore } from './stores/useUIStore';
-import { useSettingsStore } from './stores/useSettingsStore';
+import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, useSettingsStore } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
 import { useRatingStore } from './stores/useRatingStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
@@ -26,6 +26,8 @@ function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const loadProfiles = useProfileStore((s) => s.loadProfiles);
+    const profiles = useProfileStore((s) => s.profiles);
+    const activeProfileId = useProfileStore((s) => s.activeProfileId);
     const setFiles = useFileStore((s) => s.setFiles);
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
@@ -48,6 +50,7 @@ function App() {
     // Phase 23: 右サイドパネル
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
+    const profileSettingsLoadSeqRef = useRef(0);
 
     // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
     const autoScanOnStartupRef = useRef(false);
@@ -61,7 +64,58 @@ function App() {
         window.electronAPI.setScanThrottleMs(settings.scanThrottleMs);
         // サムネイル解像度をメインプロセスに同期
         window.electronAPI.setThumbnailResolution(settings.thumbnailResolution);
+        window.electronAPI.setScanFileTypeCategories(settings.profileFileTypeFilters).catch(console.error);
     }, []);
+
+    const syncProfileScopedSettingsToScanner = useCallback(async (settings: {
+        previewFrameCount: number;
+        fileTypeFilters: { video: boolean; image: boolean; archive: boolean; audio: boolean };
+    }) => {
+        await Promise.all([
+            window.electronAPI.setPreviewFrameCount(settings.previewFrameCount),
+            window.electronAPI.setScanFileTypeCategories(settings.fileTypeFilters),
+        ]);
+    }, []);
+
+    const loadAndApplyActiveProfileScopedSettings = useCallback(async () => {
+        if (!activeProfileId || profiles.length === 0) return;
+
+        const seq = ++profileSettingsLoadSeqRef.current;
+        const settingsStore = useSettingsStore.getState();
+
+        try {
+            let response = await window.electronAPI.getProfileScopedSettings();
+
+            if (!response.exists) {
+                let initialSettings = response.settings;
+
+                if (!settingsStore.profileSettingsMigrationV1Done) {
+                    const shouldMigrate = window.confirm(
+                        'プロファイル別スキャン設定の初回移行を行います。\n\n' +
+                        'OK: 現在のプレビューフレーム数を引き継ぐ\n' +
+                        'キャンセル: 既定値で開始する'
+                    );
+
+                    initialSettings = {
+                        fileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
+                        previewFrameCount: shouldMigrate ? settingsStore.previewFrameCount : 10,
+                    };
+
+                    response = await window.electronAPI.replaceProfileScopedSettings(initialSettings);
+                    useSettingsStore.getState().setProfileSettingsMigrationV1Done(true);
+                } else {
+                    response = await window.electronAPI.replaceProfileScopedSettings(initialSettings);
+                }
+            }
+
+            if (seq !== profileSettingsLoadSeqRef.current) return;
+
+            useSettingsStore.getState().applyProfileScopedSettings(response.settings);
+            await syncProfileScopedSettingsToScanner(response.settings);
+        } catch (e) {
+            console.error('Failed to load/apply profile scoped settings:', e);
+        }
+    }, [activeProfileId, profiles.length, syncProfileScopedSettingsToScanner]);
 
     // 外部アプリ設定を Electron 側に同期（起動時および変更時）
     useEffect(() => {
@@ -72,6 +126,10 @@ function App() {
     useEffect(() => {
         loadProfiles();
     }, [loadProfiles]);
+
+    useEffect(() => {
+        void loadAndApplyActiveProfileScopedSettings();
+    }, [loadAndApplyActiveProfileScopedSettings]);
 
     // 評価フィルター用キャッシュを起動時に一括ロード
     useEffect(() => {

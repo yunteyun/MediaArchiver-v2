@@ -15,6 +15,26 @@ export type TagPopoverTrigger = 'click' | 'hover';
 // タグ表示スタイル型定義
 export type TagDisplayStyle = 'filled' | 'border';
 export type FileCardTagOrderMode = 'balanced' | 'strict';
+export type FileTypeCategory = 'video' | 'image' | 'archive' | 'audio';
+
+export interface FileTypeCategoryFilters {
+    video: boolean;
+    image: boolean;
+    archive: boolean;
+    audio: boolean;
+}
+
+export interface ProfileScopedSettingsV1 {
+    fileTypeFilters: FileTypeCategoryFilters;
+    previewFrameCount: number;
+}
+
+export const DEFAULT_PROFILE_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
+    video: true,
+    image: true,
+    archive: true,
+    audio: true,
+};
 
 // Phase 17-3: Playモード詳細設定型定義
 export type PlayModeJumpType = 'light' | 'random' | 'sequential';
@@ -40,6 +60,8 @@ interface SettingsState {
     autoScanOnStartup: boolean; // true = 起動時自動スキャン
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
     scanThrottleMs: number; // スキャン速度抑制（ファイル間待機時間 ms）
+    profileFileTypeFilters: FileTypeCategoryFilters;
+    profileSettingsMigrationV1Done: boolean;
 
     // サムネイル生成解像度（Phase 14整理）
     thumbnailResolution: number; // 生成時の幅px（160〜480）
@@ -88,6 +110,11 @@ interface SettingsState {
     setPreviewFrameCount: (count: number) => void;
     setScanThrottleMs: (ms: number) => void;
     setThumbnailResolution: (resolution: number) => void;
+    applyProfileScopedSettings: (settings: ProfileScopedSettingsV1) => void;
+    exportProfileScopedSettings: () => ProfileScopedSettingsV1;
+    setProfileFileTypeFilters: (filters: FileTypeCategoryFilters) => void;
+    setProfilePreviewFrameCount: (count: number) => void;
+    setProfileSettingsMigrationV1Done: (done: boolean) => void;
     // カード設定アクション
     setCardLayout: (layout: CardLayout) => void;
     setShowFileName: (show: boolean) => void;
@@ -116,7 +143,7 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             activeProfileId: 'default',
             thumbnailAction: 'scrub',
             sortBy: 'date',
@@ -127,6 +154,8 @@ export const useSettingsStore = create<SettingsState>()(
             autoScanOnStartup: false,
             previewFrameCount: 10,
             scanThrottleMs: 0,
+            profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
+            profileSettingsMigrationV1Done: false,
 
             // サムネイル生成解像度（Phase 14整理）
             thumbnailResolution: 320,
@@ -173,6 +202,17 @@ export const useSettingsStore = create<SettingsState>()(
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
             setScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
+            applyProfileScopedSettings: (settings) => set({
+                profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS, ...settings.fileTypeFilters },
+                previewFrameCount: Math.max(0, Math.min(30, Math.round(Number(settings.previewFrameCount) || 0)))
+            }),
+            exportProfileScopedSettings: () => ({
+                fileTypeFilters: { ...get().profileFileTypeFilters },
+                previewFrameCount: get().previewFrameCount
+            }),
+            setProfileFileTypeFilters: (profileFileTypeFilters) => set({ profileFileTypeFilters }),
+            setProfilePreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
+            setProfileSettingsMigrationV1Done: (profileSettingsMigrationV1Done) => set({ profileSettingsMigrationV1Done }),
             // カード設定セッター
             setCardLayout: (cardLayout) => set({ cardLayout }),
             setShowFileName: (showFileName) => set({ showFileName }),

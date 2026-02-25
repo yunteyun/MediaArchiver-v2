@@ -15,6 +15,7 @@ import { registerFileHandlers } from './ipc/file';
 import { registerArchiveHandlers } from './ipc/archive';
 import { registerTagHandlers } from './ipc/tag';
 import { registerProfileHandlers } from './ipc/profile';
+import { registerProfileSettingsHandlers } from './ipc/profileSettings';
 import { registerDuplicateHandlers } from './ipc/duplicate';
 import { registerBackupHandlers } from './ipc/backup';
 import { registerStatisticsHandlers } from './ipc/statistics';
@@ -131,6 +132,7 @@ app.whenReady().then(async () => {
     registerArchiveHandlers();
     registerTagHandlers();
     registerProfileHandlers();
+    registerProfileSettingsHandlers();
     registerDuplicateHandlers();
     registerBackupHandlers();
     registerStatisticsHandlers();

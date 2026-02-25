@@ -30,6 +30,23 @@ interface Profile {
     updatedAt: number;
 }
 
+interface FileTypeCategoryFilters {
+    video: boolean;
+    image: boolean;
+    archive: boolean;
+    audio: boolean;
+}
+
+interface ProfileScopedSettingsV1 {
+    fileTypeFilters: FileTypeCategoryFilters;
+    previewFrameCount: number;
+}
+
+interface ProfileScopedSettingsResponse {
+    settings: ProfileScopedSettingsV1;
+    exists: boolean;
+}
+
 // Phase 26-D: 複合検索型定義
 interface SearchConditionTagFilter {
     ids: string[];
@@ -124,6 +141,7 @@ declare global {
             setPreviewFrameCount: (count: number) => Promise<void>;
             setScanThrottleMs: (ms: number) => Promise<void>;
             setThumbnailResolution: (resolution: number) => Promise<void>;
+            setScanFileTypeCategories: (filters: Partial<FileTypeCategoryFilters>) => Promise<void>;
             autoScan: () => Promise<void>;
 
             // Context Menu
@@ -190,6 +208,9 @@ declare global {
             deleteProfile: (id: string) => Promise<boolean>;
             getActiveProfileId: () => Promise<string>;
             switchProfile: (profileId: string) => Promise<{ success: boolean }>;
+            getProfileScopedSettings: () => Promise<ProfileScopedSettingsResponse>;
+            setProfileScopedSettings: (partial: Partial<ProfileScopedSettingsV1>) => Promise<ProfileScopedSettingsResponse>;
+            replaceProfileScopedSettings: (settings: ProfileScopedSettingsV1) => Promise<ProfileScopedSettingsResponse>;
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
 
             // Duplicate Detection

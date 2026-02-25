@@ -77,6 +77,13 @@ export function registerScannerHandlers() {
         return;
     });
 
+    // === Set Scan File Type Categories (profile-scoped) ===
+    ipcMain.handle('scanner:setFileTypeCategories', async (_event, filters: { video?: boolean; image?: boolean; archive?: boolean; audio?: boolean }) => {
+        const { setScanFileTypeCategories } = await import('../services/scanner');
+        setScanFileTypeCategories(filters || {});
+        return;
+    });
+
     // === Auto Scan (all folders) ===
     ipcMain.handle('scanner:autoScan', async (event) => {
         const folders = getFolders();

@@ -18,6 +18,55 @@ const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.sv
 const ARCHIVE_EXTENSIONS = ['.zip', '.cbz', '.rar', '.cbr', '.7z'];
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
 
+export interface ScanFileTypeCategoryFilters {
+    video: boolean;
+    image: boolean;
+    archive: boolean;
+    audio: boolean;
+}
+
+let enabledScanCategories: ScanFileTypeCategoryFilters = {
+    video: true,
+    image: true,
+    archive: true,
+    audio: true,
+};
+
+function normalizeScanFileTypeCategories(input: Partial<ScanFileTypeCategoryFilters> | undefined): ScanFileTypeCategoryFilters {
+    return {
+        video: input?.video ?? true,
+        image: input?.image ?? true,
+        archive: input?.archive ?? true,
+        audio: input?.audio ?? true,
+    };
+}
+
+export function setScanFileTypeCategories(filters: Partial<ScanFileTypeCategoryFilters>) {
+    enabledScanCategories = normalizeScanFileTypeCategories(filters);
+}
+
+export function getScanFileTypeCategories(): ScanFileTypeCategoryFilters {
+    return { ...enabledScanCategories };
+}
+
+function getMediaTypeFromExtension(ext: string): 'video' | 'image' | 'archive' | 'audio' | null {
+    if (VIDEO_EXTENSIONS.includes(ext)) return 'video';
+    if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
+    if (ARCHIVE_EXTENSIONS.includes(ext)) return 'archive';
+    if (AUDIO_EXTENSIONS.includes(ext)) return 'audio';
+    return null;
+}
+
+function isScanTypeEnabled(type: 'video' | 'image' | 'archive' | 'audio'): boolean {
+    return enabledScanCategories[type];
+}
+
+function isScannableMediaType(ext: string): 'video' | 'image' | 'archive' | 'audio' | null {
+    const type = getMediaTypeFromExtension(ext);
+    if (!type) return null;
+    return isScanTypeEnabled(type) ? type : null;
+}
+
 export type ScanProgressCallback = (progress: {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
     current: number;
@@ -118,7 +167,7 @@ async function countFiles(dirPath: string): Promise<number> {
                     count += await countFiles(fullPath);
                 } else if (entry.isFile()) {
                     const ext = path.extname(entry.name).toLowerCase();
-                    if (VIDEO_EXTENSIONS.includes(ext) || IMAGE_EXTENSIONS.includes(ext) || ARCHIVE_EXTENSIONS.includes(ext) || AUDIO_EXTENSIONS.includes(ext)) {
+                    if (isScannableMediaType(ext)) {
                         count++;
                     }
                 }
@@ -193,12 +242,7 @@ async function scanDirectoryInternal(
                 await scanDirectoryInternal(fullPath, rootFolderId, onProgress, state);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
-                let type: 'video' | 'image' | 'archive' | 'audio' | null = null;
-
-                if (VIDEO_EXTENSIONS.includes(ext)) type = 'video';
-                else if (IMAGE_EXTENSIONS.includes(ext)) type = 'image';
-                else if (ARCHIVE_EXTENSIONS.includes(ext)) type = 'archive';
-                else if (AUDIO_EXTENSIONS.includes(ext)) type = 'audio';
+                const type = isScannableMediaType(ext);
 
                 if (type) {
                     state.current++;
@@ -495,7 +539,14 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
         const registeredFiles = db.getFiles(rootFolderId);
         let removedCount = 0;
         for (const file of registeredFiles) {
-            if (!fs.existsSync(file.path)) {
+            const isMissingOnDisk = !fs.existsSync(file.path);
+            const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
+            const disabledByProfile =
+                type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+                    ? !isScanTypeEnabled(type)
+                    : false;
+
+            if (isMissingOnDisk || disabledByProfile) {
                 db.deleteFile(file.id);
                 removedCount++;
             }

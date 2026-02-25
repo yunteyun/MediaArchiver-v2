@@ -47,11 +47,13 @@ export const SettingsModal = React.memo(() => {
     const autoScanOnStartup = useSettingsStore((s) => s.autoScanOnStartup);
     const setAutoScanOnStartup = useSettingsStore((s) => s.setAutoScanOnStartup);
     const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
-    const setPreviewFrameCount = useSettingsStore((s) => s.setPreviewFrameCount);
+    const setProfilePreviewFrameCount = useSettingsStore((s) => s.setProfilePreviewFrameCount);
     const scanThrottleMs = useSettingsStore((s) => s.scanThrottleMs);
     const setScanThrottleMs = useSettingsStore((s) => s.setScanThrottleMs);
     const thumbnailResolution = useSettingsStore((s) => s.thumbnailResolution);
     const setThumbnailResolution = useSettingsStore((s) => s.setThumbnailResolution);
+    const profileFileTypeFilters = useSettingsStore((s) => s.profileFileTypeFilters);
+    const setProfileFileTypeFilters = useSettingsStore((s) => s.setProfileFileTypeFilters);
 
 
     const showFileName = useSettingsStore((s) => s.showFileName);
@@ -132,6 +134,36 @@ export const SettingsModal = React.memo(() => {
         if (currentFolderId.startsWith(DRIVE_PREFIX)) return false;
         return true;
     }, [currentFolderId]);
+
+    const handleProfileFileTypeToggle = useCallback(async (
+        category: 'video' | 'image' | 'archive' | 'audio',
+        checked: boolean
+    ) => {
+        const next = { ...profileFileTypeFilters, [category]: checked };
+        setProfileFileTypeFilters(next);
+        try {
+            await Promise.all([
+                window.electronAPI.setProfileScopedSettings({ fileTypeFilters: next }),
+                window.electronAPI.setScanFileTypeCategories(next),
+            ]);
+        } catch (error) {
+            console.error('Failed to update profile file type filters:', error);
+            useUIStore.getState().showToast('対応形式設定の保存に失敗しました', 'error');
+        }
+    }, [profileFileTypeFilters, setProfileFileTypeFilters]);
+
+    const handleProfilePreviewFrameCountChange = useCallback(async (count: number) => {
+        setProfilePreviewFrameCount(count);
+        try {
+            await Promise.all([
+                window.electronAPI.setProfileScopedSettings({ previewFrameCount: count }),
+                window.electronAPI.setPreviewFrameCount(count),
+            ]);
+        } catch (error) {
+            console.error('Failed to update profile preview frame count:', error);
+            useUIStore.getState().showToast('プレビューフレーム数の保存に失敗しました', 'error');
+        }
+    }, [setProfilePreviewFrameCount]);
 
     const handleExportFromSettings = useCallback(async (format: 'csv' | 'html') => {
         setIsExporting(format);
@@ -817,6 +849,84 @@ export const SettingsModal = React.memo(() => {
                                     サムネイル設定
                                 </h3>
 
+                                <div className="space-y-4 rounded-lg border border-primary-900/40 bg-primary-950/10 p-3">
+                                    <div>
+                                        <h4 className="text-sm font-medium text-primary-200">
+                                            プロファイル別スキャン設定
+                                        </h4>
+                                        <p className="text-xs text-surface-400 mt-1">
+                                            この設定は現在のプロファイルにのみ適用されます。
+                                        </p>
+                                        <p className="text-xs text-surface-500 mt-1">
+                                            対象: <span className="text-surface-300">{activeProfileLabel}</span>
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-surface-300 mb-2">
+                                            対応形式（カテゴリON/OFF）
+                                        </label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {([
+                                                { key: 'video', label: '動画', hint: '.mp4 / .mkv / .webm' },
+                                                { key: 'image', label: '画像', hint: '.jpg / .png / .webp' },
+                                                { key: 'archive', label: '書庫', hint: '.zip / .cbz / .7z' },
+                                                { key: 'audio', label: '音声', hint: '.mp3 / .flac / .m4a' },
+                                            ] as const).map((item) => (
+                                                <label
+                                                    key={item.key}
+                                                    className="flex items-center justify-between gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-2 cursor-pointer hover:border-surface-600"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm text-surface-200">{item.label}</div>
+                                                        <div className="text-[11px] text-surface-500 truncate">{item.hint}</div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={profileFileTypeFilters[item.key]}
+                                                        onChange={(e) => { void handleProfileFileTypeToggle(item.key, e.target.checked); }}
+                                                        className="w-4 h-4 accent-primary-500 rounded shrink-0"
+                                                    />
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-surface-500 mt-2">
+                                            OFFにしたカテゴリは新規スキャン対象外になります。既に登録済みの対象は再スキャン時に一覧/DBから整理されます（元ファイルは削除しません）。
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-surface-300 mb-2">
+                                            プレビューフレーム数（プロファイル別）: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="30"
+                                            step="5"
+                                            value={previewFrameCount}
+                                            onChange={(e) => {
+                                                const count = Number(e.target.value);
+                                                void handleProfilePreviewFrameCountChange(count);
+                                            }}
+                                            className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                        />
+                                        <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                            <span>オフ</span>
+                                            <span>30枚</span>
+                                        </div>
+                                        <p className="text-xs text-surface-500 mt-1">
+                                            スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="pt-1">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
+                                        全体設定
+                                    </h4>
+                                </div>
+
                                 {/* Thumbnail Resolution */}
                                 <div>
                                     <label className="block text-sm font-medium text-surface-300 mb-2">
@@ -923,37 +1033,10 @@ export const SettingsModal = React.memo(() => {
                                     </div>
                                 )}
 
-                                {/* Preview Frame Count */}
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-300 mb-2">
-                                        プレビューフレーム数: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="30"
-                                        step="5"
-                                        value={previewFrameCount}
-                                        onChange={(e) => {
-                                            const count = Number(e.target.value);
-                                            setPreviewFrameCount(count);
-                                            window.electronAPI.setPreviewFrameCount(count);
-                                        }}
-                                        className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                    />
-                                    <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                        <span>オフ</span>
-                                        <span>30枚</span>
-                                    </div>
-                                    <p className="text-xs text-surface-500 mt-1">
-                                        スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
-                                    </p>
-                                </div>
-
                                 {/* Scan Throttle Delay */}
                                 <div>
                                     <label className="block text-sm font-medium text-surface-300 mb-2">
-                                        スキャン速度調整（コイル鳴き対策）
+                                        スキャン速度調整（全体設定 / コイル鳴き対策）
                                     </label>
                                     <select
                                         value={scanThrottleMs}

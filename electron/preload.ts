@@ -68,6 +68,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setPreviewFrameCount: (count: number) => ipcRenderer.invoke('scanner:setPreviewFrameCount', count),
     setScanThrottleMs: (ms: number) => ipcRenderer.invoke('scanner:setScanThrottleMs', ms),
     setThumbnailResolution: (resolution: number) => ipcRenderer.invoke('scanner:setThumbnailResolution', resolution),
+    setScanFileTypeCategories: (filters: { video?: boolean; image?: boolean; archive?: boolean; audio?: boolean }) =>
+        ipcRenderer.invoke('scanner:setFileTypeCategories', filters),
     autoScan: () => ipcRenderer.invoke('scanner:autoScan'),
 
     // === Context Menu ===
@@ -185,6 +187,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteProfile: (id: string) => ipcRenderer.invoke('profile:delete', id),
     getActiveProfileId: () => ipcRenderer.invoke('profile:getActive'),
     switchProfile: (profileId: string) => ipcRenderer.invoke('profile:switch', profileId),
+    getProfileScopedSettings: () => ipcRenderer.invoke('profileSettings:get'),
+    setProfileScopedSettings: (partial: any) => ipcRenderer.invoke('profileSettings:set', partial),
+    replaceProfileScopedSettings: (settings: any) => ipcRenderer.invoke('profileSettings:replace', settings),
 
     onProfileSwitched: (callback: (profileId: string) => void) => {
         const handler = (_event: any, profileId: string) => callback(profileId);
