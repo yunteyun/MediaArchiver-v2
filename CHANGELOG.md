@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - エクスポート欄に「インポート対応はCSVのみ（HTMLは閲覧用）」の注記を追加し、CSVインポート欄を旧アプリ互換モード（Shift_JIS / 可変列）にも対応。旧CSVは `コメント１` をメモへ追記し、末尾の追加列をタグ/星評価候補として解釈するルールを採用。Dry Run で一致/未一致・タグ付与予定・評価更新予定・メモ追記予定を確認でき、適用時はタグ追記に加えて星評価を総合評価軸へ取り込めるようにした。
 #### ドキュメント / 開発運用
 - `docs/dev/回帰確認チェックリスト.md` を追加し、表示モード（標準 S/M/L・漫画・動画）中心の最低限の回帰確認観点を整理。
+- Electron 起動ログにビルド識別情報（`version / runtime(dev|release) / exe更新時刻 / Electron/Chrome/Node 版`）を出力する `build marker` を追加。
 
 ### Fixed
 #### 配布 / 更新運用

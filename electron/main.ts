@@ -1,5 +1,6 @@
 import { app, BrowserWindow, protocol } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dbManager } from './services/databaseManager';
@@ -37,6 +38,33 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null;
 
+function formatMarkerTimestamp(date: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function getBuildMarker(): string {
+    const runtime = app.isPackaged ? 'release' : 'dev';
+    const version = app.getVersion();
+    const exePath = app.getPath('exe');
+
+    let exeMtime = 'unknown';
+    try {
+        exeMtime = formatMarkerTimestamp(fs.statSync(exePath).mtime);
+    } catch {
+        // Keep fallback marker when stat fails.
+    }
+
+    return [
+        `v${version}`,
+        `runtime=${runtime}`,
+        `exeMtime=${exeMtime}`,
+        `electron=${process.versions.electron}`,
+        `chrome=${process.versions.chrome}`,
+        `node=${process.versions.node}`,
+    ].join(' | ');
+}
+
 const createWindow = () => {
     mainWindow = new BrowserWindow({
         width: 1400,
@@ -71,6 +99,7 @@ const createWindow = () => {
 
 app.whenReady().then(async () => {
     logger.info('MediaArchiver starting...');
+    logger.info(`Build marker: ${getBuildMarker()}`);
 
     // Phase 25: ストレージ設定を最初に初期化（二段階ロード）
     await initStorageConfig();
