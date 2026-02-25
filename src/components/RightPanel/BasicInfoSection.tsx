@@ -3,6 +3,7 @@ import type { MediaFile } from '../../types/file';
 
 interface BasicInfoSectionProps {
     file: MediaFile;
+    rootFolderPath: string | null;
 }
 
 function formatBytes(bytes: number): string {
@@ -50,8 +51,39 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
     </div>
 );
 
-export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file }) => {
+function normalizeWinPath(path: string): string {
+    return path.replace(/\//g, '\\').replace(/\\+$/, '');
+}
+
+function getParentDirectoryPath(filePath: string): string {
+    const normalized = normalizeWinPath(filePath);
+    const idx = normalized.lastIndexOf('\\');
+    return idx >= 0 ? normalized.slice(0, idx) : normalized;
+}
+
+function getRootRelativeFolderPath(filePath: string, rootFolderPath: string | null): string | null {
+    if (!rootFolderPath) return null;
+
+    const root = normalizeWinPath(rootFolderPath);
+    const parentDir = getParentDirectoryPath(filePath);
+    const rootLower = root.toLowerCase();
+    const parentLower = parentDir.toLowerCase();
+
+    if (parentLower === rootLower) {
+        return '.';
+    }
+
+    const rootPrefix = `${rootLower}\\`;
+    if (!parentLower.startsWith(rootPrefix)) {
+        return null;
+    }
+
+    return parentDir.slice(root.length + 1);
+}
+
+export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootFolderPath }) => {
     const resolution = parseResolution(file.metadata);
+    const relativeFolderPath = getRootRelativeFolderPath(file.path, rootFolderPath);
 
     return (
         <div className="px-4 py-3 space-y-2 border-b border-surface-700">
@@ -66,6 +98,10 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file }) => 
                 )}
                 {resolution && (
                     <InfoRow label="解像度" value={resolution} />
+                )}
+                <InfoRow label="ファイルパス" value={file.path} />
+                {relativeFolderPath && (
+                    <InfoRow label="相対フォルダ" value={relativeFolderPath} />
                 )}
             </div>
         </div>
