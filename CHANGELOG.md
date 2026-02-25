@@ -43,6 +43,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Electron 起動ログにビルド識別情報（`version / runtime(dev|release) / exe更新時刻 / Electron/Chrome/Node 版`）を出力する `build marker` を追加。
 - 開発版/リリース版でアイコンを分離する設定を追加（開発版は `BrowserWindow` アイコン、リリース版は `electron-builder` の Windows アイコン設定）。
 - `README.md` / `docs/user/アプリ使用メモ.md` の更新手順とリリース手順を整理し、`update.bat` 更新後の最小確認項目・失敗時の簡易切り分けを追記。
+#### ログ / エラー表示
+- 設定画面のログタブに「表示中をコピー」操作と共有案内を追加し、非エンジニア向けの問い合わせ時にログ共有しやすく改善。
+- ログ読み込み失敗時の案内を詳細化し、`ログなし` と `フィルター結果なし` を区別して表示するように調整。
 
 ### Fixed
 #### 配布 / 更新運用

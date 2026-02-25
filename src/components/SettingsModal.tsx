@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Settings, FileText, RefreshCw, FolderOpen, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive, Star, FileSpreadsheet, FileCode2 } from 'lucide-react';
+import { X, Settings, FileText, RefreshCw, FolderOpen, Copy, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive, Star, FileSpreadsheet, FileCode2 } from 'lucide-react';
 import { useUIStore, type SettingsModalTab } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
@@ -79,6 +79,8 @@ export const SettingsModal = React.memo(() => {
     const [logs, setLogs] = useState<string[]>([]);
     const [logFilter, setLogFilter] = useState<'all' | 'error' | 'warn' | 'info'>('all');
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+    const [logLoadError, setLogLoadError] = useState<string>('');
+    const [logActionMessage, setLogActionMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
     // Phase 26: バージョン表記
     const [appVersion, setAppVersion] = useState<string>('');
 
@@ -458,12 +460,14 @@ export const SettingsModal = React.memo(() => {
 
     const loadLogs = useCallback(async () => {
         setIsLoadingLogs(true);
+        setLogLoadError('');
         try {
             const logLines = await window.electronAPI.getLogs(300);
             setLogs(logLines || []);
         } catch (e) {
             console.error('Failed to load logs:', e);
-            setLogs(['ログの読み込みに失敗しました']);
+            setLogs([]);
+            setLogLoadError('ログの読み込みに失敗しました。再読み込みで改善しない場合は「フォルダを開く」からログを確認してください。');
         }
         setIsLoadingLogs(false);
     }, []);
@@ -504,6 +508,30 @@ export const SettingsModal = React.memo(() => {
         if (line.includes('[info]')) return <Info size={14} className="text-blue-400 flex-shrink-0" />;
         return <Info size={14} className="text-surface-500 flex-shrink-0" />;
     };
+
+    const handleCopyVisibleLogs = useCallback(async () => {
+        if (filteredLogs.length === 0) {
+            setLogActionMessage({ type: 'info', text: 'コピー対象のログがありません（現在のフィルター結果は0件です）。' });
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(filteredLogs.join('\n'));
+            setLogActionMessage({ type: 'success', text: `表示中のログ ${filteredLogs.length} 行をコピーしました。` });
+        } catch (e) {
+            console.error('Failed to copy logs:', e);
+            setLogActionMessage({ type: 'error', text: 'ログのコピーに失敗しました。必要なら「フォルダを開く」から直接共有してください。' });
+        }
+    }, [filteredLogs]);
+
+    const handleOpenLogFolder = useCallback(async () => {
+        try {
+            await window.electronAPI.openLogFolder();
+            setLogActionMessage({ type: 'info', text: 'ログフォルダを開きました。問題報告時は該当日のログを共有してください。' });
+        } catch (e) {
+            console.error('Failed to open log folder:', e);
+            setLogActionMessage({ type: 'error', text: 'ログフォルダを開けませんでした。保存先設定や権限を確認してください。' });
+        }
+    }, []);
 
     if (!isOpen) return null;
 
@@ -1082,7 +1110,14 @@ export const SettingsModal = React.memo(() => {
                                         更新
                                     </button>
                                     <button
-                                        onClick={() => window.electronAPI.openLogFolder()}
+                                        onClick={handleCopyVisibleLogs}
+                                        className="flex items-center gap-1 px-3 py-1 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors"
+                                    >
+                                        <Copy size={14} />
+                                        表示中をコピー
+                                    </button>
+                                    <button
+                                        onClick={handleOpenLogFolder}
                                         className="flex items-center gap-1 px-3 py-1 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors"
                                     >
                                         <FolderOpen size={14} />
@@ -1091,11 +1126,32 @@ export const SettingsModal = React.memo(() => {
                                 </div>
                             </div>
 
+                            <div className="space-y-2">
+                                <p className="text-xs text-surface-400">
+                                    問題報告時は「表示中をコピー」または「フォルダを開く」からログを共有してください。表示件数: {filteredLogs.length}件（取得済み {logs.length}件）
+                                </p>
+                                {logLoadError && (
+                                    <div className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
+                                        {logLoadError}
+                                    </div>
+                                )}
+                                {logActionMessage && (
+                                    <div className={`text-xs rounded px-3 py-2 border ${logActionMessage.type === 'error'
+                                        ? 'text-red-300 bg-red-500/10 border-red-500/30'
+                                        : logActionMessage.type === 'success'
+                                            ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
+                                            : 'text-surface-300 bg-surface-800 border-surface-700'
+                                        }`}>
+                                        {logActionMessage.text}
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Log Display */}
                             <div className="bg-surface-950 rounded border border-surface-700 h-80 overflow-y-auto font-mono text-xs">
                                 {filteredLogs.length === 0 ? (
                                     <div className="flex items-center justify-center h-full text-surface-500">
-                                        {isLoadingLogs ? '読み込み中...' : 'ログがありません'}
+                                        {isLoadingLogs ? '読み込み中...' : logs.length > 0 ? 'このフィルターに該当するログはありません' : 'ログがありません'}
                                     </div>
                                 ) : (
                                     <div className="p-2 space-y-0.5">
@@ -1116,7 +1172,7 @@ export const SettingsModal = React.memo(() => {
                             </div>
 
                             <p className="text-xs text-surface-500">
-                                最新300行を表示。ログファイルは日付ごとに自動ローテーションされます。
+                                最新300行を表示。ログファイルは日付ごとに自動ローテーションされます。共有時は個人情報やパス情報が含まれていないか確認してください。
                             </p>
                         </div>
                     )}
