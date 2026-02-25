@@ -57,6 +57,17 @@ type TagSummaryUiConfig = {
     tagChipMaxWidthClass: string;
 };
 
+type FileCardTagSummaryRowProps = {
+    visibleTags: Tag[];
+    hiddenCount: number;
+    isTagBorderMode: boolean;
+    tagSummaryUi: TagSummaryUiConfig;
+    triggerRef: React.RefObject<HTMLButtonElement | null>;
+    onMoreClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    onMoreMouseEnter: () => void;
+    onMoreMouseLeave: () => void;
+};
+
 function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
     const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const isMangaMode = displayMode === 'manga';
@@ -86,6 +97,54 @@ function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
         tagChipMaxWidthClass: 'max-w-[60px]',
     };
 }
+
+const FileCardTagSummaryRow = React.memo(({
+    visibleTags,
+    hiddenCount,
+    isTagBorderMode,
+    tagSummaryUi,
+    triggerRef,
+    onMoreClick,
+    onMoreMouseEnter,
+    onMoreMouseLeave,
+}: FileCardTagSummaryRowProps) => {
+    return (
+        <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1 overflow-hidden">
+            {visibleTags.map(tag => (
+                <span
+                    key={tag.id}
+                    className={`inline-flex min-w-0 ${tagSummaryUi.tagChipMaxWidthClass} items-center ${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
+                    style={isTagBorderMode ? {
+                        backgroundColor: 'rgba(55, 65, 81, 0.9)',
+                        color: '#e5e7eb',
+                        borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                        opacity: 0.85
+                    } : {
+                        backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                        color: getTagTextColor(tag.categoryColor || tag.color || ''),
+                        borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                        opacity: 0.85
+                    }}
+                >
+                    <span className="truncate">#{tag.name}</span>
+                </span>
+            ))}
+            {hiddenCount > 0 && (
+                <button
+                    ref={triggerRef}
+                    onClick={onMoreClick}
+                    onMouseEnter={onMoreMouseEnter}
+                    onMouseLeave={onMoreMouseLeave}
+                    className={`${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
+                >
+                    +{hiddenCount}
+                </button>
+            )}
+        </div>
+    );
+});
+
+FileCardTagSummaryRow.displayName = 'FileCardTagSummaryRow';
 
 // FileCard の要約タグは、カテゴリが偏りすぎないようにカテゴリ単位で1つずつ選ぶ。
 // 既存の sortOrder 順は維持しつつ、未分類タグはカテゴリタグの後ろに回す。
@@ -390,47 +449,26 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         const visibleTags = fileCardTagOrderMode === 'strict'
             ? sortedTags.slice(0, visibleCount)
             : getBalancedSummaryTags(sortedTags, visibleCount);
+        const hiddenCount = sortedTags.length - visibleCount;
 
         return (
-            <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1 overflow-hidden">
-                {visibleTags.map(tag => (
-                    <span
-                        key={tag.id}
-                        className={`inline-flex min-w-0 ${tagSummaryUi.tagChipMaxWidthClass} items-center ${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
-                        style={isTagBorderMode ? {
-                            backgroundColor: 'rgba(55, 65, 81, 0.9)',
-                            color: '#e5e7eb',
-                            borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                            opacity: 0.85
-                        } : {
-                            backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                            color: getTagTextColor(tag.categoryColor || tag.color || ''),
-                            borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                            opacity: 0.85
-                        }}
-                    >
-                        <span className="truncate">#{tag.name}</span>
-                    </span>
-                ))}
-                {sortedTags.length > visibleCount && (
-                    <button
-                        ref={triggerRef}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
-                        }}
-                        onMouseEnter={() => {
-                            if (tagPopoverTrigger === 'hover') openPopover();
-                        }}
-                        onMouseLeave={() => {
-                            if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
-                        }}
-                        className={`${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
-                    >
-                        +{sortedTags.length - visibleCount}
-                    </button>
-                )}
-            </div>
+            <FileCardTagSummaryRow
+                visibleTags={visibleTags}
+                hiddenCount={Math.max(0, hiddenCount)}
+                isTagBorderMode={isTagBorderMode}
+                tagSummaryUi={tagSummaryUi}
+                triggerRef={triggerRef}
+                onMoreClick={(e) => {
+                    e.stopPropagation();
+                    if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
+                }}
+                onMoreMouseEnter={() => {
+                    if (tagPopoverTrigger === 'hover') openPopover();
+                }}
+                onMoreMouseLeave={() => {
+                    if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
+                }}
+            />
         );
     }, [
         showTags,
