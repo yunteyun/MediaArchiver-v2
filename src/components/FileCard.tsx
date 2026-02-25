@@ -11,6 +11,7 @@ import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import { getDisplayModeDefinition } from './fileCard/displayModes';
+import type { DisplayMode } from '../stores/useSettingsStore';
 
 // 明るい背景色のタグで暗い文字色を使うためのヘルパー
 function getTagTextColor(bgColor: string): string {
@@ -47,6 +48,43 @@ function getTagBackgroundColor(colorName: string | undefined): string {
     };
     const color = colorMap[colorName];
     return color !== undefined ? color : (colorMap.gray as string); // フォールバック: gray
+}
+
+type TagSummaryUiConfig = {
+    tagChipPaddingClass: string;
+    tagChipTextClass: string;
+    tagChipRadiusClass: string;
+    tagChipMaxWidthClass: string;
+};
+
+function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
+    const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
+    const isMangaMode = displayMode === 'manga';
+
+    if (isStandardDetailedMode) {
+        return {
+            tagChipPaddingClass: 'px-1.5 py-1',
+            tagChipTextClass: 'text-[9px] leading-none',
+            tagChipRadiusClass: 'rounded-md',
+            tagChipMaxWidthClass: 'max-w-[90px]',
+        };
+    }
+
+    if (isMangaMode) {
+        return {
+            tagChipPaddingClass: 'px-1.5 py-0.5',
+            tagChipTextClass: 'text-[8px]',
+            tagChipRadiusClass: 'rounded',
+            tagChipMaxWidthClass: 'max-w-[60px]',
+        };
+    }
+
+    return {
+        tagChipPaddingClass: 'px-1.5 py-0.5',
+        tagChipTextClass: 'text-[8px]',
+        tagChipRadiusClass: 'rounded',
+        tagChipMaxWidthClass: 'max-w-[60px]',
+    };
 }
 
 // FileCard の要約タグは、カテゴリが偏りすぎないようにカテゴリ単位で1つずつ選ぶ。
@@ -348,26 +386,17 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     // to preserve triggerRef/popover state ownership. Revisit after tag popover extraction.
     const renderTagSummary = useCallback((visibleCount: number) => {
         if (!showTags || sortedTags.length === 0) return null;
-        const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
-        const isMangaMode = displayMode === 'manga';
+        const tagSummaryUi = getTagSummaryUiConfig(displayMode);
         const visibleTags = fileCardTagOrderMode === 'strict'
             ? sortedTags.slice(0, visibleCount)
             : getBalancedSummaryTags(sortedTags, visibleCount);
-        const tagChipPaddingClass = isStandardDetailedMode ? 'px-1.5 py-1' : 'px-1.5 py-0.5';
-        const tagChipTextClass = isStandardDetailedMode ? 'text-[9px] leading-none' : 'text-[8px]';
-        const tagChipRadiusClass = isStandardDetailedMode ? 'rounded-md' : 'rounded';
-        const tagChipMaxWidthClass = isStandardDetailedMode
-            ? 'max-w-[90px]'
-            : isMangaMode
-                ? 'max-w-[60px]'
-                : 'max-w-[60px]';
 
         return (
             <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1 overflow-hidden">
                 {visibleTags.map(tag => (
                     <span
                         key={tag.id}
-                        className={`inline-flex min-w-0 ${tagChipMaxWidthClass} items-center ${tagChipPaddingClass} ${tagChipTextClass} font-bold whitespace-nowrap ${tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
+                        className={`inline-flex min-w-0 ${tagSummaryUi.tagChipMaxWidthClass} items-center ${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
                         style={isTagBorderMode ? {
                             backgroundColor: 'rgba(55, 65, 81, 0.9)',
                             color: '#e5e7eb',
@@ -396,7 +425,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         onMouseLeave={() => {
                             if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
                         }}
-                        className={`${tagChipPaddingClass} ${tagChipTextClass} font-bold whitespace-nowrap ${tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
+                        className={`${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
                     >
                         +{sortedTags.length - visibleCount}
                     </button>

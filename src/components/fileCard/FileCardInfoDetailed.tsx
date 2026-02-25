@@ -4,6 +4,48 @@ import { formatFileSize } from '../../utils/groupFiles';
 import { getDisplayFolderName } from '../../utils/path';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
+type DetailedInfoUiConfig = {
+    isMangaMode: boolean;
+    isVideoMode: boolean;
+    isBadgeMetaMode: boolean;
+    isStandardMode: boolean;
+    containerClass: string;
+    titleClass: string;
+    metaLineClass: string;
+    folderBadgeMaxWidthClass: string;
+    bottomRowClass: string;
+    tagSummaryVisibleCount: number;
+};
+
+function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
+    const isMangaMode = displayMode === 'manga';
+    const isVideoMode = displayMode === 'video';
+    const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
+    const isBadgeMetaMode =
+        isStandardMode ||
+        isMangaMode ||
+        isVideoMode;
+
+    return {
+        isMangaMode,
+        isVideoMode,
+        isBadgeMetaMode,
+        isStandardMode,
+        containerClass: `flex flex-col bg-surface-800 ${isMangaMode ? 'px-3 py-1.5 justify-between' : 'px-3.5 py-2.5 justify-start'}`,
+        titleClass: `text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors ${isMangaMode ? 'mb-0 leading-tight' : 'mb-0.5'}`,
+        metaLineClass: `text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`,
+        folderBadgeMaxWidthClass: isMangaMode ? 'max-w-[84px]' : isVideoMode ? 'max-w-[96px]' : 'max-w-[110px]',
+        bottomRowClass: `flex justify-between gap-1 ${
+            isMangaMode
+                ? 'items-center'
+                : isStandardMode || isVideoMode
+                    ? 'items-center mt-auto'
+                    : 'items-start mt-auto'
+        }`,
+        tagSummaryVisibleCount: isMangaMode ? 2 : 3,
+    };
+}
+
 export const FileCardInfoDetailed = React.memo(({
     file,
     displayMode,
@@ -11,16 +53,9 @@ export const FileCardInfoDetailed = React.memo(({
     showFileSize,
     renderTagSummary,
 }: FileCardInfoCommonProps) => {
-    const isMangaMode = displayMode === 'manga';
-    const isVideoMode = displayMode === 'video';
-    const isBadgeMetaMode =
-        displayMode === 'standard' ||
-        displayMode === 'standardLarge' ||
-        displayMode === 'manga' ||
-        displayMode === 'video';
-    const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
-    const showMetaLine = !isBadgeMetaMode;
-    const showSecondLineSizeBadge = isBadgeMetaMode && showFileSize && !!file.size;
+    const ui = getDetailedInfoUiConfig(displayMode);
+    const showMetaLine = !ui.isBadgeMetaMode;
+    const showSecondLineSizeBadge = ui.isBadgeMetaMode && showFileSize && !!file.size;
     const folderName = getDisplayFolderName(file.path);
     const createdDateLabel = file.createdAt
         ? new Date(file.createdAt).toLocaleDateString('ja-JP', {
@@ -32,21 +67,17 @@ export const FileCardInfoDetailed = React.memo(({
 
     return (
         <div
-            className={`flex flex-col bg-surface-800 ${
-                isMangaMode ? 'px-3 py-1.5 justify-between' : 'px-3.5 py-2.5 justify-start'
-            }`}
+            className={ui.containerClass}
             style={{ height: `${infoAreaHeight}px` }}
         >
             <h3
-                className={`text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors ${
-                    isMangaMode ? 'mb-0 leading-tight' : 'mb-0.5'
-                }`}
+                className={ui.titleClass}
                 title={file.name}
             >
                 {file.name}
             </h3>
             {showMetaLine ? (
-                <div className={`text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`}>
+                <div className={ui.metaLineClass}>
                     {folderName}
                     {file.createdAt && (
                         <>
@@ -81,29 +112,19 @@ export const FileCardInfoDetailed = React.memo(({
                         </span>
                     )}
                     {folderName && (
-                        <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${
-                            isMangaMode ? 'max-w-[84px]' : isVideoMode ? 'max-w-[96px]' : 'max-w-[110px]'
-                        }`}>
+                        <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${ui.folderBadgeMaxWidthClass}`}>
                             <span className="truncate">{folderName}</span>
                         </span>
                     )}
                 </div>
             )}
             <div
-                className={`flex justify-between gap-1 ${
-                    isMangaMode
-                        ? 'items-center'
-                        : isStandardMode
-                            ? 'items-center mt-auto'
-                            : isVideoMode
-                                ? 'items-center mt-auto'
-                            : 'items-start mt-auto'
-                }`}
+                className={ui.bottomRowClass}
             >
-                {!isBadgeMetaMode && showFileSize && file.size && (
+                {!ui.isBadgeMetaMode && showFileSize && file.size && (
                     <span
                         className={`flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap ${
-                            isStandardMode
+                            ui.isStandardMode
                                 ? 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80'
                                 : 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60'
                         }`}
@@ -111,9 +132,9 @@ export const FileCardInfoDetailed = React.memo(({
                         {formatFileSize(file.size)}
                     </span>
                 )}
-                {isBadgeMetaMode ? (
+                {ui.isBadgeMetaMode ? (
                     <div className="min-w-0 flex-1">
-                        {renderTagSummary(isMangaMode ? 2 : 3)}
+                        {renderTagSummary(ui.tagSummaryVisibleCount)}
                     </div>
                 ) : (
                     renderTagSummary(3)
