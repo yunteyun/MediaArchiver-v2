@@ -17,7 +17,7 @@ export type TagDisplayStyle = 'filled' | 'border';
 export type FileCardTagOrderMode = 'balanced' | 'strict';
 export type FileTypeCategory = 'video' | 'image' | 'archive' | 'audio';
 export type FlipbookSpeed = 'slow' | 'normal' | 'fast';
-export type AnimatedImagePreviewMode = 'off' | 'hover';
+export type AnimatedImagePreviewMode = 'off' | 'hover' | 'visible';
 
 export interface FileTypeCategoryFilters {
     video: boolean;

@@ -1103,14 +1103,15 @@ export const SettingsModal = React.memo(() => {
                                     </label>
                                     <select
                                         value={animatedImagePreviewMode}
-                                        onChange={(e) => setAnimatedImagePreviewMode(e.target.value as 'off' | 'hover')}
+                                        onChange={(e) => setAnimatedImagePreviewMode(e.target.value as 'off' | 'hover' | 'visible')}
                                         className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                                     >
                                         <option value="off">オフ</option>
                                         <option value="hover">ホバーで再生</option>
+                                        <option value="visible">表示中に自動再生</option>
                                     </select>
                                     <p className="text-xs text-surface-500 mt-1">
-                                        GIF / アニメーションWebP が対象。パフォーマンスモード時は無効になります。
+                                        GIF / アニメーションWebP が対象。表示中自動再生は同時2件まで。パフォーマンスモード時は無効になります。
                                     </p>
                                 </div>
 

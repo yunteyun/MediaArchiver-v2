@@ -264,6 +264,36 @@ function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
 const SAFE_MARGIN_RATIO = 0.1; // 先頭・末尾10%除外
 const SEQUENTIAL_SEGMENTS = 5; // sequential モードのセグメント数
 const SEQUENTIAL_MIN_DURATION = 8; // sequential モード最小動画長（秒）
+const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
+
+const activeVisibleAnimatedPreviewIds = new Set<string>();
+const visibleAnimatedPreviewListeners = new Set<() => void>();
+
+function notifyVisibleAnimatedPreviewListeners() {
+    for (const listener of visibleAnimatedPreviewListeners) {
+        listener();
+    }
+}
+
+function subscribeVisibleAnimatedPreviewSlots(listener: () => void) {
+    visibleAnimatedPreviewListeners.add(listener);
+    return () => {
+        visibleAnimatedPreviewListeners.delete(listener);
+    };
+}
+
+function requestVisibleAnimatedPreviewSlot(fileId: string): boolean {
+    if (activeVisibleAnimatedPreviewIds.has(fileId)) return true;
+    if (activeVisibleAnimatedPreviewIds.size >= MAX_VISIBLE_ANIMATED_PREVIEWS) return false;
+    activeVisibleAnimatedPreviewIds.add(fileId);
+    notifyVisibleAnimatedPreviewListeners();
+    return true;
+}
+
+function releaseVisibleAnimatedPreviewSlot(fileId: string) {
+    if (!activeVisibleAnimatedPreviewIds.delete(fileId)) return;
+    notifyVisibleAnimatedPreviewListeners();
+}
 
 // Phase 17-3: 安全なランダム位置計算
 const getRandomSafeTime = (duration: number, currentTime?: number): number => {
@@ -385,7 +415,11 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const preloadedImages = useRef<HTMLImageElement[]>([]);
     const hoverTimeoutRef = useRef<number | null>(null);
     const flipbookIntervalRef = useRef<number | null>(null);
-    const [animatedHoverSessionKey, setAnimatedHoverSessionKey] = useState(0);
+    const [animatedPreviewSessionKey, setAnimatedPreviewSessionKey] = useState(0);
+    const thumbnailAreaRef = useRef<HTMLDivElement>(null);
+    const [isThumbnailVisible, setIsThumbnailVisible] = useState(false);
+    const [visibleAnimatedPreviewVersion, setVisibleAnimatedPreviewVersion] = useState(0);
+    const [isVisibleAnimatedPreviewActive, setIsVisibleAnimatedPreviewActive] = useState(false);
 
     // Play mode state
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -406,15 +440,20 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return hoveredPreviewId === file.id && thumbnailAction === 'play' && file.type === 'video';
     }, [hoveredPreviewId, file.id, file.type, thumbnailAction]);
 
+    const isAnimatedImage = useMemo(() => {
+        return file.type === 'image' && file.isAnimated === true;
+    }, [file.type, file.isAnimated]);
+
     const shouldAnimateImagePreview = useMemo(() => {
         return (
-            file.type === 'image' &&
-            file.isAnimated === true &&
-            isHovered &&
-            animatedImagePreviewMode === 'hover' &&
-            !performanceMode
+            isAnimatedImage &&
+            !performanceMode &&
+            (
+                (animatedImagePreviewMode === 'hover' && isHovered) ||
+                (animatedImagePreviewMode === 'visible' && isVisibleAnimatedPreviewActive)
+            )
         );
-    }, [file.type, file.isAnimated, isHovered, animatedImagePreviewMode, performanceMode]);
+    }, [isAnimatedImage, isHovered, animatedImagePreviewMode, isVisibleAnimatedPreviewActive, performanceMode]);
 
     // Phase 17-3: interval クリーンアップヘルパー
     const clearJumpInterval = useCallback(() => {
@@ -512,6 +551,69 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         };
     }, [clearFlipbookInterval]);
 
+    useEffect(() => {
+        if (!isAnimatedImage || !thumbnailAreaRef.current) {
+            setIsThumbnailVisible(false);
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry) return;
+                setIsThumbnailVisible(entry.isIntersecting && entry.intersectionRatio >= 0.35);
+            },
+            { threshold: [0, 0.35] }
+        );
+
+        observer.observe(thumbnailAreaRef.current);
+        return () => observer.disconnect();
+    }, [isAnimatedImage]);
+
+    useEffect(() => {
+        if (animatedImagePreviewMode !== 'visible') {
+            setIsVisibleAnimatedPreviewActive(false);
+            return;
+        }
+        return subscribeVisibleAnimatedPreviewSlots(() => {
+            setVisibleAnimatedPreviewVersion((prev) => prev + 1);
+        });
+    }, [animatedImagePreviewMode]);
+
+    useEffect(() => {
+        const shouldUseVisibleAnimatedPreview =
+            isAnimatedImage &&
+            animatedImagePreviewMode === 'visible' &&
+            !performanceMode &&
+            isThumbnailVisible;
+
+        if (!shouldUseVisibleAnimatedPreview) {
+            releaseVisibleAnimatedPreviewSlot(file.id);
+            setIsVisibleAnimatedPreviewActive(false);
+            return;
+        }
+
+        const acquired = requestVisibleAnimatedPreviewSlot(file.id);
+        setIsVisibleAnimatedPreviewActive(acquired);
+    }, [
+        file.id,
+        isAnimatedImage,
+        animatedImagePreviewMode,
+        performanceMode,
+        isThumbnailVisible,
+        visibleAnimatedPreviewVersion,
+    ]);
+
+    useEffect(() => {
+        return () => {
+            releaseVisibleAnimatedPreviewSlot(file.id);
+        };
+    }, [file.id]);
+
+    useEffect(() => {
+        if (!isVisibleAnimatedPreviewActive || animatedImagePreviewMode !== 'visible') return;
+        setAnimatedPreviewSessionKey((prev) => prev + 1);
+    }, [isVisibleAnimatedPreviewActive, animatedImagePreviewMode]);
+
     // Phase 14-7: Click-outside handler for tag popover (Phase 14-8: click モード限定)
     useEffect(() => {
         if (tagPopoverTrigger !== 'click') return;  // click モード限定
@@ -574,11 +676,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             setIsHovered(true);
 
             if (
-                file.type === 'image' &&
-                file.isAnimated === true &&
+                isAnimatedImage &&
                 animatedImagePreviewMode === 'hover'
             ) {
-                setAnimatedHoverSessionKey((prev) => prev + 1);
+                setAnimatedPreviewSessionKey((prev) => prev + 1);
             }
 
             // Scrub / 自動パラパラ: 動画で、まだロードしていない場合のみプリロード
@@ -605,7 +706,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 )).then(() => setPreloadState('ready'));
             }
         }, 100);
-    }, [thumbnailAction, animatedImagePreviewMode, file.type, file.isAnimated, file.id, previewFrames, preloadState, performanceMode, setHoveredPreview]);
+    }, [thumbnailAction, animatedImagePreviewMode, isAnimatedImage, file.type, file.id, previewFrames, preloadState, performanceMode, setHoveredPreview]);
 
     const handleMouseLeave = useCallback(() => {
         if (hoverTimeoutRef.current) {
@@ -769,10 +870,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         if (!displayImagePath) return '';
         const base = toMediaUrl(displayImagePath);
         if (shouldAnimateImagePreview && displayImagePath === file.path) {
-            return `${base}?animHover=${animatedHoverSessionKey}`;
+            return `${base}?animPreview=${animatedPreviewSessionKey}`;
         }
         return base;
-    }, [displayImagePath, shouldAnimateImagePreview, file.path, animatedHoverSessionKey]);
+    }, [displayImagePath, shouldAnimateImagePreview, file.path, animatedPreviewSessionKey]);
 
     const handleCardClick = (e: React.MouseEvent) => {
         // ダブルクリック時の click イベント重複発火を防ぐ
@@ -879,6 +980,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         >
             {/* Thumbnail Area - Phase 14: 固定高さ */}
             <div
+                ref={thumbnailAreaRef}
                 onClick={handleThumbnailClick}
                 className="relative bg-surface-900 flex items-center justify-center overflow-hidden group w-full flex-shrink-0"
                 style={{
