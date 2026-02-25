@@ -15,7 +15,7 @@ export interface ScanProgress {
     };
 }
 
-export type SettingsModalTab = 'general' | 'thumbnails' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
+export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
 
 interface UIState {
     sidebarWidth: number;

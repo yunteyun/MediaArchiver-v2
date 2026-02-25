@@ -614,6 +614,18 @@ export const SettingsModal = React.memo(() => {
                         </span>
                     </button>
                     <button
+                        onClick={() => setActiveTab('scan')}
+                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'scan'
+                            ? 'text-primary-400 border-b-2 border-primary-400'
+                            : 'text-surface-400 hover:text-surface-200'
+                            }`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <RefreshCw size={16} />
+                            スキャン
+                        </span>
+                    </button>
+                    <button
                         onClick={() => setActiveTab('storage')}
                         className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'storage'
                             ? 'text-primary-400 border-b-2 border-primary-400'
@@ -841,6 +853,68 @@ export const SettingsModal = React.memo(() => {
                         </div>
                     )}
 
+                    {activeTab === 'scan' && (
+                        <div className="px-4 py-4 space-y-6">
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
+                                    スキャン設定
+                                </h3>
+
+                                <div className="space-y-4 rounded-lg border border-primary-900/40 bg-primary-950/10 p-3">
+                                    <div>
+                                        <h4 className="text-sm font-medium text-primary-200">
+                                            プロファイル別プレビュー設定
+                                        </h4>
+                                        <p className="text-xs text-surface-400 mt-1">
+                                            この設定は現在のプロファイルにのみ適用されます。
+                                        </p>
+                                        <p className="text-xs text-surface-500 mt-1">
+                                            対象: <span className="text-surface-300">{activeProfileLabel}</span>
+                                        </p>
+                                        <p className="text-xs text-surface-500 mt-1">
+                                            対応形式（動画/画像/書庫/音声）の切替は「スキャン」タブに移動しました。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
+                                        全体設定
+                                    </h4>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-surface-300 mb-2">
+                                            スキャン速度調整（コイル鳴き対策）
+                                        </label>
+                                        <select
+                                            value={scanThrottleMs}
+                                            onChange={(e) => {
+                                                const ms = Number(e.target.value);
+                                                setScanThrottleMs(ms);
+                                                window.electronAPI.setScanThrottleMs(ms);
+                                            }}
+                                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                                        >
+                                            <option value="0">通常速度（推奨）</option>
+                                            <option value="50">少し遅く（軽度の対策）</option>
+                                            <option value="100">遅く（中程度の対策）</option>
+                                            <option value="200">かなり遅く（重度の対策）</option>
+                                        </select>
+                                        <p className="text-xs text-surface-500 mt-1">
+                                            プレビュー生成時のファイル間待機時間を調整します。PCから異音がする場合に設定してください。
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="rounded border border-surface-800 bg-surface-900/50 p-3">
+                                    <p className="text-xs text-surface-400">
+                                        `プレビューフレーム数` はサムネイルタブにあります（プロファイル別設定）。
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {activeTab === 'thumbnails' && (
                         <div className="px-4 py-4 space-y-6">
                             {/* サムネイル設定セクション */}
@@ -1033,29 +1107,6 @@ export const SettingsModal = React.memo(() => {
                                     </div>
                                 )}
 
-                                {/* Scan Throttle Delay */}
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-300 mb-2">
-                                        スキャン速度調整（全体設定 / コイル鳴き対策）
-                                    </label>
-                                    <select
-                                        value={scanThrottleMs}
-                                        onChange={(e) => {
-                                            const ms = Number(e.target.value);
-                                            setScanThrottleMs(ms);
-                                            window.electronAPI.setScanThrottleMs(ms);
-                                        }}
-                                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                                    >
-                                        <option value="0">通常速度（推奨）</option>
-                                        <option value="50">少し遅く（軽度の対策）</option>
-                                        <option value="100">遅く（中程度の対策）</option>
-                                        <option value="200">かなり遅く（重度の対策）</option>
-                                    </select>
-                                    <p className="text-xs text-surface-500 mt-1">
-                                        プレビュー生成時のファイル間待機時間を調整します。PCから異音がする場合に設定してください。
-                                    </p>
-                                </div>
                             </div>
 
                         </div>
