@@ -20,6 +20,7 @@ const CARD_GAP = 8;
 
 export const FileGrid = React.memo(() => {
     const isDev = import.meta.env.DEV;
+    const groupPerfDebugEnabled = isDev && (globalThis as { __MA_DEBUG_GROUP_PERF?: boolean }).__MA_DEBUG_GROUP_PERF === true;
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const focusedId = useFileStore((s) => s.focusedId);
@@ -160,7 +161,7 @@ export const FileGrid = React.memo(() => {
 
     // グループ化されたファイル（Phase 12-10）
     const groupedFiles = useMemo(() => {
-        if (!isDev || groupBy === 'none') {
+        if (!groupPerfDebugEnabled || groupBy === 'none') {
             return groupFiles(files, groupBy, sortBy, sortOrder);
         }
 
@@ -178,7 +179,7 @@ export const FileGrid = React.memo(() => {
         });
 
         return result;
-    }, [files, groupBy, sortBy, sortOrder, isDev]);
+    }, [files, groupBy, sortBy, sortOrder, groupPerfDebugEnabled]);
 
     // GridItem統合リスト生成（Phase 12-4）
     const gridItems = useMemo((): GridItem[] => {
@@ -320,7 +321,7 @@ export const FileGrid = React.memo(() => {
     }, [config, containerWidth, gridItems.length]);
 
     useEffect(() => {
-        if (!isDev || groupBy === 'none') return;
+        if (!groupPerfDebugEnabled || groupBy === 'none') return;
 
         const totalGroupedFiles = groupedFiles.reduce((sum, group) => sum + group.files.length, 0);
         const largestGroupSize = groupedFiles.reduce((max, group) => Math.max(max, group.files.length), 0);
@@ -334,7 +335,7 @@ export const FileGrid = React.memo(() => {
             cardWidth: effectiveCardWidth,
             cardHeight,
         });
-    }, [isDev, groupBy, groupedFiles, columns, effectiveCardWidth, cardHeight]);
+    }, [groupPerfDebugEnabled, groupBy, groupedFiles, columns, effectiveCardWidth, cardHeight]);
 
     const rowVirtualizer = useVirtualizer({
         count: rows,
