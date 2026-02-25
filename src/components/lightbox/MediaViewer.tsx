@@ -156,6 +156,9 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
         const hasArchivePreviews = archivePreviewFrames.length > 0;
         const hasArchiveAudio = archiveAudioFiles.length > 0;
         const audioFocusedArchiveView = archiveOpenMode === 'archive-audio' && hasArchiveAudio;
+        const imageFocusedArchiveView = archiveOpenMode === 'archive-image' && hasArchivePreviews;
+        const showArchivePreviewGrid = hasArchivePreviews && !audioFocusedArchiveView;
+        const showArchiveAudioList = hasArchiveAudio && !imageFocusedArchiveView;
 
         return (
             <div
@@ -210,7 +213,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                     /* コンテンツエリア: 画像と音声を横並び */
                     <div
                         className={`relative flex gap-5 xl:gap-6 max-h-[74vh] items-stretch ${hasArchiveAudio
-                            ? 'w-full max-w-[1180px]'
+                            ? (showArchiveAudioList ? 'w-full max-w-[1180px]' : 'w-fit max-w-[calc(100vw-420px)]')
                             : 'w-fit max-w-[calc(100vw-420px)]'
                             }`}
                         onClick={(e) => e.stopPropagation()}
@@ -227,7 +230,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                             <X size={22} />
                         </button>
                         {/* 左側: 画像グリッド */}
-                        {hasArchivePreviews && !audioFocusedArchiveView ? (
+                        {showArchivePreviewGrid ? (
                             <div className={hasArchiveAudio ? 'flex-1 min-w-0' : 'w-fit'}>
                                 <div className="bg-black/35 border border-white/10 rounded-xl p-3 md:p-4 shadow-2xl">
                                     <div className={`grid grid-cols-3 gap-3 md:gap-4 ${hasArchiveAudio ? 'max-w-[920px] mx-auto' : 'w-fit'}`}>
@@ -255,7 +258,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                         ) : null}
 
                         {/* 右側: 音声ファイルリスト */}
-                        {hasArchiveAudio && (
+                        {showArchiveAudioList && (
                             <div className="flex-1 min-w-96">
                                 <div className="bg-black/45 border border-white/10 rounded-xl p-6 h-full flex flex-col shadow-2xl">
                                     <p className="text-white text-lg mb-4 font-medium flex items-center gap-3">

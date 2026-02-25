@@ -156,7 +156,7 @@ declare global {
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
             onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => () => void;
-            onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' }) => void) => () => void;
+            onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' | 'archive-image' }) => void) => () => void;
 
             // Phase 22-C-2: ファイル移動ダイアログ
             onOpenMoveDialog: (callback: (data: { fileIds: string[]; currentFolderId: string | null }) => void) => () => void;

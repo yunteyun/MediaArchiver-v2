@@ -16,7 +16,7 @@ export interface ScanProgress {
 }
 
 export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
-export type LightboxOpenMode = 'default' | 'archive-audio';
+export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
 
 interface UIState {
     sidebarWidth: number;

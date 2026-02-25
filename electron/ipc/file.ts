@@ -38,12 +38,18 @@ export function registerFileHandlers() {
             },
         ];
 
-        // 「別のモードで開く」(初回: 音声書庫)
+        // 「別のモードで開く」
         // NOTE:
         // metadata.hasAudio が未保存の旧データでもメニューを出せるよう、
-        // 初回実装は「書庫なら表示」にして、実際の表示は Lightbox 側の内容に委ねる。
+        // 書庫なら表示して、実際の表示は Lightbox 側の内容に委ねる。
         if (!isMultiple && singleFile?.type === 'archive') {
             const openAsSubmenu: Electron.MenuItemConstructorOptions[] = [];
+            openAsSubmenu.push({
+                label: '画像書庫として開く',
+                click: () => {
+                    event.sender.send('file:openAsMode', { fileId, mode: 'archive-image' });
+                }
+            });
             openAsSubmenu.push({
                 label: '音声書庫として開く',
                 click: () => {

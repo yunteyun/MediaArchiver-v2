@@ -109,7 +109,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('file:externalOpenCountUpdated', handler);
         return () => ipcRenderer.removeListener('file:externalOpenCountUpdated', handler);
     },
-    onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' }) => void) => {
+    onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' | 'archive-image' }) => void) => {
         const handler = (_event: any, data: any) => callback(data);
         ipcRenderer.on('file:openAsMode', handler);
         return () => ipcRenderer.removeListener('file:openAsMode', handler);
