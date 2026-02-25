@@ -17,6 +17,7 @@ export type TagDisplayStyle = 'filled' | 'border';
 export type FileCardTagOrderMode = 'balanced' | 'strict';
 export type FileTypeCategory = 'video' | 'image' | 'archive' | 'audio';
 export type FlipbookSpeed = 'slow' | 'normal' | 'fast';
+export type AnimatedImagePreviewMode = 'off' | 'hover';
 
 export interface FileTypeCategoryFilters {
     video: boolean;
@@ -56,6 +57,7 @@ interface SettingsState {
     activeProfileId: string;
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
     flipbookSpeed: FlipbookSpeed;
+    animatedImagePreviewMode: AnimatedImagePreviewMode;
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
@@ -106,6 +108,7 @@ interface SettingsState {
     // アクション
     setThumbnailAction: (action: 'scrub' | 'flipbook' | 'play') => void;
     setFlipbookSpeed: (speed: FlipbookSpeed) => void;
+    setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
@@ -154,6 +157,7 @@ export const useSettingsStore = create<SettingsState>()(
             activeProfileId: 'default',
             thumbnailAction: 'scrub',
             flipbookSpeed: 'normal',
+            animatedImagePreviewMode: 'hover',
             sortBy: 'date',
             sortOrder: 'desc',
             videoVolume: 0.5,
@@ -202,6 +206,7 @@ export const useSettingsStore = create<SettingsState>()(
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),
+            setAnimatedImagePreviewMode: (animatedImagePreviewMode) => set({ animatedImagePreviewMode }),
             setSortBy: (sortBy) => set({ sortBy }),
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setVideoVolume: (volume) => set({ videoVolume: volume }),

@@ -44,6 +44,8 @@ export const SettingsModal = React.memo(() => {
     const setThumbnailAction = useSettingsStore((s) => s.setThumbnailAction);
     const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
     const setFlipbookSpeed = useSettingsStore((s) => s.setFlipbookSpeed);
+    const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
+    const setAnimatedImagePreviewMode = useSettingsStore((s) => s.setAnimatedImagePreviewMode);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
     const autoScanOnStartup = useSettingsStore((s) => s.autoScanOnStartup);
@@ -1073,6 +1075,23 @@ export const SettingsModal = React.memo(() => {
                                             <span className="text-surface-200">再生</span>
                                         </label>
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                                        アニメ画像プレビュー
+                                    </label>
+                                    <select
+                                        value={animatedImagePreviewMode}
+                                        onChange={(e) => setAnimatedImagePreviewMode(e.target.value as 'off' | 'hover')}
+                                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                    >
+                                        <option value="off">オフ</option>
+                                        <option value="hover">ホバーで再生</option>
+                                    </select>
+                                    <p className="text-xs text-surface-500 mt-1">
+                                        GIF / アニメーションWebP が対象。パフォーマンスモード時は無効になります。
+                                    </p>
                                 </div>
 
                                 {thumbnailAction === 'flipbook' && (

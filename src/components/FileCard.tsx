@@ -308,6 +308,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
+    const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     // カード表示設定（Phase 12-3）
     const showFileName = useSettingsStore((s) => s.showFileName);
@@ -384,6 +385,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const preloadedImages = useRef<HTMLImageElement[]>([]);
     const hoverTimeoutRef = useRef<number | null>(null);
     const flipbookIntervalRef = useRef<number | null>(null);
+    const [animatedHoverSessionKey, setAnimatedHoverSessionKey] = useState(0);
 
     // Play mode state
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -403,6 +405,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const shouldPlayVideo = useMemo(() => {
         return hoveredPreviewId === file.id && thumbnailAction === 'play' && file.type === 'video';
     }, [hoveredPreviewId, file.id, file.type, thumbnailAction]);
+
+    const shouldAnimateImagePreview = useMemo(() => {
+        return (
+            file.type === 'image' &&
+            file.isAnimated === true &&
+            isHovered &&
+            animatedImagePreviewMode === 'hover' &&
+            !performanceMode
+        );
+    }, [file.type, file.isAnimated, isHovered, animatedImagePreviewMode, performanceMode]);
 
     // Phase 17-3: interval クリーンアップヘルパー
     const clearJumpInterval = useCallback(() => {
@@ -561,6 +573,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         hoverTimeoutRef.current = window.setTimeout(() => {
             setIsHovered(true);
 
+            if (
+                file.type === 'image' &&
+                file.isAnimated === true &&
+                animatedImagePreviewMode === 'hover'
+            ) {
+                setAnimatedHoverSessionKey((prev) => prev + 1);
+            }
+
             // Scrub / 自動パラパラ: 動画で、まだロードしていない場合のみプリロード
             if (
                 (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook') &&
@@ -585,7 +605,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 )).then(() => setPreloadState('ready'));
             }
         }, 100);
-    }, [thumbnailAction, file.type, file.id, previewFrames, preloadState, performanceMode, setHoveredPreview]);
+    }, [thumbnailAction, animatedImagePreviewMode, file.type, file.isAnimated, file.id, previewFrames, preloadState, performanceMode, setHoveredPreview]);
 
     const handleMouseLeave = useCallback(() => {
         if (hoverTimeoutRef.current) {
@@ -729,8 +749,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         };
     }, [hoveredPreviewId, file.id, file.type, thumbnailAction, playMode.jumpType, playMode.jumpInterval, clearJumpInterval]);
 
-    // 表示する画像を決定
-    const displayImage = useMemo(() => {
+    // 表示する画像パスを決定
+    const displayImagePath = useMemo(() => {
         if (
             isHovered &&
             preloadState === 'ready' &&
@@ -739,8 +759,20 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         ) {
             return previewFrames[scrubIndex];
         }
+        if (shouldAnimateImagePreview) {
+            return file.path;
+        }
         return file.thumbnailPath;
-    }, [isHovered, preloadState, previewFrames, scrubIndex, file.thumbnailPath, thumbnailAction]);
+    }, [isHovered, preloadState, previewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, shouldAnimateImagePreview]);
+
+    const displayImageSrc = useMemo(() => {
+        if (!displayImagePath) return '';
+        const base = toMediaUrl(displayImagePath);
+        if (shouldAnimateImagePreview && displayImagePath === file.path) {
+            return `${base}?animHover=${animatedHoverSessionKey}`;
+        }
+        return base;
+    }, [displayImagePath, shouldAnimateImagePreview, file.path, animatedHoverSessionKey]);
 
     const handleCardClick = (e: React.MouseEvent) => {
         // ダブルクリック時の click イベント重複発火を防ぐ
@@ -854,9 +886,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 }}
             >
                 {/* サムネイル画像 */}
-                {displayImage ? (
+                {displayImagePath ? (
                     <img
-                        src={toMediaUrl(displayImage)}
+                        src={displayImageSrc}
                         alt={file.name}
                         className={`w-full h-full object-cover transition-transform duration-300 ${!shouldPlayVideo ? 'group-hover:scale-105' : ''
                             } ${shouldPlayVideo ? 'opacity-0' : 'opacity-100'}`}
