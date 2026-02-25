@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - アニメ画像プレビュー設定を `オフ / ホバーで再生 / 表示中に自動再生` に拡張し、可視時自動再生では `IntersectionObserver` を用いた可視判定と同時再生数上限（2件）を追加。
 #### グループ表示 / パフォーマンス
 - グループ表示モード描画最適化の着手として、`groupFiles()` のグループ配列構築で配列コピーを避ける軽量化を実施し、開発時のみ `FileGrid` にグループ化/描画入力の計測ログ（`console.debug`）を追加。
+- `FileCard` のタグ要約表示でカードごとの `getFileTags()` IPC 呼び出しをやめ、`useFileStore.fileTagsCache` と `useTagStore` から解決する構成へ変更して、グループ表示時の大量同時IPC負荷を削減。
 #### プロファイル / スキャン設定
 - 各プロファイルDBに `profile_settings` テーブル（`profile_scoped_settings_v1`）を追加し、プロファイル別設定の保存基盤を実装（初回対象: `対応形式カテゴリON/OFF` / `プレビューフレーム数`）。
 - `profileSettings:get/set/replace` IPC と preload / renderer API を追加し、起動時・プロファイル切替時にアクティブプロファイルの設定を読み込んで UI とスキャナ実行時設定へ同期するよう改善。

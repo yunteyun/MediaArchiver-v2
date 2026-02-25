@@ -355,6 +355,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
     const isTagBorderMode = tagDisplayStyle === 'border';
     const fileCardTagOrderMode = useSettingsStore((s) => s.fileCardTagOrderMode);
+    const fileTagsCache = useFileStore((s) => s.fileTagsCache);
 
 
     // Phase 15-2: サムネイルバッジの計算（メモ化）
@@ -397,9 +398,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
 
 
-    // File tags state
-    const [fileTags, setFileTags] = useState<Tag[]>([]);
-
     // Phase 14-7: タグポップオーバー
     const [showTagPopover, setShowTagPopover] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -433,6 +431,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     // Phase 17-3: playMode 設定を取得
     const playMode = useSettingsStore((s) => s.playMode);
     const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
+    const allTags = useTagStore((s) => s.tags);
     const tagCategories = useTagStore((s) => s.categories);
 
     // Phase 17-3: shouldPlayVideo を計算
@@ -476,27 +475,31 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return file.previewFrames.split(',').filter(Boolean);
     }, [file.previewFrames]);
 
-    // Load file tags
-    useEffect(() => {
-        let isMounted = true;
-        window.electronAPI.getFileTags(file.id).then((tags) => {
-            if (isMounted) {
-                const mappedTags = tags.map(t => ({
-                    id: t.id,
-                    name: t.name,
-                    color: t.color,
-                    categoryId: t.categoryId,
-                    categoryColor: t.categoryColor,  // カテゴリ色を追加
-                    sortOrder: t.sortOrder,
-                    createdAt: t.createdAt,
-                    icon: t.icon || '',
-                    description: t.description || ''
-                }));
-                setFileTags(mappedTags);
-            }
-        }).catch(console.error);
-        return () => { isMounted = false; };
-    }, [file.id]);
+    const tagById = useMemo(
+        () => new Map(allTags.map((tag) => [tag.id, tag])),
+        [allTags]
+    );
+
+    const categoryColorById = useMemo(
+        () => new Map(tagCategories.map((category) => [category.id, category.color])),
+        [tagCategories]
+    );
+
+    const fileTags = useMemo(() => {
+        const tagIds = fileTagsCache.get(file.id) ?? file.tags ?? [];
+        const resolvedTags: Tag[] = [];
+
+        for (const tagId of tagIds) {
+            const tag = tagById.get(tagId);
+            if (!tag) continue;
+            resolvedTags.push({
+                ...tag,
+                categoryColor: tag.categoryId ? (categoryColorById.get(tag.categoryId) || tag.categoryColor) : undefined,
+            });
+        }
+
+        return resolvedTags;
+    }, [file.id, file.tags, fileTagsCache, tagById, categoryColorById]);
 
     const categorySortOrderById = useMemo(
         () => new Map(tagCategories.map((c) => [c.id, c.sortOrder])),
