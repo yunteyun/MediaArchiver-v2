@@ -159,6 +159,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
         const imageFocusedArchiveView = archiveOpenMode === 'archive-image' && hasArchivePreviews;
         const showArchivePreviewGrid = hasArchivePreviews && !audioFocusedArchiveView;
         const showArchiveAudioList = hasArchiveAudio && !imageFocusedArchiveView;
+        const isMixedArchiveView = showArchivePreviewGrid && showArchiveAudioList;
 
         return (
             <div
@@ -231,9 +232,9 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                         </button>
                         {/* 左側: 画像グリッド */}
                         {showArchivePreviewGrid ? (
-                            <div className={hasArchiveAudio ? 'flex-1 min-w-0' : 'w-fit'}>
-                                <div className="bg-black/35 border border-white/10 rounded-xl p-3 md:p-4 shadow-2xl">
-                                    <div className={`grid grid-cols-3 gap-3 md:gap-4 ${hasArchiveAudio ? 'max-w-[920px] mx-auto' : 'w-fit'}`}>
+                            <div className={showArchiveAudioList ? 'flex-1 min-w-0' : 'w-fit'}>
+                                <div className={`border border-white/10 rounded-xl shadow-2xl ${isMixedArchiveView ? 'bg-black/45 p-4 md:p-5 h-full flex items-center' : 'bg-black/35 p-3 md:p-4'}`}>
+                                    <div className={`grid grid-cols-3 gap-3 md:gap-4 ${showArchiveAudioList ? 'max-w-[920px] mx-auto w-full' : 'w-fit'}`}>
                                     {archivePreviewFrames.map((frame, index) => (
                                         <div
                                             key={index}
