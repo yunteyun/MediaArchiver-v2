@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `docs/dev/回帰確認チェックリスト.md` を追加し、表示モード（標準 S/M/L・漫画・動画）中心の最低限の回帰確認観点を整理。
 
 ### Fixed
+#### 配布 / 更新運用
+- `update.bat` の ZIP更新処理を修正し、`robocopy` 宛先パスの末尾バックスラッシュによる引数解釈崩れと、エラー表示文の括弧未エスケープで更新後に `". was unexpected at this time."` が出る問題を改善（`update.bat` 自己上書きも回避）。
 #### サムネイル保存管理 / 互換
 - サムネイル cleanup 診断の旧保存構造フォールバック時に、全プロファイルDB参照を集約してプロファイル跨ぎ誤検出を抑制。
 - 孤立サムネイル診断/削除で、書庫プレビュー固定キャッシュ（`archive-preview`）を孤立判定対象から除外。
