@@ -348,16 +348,26 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     // to preserve triggerRef/popover state ownership. Revisit after tag popover extraction.
     const renderTagSummary = useCallback((visibleCount: number) => {
         if (!showTags || sortedTags.length === 0) return null;
+        const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
+        const isMangaMode = displayMode === 'manga';
         const visibleTags = fileCardTagOrderMode === 'strict'
             ? sortedTags.slice(0, visibleCount)
             : getBalancedSummaryTags(sortedTags, visibleCount);
+        const tagChipPaddingClass = isStandardDetailedMode ? 'px-1.5 py-1' : 'px-1.5 py-0.5';
+        const tagChipTextClass = isStandardDetailedMode ? 'text-[9px] leading-none' : 'text-[8px]';
+        const tagChipRadiusClass = isStandardDetailedMode ? 'rounded-md' : 'rounded';
+        const tagChipMaxWidthClass = isStandardDetailedMode
+            ? 'max-w-[90px]'
+            : isMangaMode
+                ? 'max-w-[60px]'
+                : 'max-w-[60px]';
 
         return (
-            <div className="flex min-w-0 flex-nowrap justify-end gap-1 overflow-hidden">
+            <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1 overflow-hidden">
                 {visibleTags.map(tag => (
                     <span
                         key={tag.id}
-                        className={`inline-flex min-w-0 max-w-[54px] items-center px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-2' : ''}`}
+                        className={`inline-flex min-w-0 ${tagChipMaxWidthClass} items-center ${tagChipPaddingClass} ${tagChipTextClass} font-bold whitespace-nowrap ${tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
                         style={isTagBorderMode ? {
                             backgroundColor: 'rgba(55, 65, 81, 0.9)',
                             color: '#e5e7eb',
@@ -386,7 +396,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         onMouseLeave={() => {
                             if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
                         }}
-                        className="px-1.5 py-0.5 text-[8px] font-bold whitespace-nowrap rounded bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer"
+                        className={`${tagChipPaddingClass} ${tagChipTextClass} font-bold whitespace-nowrap ${tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
                     >
                         +{sortedTags.length - visibleCount}
                     </button>
@@ -400,6 +410,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         fileCardTagOrderMode,
         tagPopoverTrigger,
         showTagPopover,
+        displayMode,
         openPopover,
         closePopoverWithDelay,
     ]);

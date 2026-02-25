@@ -15,8 +15,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             aspectRatio: '1/1',
             cardWidth: 240,
             thumbnailHeight: 240,
-            infoAreaHeight: 74,
-            totalHeight: 314,
+            infoAreaHeight: 80,
+            totalHeight: 320,
         },
     },
     standardLarge: {
@@ -29,8 +29,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             aspectRatio: '1/1',
             cardWidth: 250,
             thumbnailHeight: 250,
-            infoAreaHeight: 74,
-            totalHeight: 324,
+            infoAreaHeight: 80,
+            totalHeight: 330,
         },
     },
     manga: {
@@ -43,8 +43,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             aspectRatio: '2/3',
             cardWidth: 210,
             thumbnailHeight: 315,
-            infoAreaHeight: 70,
-            totalHeight: 385,
+            infoAreaHeight: 76,
+            totalHeight: 391,
         },
     },
     video: {

@@ -12,7 +12,18 @@ export const FileCardInfoDetailed = React.memo(({
     renderTagSummary,
 }: FileCardInfoCommonProps) => {
     const isMangaMode = displayMode === 'manga';
+    const isBadgeMetaMode = displayMode === 'standard' || displayMode === 'standardLarge' || displayMode === 'manga';
     const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
+    const showMetaLine = !isBadgeMetaMode;
+    const showSecondLineSizeBadge = isBadgeMetaMode && showFileSize && !!file.size;
+    const folderName = getDisplayFolderName(file.path);
+    const createdDateLabel = file.createdAt
+        ? new Date(file.createdAt).toLocaleDateString('ja-JP', {
+            year: '2-digit',
+            month: '2-digit',
+            day: '2-digit'
+        }).replace(/\//g, '/')
+        : null;
 
     return (
         <div
@@ -29,38 +40,58 @@ export const FileCardInfoDetailed = React.memo(({
             >
                 {file.name}
             </h3>
-            <div className={`text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`}>
-                {getDisplayFolderName(file.path)}
-                {file.createdAt && (
-                    <>
-                        {' · '}
-                        {new Date(file.createdAt).toLocaleDateString('ja-JP', {
-                            year: '2-digit',
-                            month: '2-digit',
-                            day: '2-digit'
-                        }).replace(/\//g, '/')}
-                    </>
-                )}
-                {file.accessCount > 0 && (
-                    <>
-                        {' · '}
-                        <Eye size={9} className="inline-block" style={{ verticalAlign: 'text-top' }} />
-                        {' '}{file.accessCount}回
-                    </>
-                )}
-                {file.externalOpenCount > 0 && (
-                    <>
-                        {' · '}
-                        <span title="外部アプリで開いた回数">↗{file.externalOpenCount}回</span>
-                    </>
-                )}
-            </div>
+            {showMetaLine ? (
+                <div className={`text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`}>
+                    {folderName}
+                    {file.createdAt && (
+                        <>
+                            {' · '}
+                            {createdDateLabel}
+                        </>
+                    )}
+                    {file.accessCount > 0 && (
+                        <>
+                            {' · '}
+                            <Eye size={9} className="inline-block" style={{ verticalAlign: 'text-top' }} />
+                            {' '}{file.accessCount}回
+                        </>
+                    )}
+                    {file.externalOpenCount > 0 && (
+                        <>
+                            {' · '}
+                            <span title="外部アプリで開いた回数">↗{file.externalOpenCount}回</span>
+                        </>
+                    )}
+                </div>
+            ) : (
+                <div className="mt-0.5 mb-0.5 min-h-[16px] flex min-w-0 items-center gap-1 overflow-hidden">
+                    {showSecondLineSizeBadge && (
+                        <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/80">
+                            {formatFileSize(file.size!)}
+                        </span>
+                    )}
+                    {createdDateLabel && (
+                        <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60">
+                            {createdDateLabel}
+                        </span>
+                    )}
+                    {folderName && (
+                        <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${isMangaMode ? 'max-w-[84px]' : 'max-w-[110px]'}`}>
+                            <span className="truncate">{folderName}</span>
+                        </span>
+                    )}
+                </div>
+            )}
             <div
                 className={`flex justify-between gap-1 ${
-                    isMangaMode ? 'items-center' : isStandardMode ? 'items-center mt-auto' : 'items-start mt-auto'
+                    isMangaMode
+                        ? 'items-center'
+                        : isStandardMode
+                            ? 'items-center mt-auto'
+                            : 'items-start mt-auto'
                 }`}
             >
-                {showFileSize && file.size && (
+                {!isBadgeMetaMode && showFileSize && file.size && (
                     <span
                         className={`flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap ${
                             isStandardMode
@@ -71,7 +102,13 @@ export const FileCardInfoDetailed = React.memo(({
                         {formatFileSize(file.size)}
                     </span>
                 )}
-                {renderTagSummary(3)}
+                {isBadgeMetaMode ? (
+                    <div className="min-w-0 flex-1">
+                        {renderTagSummary(isMangaMode ? 2 : 3)}
+                    </div>
+                ) : (
+                    renderTagSummary(3)
+                )}
             </div>
         </div>
     );
