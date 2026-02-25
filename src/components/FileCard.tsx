@@ -11,7 +11,7 @@ import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import { getDisplayModeDefinition } from './fileCard/displayModes';
-import type { DisplayMode } from '../stores/useSettingsStore';
+import type { DisplayMode, FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
 
 // 明るい背景色のタグで暗い文字色を使うためのヘルパー
 function getTagTextColor(bgColor: string): string {
@@ -66,6 +66,21 @@ type FileCardTagSummaryRowProps = {
     onMoreClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
     onMoreMouseEnter: () => void;
     onMoreMouseLeave: () => void;
+};
+
+type FileCardTagSummaryProps = {
+    visibleCount: number;
+    showTags: boolean;
+    sortedTags: Tag[];
+    fileCardTagOrderMode: FileCardTagOrderMode;
+    displayMode: DisplayMode;
+    isTagBorderMode: boolean;
+    triggerRef: React.RefObject<HTMLButtonElement | null>;
+    tagPopoverTrigger: TagPopoverTrigger;
+    showTagPopover: boolean;
+    setShowTagPopover: React.Dispatch<React.SetStateAction<boolean>>;
+    openPopover: () => void;
+    closePopoverWithDelay: () => void;
 };
 
 function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
@@ -145,6 +160,51 @@ const FileCardTagSummaryRow = React.memo(({
 });
 
 FileCardTagSummaryRow.displayName = 'FileCardTagSummaryRow';
+
+const FileCardTagSummary = React.memo(({
+    visibleCount,
+    showTags,
+    sortedTags,
+    fileCardTagOrderMode,
+    displayMode,
+    isTagBorderMode,
+    triggerRef,
+    tagPopoverTrigger,
+    showTagPopover,
+    setShowTagPopover,
+    openPopover,
+    closePopoverWithDelay,
+}: FileCardTagSummaryProps) => {
+    if (!showTags || sortedTags.length === 0) return null;
+
+    const tagSummaryUi = getTagSummaryUiConfig(displayMode);
+    const visibleTags = fileCardTagOrderMode === 'strict'
+        ? sortedTags.slice(0, visibleCount)
+        : getBalancedSummaryTags(sortedTags, visibleCount);
+    const hiddenCount = Math.max(0, sortedTags.length - visibleCount);
+
+    return (
+        <FileCardTagSummaryRow
+            visibleTags={visibleTags}
+            hiddenCount={hiddenCount}
+            isTagBorderMode={isTagBorderMode}
+            tagSummaryUi={tagSummaryUi}
+            triggerRef={triggerRef}
+            onMoreClick={(e) => {
+                e.stopPropagation();
+                if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
+            }}
+            onMoreMouseEnter={() => {
+                if (tagPopoverTrigger === 'hover') openPopover();
+            }}
+            onMoreMouseLeave={() => {
+                if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
+            }}
+        />
+    );
+});
+
+FileCardTagSummary.displayName = 'FileCardTagSummary';
 
 // FileCard の要約タグは、カテゴリが偏りすぎないようにカテゴリ単位で1つずつ選ぶ。
 // 既存の sortOrder 順は維持しつつ、未分類タグはカテゴリタグの後ろに回す。
@@ -441,33 +501,23 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showTagPopover, tagPopoverTrigger]);
 
-    // TODO(refactor-phase2): renderTagSummary callback is intentionally kept in FileCard
-    // to preserve triggerRef/popover state ownership. Revisit after tag popover extraction.
+    // FileCardInfoDetailed 側の visibleCount 指定は維持しつつ、
+    // タグ要約の選定/描画ロジックは専用コンポーネントへ移譲する。
     const renderTagSummary = useCallback((visibleCount: number) => {
-        if (!showTags || sortedTags.length === 0) return null;
-        const tagSummaryUi = getTagSummaryUiConfig(displayMode);
-        const visibleTags = fileCardTagOrderMode === 'strict'
-            ? sortedTags.slice(0, visibleCount)
-            : getBalancedSummaryTags(sortedTags, visibleCount);
-        const hiddenCount = sortedTags.length - visibleCount;
-
         return (
-            <FileCardTagSummaryRow
-                visibleTags={visibleTags}
-                hiddenCount={Math.max(0, hiddenCount)}
+            <FileCardTagSummary
+                visibleCount={visibleCount}
+                showTags={showTags}
+                sortedTags={sortedTags}
+                fileCardTagOrderMode={fileCardTagOrderMode}
+                displayMode={displayMode}
                 isTagBorderMode={isTagBorderMode}
-                tagSummaryUi={tagSummaryUi}
                 triggerRef={triggerRef}
-                onMoreClick={(e) => {
-                    e.stopPropagation();
-                    if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
-                }}
-                onMoreMouseEnter={() => {
-                    if (tagPopoverTrigger === 'hover') openPopover();
-                }}
-                onMoreMouseLeave={() => {
-                    if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
-                }}
+                tagPopoverTrigger={tagPopoverTrigger}
+                showTagPopover={showTagPopover}
+                setShowTagPopover={setShowTagPopover}
+                openPopover={openPopover}
+                closePopoverWithDelay={closePopoverWithDelay}
             />
         );
     }, [
