@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 右サイドバー / Lightbox のタグバッジ表示でカテゴリ色が反映されるよう改善（カテゴリ色返却 + タグ色解決）。
 - 画像付き音声書庫の Lightbox で、画像グリッド側の背景パネルが不自然に見えやすい問題を調整し、混合表示時は音声リスト側と馴染む背景/余白バランスに改善。
 - 画像付き音声書庫の Lightbox で、プレビュー枚数が少ない時に画像エリアが不必要に広がりすぎる見た目を調整し、画像単独表示から戻った際に書庫内音声プレイヤーの音量が 100% に戻る不具合を修正。
+- 画像付き音声書庫の Lightbox で画像単独表示へ切り替えても、書庫内音声の再生状態（再生/停止・再生位置）を引き継いで継続できるよう改善。
 #### FileCard / 表示モード
 - FileCard 表示モード定義を `src/components/fileCard/displayModes.ts` に分離し、`FileGrid` / `SortMenu` と共有する構成へ整理。
 - FileCard の情報欄を `FileCardInfoArea` / `FileCardInfoCompact` / `FileCardInfoDetailed` に分離し、モード別UI調整の保守性を改善。

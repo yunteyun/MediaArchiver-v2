@@ -26,6 +26,8 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
     const [currentAudioIndex, setCurrentAudioIndex] = useState<number>(-1);
     const [autoPlayEnabled, setAutoPlayEnabled] = useState(true);
     const [archiveLoading, setArchiveLoading] = useState(false);
+    const [archiveAudioCurrentTime, setArchiveAudioCurrentTime] = useState(0);
+    const [archiveAudioIsPlaying, setArchiveAudioIsPlaying] = useState(false);
 
     // 動画・音声の音量を同期
     useEffect(() => {
@@ -53,6 +55,9 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
             setArchiveAudioFiles([]);
             onSelectArchiveImage(null);
             setCurrentArchiveAudioPath(null);
+            setCurrentAudioIndex(-1);
+            setArchiveAudioCurrentTime(0);
+            setArchiveAudioIsPlaying(false);
 
             // 画像プレビューと音声ファイルリストを並行取得
             Promise.all([
@@ -74,6 +79,9 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
             setArchiveAudioFiles([]);
             onSelectArchiveImage(null);
             setCurrentArchiveAudioPath(null);
+            setCurrentAudioIndex(-1);
+            setArchiveAudioCurrentTime(0);
+            setArchiveAudioIsPlaying(false);
         }
     }, [file, onSelectArchiveImage])
 
@@ -170,6 +178,55 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
             : previewCount === 2
                 ? 'grid-cols-2'
                 : 'grid-cols-3';
+        const handleArchiveAudioEnded = async () => {
+            setArchiveAudioIsPlaying(false);
+            setArchiveAudioCurrentTime(0);
+            if (autoPlayEnabled && currentAudioIndex < archiveAudioFiles.length - 1) {
+                const nextIndex = currentAudioIndex + 1;
+                const nextEntry = archiveAudioFiles[nextIndex];
+                if (!nextEntry) return;
+                const extractedPath = await window.electronAPI.extractArchiveAudioFile(
+                    file.path,
+                    nextEntry
+                );
+                if (extractedPath) {
+                    setCurrentArchiveAudioPath(extractedPath);
+                    setCurrentAudioIndex(nextIndex);
+                    setArchiveAudioCurrentTime(0);
+                    setArchiveAudioIsPlaying(true);
+                }
+            }
+        };
+
+        const renderArchiveAudioPlayer = (extraClassName?: string) => (
+            <div className={extraClassName ?? ''}>
+                <audio
+                    ref={audioRef}
+                    src={toMediaUrl(currentArchiveAudioPath!)}
+                    controls
+                    autoPlay={archiveAudioIsPlaying}
+                    className="w-full"
+                    onLoadedMetadata={(e) => {
+                        e.currentTarget.volume = audioVolume;
+                        const duration = Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0;
+                        const safeTime = Math.max(0, Math.min(archiveAudioCurrentTime, duration || archiveAudioCurrentTime));
+                        if (safeTime > 0) {
+                            e.currentTarget.currentTime = safeTime;
+                        }
+                        if (archiveAudioIsPlaying) {
+                            void e.currentTarget.play().catch(() => {
+                                // ユーザー操作済みでも再生再開が失敗する環境があるため握りつぶす
+                            });
+                        }
+                    }}
+                    onVolumeChange={(e) => onVolumeChange('audio', e.currentTarget.volume)}
+                    onTimeUpdate={(e) => setArchiveAudioCurrentTime(e.currentTarget.currentTime)}
+                    onPlay={() => setArchiveAudioIsPlaying(true)}
+                    onPause={() => setArchiveAudioIsPlaying(false)}
+                    onEnded={handleArchiveAudioEnded}
+                />
+            </div>
+        );
 
         return (
             <div
@@ -200,6 +257,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                             className="cursor-pointer"
                             onClick={() => onSelectArchiveImage(null)}
                         />
+                        {currentArchiveAudioPath && renderArchiveAudioPlayer('absolute w-px h-px opacity-0 pointer-events-none overflow-hidden')}
                     </div>
                 ) : archiveLoading ? (
                     <div
@@ -294,6 +352,8 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                                                         if (extractedPath) {
                                                             setCurrentArchiveAudioPath(extractedPath);
                                                             setCurrentAudioIndex(index);
+                                                            setArchiveAudioCurrentTime(0);
+                                                            setArchiveAudioIsPlaying(true);
                                                         }
                                                     }}
                                                 >
@@ -314,32 +374,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                                     {/* 音声プレイヤー */}
                                     {currentArchiveAudioPath && (
                                         <div className="mt-3 pt-3 border-t border-surface-700">
-                                            <audio
-                                                ref={audioRef}
-                                                src={toMediaUrl(currentArchiveAudioPath)}
-                                                controls
-                                                autoPlay
-                                                className="w-full"
-                                                onLoadedMetadata={(e) => {
-                                                    e.currentTarget.volume = audioVolume;
-                                                }}
-                                                onVolumeChange={(e) => onVolumeChange('audio', e.currentTarget.volume)}
-                                                onEnded={async () => {
-                                                    if (autoPlayEnabled && currentAudioIndex < archiveAudioFiles.length - 1) {
-                                                        const nextIndex = currentAudioIndex + 1;
-                                                        const nextEntry = archiveAudioFiles[nextIndex];
-                                                        if (!nextEntry) return;
-                                                        const extractedPath = await window.electronAPI.extractArchiveAudioFile(
-                                                            file.path,
-                                                            nextEntry
-                                                        );
-                                                        if (extractedPath) {
-                                                            setCurrentArchiveAudioPath(extractedPath);
-                                                            setCurrentAudioIndex(nextIndex);
-                                                        }
-                                                    }
-                                                }}
-                                            />
+                                            {renderArchiveAudioPlayer()}
                                             <label className="flex items-center gap-2 mt-2 text-sm text-surface-300 cursor-pointer">
                                                 <input
                                                     type="checkbox"
