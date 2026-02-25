@@ -350,6 +350,11 @@ export const FileGrid = React.memo(() => {
         return rowsForGroups;
     }, [groupBy, groupedFiles, columns]);
 
+    const groupedFileGroupByKey = useMemo(
+        () => new Map(groupedFiles.map((group) => [group.key, group])),
+        [groupedFiles]
+    );
+
     const groupedFileRowIndexByFileId = useMemo(() => {
         const rowIndexByFileId = new Map<string, number>();
         groupedVirtualRows.forEach((row, rowIndex) => {
@@ -391,6 +396,16 @@ export const FileGrid = React.memo(() => {
         overscan: 6,
         getItemKey: (index) => groupedVirtualRows[index]?.key ?? index,
     });
+
+    const groupVirtualItems = groupBy !== 'none' ? groupRowVirtualizer.getVirtualItems() : [];
+    const scrollTop = parentRef.current?.scrollTop ?? 0;
+    const firstVisibleGroupVirtualItem = groupVirtualItems.find((item) => (item.start + item.size) > scrollTop) ?? groupVirtualItems[0];
+    const firstVisibleGroupRow = firstVisibleGroupVirtualItem
+        ? groupedVirtualRows[firstVisibleGroupVirtualItem.index]
+        : undefined;
+    const pseudoStickyGroup = firstVisibleGroupRow?.kind === 'files'
+        ? groupedFileGroupByKey.get(firstVisibleGroupRow.groupKey)
+        : null;
 
     // 表示モード切替直後は仮想行サイズのキャッシュが一瞬古いまま残ることがあるため再計測する
     useEffect(() => {
@@ -548,6 +563,11 @@ export const FileGrid = React.memo(() => {
                     ref={scrollContainerRef}
                     className="flex-1 overflow-y-auto bg-surface-950"
                 >
+                    {pseudoStickyGroup && (
+                        <div className="sticky top-0 z-20 pointer-events-none">
+                            <GroupHeader group={pseudoStickyGroup} sticky={false} />
+                        </div>
+                    )}
                     <div
                         style={{
                             height: `${groupRowVirtualizer.getTotalSize()}px`,
