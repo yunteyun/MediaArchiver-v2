@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `FileCard` のタグ要約表示でカードごとの `getFileTags()` IPC 呼び出しをやめ、`useFileStore.fileTagsCache` と `useTagStore` から解決する構成へ変更して、グループ表示時の大量同時IPC負荷を削減。
 - グループ表示モードの描画を `ヘッダー行 + ファイル行` の仮想行へ平坦化して仮想化し、大量ファイル時の初回スクロールで `FileCard` を一気に描画しない構成へ変更（グループヘッダーは非sticky表示）。
 - グループ表示モード（仮想化）の上部に、現在表示中グループを示す擬似ヘッダー（sticky 1枚）を追加し、従来の見出し追従に近い視認性を復元。
+- 擬似ヘッダーに次グループ到達時の押し出し演出（`translateY`）を追加し、従来の sticky ヘッダーに近い切替感を低負荷で再現。
 #### プロファイル / スキャン設定
 - 各プロファイルDBに `profile_settings` テーブル（`profile_scoped_settings_v1`）を追加し、プロファイル別設定の保存基盤を実装（初回対象: `対応形式カテゴリON/OFF` / `プレビューフレーム数`）。
 - `profileSettings:get/set/replace` IPC と preload / renderer API を追加し、起動時・プロファイル切替時にアクティブプロファイルの設定を読み込んで UI とスキャナ実行時設定へ同期するよう改善。

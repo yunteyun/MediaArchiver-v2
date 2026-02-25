@@ -406,6 +406,15 @@ export const FileGrid = React.memo(() => {
     const pseudoStickyGroup = firstVisibleGroupRow?.kind === 'files'
         ? groupedFileGroupByKey.get(firstVisibleGroupRow.groupKey)
         : null;
+    const nextHeaderVirtualItem = firstVisibleGroupVirtualItem
+        ? groupVirtualItems.find((item) =>
+            item.index > firstVisibleGroupVirtualItem.index &&
+            groupedVirtualRows[item.index]?.kind === 'header'
+        )
+        : undefined;
+    const pseudoStickyHeaderOffsetY = nextHeaderVirtualItem
+        ? Math.min(0, nextHeaderVirtualItem.start - scrollTop - GROUP_HEADER_HEIGHT)
+        : 0;
 
     // 表示モード切替直後は仮想行サイズのキャッシュが一瞬古いまま残ることがあるため再計測する
     useEffect(() => {
@@ -564,7 +573,16 @@ export const FileGrid = React.memo(() => {
                     className="flex-1 overflow-y-auto bg-surface-950"
                 >
                     {pseudoStickyGroup && (
-                        <div className="sticky top-0 z-20 pointer-events-none">
+                        <div
+                            className="sticky top-0 z-20 pointer-events-none"
+                            style={{
+                                transform: pseudoStickyHeaderOffsetY === 0
+                                    ? undefined
+                                    : `translateY(${pseudoStickyHeaderOffsetY}px)`,
+                                transition: 'transform 80ms linear',
+                                willChange: 'transform',
+                            }}
+                        >
                             <GroupHeader group={pseudoStickyGroup} sticky={false} />
                         </div>
                     )}
