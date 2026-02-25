@@ -953,46 +953,29 @@ export const SettingsModal = React.memo(() => {
                                     サムネイル設定
                                 </h3>
 
-                                <div className="space-y-4 rounded-lg border border-primary-900/40 bg-primary-950/10 p-3">
-                                    <div>
-                                        <h4 className="text-sm font-medium text-primary-200">
-                                            プロファイル別プレビュー設定
-                                        </h4>
-                                        <p className="text-xs text-surface-400 mt-1">
-                                            この設定は現在のプロファイルにのみ適用されます。
-                                        </p>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            対象: <span className="text-surface-300">{activeProfileLabel}</span>
-                                        </p>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            対応形式（動画/画像/書庫/音声）の切替は「スキャン」タブに移動しました。
-                                        </p>
+                                <div>
+                                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                                        プレビューフレーム数（プロファイル別）: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="30"
+                                        step="5"
+                                        value={previewFrameCount}
+                                        onChange={(e) => {
+                                            const count = Number(e.target.value);
+                                            void handleProfilePreviewFrameCountChange(count);
+                                        }}
+                                        className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                    />
+                                    <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                        <span>オフ</span>
+                                        <span>30枚</span>
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                                            プレビューフレーム数（プロファイル別）: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
-                                        </label>
-                                        <input
-                                            type="range"
-                                            min="0"
-                                            max="30"
-                                            step="5"
-                                            value={previewFrameCount}
-                                            onChange={(e) => {
-                                                const count = Number(e.target.value);
-                                                void handleProfilePreviewFrameCountChange(count);
-                                            }}
-                                            className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                        />
-                                        <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                            <span>オフ</span>
-                                            <span>30枚</span>
-                                        </div>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            現在のプロファイルに保存されます。スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
-                                        </p>
-                                    </div>
+                                    <p className="text-xs text-surface-500 mt-1">
+                                        現在のプロファイルに保存されます。スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
+                                    </p>
                                 </div>
 
                                 <div className="pt-1">
