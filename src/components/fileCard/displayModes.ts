@@ -57,8 +57,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             aspectRatio: '25/16',
             cardWidth: 250,
             thumbnailHeight: 160,
-            infoAreaHeight: 70,
-            totalHeight: 230,
+            infoAreaHeight: 76,
+            totalHeight: 236,
         },
     },
     compact: {

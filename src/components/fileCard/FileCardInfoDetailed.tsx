@@ -12,7 +12,12 @@ export const FileCardInfoDetailed = React.memo(({
     renderTagSummary,
 }: FileCardInfoCommonProps) => {
     const isMangaMode = displayMode === 'manga';
-    const isBadgeMetaMode = displayMode === 'standard' || displayMode === 'standardLarge' || displayMode === 'manga';
+    const isVideoMode = displayMode === 'video';
+    const isBadgeMetaMode =
+        displayMode === 'standard' ||
+        displayMode === 'standardLarge' ||
+        displayMode === 'manga' ||
+        displayMode === 'video';
     const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const showMetaLine = !isBadgeMetaMode;
     const showSecondLineSizeBadge = isBadgeMetaMode && showFileSize && !!file.size;
@@ -76,7 +81,9 @@ export const FileCardInfoDetailed = React.memo(({
                         </span>
                     )}
                     {folderName && (
-                        <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${isMangaMode ? 'max-w-[84px]' : 'max-w-[110px]'}`}>
+                        <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${
+                            isMangaMode ? 'max-w-[84px]' : isVideoMode ? 'max-w-[96px]' : 'max-w-[110px]'
+                        }`}>
                             <span className="truncate">{folderName}</span>
                         </span>
                     )}
@@ -88,6 +95,8 @@ export const FileCardInfoDetailed = React.memo(({
                         ? 'items-center'
                         : isStandardMode
                             ? 'items-center mt-auto'
+                            : isVideoMode
+                                ? 'items-center mt-auto'
                             : 'items-start mt-auto'
                 }`}
             >
