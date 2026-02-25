@@ -38,6 +38,13 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null;
 
+function getDevWindowIconPath(): string | undefined {
+    if (!process.env.VITE_DEV_SERVER_URL) return undefined;
+
+    const candidate = path.resolve(__dirname, '../build/icons/dev-icon.png');
+    return fs.existsSync(candidate) ? candidate : undefined;
+}
+
 function formatMarkerTimestamp(date: Date): string {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
@@ -69,6 +76,7 @@ const createWindow = () => {
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
+        icon: getDevWindowIconPath(),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,

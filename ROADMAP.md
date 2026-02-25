@@ -2,6 +2,7 @@
 
 ## 進行中 (In Progress)
 - FileCard 再設計メモ整理: `FileCardInfoDetailed` 起点の段階再設計案を整理中
+- リリース運用の改善: 開発版/リリース版アイコン分離（進行中）
 
 ## 予定 (Planned)
 ### 直近

@@ -80,6 +80,7 @@
             }
         ],
         "win": {
+            "icon": "build/icons/release-icon.png",
             "target": "zip"
         }
     }

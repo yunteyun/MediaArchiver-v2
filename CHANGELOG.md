@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 #### ドキュメント / 開発運用
 - `docs/dev/回帰確認チェックリスト.md` を追加し、表示モード（標準 S/M/L・漫画・動画）中心の最低限の回帰確認観点を整理。
 - Electron 起動ログにビルド識別情報（`version / runtime(dev|release) / exe更新時刻 / Electron/Chrome/Node 版`）を出力する `build marker` を追加。
+- 開発版/リリース版でアイコンを分離する設定を追加（開発版は `BrowserWindow` アイコン、リリース版は `electron-builder` の Windows アイコン設定）。
 
 ### Fixed
 #### 配布 / 更新運用
