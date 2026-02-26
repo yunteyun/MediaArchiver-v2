@@ -26,6 +26,7 @@ import { initStorageConfig } from './services/storageConfig';
 import { registerStorageHandlers } from './ipc/storage';
 import { registerRatingHandlers } from './ipc/rating';
 import { registerSearchHandlers } from './ipc/search';
+import { syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -148,6 +149,8 @@ app.whenReady().then(async () => {
 
     createWindow();
     logger.info('Main window created');
+    syncFolderWatchers();
+    logger.info('Folder watchers synced');
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -158,6 +161,7 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
     logger.info('All windows closed');
+    stopAllFolderWatchers();
     if (process.platform !== 'darwin') {
         app.quit();
     }

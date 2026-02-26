@@ -1,11 +1,14 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
-import { addFolder, deleteFolder, getFolders } from '../services/database';
+import { addFolder, deleteFolder, getAutoScanFolders, getFolders } from '../services/database';
 import { scanDirectory, cancelScan } from '../services/scanner';
+import { syncFolderWatchers } from '../services/folderWatchService';
 
 export function registerScannerHandlers() {
     // === Folder Operations ===
     ipcMain.handle('folder:add', async (_event, folderPath: string) => {
-        return addFolder(folderPath);
+        const folder = addFolder(folderPath);
+        syncFolderWatchers();
+        return folder;
     });
 
     ipcMain.handle('folder:list', async (_event) => {
@@ -13,7 +16,9 @@ export function registerScannerHandlers() {
     });
 
     ipcMain.handle('folder:delete', async (_event, folderId: string) => {
-        return deleteFolder(folderId);
+        const result = deleteFolder(folderId);
+        syncFolderWatchers();
+        return result;
     });
 
     // === Scanner Operations ===
@@ -86,12 +91,12 @@ export function registerScannerHandlers() {
 
     // === Auto Scan (all folders) ===
     ipcMain.handle('scanner:autoScan', async (event) => {
-        const folders = getFolders();
+        const folders = getAutoScanFolders();
         if (folders.length === 0) return;
 
         for (const folder of folders) {
-            // 各フォルダをスキャン（非同期）
-            scanDirectory(folder.path, folder.id, (progress) => {
+            // 起動時自動スキャンはフォルダごとに順次実行（グローバル状態競合を避ける）
+            await scanDirectory(folder.path, folder.id, (progress) => {
                 event.sender.send('scanner:progress', {
                     ...progress,
                     folderName: folder.name || folder.path.split(/[\\/]/).pop()

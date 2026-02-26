@@ -52,12 +52,9 @@ function App() {
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
     const profileSettingsLoadSeqRef = useRef(0);
 
-    // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
-    const autoScanOnStartupRef = useRef(false);
     useEffect(() => {
         // 設定は永続化されているので、初回マウント時にstoreから読み取り
         const settings = useSettingsStore.getState();
-        autoScanOnStartupRef.current = settings.autoScanOnStartup;
         // プレビューフレーム数をメインプロセスに同期
         window.electronAPI.setPreviewFrameCount(settings.previewFrameCount);
         // スキャン速度抑制をメインプロセスに同期
@@ -145,14 +142,13 @@ function App() {
     }, []);
 
     // 起動時自動スキャン（初回マウント時のみ）
+    // 実際の対象は「フォルダ別設定で起動時スキャンONのフォルダ」のみ。
     useEffect(() => {
-        if (autoScanOnStartupRef.current) {
-            // 少し遅延を入れてUIが準備できてから実行
-            const timer = setTimeout(() => {
-                window.electronAPI.autoScan().catch(console.error);
-            }, 500);
-            return () => clearTimeout(timer);
-        }
+        // 少し遅延を入れてUIが準備できてから実行
+        const timer = setTimeout(() => {
+            window.electronAPI.autoScan().catch(console.error);
+        }, 500);
+        return () => clearTimeout(timer);
     }, []);
 
     // スキャン進捗イベントを監視

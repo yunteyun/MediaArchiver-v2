@@ -13,6 +13,7 @@ import { useProfileStore } from '../stores/useProfileStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { StorageCleanupSection } from './settings/StorageCleanupSection';
 import { RatingAxesManager } from './settings/RatingAxesManager';
+import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { buildCsvContent, buildFileExportRows, buildHtmlContent } from '../utils/fileExport';
 import {
     parseLegacyAppCsvFromBytes,
@@ -48,8 +49,6 @@ export const SettingsModal = React.memo(() => {
     const setAnimatedImagePreviewMode = useSettingsStore((s) => s.setAnimatedImagePreviewMode);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
-    const autoScanOnStartup = useSettingsStore((s) => s.autoScanOnStartup);
-    const setAutoScanOnStartup = useSettingsStore((s) => s.setAutoScanOnStartup);
     const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
     const setProfilePreviewFrameCount = useSettingsStore((s) => s.setProfilePreviewFrameCount);
     const scanThrottleMs = useSettingsStore((s) => s.scanThrottleMs);
@@ -89,6 +88,7 @@ export const SettingsModal = React.memo(() => {
     const [logActionMessage, setLogActionMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
     // Phase 26: バージョン表記
     const [appVersion, setAppVersion] = useState<string>('');
+    const [folderScanSettingsManagerOpen, setFolderScanSettingsManagerOpen] = useState(false);
 
     // Export context (current visible list basis)
     const rawFiles = useFileStore((s) => s.files);
@@ -860,26 +860,6 @@ export const SettingsModal = React.memo(() => {
                                 </div>
                             </div>
 
-                            {/* Auto Scan on Startup */}
-                            <div>
-                                <label className="flex items-center justify-between cursor-pointer">
-                                    <div>
-                                        <span className="block text-sm font-medium text-surface-300">
-                                            起動時に自動スキャン
-                                        </span>
-                                        <span className="block text-xs text-surface-500 mt-0.5">
-                                            アプリ起動時に全フォルダをスキャン
-                                        </span>
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={autoScanOnStartup}
-                                        onChange={(e) => setAutoScanOnStartup(e.target.checked)}
-                                        className="w-5 h-5 accent-primary-500 rounded"
-                                    />
-                                </label>
-                            </div>
-
                         </div>
                     )}
 
@@ -901,6 +881,25 @@ export const SettingsModal = React.memo(() => {
                                         <p className="text-xs text-surface-500 mt-1">
                                             対象: <span className="text-surface-300">{activeProfileLabel}</span>
                                         </p>
+                                    </div>
+
+                                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <div className="text-sm font-medium text-surface-200">フォルダ別スキャン設定（一覧管理）</div>
+                                                <div className="text-xs text-surface-500 mt-0.5">
+                                                    起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリを登録フォルダ一覧で確認・編集します。
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFolderScanSettingsManagerOpen(true)}
+                                                className="inline-flex items-center justify-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700"
+                                            >
+                                                <Settings size={15} />
+                                                一覧を開く
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div>
@@ -1589,6 +1588,11 @@ export const SettingsModal = React.memo(() => {
                         <RatingAxesManager />
                     )}
                 </div>
+
+                <FolderScanSettingsManagerDialog
+                    isOpen={folderScanSettingsManagerOpen}
+                    onClose={() => setFolderScanSettingsManagerOpen(false)}
+                />
 
                 {/* Footer */}
                 <div className="px-4 py-3 border-t border-surface-700 flex items-center justify-between">

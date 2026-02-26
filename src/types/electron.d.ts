@@ -93,6 +93,13 @@ declare global {
             getFolders: () => Promise<any[]>;
             deleteFolder: (folderId: string) => Promise<void>;
             getFolderMetadata: () => Promise<{ fileCounts: Record<string, number>; thumbnails: Record<string, string> }>;
+            setFolderAutoScan: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
+            setFolderWatchNewFiles: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
+            setFolderScanFileTypeOverrides: (
+                folderId: string,
+                overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
+            ) => Promise<{ success: boolean }>;
+            clearFolderScanFileTypeOverrides: (folderId: string) => Promise<{ success: boolean }>;
 
             // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得
             getFilesByDrive: (drive: string) => Promise<any[]>;

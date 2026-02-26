@@ -20,6 +20,9 @@ import { externalOpenCount } from './007_external_open_count';
 import { addFolderHierarchy } from './008_add_folder_hierarchy';
 import { addRatingAxes } from './009_add_rating_axes';
 import { addProfileSettings } from './010_profile_settings';
+import { addFolderScanSettings } from './011_folder_scan_settings';
+import { addFolderWatchNewFiles } from './012_folder_watch_new_files';
+import { addFolderLastScanStatus } from './013_folder_last_scan_status';
 // 将来のマイグレーション:
 // import { xxx } from './010_xxx';
 
@@ -41,6 +44,9 @@ const MIGRATIONS: Migration[] = [
     addFolderHierarchy, // Phase 22-C
     addRatingAxes,      // Phase 26-B1
     addProfileSettings, // Profile settings
+    addFolderScanSettings, // Folder scan settings
+    addFolderWatchNewFiles, // Folder live watch
+    addFolderLastScanStatus, // Folder scan status
 ];
 
 /**

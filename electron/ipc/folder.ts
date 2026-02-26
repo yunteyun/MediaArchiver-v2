@@ -1,9 +1,78 @@
 import { ipcMain, Menu, shell, BrowserWindow } from 'electron';
-import { deleteFolder, getFolderFileCounts, getFolderThumbnails } from '../services/database';
-import { scanDirectory } from '../services/scanner';
+import {
+    clearFolderScanSettings,
+    deleteFolder,
+    getFolderById,
+    getFolderFileCounts,
+    getFolderThumbnails,
+    setFolderAutoScanEnabled,
+    setFolderScanFileTypeOverride,
+    setFolderWatchNewFilesEnabled
+} from '../services/database';
+import { getScanFileTypeCategories, scanDirectory } from '../services/scanner';
+import { syncFolderWatchers } from '../services/folderWatchService';
 
 export function registerFolderHandlers() {
+    ipcMain.handle('folder:setAutoScan', async (_event, { folderId, enabled }: { folderId: string; enabled: boolean }) => {
+        setFolderAutoScanEnabled(folderId, enabled);
+        return { success: true };
+    });
+
+    ipcMain.handle('folder:setWatchNewFiles', async (_event, { folderId, enabled }: { folderId: string; enabled: boolean }) => {
+        setFolderWatchNewFilesEnabled(folderId, enabled);
+        syncFolderWatchers();
+        return { success: true };
+    });
+
+    ipcMain.handle(
+        'folder:setScanFileTypeOverrides',
+        async (
+            _event,
+            {
+                folderId,
+                overrides
+            }: {
+                folderId: string;
+                overrides: Partial<Record<'video' | 'image' | 'archive' | 'audio', boolean | null>>;
+            }
+        ) => {
+            for (const key of ['video', 'image', 'archive', 'audio'] as const) {
+                if (Object.prototype.hasOwnProperty.call(overrides, key)) {
+                    const value = overrides[key];
+                    setFolderScanFileTypeOverride(folderId, key, value ?? null);
+                }
+            }
+            return { success: true };
+        }
+    );
+
+    ipcMain.handle('folder:clearScanFileTypeOverrides', async (_event, { folderId }: { folderId: string }) => {
+        clearFolderScanSettings(folderId);
+        return { success: true };
+    });
+
     ipcMain.handle('folder:showContextMenu', async (event, { folderId, path }) => {
+        const folder = getFolderById(folderId);
+        const folderOverrides = folder ? (() => {
+            try {
+                const parsed = folder.scan_settings_json ? JSON.parse(folder.scan_settings_json) : null;
+                const overrides = parsed?.fileTypeOverrides;
+                return (overrides && typeof overrides === 'object') ? overrides as Record<string, unknown> : {};
+            } catch {
+                return {};
+            }
+        })() : {};
+        const profileDefaults = getScanFileTypeCategories();
+        const categories = [
+            { key: 'video', label: '動画', defaultValue: profileDefaults.video },
+            { key: 'image', label: '画像', defaultValue: profileDefaults.image },
+            { key: 'archive', label: '書庫', defaultValue: profileDefaults.archive },
+            { key: 'audio', label: '音声', defaultValue: profileDefaults.audio },
+        ] as const;
+        const hasOverrides = categories.some(({ key }) => typeof folderOverrides[key] === 'boolean');
+        const autoScanEnabled = folder?.auto_scan === 1;
+        const watchNewFilesEnabled = folder?.watch_new_files === 1;
+
         const menu = Menu.buildFromTemplate([
             {
                 label: '再スキャン',
@@ -33,6 +102,55 @@ export function registerFolderHandlers() {
                     }
                 }
             },
+            {
+                label: '自動スキャン設定（このフォルダ）',
+                submenu: [
+                    {
+                        label: '起動時スキャン',
+                        type: 'checkbox',
+                        checked: autoScanEnabled,
+                        click: async () => {
+                            setFolderAutoScanEnabled(folderId, !autoScanEnabled);
+                        }
+                    },
+                    {
+                        label: '起動中新規ファイルスキャン',
+                        type: 'checkbox',
+                        checked: watchNewFilesEnabled,
+                        click: async () => {
+                            setFolderWatchNewFilesEnabled(folderId, !watchNewFilesEnabled);
+                            syncFolderWatchers();
+                        }
+                    }
+                ]
+            },
+            {
+                label: 'スキャン対象（このフォルダ）',
+                submenu: [
+                    ...categories.map(({ key, label, defaultValue }) => {
+                        const effectiveValue =
+                            typeof folderOverrides[key] === 'boolean'
+                                ? Boolean(folderOverrides[key])
+                                : defaultValue;
+                        return {
+                            label,
+                            type: 'checkbox' as const,
+                            checked: effectiveValue,
+                            click: async () => {
+                                await setFolderScanFileTypeOverride(folderId, key, !effectiveValue);
+                            }
+                        };
+                    }),
+                    { type: 'separator' as const },
+                    {
+                        label: 'プロファイル既定に戻す',
+                        enabled: hasOverrides,
+                        click: async () => {
+                            clearFolderScanSettings(folderId);
+                        }
+                    }
+                ]
+            },
             { type: 'separator' },
             {
                 label: 'エクスプローラーで開く',
@@ -45,6 +163,7 @@ export function registerFolderHandlers() {
                 label: '削除',
                 click: async () => {
                     await deleteFolder(folderId);
+                    syncFolderWatchers();
                     event.sender.send('folder:deleted', folderId);
                 }
             }

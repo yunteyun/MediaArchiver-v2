@@ -8,6 +8,7 @@ export interface FolderTreeNode {
     name: string;
     path: string;
     createdAt: number;
+    sourceFolder: MediaFolder;
     drive: string;        // path から抽出
     depth: number;        // 算出値
     children: FolderTreeNode[];
@@ -41,6 +42,7 @@ export function buildFolderTree(folders: MediaFolder[]): FolderTreeNode[] {
     // 1. drive を path から抽出
     const nodesWithDrive: FolderTreeNode[] = folders.map(folder => ({
         ...folder,
+        sourceFolder: folder,
         drive: extractDrive(folder.path),
         depth: 0,
         children: []

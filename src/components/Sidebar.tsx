@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2 } from 'lucide-react';
+import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
 import { FolderTree } from './FolderTree';
 import { RatingFilterPanel } from './ratings/RatingFilterPanel';
+import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
+import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
+import { AddFolderScanSettingsDialog, type AddFolderScanSettingsSubmit } from './AddFolderScanSettingsDialog';
 import type { MediaFolder } from '../types/file';
 
 // 特殊なフォルダID
@@ -27,6 +30,11 @@ export const Sidebar = React.memo(() => {
 
     const [folders, setFolders] = useState<MediaFolder[]>([]);
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
+    const [folderSettingsOpen, setFolderSettingsOpen] = useState(false);
+    const [folderSettingsTarget, setFolderSettingsTarget] = useState<MediaFolder | null>(null);
+    const [folderScanSettingsManagerOpen, setFolderScanSettingsManagerOpen] = useState(false);
+    const [addFolderSettingsOpen, setAddFolderSettingsOpen] = useState(false);
+    const [pendingAddFolderPath, setPendingAddFolderPath] = useState<string | null>(null);
 
     const loadFolders = useCallback(async () => {
         try {
@@ -43,14 +51,42 @@ export const Sidebar = React.memo(() => {
         try {
             const path = await window.electronAPI.selectFolder();
             if (path) {
-                await window.electronAPI.addFolder(path);
-                await window.electronAPI.scanFolder(path);
-                loadFolders();
+                setPendingAddFolderPath(path);
+                setAddFolderSettingsOpen(true);
             }
         } catch (e) {
             console.error('Error adding folder:', e);
         }
     }, [loadFolders]);
+
+    const handleConfirmAddFolderSettings = useCallback(async (settings: AddFolderScanSettingsSubmit) => {
+        if (!pendingAddFolderPath) return;
+
+        try {
+            const folder = await window.electronAPI.addFolder(pendingAddFolderPath);
+
+            await Promise.all([
+                window.electronAPI.setFolderAutoScan(folder.id, settings.autoScan),
+                window.electronAPI.setFolderWatchNewFiles(folder.id, settings.watchNewFiles),
+                window.electronAPI.setFolderScanFileTypeOverrides(folder.id, {
+                    video: settings.fileTypeFilters.video,
+                    image: settings.fileTypeFilters.image,
+                    archive: settings.fileTypeFilters.archive,
+                    audio: settings.fileTypeFilters.audio,
+                }),
+            ]);
+
+            if (settings.startScanNow) {
+                await window.electronAPI.scanFolder(pendingAddFolderPath);
+            }
+
+            setAddFolderSettingsOpen(false);
+            setPendingAddFolderPath(null);
+            void loadFolders();
+        } catch (e) {
+            console.error('Error applying add-folder scan settings:', e);
+        }
+    }, [pendingAddFolderPath, loadFolders]);
 
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
         setCurrentFolderId(folderId);
@@ -175,9 +211,25 @@ export const Sidebar = React.memo(() => {
                 >
                     <Library size={18} className="flex-shrink-0" />
                     {!sidebarCollapsed && (
-                        <span className="truncate text-sm font-medium">
-                            すべてのファイル
-                        </span>
+                        <>
+                            <span className="truncate text-sm font-medium">
+                                すべてのファイル
+                            </span>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFolderScanSettingsManagerOpen(true);
+                                }}
+                                className={`ml-auto rounded p-1 transition-colors ${(currentFolderId === ALL_FILES_ID || currentFolderId === null)
+                                    ? 'hover:bg-blue-500/40'
+                                    : 'hover:bg-surface-700'}`}
+                                title="フォルダ別スキャン設定（一覧管理）"
+                                aria-label="フォルダ別スキャン設定（一覧管理）"
+                            >
+                                <SlidersHorizontal size={14} className={(currentFolderId === ALL_FILES_ID || currentFolderId === null) ? 'text-blue-100' : 'text-surface-400'} />
+                            </button>
+                        </>
                     )}
                 </div>
 
@@ -199,6 +251,10 @@ export const Sidebar = React.memo(() => {
                         currentFolderId={currentFolderId}
                         onSelectFolder={handleSelectFolder}
                         collapsed={sidebarCollapsed}
+                        onOpenFolderSettings={(folder) => {
+                            setFolderSettingsTarget(folder);
+                            setFolderSettingsOpen(true);
+                        }}
                     />
                 )}
 
@@ -291,6 +347,27 @@ export const Sidebar = React.memo(() => {
 
             {/* Tag Manager Modal */}
             <TagManagerModal isOpen={tagManagerOpen} onClose={() => setTagManagerOpen(false)} />
+            <FolderAutoScanSettingsDialog
+                isOpen={folderSettingsOpen}
+                folder={folderSettingsTarget}
+                onClose={() => setFolderSettingsOpen(false)}
+                onSaved={() => {
+                    void loadFolders();
+                }}
+            />
+            <FolderScanSettingsManagerDialog
+                isOpen={folderScanSettingsManagerOpen}
+                onClose={() => setFolderScanSettingsManagerOpen(false)}
+            />
+            <AddFolderScanSettingsDialog
+                isOpen={addFolderSettingsOpen}
+                folderPath={pendingAddFolderPath}
+                onClose={() => {
+                    setAddFolderSettingsOpen(false);
+                    setPendingAddFolderPath(null);
+                }}
+                onSubmit={(settings) => { void handleConfirmAddFolderSettings(settings); }}
+            />
         </aside>
     );
 });

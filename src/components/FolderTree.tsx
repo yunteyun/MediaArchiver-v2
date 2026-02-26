@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { Folder, FolderOpen, ChevronRight, ChevronDown, HardDrive } from 'lucide-react';
+import { Folder, FolderOpen, ChevronRight, ChevronDown, HardDrive, Settings2 } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
 import { buildFolderTreeByDrive, type FolderTreeNode } from '../utils/buildFolderTree';
 import { DRIVE_PREFIX, FOLDER_PREFIX } from './Sidebar';
@@ -9,9 +9,10 @@ interface FolderTreeProps {
     currentFolderId: string | null;
     onSelectFolder: (folderId: string) => void;
     collapsed: boolean;  // サイドバー折りたたみ状態
+    onOpenFolderSettings?: (folder: MediaFolder) => void;
 }
 
-export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder, collapsed }: FolderTreeProps) => {
+export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder, collapsed, onOpenFolderSettings }: FolderTreeProps) => {
     // ツリー構築（メモ化）- Phase 22-B: ドライブ別グループ化
     const treeByDrive = useMemo(() => buildFolderTreeByDrive(folders), [folders]);
 
@@ -96,6 +97,20 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
                     {!hasChildren && <div className="w-5 flex-shrink-0" />}
                     {isSelected ? <FolderOpen size={16} className="flex-shrink-0" /> : <Folder size={16} className="flex-shrink-0" />}
                     {!collapsed && <span className="truncate text-sm font-medium">{node.name}</span>}
+                    {!collapsed && onOpenFolderSettings && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenFolderSettings(node.sourceFolder);
+                            }}
+                            className={`ml-auto rounded p-1 transition-colors ${isSelected ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
+                            title="フォルダ別自動スキャン設定"
+                            aria-label="フォルダ別自動スキャン設定"
+                        >
+                            <Settings2 size={13} className={isSelected ? 'text-blue-100' : 'text-surface-400'} />
+                        </button>
+                    )}
                 </div>
 
                 {hasChildren && !isCollapsed && (
@@ -105,7 +120,7 @@ export const FolderTree = React.memo(({ folders, currentFolderId, onSelectFolder
                 )}
             </div>
         );
-    }, [currentFolderId, collapsedFolders, toggleFolder, onSelectFolder, collapsed]);
+    }, [currentFolderId, collapsedFolders, toggleFolder, onSelectFolder, collapsed, onOpenFolderSettings]);
 
     // ドライブがない場合（空）
     if (treeByDrive.size === 0) {

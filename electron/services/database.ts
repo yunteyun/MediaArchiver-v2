@@ -54,6 +54,23 @@ export interface MediaFolder {
     created_at: number;
     parent_id: string | null;  // Phase 22-C: 親フォルダID
     drive: string;              // Phase 22-C: ドライブ文字
+    auto_scan?: number;         // 起動時スキャン対象
+    watch_new_files?: number;   // 起動中の新規/更新検知スキャン
+    scan_settings_json?: string | null; // Phase 27: 登録フォルダごとのスキャン設定
+    last_scan_at?: number | null;
+    last_scan_status?: string | null;
+    last_scan_message?: string | null;
+}
+
+export interface FolderScanFileTypeOverrides {
+    video?: boolean;
+    image?: boolean;
+    archive?: boolean;
+    audio?: boolean;
+}
+
+export interface FolderScanSettings {
+    fileTypeOverrides?: FolderScanFileTypeOverrides;
 }
 
 // --- Helper ---
@@ -82,6 +99,54 @@ function parsePreviewFrames(previewFramesRaw?: string): string[] {
     }
 
     return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function parseFolderScanSettings(scanSettingsJson?: string | null): FolderScanSettings {
+    if (!scanSettingsJson) return {};
+    try {
+        const parsed = JSON.parse(scanSettingsJson);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        const fileTypeOverridesRaw = (parsed as Record<string, unknown>).fileTypeOverrides;
+        const fileTypeOverrides =
+            fileTypeOverridesRaw && typeof fileTypeOverridesRaw === 'object' && !Array.isArray(fileTypeOverridesRaw)
+                ? {
+                    video: typeof (fileTypeOverridesRaw as Record<string, unknown>).video === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).video as boolean
+                        : undefined,
+                    image: typeof (fileTypeOverridesRaw as Record<string, unknown>).image === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).image as boolean
+                        : undefined,
+                    archive: typeof (fileTypeOverridesRaw as Record<string, unknown>).archive === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).archive as boolean
+                        : undefined,
+                    audio: typeof (fileTypeOverridesRaw as Record<string, unknown>).audio === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).audio as boolean
+                        : undefined,
+                }
+                : undefined;
+
+        return fileTypeOverrides ? { fileTypeOverrides } : {};
+    } catch {
+        return {};
+    }
+}
+
+function serializeFolderScanSettings(settings: FolderScanSettings): string | null {
+    const normalizedOverrides = settings.fileTypeOverrides
+        ? {
+            video: typeof settings.fileTypeOverrides.video === 'boolean' ? settings.fileTypeOverrides.video : undefined,
+            image: typeof settings.fileTypeOverrides.image === 'boolean' ? settings.fileTypeOverrides.image : undefined,
+            archive: typeof settings.fileTypeOverrides.archive === 'boolean' ? settings.fileTypeOverrides.archive : undefined,
+            audio: typeof settings.fileTypeOverrides.audio === 'boolean' ? settings.fileTypeOverrides.audio : undefined,
+        }
+        : undefined;
+
+    const hasAnyOverride = !!normalizedOverrides && Object.values(normalizedOverrides).some(v => typeof v === 'boolean');
+    if (!hasAnyOverride) return null;
+
+    return JSON.stringify({
+        fileTypeOverrides: normalizedOverrides
+    });
 }
 
 // snake_case DB row → camelCase MediaFile 変換ヘルパー
@@ -407,6 +472,44 @@ export function getFolderByPath(folderPath: string): MediaFolder | undefined {
     return db.prepare('SELECT * FROM folders WHERE path = ?').get(folderPath) as MediaFolder | undefined;
 }
 
+export function getFolderById(folderId: string): MediaFolder | undefined {
+    const db = getDb();
+    return db.prepare('SELECT * FROM folders WHERE id = ?').get(folderId) as MediaFolder | undefined;
+}
+
+export function getFolderScanSettings(folderId: string): FolderScanSettings {
+    const folder = getFolderById(folderId);
+    return parseFolderScanSettings(folder?.scan_settings_json);
+}
+
+export function setFolderScanFileTypeOverride(
+    folderId: string,
+    category: keyof FolderScanFileTypeOverrides,
+    value: boolean | null
+): FolderScanSettings {
+    const db = getDb();
+    const current = getFolderScanSettings(folderId);
+    const nextOverrides: FolderScanFileTypeOverrides = { ...(current.fileTypeOverrides || {}) };
+
+    if (value === null) {
+        delete nextOverrides[category];
+    } else {
+        nextOverrides[category] = value;
+    }
+
+    const nextSettings: FolderScanSettings = {
+        fileTypeOverrides: nextOverrides
+    };
+    const serialized = serializeFolderScanSettings(nextSettings);
+    db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
+    return parseFolderScanSettings(serialized);
+}
+
+export function clearFolderScanSettings(folderId: string): void {
+    const db = getDb();
+    db.prepare('UPDATE folders SET scan_settings_json = NULL WHERE id = ?').run(folderId);
+}
+
 export function addFolder(folderPath: string, name?: string): MediaFolder {
     const db = getDb();
     const existing = getFolderByPath(folderPath);
@@ -427,7 +530,55 @@ export function addFolder(folderPath: string, name?: string): MediaFolder {
     db.prepare('INSERT INTO folders (id, path, name, created_at, parent_id, drive) VALUES (?, ?, ?, ?, ?, ?)')
         .run(id, folderPath, folderName, now, parent_id, drive);
 
-    return { id, path: folderPath, name: folderName, created_at: now, parent_id, drive };
+    return {
+        id,
+        path: folderPath,
+        name: folderName,
+        created_at: now,
+        parent_id,
+        drive,
+        auto_scan: 0,
+        watch_new_files: 0,
+        scan_settings_json: null
+    };
+}
+
+export function setFolderAutoScanEnabled(folderId: string, enabled: boolean): void {
+    const db = getDb();
+    db.prepare('UPDATE folders SET auto_scan = ? WHERE id = ?').run(enabled ? 1 : 0, folderId);
+}
+
+export function setFolderWatchNewFilesEnabled(folderId: string, enabled: boolean): void {
+    const db = getDb();
+    db.prepare('UPDATE folders SET watch_new_files = ? WHERE id = ?').run(enabled ? 1 : 0, folderId);
+}
+
+export function getAutoScanFolders(): MediaFolder[] {
+    const db = getDb();
+    return db.prepare('SELECT * FROM folders WHERE COALESCE(auto_scan, 0) = 1 ORDER BY created_at DESC').all() as MediaFolder[];
+}
+
+export function getWatchNewFilesFolders(): MediaFolder[] {
+    const db = getDb();
+    return db.prepare('SELECT * FROM folders WHERE COALESCE(watch_new_files, 0) = 1 ORDER BY created_at DESC').all() as MediaFolder[];
+}
+
+export function updateFolderLastScanStatus(
+    folderId: string,
+    params: {
+        at: number;
+        status: 'running' | 'success' | 'error' | 'cancelled';
+        message?: string | null;
+    }
+): void {
+    const db = getDb();
+    db.prepare(`
+        UPDATE folders
+        SET last_scan_at = ?,
+            last_scan_status = ?,
+            last_scan_message = ?
+        WHERE id = ?
+    `).run(params.at, params.status, params.message ?? null, folderId);
 }
 
 export function deleteFolder(id: string) {

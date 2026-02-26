@@ -17,6 +17,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFolders: () => ipcRenderer.invoke('folder:list'),
     deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
     getFolderMetadata: () => ipcRenderer.invoke('folder:getMetadata'),
+    setFolderAutoScan: (folderId: string, enabled: boolean) =>
+        ipcRenderer.invoke('folder:setAutoScan', { folderId, enabled }),
+    setFolderWatchNewFiles: (folderId: string, enabled: boolean) =>
+        ipcRenderer.invoke('folder:setWatchNewFiles', { folderId, enabled }),
+    setFolderScanFileTypeOverrides: (
+        folderId: string,
+        overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
+    ) => ipcRenderer.invoke('folder:setScanFileTypeOverrides', { folderId, overrides }),
+    clearFolderScanFileTypeOverrides: (folderId: string) =>
+        ipcRenderer.invoke('folder:clearScanFileTypeOverrides', { folderId }),
 
     // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得
     getFilesByDrive: (drive: string) => ipcRenderer.invoke('getFilesByDrive', drive),
