@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Loader2, Archive, Music, X } from 'lucide-react';
+import { Loader2, Archive, Music } from 'lucide-react';
 import { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import type { LightboxOpenMode } from '../../stores/useUIStore';
@@ -98,7 +98,11 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                 case 'Space':
                     e.preventDefault();
                     e.stopPropagation(); // 既存のショートカットとの競合を防ぐ
-                    video.paused ? video.play() : video.pause();
+                    if (video.paused) {
+                        void video.play();
+                    } else {
+                        video.pause();
+                    }
                     break;
 
                 case 'ArrowLeft':
@@ -238,17 +242,6 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                         className="relative flex flex-col items-center gap-4 text-white"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onRequestClose();
-                            }}
-                            className="absolute top-0 right-0 translate-x-[calc(100%+8px)] -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
-                            title="戻る / 閉じる (ESC)"
-                        >
-                            <X size={22} />
-                        </button>
                         <Loader2 className="animate-spin" size={48} />
                         <p>書庫を読み込み中...</p>
                     </div>
@@ -261,17 +254,6 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                                 : 'w-fit max-w-[calc(100vw-420px)]'
                                 } ${selectedArchiveImage ? 'opacity-0 pointer-events-none select-none' : 'opacity-100'}`}
                         >
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRequestClose();
-                                }}
-                                className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
-                                title="戻る / 閉じる (ESC)"
-                            >
-                                <X size={22} />
-                            </button>
                             {/* 左側: 画像グリッド */}
                             {showArchivePreviewGrid ? (
                                 <div className={useWideArchiveGridPanel ? 'flex-1 min-w-0' : 'w-fit max-w-[min(42vw,520px)]'}>
@@ -377,17 +359,6 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                         {selectedArchiveImage && (
                             <div className="absolute inset-0 flex items-center justify-center z-20">
                                 <div className="relative">
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onRequestClose();
-                                        }}
-                                        className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 p-2 bg-black/70 hover:bg-black/90 border border-white/15 rounded-full transition-colors text-white z-10 shadow-xl"
-                                        title="戻る / 閉じる (ESC)"
-                                    >
-                                        <X size={22} />
-                                    </button>
                                     <img
                                         src={toMediaUrl(selectedArchiveImage)}
                                         alt="Archive preview"

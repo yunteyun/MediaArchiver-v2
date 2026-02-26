@@ -8,6 +8,7 @@ interface ControlOverlayProps {
     showPrevious: boolean;
     showNext: boolean;
     showCloseButton?: boolean;
+    closeButtonTitle?: string;
 }
 
 export const ControlOverlay = React.memo<ControlOverlayProps>(({
@@ -16,7 +17,8 @@ export const ControlOverlay = React.memo<ControlOverlayProps>(({
     onNext,
     showPrevious,
     showNext,
-    showCloseButton = true
+    showCloseButton = true,
+    closeButtonTitle = '閉じる (ESC)',
 }) => {
     return (
         <>
@@ -28,7 +30,7 @@ export const ControlOverlay = React.memo<ControlOverlayProps>(({
                         onClose();
                     }}
                     className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors text-white z-10"
-                    title="閉じる (ESC)"
+                    title={closeButtonTitle}
                 >
                     <X size={32} />
                 </button>

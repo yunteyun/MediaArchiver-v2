@@ -4,6 +4,8 @@ import {
     deleteFolder,
     getFolderById,
     getFolderFileCounts,
+    getFolderTreePaths,
+    getFolderTreeRecursiveCountsByPath,
     getFolderThumbnails,
     setFolderAutoScanEnabled,
     setFolderScanFileTypeOverride,
@@ -217,5 +219,12 @@ export function registerFolderHandlers() {
         const fileCounts = getFolderFileCounts();
         const thumbnails = getFolderThumbnails();
         return { fileCounts, thumbnails };
+    });
+
+    ipcMain.handle('folder:getTreeStats', async () => {
+        return {
+            paths: getFolderTreePaths(),
+            recursiveCountsByPath: getFolderTreeRecursiveCountsByPath(),
+        };
     });
 }

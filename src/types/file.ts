@@ -30,6 +30,7 @@ export interface MediaFolder {
     createdAt: number;
     parentId: string | null;  // Phase 22-C: 親フォルダID
     drive: string;             // Phase 22-C: ドライブ文字（C:, D:など）
+    isVirtualFolder?: boolean;
     autoScan?: number;
     watchNewFiles?: number;
     auto_scan?: number;

@@ -86,6 +86,8 @@ declare global {
         electronAPI: {
             // Database
             getFiles: (folderId?: string) => Promise<any[]>;
+            getFilesByFolderPathDirect: (folderPath: string) => Promise<any[]>;
+            getFilesByFolderPathRecursive: (folderPath: string) => Promise<any[]>;
             getFileById: (fileId: string) => Promise<any | null>;
 
             // Folder
@@ -93,6 +95,8 @@ declare global {
             getFolders: () => Promise<any[]>;
             deleteFolder: (folderId: string) => Promise<void>;
             getFolderMetadata: () => Promise<{ fileCounts: Record<string, number>; thumbnails: Record<string, string> }>;
+            getFolderTreePaths: () => Promise<string[]>;
+            getFolderTreeStats: () => Promise<{ paths: string[]; recursiveCountsByPath: Record<string, number> }>;
             setFolderAutoScan: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
             setFolderWatchNewFiles: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
             setFolderScanFileTypeOverrides: (

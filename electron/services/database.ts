@@ -225,6 +225,26 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
     }));
 }
 
+function normalizeDirPathForMatch(dirPath: string): string {
+    return dirPath.replace(/[\\/]+$/, '');
+}
+
+export function getFilesByFolderPathDirect(folderPath: string): MediaFile[] {
+    const normalized = normalizeDirPathForMatch(folderPath);
+    return getFiles().filter((f) => normalizeDirPathForMatch(path.dirname(f.path)) === normalized);
+}
+
+export function getFilesByFolderPathRecursive(folderPath: string): MediaFile[] {
+    const normalized = normalizeDirPathForMatch(folderPath);
+    const normalizedLower = normalized.toLowerCase();
+    const prefixLower = `${normalized}\\`.toLowerCase();
+    return getFiles().filter((f) => {
+        const fileDirLower = normalizeDirPathForMatch(path.dirname(f.path)).toLowerCase();
+        const filePathLower = f.path.toLowerCase();
+        return fileDirLower === normalizedLower || filePathLower.startsWith(prefixLower);
+    });
+}
+
 /**
  * Phase 22-C: 複数フォルダのファイルを一括取得
  */
@@ -465,6 +485,49 @@ function getTags(fileId: string): string[] {
 export function getFolders(): MediaFolder[] {
     const db = getDb();
     return db.prepare('SELECT * FROM folders ORDER BY created_at DESC').all() as MediaFolder[];
+}
+
+export function getFolderTreePaths(): string[] {
+    const folders = getFolders();
+    const registeredPaths = new Set(folders.map((f) => normalizeDirPathForMatch(f.path)));
+    const allPaths = new Set<string>(registeredPaths);
+    const rootById = new Map(folders.map((f) => [f.id, normalizeDirPathForMatch(f.path)] as const));
+
+    const files = getFiles();
+    for (const file of files) {
+        const rootPath = file.root_folder_id ? rootById.get(file.root_folder_id) : undefined;
+        let current = normalizeDirPathForMatch(path.dirname(file.path));
+
+        while (current && current !== '.' && current !== path.dirname(current)) {
+            allPaths.add(current);
+            if (rootPath && current.toLowerCase() === rootPath.toLowerCase()) {
+                break;
+            }
+            current = normalizeDirPathForMatch(path.dirname(current));
+        }
+    }
+
+    return [...allPaths];
+}
+
+export function getFolderTreeRecursiveCountsByPath(): Record<string, number> {
+    const result: Record<string, number> = {};
+    const files = getFiles();
+
+    for (const file of files) {
+        let current = normalizeDirPathForMatch(path.dirname(file.path));
+        while (current && current !== '.' && current !== path.dirname(current)) {
+            const key = current.toLowerCase();
+            result[key] = (result[key] || 0) + 1;
+            current = normalizeDirPathForMatch(path.dirname(current));
+        }
+        if (current && current !== '.' ) {
+            const key = current.toLowerCase();
+            result[key] = (result[key] || 0) + 1;
+        }
+    }
+
+    return result;
 }
 
 export function getFolderByPath(folderPath: string): MediaFolder | undefined {

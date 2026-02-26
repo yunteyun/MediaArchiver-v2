@@ -233,7 +233,8 @@ export const LightBox = React.memo(() => {
                 onNext={goToNext}
                 showPrevious={currentIndex > 0}
                 showNext={currentIndex < files.length - 1}
-                showCloseButton={lightboxFile.type !== 'archive'}
+                showCloseButton
+                closeButtonTitle={lightboxFile.type === 'archive' ? '戻る / 閉じる (ESC)' : '閉じる (ESC)'}
             />
 
             {/* 常に2カラムレイアウト: 情報エリア（左）| メディア（右） */}

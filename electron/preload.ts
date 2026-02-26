@@ -10,6 +10,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
     // === Database ===
     getFiles: (folderId?: string) => ipcRenderer.invoke('db:getFiles', folderId),
+    getFilesByFolderPathDirect: (folderPath: string) => ipcRenderer.invoke('db:getFilesByFolderPathDirect', folderPath),
+    getFilesByFolderPathRecursive: (folderPath: string) => ipcRenderer.invoke('db:getFilesByFolderPathRecursive', folderPath),
     getFileById: (fileId: string) => ipcRenderer.invoke('db:getFileById', fileId),
 
     // === Folder ===
@@ -17,6 +19,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFolders: () => ipcRenderer.invoke('folder:list'),
     deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
     getFolderMetadata: () => ipcRenderer.invoke('folder:getMetadata'),
+    getFolderTreePaths: () => ipcRenderer.invoke('folder:getTreePaths'),
+    getFolderTreeStats: () => ipcRenderer.invoke('folder:getTreeStats'),
     setFolderAutoScan: (folderId: string, enabled: boolean) =>
         ipcRenderer.invoke('folder:setAutoScan', { folderId, enabled }),
     setFolderWatchNewFiles: (folderId: string, enabled: boolean) =>

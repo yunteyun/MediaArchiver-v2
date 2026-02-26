@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
@@ -14,6 +14,8 @@ import type { MediaFolder } from '../types/file';
 const ALL_FILES_ID = '__all__';
 export const DRIVE_PREFIX = '__drive:';
 export const FOLDER_PREFIX = '__folder:';
+export const VIRTUAL_FOLDER_PREFIX = '__vfolder:';
+export const VIRTUAL_FOLDER_RECURSIVE_PREFIX = '__vfolderr:';
 
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
@@ -35,11 +37,37 @@ export const Sidebar = React.memo(() => {
     const [folderScanSettingsManagerOpen, setFolderScanSettingsManagerOpen] = useState(false);
     const [addFolderSettingsOpen, setAddFolderSettingsOpen] = useState(false);
     const [pendingAddFolderPath, setPendingAddFolderPath] = useState<string | null>(null);
+    const [folderTreeSearch, setFolderTreeSearch] = useState('');
+    const [folderTreeRecursiveCountsByPath, setFolderTreeRecursiveCountsByPath] = useState<Record<string, number>>({});
 
     const loadFolders = useCallback(async () => {
         try {
-            const list = await window.electronAPI.getFolders();
-            setFolders(list);
+            const [registered, treeStats] = await Promise.all([
+                window.electronAPI.getFolders(),
+                window.electronAPI.getFolderTreeStats(),
+            ]);
+            const treePaths = treeStats?.paths || [];
+            setFolderTreeRecursiveCountsByPath(treeStats?.recursiveCountsByPath || {});
+
+            const registeredPathSet = new Set<string>(registered.map((f: any) => String(f.path).toLowerCase()));
+            const virtualFolders: MediaFolder[] = (treePaths || [])
+                .filter((p: string) => !registeredPathSet.has(String(p).toLowerCase()))
+                .map((p: string) => {
+                    const normalizedPath = String(p);
+                    const name = normalizedPath.split(/[\\/]/).pop() || normalizedPath;
+                    const drive = normalizedPath.match(/^[A-Z]:/i) ? normalizedPath.substring(0, 2).toUpperCase() : '/';
+                    return {
+                        id: `virtual:${normalizedPath}`,
+                        name,
+                        path: normalizedPath,
+                        createdAt: 0,
+                        parentId: null,
+                        drive,
+                        isVirtualFolder: true,
+                    } as MediaFolder;
+                });
+
+            setFolders([...(registered as MediaFolder[]), ...virtualFolders]);
         } catch (e) {
             console.error('Failed to load folders:', e);
         }
@@ -109,6 +137,14 @@ export const Sidebar = React.memo(() => {
                 const actualId = folderId.slice(FOLDER_PREFIX.length);
                 files = await window.electronAPI.getFilesByFolderRecursive(actualId);
             }
+            else if (folderId.startsWith(VIRTUAL_FOLDER_RECURSIVE_PREFIX)) {
+                const folderPath = folderId.slice(VIRTUAL_FOLDER_RECURSIVE_PREFIX.length);
+                files = await window.electronAPI.getFilesByFolderPathRecursive(folderPath);
+            }
+            else if (folderId.startsWith(VIRTUAL_FOLDER_PREFIX)) {
+                const folderPath = folderId.slice(VIRTUAL_FOLDER_PREFIX.length);
+                files = await window.electronAPI.getFilesByFolderPathDirect(folderPath);
+            }
             else {
                 // 通常のフォルダ（直下のみ）
                 files = await window.electronAPI.getFiles(folderId);
@@ -157,6 +193,45 @@ export const Sidebar = React.memo(() => {
             cleanupRescan();
         };
     }, [loadFolders, currentFolderId, files.length, setCurrentFolderId, setFiles, handleSelectFolder]);
+
+    const filteredFoldersForTree = useMemo(() => {
+        const q = folderTreeSearch.trim().toLowerCase();
+        if (!q) return folders;
+
+        const pathMap = new Map<string, MediaFolder>();
+        folders.forEach((f) => pathMap.set(String(f.path).toLowerCase(), f));
+
+        const include = new Set<string>();
+        const addAncestors = (folderPath: string) => {
+            let current = folderPath;
+            while (current) {
+                include.add(current.toLowerCase());
+                const parent = current.replace(/[\\/][^\\/]+$/, '');
+                if (!parent || parent === current) break;
+                current = parent;
+            }
+        };
+
+        const addDescendants = (folderPath: string) => {
+            const prefix = `${folderPath.replace(/[\\/]+$/, '')}\\`.toLowerCase();
+            folders.forEach((f) => {
+                const p = String(f.path).toLowerCase();
+                if (p.startsWith(prefix)) include.add(p);
+            });
+        };
+
+        folders.forEach((folder) => {
+            const name = String(folder.name || '').toLowerCase();
+            const folderPath = String(folder.path || '');
+            const folderPathLower = folderPath.toLowerCase();
+            if (name.includes(q) || folderPathLower.includes(q)) {
+                addAncestors(folderPath);
+                addDescendants(folderPath);
+            }
+        });
+
+        return folders.filter((f) => include.has(String(f.path).toLowerCase()));
+    }, [folders, folderTreeSearch]);
 
 
     return (
@@ -238,6 +313,35 @@ export const Sidebar = React.memo(() => {
                     <div className="border-t border-surface-700 my-2" />
                 )}
 
+                {!sidebarCollapsed && folders.length > 0 && (
+                    <div className="mb-2 px-1">
+                        <div className="relative">
+                            <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-surface-500" />
+                            <input
+                                type="text"
+                                value={folderTreeSearch}
+                                onChange={(e) => setFolderTreeSearch(e.target.value)}
+                                placeholder="フォルダツリー検索"
+                                className="w-full rounded border border-surface-700 bg-surface-900/50 py-1.5 pl-7 pr-7 text-xs text-surface-200 placeholder:text-surface-500 focus:outline-none focus:border-primary-500"
+                            />
+                            {folderTreeSearch && (
+                                <button
+                                    type="button"
+                                    onClick={() => setFolderTreeSearch('')}
+                                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-surface-400 hover:bg-surface-800 hover:text-surface-200"
+                                    aria-label="フォルダツリー検索をクリア"
+                                    title="クリア"
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
+                        <div className="mt-1 text-[11px] text-surface-500">
+                            {folderTreeSearch.trim() ? `検索結果 ${filteredFoldersForTree.length} 件` : `登録/仮想フォルダ ${folders.length} 件`}
+                        </div>
+                    </div>
+                )}
+
                 {/* フォルダツリー（Phase 22） */}
                 {folders.length === 0 ? (
                     !sidebarCollapsed && (
@@ -245,9 +349,16 @@ export const Sidebar = React.memo(() => {
                             フォルダがありません
                         </p>
                     )
+                ) : folderTreeSearch.trim() && filteredFoldersForTree.length === 0 ? (
+                    !sidebarCollapsed && (
+                        <p className="text-surface-500 text-sm text-center py-4">
+                            検索結果がありません
+                        </p>
+                    )
                 ) : (
                     <FolderTree
-                        folders={folders}
+                        folders={filteredFoldersForTree}
+                        folderRecursiveCountsByPath={folderTreeRecursiveCountsByPath}
                         currentFolderId={currentFolderId}
                         onSelectFolder={handleSelectFolder}
                         collapsed={sidebarCollapsed}
