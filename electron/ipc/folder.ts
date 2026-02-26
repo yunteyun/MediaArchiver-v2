@@ -1,4 +1,4 @@
-import { ipcMain, Menu, shell, BrowserWindow } from 'electron';
+import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
 import {
     clearFolderScanSettings,
     deleteFolder,
@@ -52,6 +52,8 @@ export function registerFolderHandlers() {
     });
 
     ipcMain.handle('folder:showContextMenu', async (event, { folderId, path }) => {
+        const folderFileCounts = getFolderFileCounts();
+        const registeredFileCount = folderFileCounts[folderId] || 0;
         const folder = getFolderById(folderId);
         const folderOverrides = folder ? (() => {
             try {
@@ -162,6 +164,38 @@ export function registerFolderHandlers() {
             {
                 label: '削除',
                 click: async () => {
+                    const win = BrowserWindow.fromWebContents(event.sender);
+                    const result = await dialog.showMessageBox(win ?? undefined, {
+                        type: 'warning',
+                        title: '登録フォルダの登録解除',
+                        message: 'この登録フォルダを登録解除しますか？',
+                        detail:
+                            `${path}\n\n` +
+                            `登録済みファイル: ${registeredFileCount}件\n` +
+                            '元ファイル本体は削除しません。\n' +
+                            'このアプリのDB登録情報と関連サムネイル/プレビューは削除されます。',
+                        buttons: ['キャンセル', '登録解除する'],
+                        defaultId: 0,
+                        cancelId: 0,
+                        noLink: true,
+                        checkboxLabel: '内容を理解しました（元ファイル本体は削除されず、登録情報とサムネイル/プレビューが削除されます）',
+                        checkboxChecked: false,
+                    });
+                    if (result.response !== 1) {
+                        return;
+                    }
+                    if (!result.checkboxChecked) {
+                        await dialog.showMessageBox(win ?? undefined, {
+                            type: 'info',
+                            title: '確認チェックが必要です',
+                            message: '登録解除を実行するには確認チェックを入れてください。',
+                            buttons: ['OK'],
+                            defaultId: 0,
+                            cancelId: 0,
+                            noLink: true,
+                        });
+                        return;
+                    }
                     await deleteFolder(folderId);
                     syncFolderWatchers();
                     event.sender.send('folder:deleted', folderId);
