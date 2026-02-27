@@ -114,20 +114,22 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
                             <ChevronRight size={22} />
                         </button>
                         <div className="h-full w-full flex items-center justify-center p-4 md:p-6">
-                            <div className="relative flex h-full w-full items-center justify-center px-14 md:px-16" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="absolute top-0 right-0 z-30 rounded-full border border-surface-600 bg-black px-2.5 py-2.5 text-surface-100 shadow-xl translate-x-[calc(100%+10px)] -translate-y-[calc(100%+6px)] md:translate-x-[calc(100%+12px)] md:-translate-y-[calc(100%+8px)] hover:bg-surface-900"
-                                    title="閉じる (Esc)"
-                                >
-                                    <X size={24} />
-                                </button>
-                                <ImageStage
-                                    file={file}
-                                    videoVolume={videoVolume}
-                                    audioVolume={audioVolume}
-                                />
+                            <div className="flex h-full w-full items-center justify-center px-14 md:px-16">
+                                <div className="relative inline-flex max-h-full max-w-full items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="absolute top-0 right-0 z-30 rounded-full border border-surface-600 bg-black px-2.5 py-2.5 text-surface-100 shadow-xl translate-x-[calc(100%+10px)] -translate-y-[calc(100%+6px)] md:translate-x-[calc(100%+12px)] md:-translate-y-[calc(100%+8px)] hover:bg-surface-900"
+                                        title="閉じる (Esc)"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                    <ImageStage
+                                        file={file}
+                                        videoVolume={videoVolume}
+                                        audioVolume={audioVolume}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </section>
