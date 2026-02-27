@@ -89,17 +89,32 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
                         className="relative flex-1 h-full min-w-0 rounded-xl border border-surface-700 bg-surface-950 overflow-hidden"
                         onClick={onClose}
                     >
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onPrevious();
+                            }}
+                            disabled={!showPrevious}
+                            className="absolute left-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black text-surface-100 shadow-lg transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-600 md:left-4"
+                            title="前へ (←)"
+                        >
+                            <ChevronLeft size={22} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onNext();
+                            }}
+                            disabled={!showNext}
+                            className="absolute right-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black text-surface-100 shadow-lg transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-600 md:right-4"
+                            title="次へ (→)"
+                        >
+                            <ChevronRight size={22} />
+                        </button>
                         <div className="h-full w-full flex items-center justify-center p-4 md:p-6">
-                            <div className="relative max-w-full max-h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                    type="button"
-                                    onClick={onPrevious}
-                                    disabled={!showPrevious}
-                                    className="absolute left-0 top-1/2 z-30 flex h-12 w-12 -translate-x-[calc(100%+10px)] -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black text-surface-100 shadow-lg transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-600 md:-translate-x-[calc(100%+14px)]"
-                                    title="前へ (←)"
-                                >
-                                    <ChevronLeft size={22} />
-                                </button>
+                            <div className="relative flex h-full w-full items-center justify-center px-14 md:px-16" onClick={(e) => e.stopPropagation()}>
                                 <button
                                     type="button"
                                     onClick={onClose}
@@ -113,15 +128,6 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
                                     videoVolume={videoVolume}
                                     audioVolume={audioVolume}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={onNext}
-                                    disabled={!showNext}
-                                    className="absolute right-0 top-1/2 z-30 flex h-12 w-12 translate-x-[calc(100%+10px)] -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black text-surface-100 shadow-lg transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-600 md:translate-x-[calc(100%+14px)]"
-                                    title="次へ (→)"
-                                >
-                                    <ChevronRight size={22} />
-                                </button>
                             </div>
                         </div>
                     </section>
