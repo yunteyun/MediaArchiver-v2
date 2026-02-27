@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
-import { ImageInfoPaneReadOnly } from './ImageInfoPaneReadOnly';
+import { ImageInfoPane } from './ImageInfoPaneReadOnly';
 import { ImageStage } from './ImageStage';
 import {
     LIGHTBOX_INFO_PANE_WIDTH_PX,
@@ -82,7 +82,7 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
                         style={{ width: `clamp(${LIGHTBOX_INFO_PANE_WIDTH_PX}px, 22vw, ${LIGHTBOX_INFO_PANE_WIDTH_XL_PX}px)` }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <ImageInfoPaneReadOnly file={file} />
+                        <ImageInfoPane file={file} />
                     </aside>
 
                     <section
