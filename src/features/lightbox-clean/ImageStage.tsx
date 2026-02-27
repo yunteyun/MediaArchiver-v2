@@ -189,13 +189,13 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                                 <button
                                     key={`${framePath}-${index}`}
                                     type="button"
-                                    className="flex h-[27vh] w-full items-center justify-center overflow-hidden rounded-lg border border-surface-800 bg-surface-950/70 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 md:h-[31vh]"
+                                    className="relative h-[27vh] w-full overflow-hidden rounded-lg border border-surface-800 bg-surface-950/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 md:h-[31vh]"
                                     onClick={() => setSelectedArchiveFrame(framePath)}
                                 >
                                     <img
                                         src={toMediaUrl(framePath)}
                                         alt={`Archive frame ${index + 1}`}
-                                        className="block h-full w-full cursor-zoom-in rounded object-contain"
+                                        className="block h-full w-full cursor-zoom-in object-cover object-center"
                                         onError={(e) => {
                                             (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
                                         }}
