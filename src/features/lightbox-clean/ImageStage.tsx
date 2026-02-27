@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FileArchive, Music4, RefreshCw } from 'lucide-react';
+import { Music4 } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT, LIGHTBOX_MEDIA_MAX_HEIGHT_VH } from './constants';
@@ -149,81 +149,37 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
 
     if (kind === 'archive') {
         return (
-            <div className="w-[min(92vw,1080px)] h-[min(74vh,760px)] rounded-xl border border-surface-700 bg-surface-900 shadow-2xl overflow-hidden flex flex-col">
-                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-surface-700 bg-surface-950">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="h-8 w-8 rounded-full border border-surface-700 bg-surface-900 flex items-center justify-center text-surface-300 flex-shrink-0">
-                            <FileArchive size={16} />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="text-sm font-semibold text-surface-200 truncate">{file.name}</p>
-                            <p className="text-xs text-surface-500">
-                                プレビュー {archiveGridFrames.length}枚表示 / 全{archiveFrames.length}枚
-                            </p>
+            <div className="w-[min(92vw,1080px)] h-[min(74vh,760px)] rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
+                {isArchiveLoading ? (
+                    <div className="h-full w-full flex items-center justify-center">
+                        <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
+                    </div>
+                ) : archiveError ? (
+                    <div className="h-full w-full flex items-center justify-center">
+                        <p className="text-sm text-red-300">{archiveError}</p>
+                    </div>
+                ) : archiveGridFrames.length === 0 ? (
+                    <div className="h-full w-full flex items-center justify-center">
+                        <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
+                    </div>
+                ) : (
+                    <div className="h-full w-full overflow-y-auto p-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {archiveGridFrames.map((framePath, index) => (
+                                <div key={`${framePath}-${index}`} className="flex items-center justify-center overflow-hidden rounded-lg">
+                                    <img
+                                        src={toMediaUrl(framePath)}
+                                        alt={`Archive frame ${index + 1}`}
+                                        className="block max-w-full max-h-[30vh] object-contain rounded-lg"
+                                        onError={(e) => {
+                                            (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                                        }}
+                                    />
+                                </div>
+                            ))}
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setIsArchiveLoading(true);
-                            setArchiveError(null);
-                            window.electronAPI.getArchivePreviewFrames(file.path, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT)
-                                .then((frames) => {
-                                    setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean) : []);
-                                })
-                                .catch((error) => {
-                                    console.error('Failed to reload archive preview frames in clean lightbox:', error);
-                                    setArchiveError('書庫プレビューの再取得に失敗しました');
-                                })
-                                .finally(() => {
-                                    setIsArchiveLoading(false);
-                                });
-                        }}
-                        className="inline-flex items-center gap-1 rounded border border-surface-600 bg-surface-800 px-2 py-1 text-xs text-surface-200 hover:bg-surface-700"
-                        title="プレビュー再取得"
-                    >
-                        <RefreshCw size={12} />
-                        再取得
-                    </button>
-                </div>
-
-                <div className="flex-1 min-h-0 p-4">
-                    {isArchiveLoading ? (
-                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-black flex items-center justify-center overflow-hidden">
-                            <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
-                        </div>
-                    ) : archiveError ? (
-                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-black flex items-center justify-center overflow-hidden">
-                            <p className="text-sm text-red-300">{archiveError}</p>
-                        </div>
-                    ) : archiveGridFrames.length === 0 ? (
-                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-black flex items-center justify-center overflow-hidden">
-                            <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
-                        </div>
-                    ) : (
-                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-surface-950 p-3 overflow-y-auto">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {archiveGridFrames.map((framePath, index) => (
-                                    <div key={`${framePath}-${index}`} className="rounded-md border border-surface-700 overflow-hidden bg-black">
-                                        <div className="h-48 flex items-center justify-center p-1">
-                                            <img
-                                                src={toMediaUrl(framePath)}
-                                                alt={`Archive frame ${index + 1}`}
-                                                className="max-w-full max-h-full object-contain"
-                                                onError={(e) => {
-                                                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="px-2 py-1 border-t border-surface-700 bg-surface-900 text-[11px] text-surface-400">
-                                            フレーム {index + 1}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
         );
     }
