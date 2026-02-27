@@ -169,7 +169,7 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
 
     if (kind === 'archive') {
         return (
-            <div className="relative w-[min(92vw,1080px)] h-[min(74vh,760px)] rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
+            <div className="relative w-[min(94vw,1160px)] h-[min(78vh,820px)] rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
                 {isArchiveLoading ? (
                     <div className="h-full w-full flex items-center justify-center">
                         <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
@@ -183,19 +183,19 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                         <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
                     </div>
                 ) : (
-                    <div className="h-full w-full overflow-y-auto p-4">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="h-full w-full overflow-y-auto p-3">
+                        <div className="grid min-h-full grid-cols-2 content-center gap-2 md:grid-cols-3 md:gap-3">
                             {archiveGridFrames.map((framePath, index) => (
                                 <button
                                     key={`${framePath}-${index}`}
                                     type="button"
-                                    className="flex items-center justify-center overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                                    className="flex min-h-[31vh] items-center justify-center overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 md:min-h-[33vh]"
                                     onClick={() => setSelectedArchiveFrame(framePath)}
                                 >
                                     <img
                                         src={toMediaUrl(framePath)}
                                         alt={`Archive frame ${index + 1}`}
-                                        className="block max-w-full max-h-[30vh] object-contain rounded-lg cursor-zoom-in"
+                                        className="block max-h-[31vh] max-w-full cursor-zoom-in rounded-lg object-contain md:max-h-[33vh]"
                                         onError={(e) => {
                                             (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
                                         }}
