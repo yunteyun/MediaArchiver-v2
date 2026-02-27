@@ -9,6 +9,7 @@ export const LIGHTBOX_SHELL_MAX_HEIGHT_VH = 88;
 export const LIGHTBOX_INFO_PANE_WIDTH_PX = 320;
 export const LIGHTBOX_INFO_PANE_WIDTH_XL_PX = 352;
 export const LIGHTBOX_MEDIA_MAX_HEIGHT_VH = 74;
+export const LIGHTBOX_ARCHIVE_PREVIEW_LIMIT = 12;
 
 export function clampOverlayOpacity(value: number): number {
     const numeric = Number.isFinite(value) ? value : LIGHTBOX_OVERLAY_OPACITY_DEFAULT;
