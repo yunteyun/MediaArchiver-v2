@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Music4 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Music4 } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT, LIGHTBOX_MEDIA_MAX_HEIGHT_VH } from './constants';
@@ -94,6 +94,23 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
         return Array.from(sampled).filter(Boolean).slice(0, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT);
     }, [archiveFrames]);
 
+    const selectedArchiveFrameIndex = useMemo(() => {
+        if (!selectedArchiveFrame) {
+            return -1;
+        }
+        return archiveGridFrames.findIndex((framePath) => framePath === selectedArchiveFrame);
+    }, [archiveGridFrames, selectedArchiveFrame]);
+
+    const showAdjacentArchiveFrame = useCallback((direction: -1 | 1) => {
+        if (!archiveGridFrames.length) {
+            return;
+        }
+
+        const currentIndex = selectedArchiveFrameIndex >= 0 ? selectedArchiveFrameIndex : 0;
+        const nextIndex = (currentIndex + direction + archiveGridFrames.length) % archiveGridFrames.length;
+        setSelectedArchiveFrame(archiveGridFrames[nextIndex]);
+    }, [archiveGridFrames, selectedArchiveFrameIndex]);
+
     useEffect(() => {
         if (videoRef.current) {
             videoRef.current.volume = Math.max(0, Math.min(1, videoVolume));
@@ -115,6 +132,18 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
             if (event.key === 'Escape') {
                 event.preventDefault();
                 setSelectedArchiveFrame(null);
+                return;
+            }
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                showAdjacentArchiveFrame(-1);
+                return;
+            }
+
+            if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                showAdjacentArchiveFrame(1);
             }
         };
 
@@ -122,7 +151,7 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [kind, selectedArchiveFrame]);
+    }, [kind, selectedArchiveFrame, showAdjacentArchiveFrame]);
 
     if (hasError) {
         return (
@@ -210,6 +239,19 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                         className="absolute inset-0 z-10 flex items-center justify-center bg-black/85 p-6"
                         onClick={() => setSelectedArchiveFrame(null)}
                     >
+                        {archiveGridFrames.length > 1 ? (
+                            <button
+                                type="button"
+                                className="absolute left-4 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black/70 text-surface-100 shadow-lg transition hover:bg-black/85 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    showAdjacentArchiveFrame(-1);
+                                }}
+                                aria-label="前のフレームを表示"
+                            >
+                                <ChevronLeft size={24} />
+                            </button>
+                        ) : null}
                         <div
                             className="max-h-full max-w-full overflow-hidden rounded-xl border border-surface-700 bg-black shadow-2xl"
                             onClick={(event) => event.stopPropagation()}
@@ -221,6 +263,19 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                                 onError={() => setSelectedArchiveFrame(null)}
                             />
                         </div>
+                        {archiveGridFrames.length > 1 ? (
+                            <button
+                                type="button"
+                                className="absolute right-4 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black/70 text-surface-100 shadow-lg transition hover:bg-black/85 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    showAdjacentArchiveFrame(1);
+                                }}
+                                aria-label="次のフレームを表示"
+                            >
+                                <ChevronRight size={24} />
+                            </button>
+                        ) : null}
                     </div>
                 ) : null}
             </div>
