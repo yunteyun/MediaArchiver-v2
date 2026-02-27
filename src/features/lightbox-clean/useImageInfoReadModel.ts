@@ -66,18 +66,6 @@ function getRootRelativeFolderPath(filePath: string, rootFolderPath: string | nu
     return parentDir.slice(normalizedRoot.length + 1);
 }
 
-function getRootRelativePath(filePath: string, rootFolderPath: string | null): string | null {
-    if (!rootFolderPath) return null;
-    const normalizedRoot = normalizeWinPath(rootFolderPath);
-    const normalizedFilePath = normalizeWinPath(filePath);
-    const rootLower = normalizedRoot.toLowerCase();
-    const fileLower = normalizedFilePath.toLowerCase();
-    if (fileLower === rootLower) return '.';
-    const prefix = `${rootLower}\\`;
-    if (!fileLower.startsWith(prefix)) return null;
-    return normalizedFilePath.slice(normalizedRoot.length + 1);
-}
-
 function getFileExtension(file: MediaFile): string {
     const fromName = (file.name || '').split('.').pop();
     if (fromName && fromName !== file.name) return fromName.toLowerCase();
@@ -159,8 +147,6 @@ export function useImageInfoReadModel(file: MediaFile, rootFolderPath: string | 
         ];
         const relativeFolderPath = getRootRelativeFolderPath(file.path, rootFolderPath);
         if (relativeFolderPath) rows.push({ label: '相対フォルダ', value: relativeFolderPath });
-        const relativePath = getRootRelativePath(file.path, rootFolderPath);
-        if (relativePath) rows.push({ label: '相対パス', value: relativePath });
         return rows;
     }, [file.path, rootFolderPath]);
 
