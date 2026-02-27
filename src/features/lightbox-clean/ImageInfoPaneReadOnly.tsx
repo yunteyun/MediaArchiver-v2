@@ -324,25 +324,6 @@ export const ImageInfoPane = React.memo<ImageInfoPaneProps>(({ file }) => {
             </section>
 
             <section className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-3">
-                <div className="flex items-center justify-between gap-2">
-                    <SectionTitle icon={mediaBadge.icon} title="ファイル情報" />
-                    <span className="inline-flex items-center rounded-md border border-surface-600 bg-surface-800 px-2 py-0.5 text-[11px] text-surface-200">
-                        {mediaBadge.label}
-                    </span>
-                </div>
-                <div className="mt-3">
-                    <InfoTable rows={fileInfoRows} />
-                </div>
-            </section>
-
-            <section className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-3">
-                <SectionTitle icon={<FolderTree size={16} />} title="パス" />
-                <div className="mt-3">
-                    <InfoTable rows={pathRows} />
-                </div>
-            </section>
-
-            <section className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-3">
                 <SectionTitle icon={<Star size={16} />} title="評価" />
                 <div className="mt-3 space-y-2">
                     {sortedAxes.length === 0 && (
@@ -406,6 +387,25 @@ export const ImageInfoPane = React.memo<ImageInfoPaneProps>(({ file }) => {
                         placeholder="メモを入力..."
                         className="w-full resize-y rounded border border-surface-700 bg-surface-950 px-2 py-1.5 text-xs text-surface-100 placeholder:text-surface-500 focus:outline-none focus:border-primary-500"
                     />
+                </div>
+            </section>
+
+            <section className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-3">
+                <div className="flex items-center justify-between gap-2">
+                    <SectionTitle icon={mediaBadge.icon} title="ファイル情報" />
+                    <span className="inline-flex items-center rounded-md border border-surface-600 bg-surface-800 px-2 py-0.5 text-[11px] text-surface-200">
+                        {mediaBadge.label}
+                    </span>
+                </div>
+                <div className="mt-3">
+                    <InfoTable rows={fileInfoRows} />
+                </div>
+            </section>
+
+            <section className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-3">
+                <SectionTitle icon={<FolderTree size={16} />} title="パス" />
+                <div className="mt-3">
+                    <InfoTable rows={pathRows} />
                 </div>
             </section>
 
