@@ -184,18 +184,18 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                     </div>
                 ) : (
                     <div className="h-full w-full overflow-y-auto p-3">
-                        <div className="grid min-h-full grid-cols-2 content-center gap-2 md:grid-cols-3 md:gap-3">
+                        <div className="grid min-h-full grid-cols-2 content-center gap-3 md:grid-cols-3">
                             {archiveGridFrames.map((framePath, index) => (
                                 <button
                                     key={`${framePath}-${index}`}
                                     type="button"
-                                    className="flex min-h-[31vh] items-center justify-center overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 md:min-h-[33vh]"
+                                    className="flex h-[27vh] w-full items-center justify-center overflow-hidden rounded-lg border border-surface-800 bg-surface-950/70 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 md:h-[31vh]"
                                     onClick={() => setSelectedArchiveFrame(framePath)}
                                 >
                                     <img
                                         src={toMediaUrl(framePath)}
                                         alt={`Archive frame ${index + 1}`}
-                                        className="block max-h-[31vh] max-w-full cursor-zoom-in rounded-lg object-contain md:max-h-[33vh]"
+                                        className="block h-full w-full cursor-zoom-in rounded object-contain"
                                         onError={(e) => {
                                             (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
                                         }}
