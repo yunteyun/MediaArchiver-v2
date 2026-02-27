@@ -13,12 +13,21 @@ export const CleanLightboxRoot = React.memo(() => {
     const files = useFileStore((s) => s.files);
     const incrementAccessCount = useFileStore((s) => s.incrementAccessCount);
     const overlayOpacity = useSettingsStore((s) => s.lightboxOverlayOpacity);
+    const videoVolume = useSettingsStore((s) => s.videoVolume);
+    const audioVolume = useSettingsStore((s) => s.audioVolume);
 
-    const isImageFile = useMemo(() => {
-        if (!lightboxFile) return false;
-        if (lightboxFile.type === 'image') return true;
-        return IMAGE_LIKE_EXT_RE.test(lightboxFile.name ?? '') || IMAGE_LIKE_EXT_RE.test(lightboxFile.path ?? '');
+    const lightboxKind = useMemo<'image' | 'video' | 'audio' | 'archive' | 'unsupported'>(() => {
+        if (!lightboxFile) return 'unsupported';
+        if (lightboxFile.type === 'video') return 'video';
+        if (lightboxFile.type === 'audio') return 'audio';
+        if (lightboxFile.type === 'archive') return 'archive';
+        if (lightboxFile.type === 'image') return 'image';
+        return IMAGE_LIKE_EXT_RE.test(lightboxFile.name ?? '') || IMAGE_LIKE_EXT_RE.test(lightboxFile.path ?? '')
+            ? 'image'
+            : 'unsupported';
     }, [lightboxFile]);
+
+    const isSupportedFile = lightboxKind !== 'unsupported';
 
     const currentIndex = useMemo(() => {
         if (!lightboxFile) return -1;
@@ -40,13 +49,13 @@ export const CleanLightboxRoot = React.memo(() => {
     }, [currentIndex, files]);
 
     useEffect(() => {
-        if (!lightboxFile || isImageFile) return;
-        showToast('画像ライトボックスのみ対応中です', 'info');
+        if (!lightboxFile || isSupportedFile) return;
+        showToast('このファイル形式のライトボックス表示にはまだ対応していません', 'info');
         closeLightbox();
-    }, [closeLightbox, isImageFile, lightboxFile, showToast]);
+    }, [closeLightbox, isSupportedFile, lightboxFile, showToast]);
 
     useEffect(() => {
-        if (!lightboxFile || !isImageFile) return;
+        if (!lightboxFile || !isSupportedFile) return;
         const handleKeyDown = (event: KeyboardEvent) => {
             const target = event.target as HTMLElement | null;
             if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
@@ -59,10 +68,10 @@ export const CleanLightboxRoot = React.memo(() => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [closeLightbox, goToNext, goToPrevious, isImageFile, lightboxFile]);
+    }, [closeLightbox, goToNext, goToPrevious, isSupportedFile, lightboxFile]);
 
     useEffect(() => {
-        if (!lightboxFile || !isImageFile) return;
+        if (!lightboxFile || !isSupportedFile) return;
         const countAccess = async () => {
             const result = await window.electronAPI.incrementAccessCount(lightboxFile.id);
             if (result.success && result.lastAccessedAt) {
@@ -70,14 +79,17 @@ export const CleanLightboxRoot = React.memo(() => {
             }
         };
         void countAccess();
-    }, [incrementAccessCount, isImageFile, lightboxFile]);
+    }, [incrementAccessCount, isSupportedFile, lightboxFile]);
 
-    if (!lightboxFile || !isImageFile) return null;
+    if (!lightboxFile || !isSupportedFile) return null;
 
     return (
         <ImageLightbox
             file={lightboxFile}
             overlayOpacity={overlayOpacity}
+            lightboxVersion={`clean-${lightboxKind}`}
+            videoVolume={videoVolume}
+            audioVolume={audioVolume}
             showPrevious={currentIndex > 0}
             showNext={currentIndex >= 0 && currentIndex < files.length - 1}
             onPrevious={goToPrevious}

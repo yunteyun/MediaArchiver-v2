@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileImage, Tags, BarChart3, Star } from 'lucide-react';
+import { FileImage, Tags, BarChart3, Star, Video, Music4, FileArchive } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { useImageInfoReadModel } from './useImageInfoReadModel';
 
@@ -29,11 +29,23 @@ InfoTable.displayName = 'InfoTable';
 
 export const ImageInfoPaneReadOnly = React.memo<ImageInfoPaneReadOnlyProps>(({ file }) => {
     const { tagNames, ratingRows, fileInfoRows, statsRows } = useImageInfoReadModel(file);
+    const mediaBadge = file.type === 'video'
+        ? { label: '動画', icon: <Video size={16} /> }
+        : file.type === 'audio'
+            ? { label: '音声', icon: <Music4 size={16} /> }
+            : file.type === 'archive'
+                ? { label: '書庫', icon: <FileArchive size={16} /> }
+                : { label: '画像', icon: <FileImage size={16} /> };
 
     return (
         <div className="h-full overflow-y-auto p-4 space-y-4 bg-surface-950">
             <section className="rounded-lg border border-surface-700 bg-surface-900 px-3 py-3">
-                <SectionTitle icon={<FileImage size={16} />} title="基本情報" />
+                <div className="flex items-center justify-between gap-2">
+                    <SectionTitle icon={mediaBadge.icon} title="基本情報" />
+                    <span className="inline-flex items-center rounded-md border border-surface-600 bg-surface-800 px-2 py-0.5 text-[11px] text-surface-200">
+                        {mediaBadge.label}
+                    </span>
+                </div>
                 <div className="mt-3">
                     <InfoTable rows={fileInfoRows} />
                 </div>

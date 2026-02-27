@@ -16,6 +16,9 @@ import {
 interface ImageLightboxProps {
     file: MediaFile;
     overlayOpacity: number;
+    lightboxVersion: string;
+    videoVolume: number;
+    audioVolume: number;
     showPrevious: boolean;
     showNext: boolean;
     onPrevious: () => void;
@@ -31,6 +34,9 @@ function clampOpacity(value: number): number {
 export const ImageLightbox = React.memo<ImageLightboxProps>(({
     file,
     overlayOpacity,
+    lightboxVersion,
+    videoVolume,
+    audioVolume,
     showPrevious,
     showNext,
     onPrevious,
@@ -57,7 +63,7 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
             className="fixed inset-0 flex items-center justify-center"
             style={overlayStyle}
             onClick={onClose}
-            data-lightbox-version="clean-image"
+            data-lightbox-version={lightboxVersion}
         >
             {import.meta.env.DEV && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[70] px-3 py-1 rounded-full border border-emerald-400 bg-emerald-900 text-emerald-100 text-xs font-semibold pointer-events-none">
@@ -93,7 +99,11 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
                                 >
                                     <X size={24} />
                                 </button>
-                                <ImageStage file={file} />
+                                <ImageStage
+                                    file={file}
+                                    videoVolume={videoVolume}
+                                    audioVolume={audioVolume}
+                                />
                             </div>
                         </div>
                     </section>
