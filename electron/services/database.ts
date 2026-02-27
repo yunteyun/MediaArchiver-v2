@@ -408,6 +408,12 @@ export function updateFileLocation(id: string, newPath: string, newRootFolderId:
         .run(newPath, newRootFolderId, id);
 }
 
+export function updateFileNameAndPath(id: string, newName: string, newPath: string) {
+    const db = getDb();
+    db.prepare('UPDATE files SET name = ?, path = ? WHERE id = ?')
+        .run(newName, newPath, id);
+}
+
 export function updateFileHash(id: string, hash: string) {
     const db = getDb();
     db.prepare('UPDATE files SET content_hash = ? WHERE id = ?').run(hash, id);

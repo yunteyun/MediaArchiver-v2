@@ -53,6 +53,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === File Operations ===
     updateFileNotes: (fileId: string, notes: string) =>
         ipcRenderer.invoke('file:updateNotes', { fileId, notes }),
+    renameFile: (fileId: string, newName: string) =>
+        ipcRenderer.invoke('file:rename', { fileId, newName }),
 
     // Phase 17: Access Count
     incrementAccessCount: (fileId: string) =>

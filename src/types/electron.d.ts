@@ -130,6 +130,7 @@ declare global {
 
             // File Operations
             updateFileNotes: (fileId: string, notes: string) => Promise<{ success: boolean }>;
+            renameFile: (fileId: string, newName: string) => Promise<{ success: boolean; newName?: string; newPath?: string; error?: string }>;
 
             // Dialog
             selectFolder: () => Promise<string | null>;
