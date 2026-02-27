@@ -89,6 +89,30 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
                         className="relative flex-1 h-full min-w-0 rounded-xl border border-surface-700 bg-surface-950 overflow-hidden"
                         onClick={onClose}
                     >
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onPrevious();
+                            }}
+                            disabled={!showPrevious}
+                            className="absolute left-4 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black text-surface-100 shadow-lg transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-600 md:left-5"
+                            title="前へ (←)"
+                        >
+                            <ChevronLeft size={22} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onNext();
+                            }}
+                            disabled={!showNext}
+                            className="absolute right-4 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black text-surface-100 shadow-lg transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-600 md:right-5"
+                            title="次へ (→)"
+                        >
+                            <ChevronRight size={22} />
+                        </button>
                         <div className="h-full w-full flex items-center justify-center p-4 md:p-6">
                             <div className="relative max-w-full max-h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
                                 <button
@@ -107,27 +131,6 @@ export const ImageLightbox = React.memo<ImageLightboxProps>(({
                             </div>
                         </div>
                     </section>
-                </div>
-
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <button
-                        type="button"
-                        onClick={onPrevious}
-                        disabled={!showPrevious}
-                        className="h-11 w-11 rounded-full border border-surface-600 bg-black text-surface-100 disabled:text-surface-600 disabled:border-surface-800 disabled:cursor-not-allowed hover:bg-surface-900 flex items-center justify-center"
-                        title="前へ (←)"
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onNext}
-                        disabled={!showNext}
-                        className="h-11 w-11 rounded-full border border-surface-600 bg-black text-surface-100 disabled:text-surface-600 disabled:border-surface-800 disabled:cursor-not-allowed hover:bg-surface-900 flex items-center justify-center"
-                        title="次へ (→)"
-                    >
-                        <ChevronRight size={20} />
-                    </button>
                 </div>
             </div>
         </div>
