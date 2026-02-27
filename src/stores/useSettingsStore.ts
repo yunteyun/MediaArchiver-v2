@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import {
+    LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
+    clampOverlayOpacity,
+} from '../features/lightbox-clean/constants';
 
 export type CardLayout = 'grid' | 'list';
 
@@ -62,6 +66,7 @@ interface SettingsState {
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
     audioVolume: number; // 0.0 - 1.0 (音声ファイル専用)
+    lightboxOverlayOpacity: number; // 70 - 100
     performanceMode: boolean; // true = アニメーション無効化
     autoScanOnStartup: boolean; // true = 起動時自動スキャン
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
@@ -113,6 +118,7 @@ interface SettingsState {
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
     setAudioVolume: (volume: number) => void;
+    setLightboxOverlayOpacity: (opacity: number) => void;
     setPerformanceMode: (enabled: boolean) => void;
     setAutoScanOnStartup: (enabled: boolean) => void;
     setPreviewFrameCount: (count: number) => void;
@@ -162,6 +168,7 @@ export const useSettingsStore = create<SettingsState>()(
             sortOrder: 'desc',
             videoVolume: 0.5,
             audioVolume: 0.5,
+            lightboxOverlayOpacity: LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
             performanceMode: false,
             autoScanOnStartup: false,
             previewFrameCount: 10,
@@ -211,6 +218,7 @@ export const useSettingsStore = create<SettingsState>()(
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setVideoVolume: (volume) => set({ videoVolume: volume }),
             setAudioVolume: (volume) => set({ audioVolume: volume }),
+            setLightboxOverlayOpacity: (opacity) => set({ lightboxOverlayOpacity: clampOverlayOpacity(opacity) }),
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
             setAutoScanOnStartup: (autoScanOnStartup) => set({ autoScanOnStartup }),
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),

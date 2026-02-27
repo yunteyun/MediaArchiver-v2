@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Toaster } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
-import { LightBox } from './components/lightbox/LightBox';
 import { SettingsModal } from './components/SettingsModal';
 import { ProfileSwitcher } from './components/ProfileSwitcher';
 import { ProfileModal } from './components/ProfileModal';
@@ -21,6 +20,7 @@ import { useRatingStore } from './stores/useRatingStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 import { MoveFolderDialog } from './components/MoveFolderDialog';
 import { useDuplicateStore } from './stores/useDuplicateStore';
+import { CleanLightboxRoot } from './features/lightbox-clean/CleanLightboxRoot';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -315,7 +315,7 @@ function App() {
             </main>
             {/* Phase 23: 右サイドパネル（transform で開閉、レイアウトシフト回避） */}
             {isRightPanelOpen && <RightPanel />}
-            <LightBox />
+            <CleanLightboxRoot />
             <SettingsModal />
             <ProfileModal
                 isOpen={profileModalOpen}

@@ -21,6 +21,11 @@ import {
     type CsvImportDryRunSummary,
     type MediaArchiverCsvImportRow
 } from '../utils/fileImport';
+import {
+    LIGHTBOX_OVERLAY_OPACITY_MAX,
+    LIGHTBOX_OVERLAY_OPACITY_MIN,
+    LIGHTBOX_OVERLAY_OPACITY_STEP,
+} from '../features/lightbox-clean/constants';
 
 // Phase 25: ローカル型定義
 type StorageMode = 'appdata' | 'install' | 'custom';
@@ -41,6 +46,8 @@ export const SettingsModal = React.memo(() => {
     const setVideoVolume = useSettingsStore((s) => s.setVideoVolume);
     const audioVolume = useSettingsStore((s) => s.audioVolume);
     const setAudioVolume = useSettingsStore((s) => s.setAudioVolume);
+    const lightboxOverlayOpacity = useSettingsStore((s) => s.lightboxOverlayOpacity);
+    const setLightboxOverlayOpacity = useSettingsStore((s) => s.setLightboxOverlayOpacity);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const setThumbnailAction = useSettingsStore((s) => s.setThumbnailAction);
     const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
@@ -746,6 +753,29 @@ export const SettingsModal = React.memo(() => {
                                     <span>0%</span>
                                     <span>100%</span>
                                 </div>
+                            </div>
+
+                            {/* Lightbox Overlay Opacity */}
+                            <div>
+                                <label className="block text-sm font-medium text-surface-300 mb-2">
+                                    ライトボックス背景濃度: {lightboxOverlayOpacity}%
+                                </label>
+                                <input
+                                    type="range"
+                                    min={LIGHTBOX_OVERLAY_OPACITY_MIN}
+                                    max={LIGHTBOX_OVERLAY_OPACITY_MAX}
+                                    step={LIGHTBOX_OVERLAY_OPACITY_STEP}
+                                    value={lightboxOverlayOpacity}
+                                    onChange={(e) => setLightboxOverlayOpacity(Number(e.target.value))}
+                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                                />
+                                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                                    <span>{LIGHTBOX_OVERLAY_OPACITY_MIN}%</span>
+                                    <span>{LIGHTBOX_OVERLAY_OPACITY_MAX}%</span>
+                                </div>
+                                <p className="mt-1 text-xs text-surface-500">
+                                    画像ライトボックスの背景オーバーレイ濃度を調整します。
+                                </p>
                             </div>
 
 
