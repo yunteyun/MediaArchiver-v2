@@ -24,6 +24,7 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
     const [isArchiveLoading, setIsArchiveLoading] = useState(false);
     const [archiveError, setArchiveError] = useState<string | null>(null);
+    const [selectedArchiveFrame, setSelectedArchiveFrame] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -37,6 +38,7 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
 
     useEffect(() => {
         setHasError(false);
+        setSelectedArchiveFrame(null);
     }, [file.id, file.path]);
 
     useEffect(() => {
@@ -104,6 +106,24 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
         }
     }, [audioVolume, file.id]);
 
+    useEffect(() => {
+        if (kind !== 'archive' || !selectedArchiveFrame) {
+            return undefined;
+        }
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setSelectedArchiveFrame(null);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [kind, selectedArchiveFrame]);
+
     if (hasError) {
         return (
             <div className="rounded-xl border border-surface-700 bg-surface-900 px-6 py-8 text-center">
@@ -149,7 +169,7 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
 
     if (kind === 'archive') {
         return (
-            <div className="w-[min(92vw,1080px)] h-[min(74vh,760px)] rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
+            <div className="relative w-[min(92vw,1080px)] h-[min(74vh,760px)] rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
                 {isArchiveLoading ? (
                     <div className="h-full w-full flex items-center justify-center">
                         <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
@@ -166,20 +186,43 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                     <div className="h-full w-full overflow-y-auto p-4">
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {archiveGridFrames.map((framePath, index) => (
-                                <div key={`${framePath}-${index}`} className="flex items-center justify-center overflow-hidden rounded-lg">
+                                <button
+                                    key={`${framePath}-${index}`}
+                                    type="button"
+                                    className="flex items-center justify-center overflow-hidden rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                                    onClick={() => setSelectedArchiveFrame(framePath)}
+                                >
                                     <img
                                         src={toMediaUrl(framePath)}
                                         alt={`Archive frame ${index + 1}`}
-                                        className="block max-w-full max-h-[30vh] object-contain rounded-lg"
+                                        className="block max-w-full max-h-[30vh] object-contain rounded-lg cursor-zoom-in"
                                         onError={(e) => {
                                             (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
                                         }}
                                     />
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </div>
                 )}
+                {selectedArchiveFrame ? (
+                    <div
+                        className="absolute inset-0 z-10 flex items-center justify-center bg-black/85 p-6"
+                        onClick={() => setSelectedArchiveFrame(null)}
+                    >
+                        <div
+                            className="max-h-full max-w-full overflow-hidden rounded-xl border border-surface-700 bg-black shadow-2xl"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <img
+                                src={toMediaUrl(selectedArchiveFrame)}
+                                alt="Selected archive preview"
+                                className="block max-w-[min(88vw,1200px)] max-h-[min(82vh,920px)] object-contain"
+                                onError={() => setSelectedArchiveFrame(null)}
+                            />
+                        </div>
+                    </div>
+                ) : null}
             </div>
         );
     }
