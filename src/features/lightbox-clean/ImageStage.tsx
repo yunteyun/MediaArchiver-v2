@@ -22,7 +22,6 @@ const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
 export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audioVolume }) => {
     const [hasError, setHasError] = useState(false);
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
-    const [activeArchiveIndex, setActiveArchiveIndex] = useState(0);
     const [isArchiveLoading, setIsArchiveLoading] = useState(false);
     const [archiveError, setArchiveError] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -45,7 +44,6 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
 
         if (kind !== 'archive') {
             setArchiveFrames([]);
-            setActiveArchiveIndex(0);
             setArchiveError(null);
             setIsArchiveLoading(false);
             return () => {
@@ -60,7 +58,6 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                 const frames = await window.electronAPI.getArchivePreviewFrames(file.path, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT);
                 if (disposed) return;
                 setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean) : []);
-                setActiveArchiveIndex(0);
             } catch (error) {
                 if (disposed) return;
                 console.error('Failed to load archive preview frames in clean lightbox:', error);
@@ -79,6 +76,21 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
             disposed = true;
         };
     }, [file.id, file.path, kind]);
+
+    const archiveGridFrames = useMemo(() => {
+        if (archiveFrames.length <= LIGHTBOX_ARCHIVE_PREVIEW_LIMIT) {
+            return archiveFrames;
+        }
+
+        // 先頭〜末尾を均等サンプリングして、最大6枚のプレビューを表示する
+        const sampled = new Set<string>();
+        const lastIndex = archiveFrames.length - 1;
+        for (let i = 0; i < LIGHTBOX_ARCHIVE_PREVIEW_LIMIT; i += 1) {
+            const index = Math.round((i * lastIndex) / Math.max(1, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT - 1));
+            sampled.add(archiveFrames[index]);
+        }
+        return Array.from(sampled).filter(Boolean).slice(0, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT);
+    }, [archiveFrames]);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -136,8 +148,6 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
     }
 
     if (kind === 'archive') {
-        const activeFramePath = archiveFrames[activeArchiveIndex] ?? archiveFrames[0] ?? '';
-
         return (
             <div className="w-[min(92vw,1080px)] h-[min(74vh,760px)] rounded-xl border border-surface-700 bg-surface-900 shadow-2xl overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-surface-700 bg-surface-950">
@@ -147,7 +157,9 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-semibold text-surface-200 truncate">{file.name}</p>
-                            <p className="text-xs text-surface-500">プレビューフレーム {archiveFrames.length}枚</p>
+                            <p className="text-xs text-surface-500">
+                                プレビュー {archiveGridFrames.length}枚表示 / 全{archiveFrames.length}枚
+                            </p>
                         </div>
                     </div>
                     <button
@@ -158,7 +170,6 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                             window.electronAPI.getArchivePreviewFrames(file.path, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT)
                                 .then((frames) => {
                                     setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean) : []);
-                                    setActiveArchiveIndex(0);
                                 })
                                 .catch((error) => {
                                     console.error('Failed to reload archive preview frames in clean lightbox:', error);
@@ -176,49 +187,42 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
                     </button>
                 </div>
 
-                <div className="flex-1 min-h-0 p-4 flex flex-col gap-3">
-                    <div className="flex-1 min-h-0 rounded-lg border border-surface-700 bg-black flex items-center justify-center overflow-hidden">
-                        {isArchiveLoading ? (
+                <div className="flex-1 min-h-0 p-4">
+                    {isArchiveLoading ? (
+                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-black flex items-center justify-center overflow-hidden">
                             <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
-                        ) : archiveError ? (
-                            <p className="text-sm text-red-300">{archiveError}</p>
-                        ) : activeFramePath ? (
-                            <img
-                                src={toMediaUrl(activeFramePath)}
-                                alt={`${file.name} preview ${activeArchiveIndex + 1}`}
-                                style={mediaBoxStyle}
-                                onError={() => setArchiveError('プレビューフレームの表示に失敗しました')}
-                            />
-                        ) : (
-                            <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
-                        )}
-                    </div>
-
-                    <div className="h-28 shrink-0 rounded-lg border border-surface-700 bg-surface-950 p-2 overflow-y-auto">
-                        <div className="grid grid-cols-4 gap-2">
-                            {archiveFrames.map((framePath, index) => (
-                                <button
-                                    key={`${framePath}-${index}`}
-                                    type="button"
-                                    onClick={() => setActiveArchiveIndex(index)}
-                                    className={`rounded-md border overflow-hidden bg-black ${index === activeArchiveIndex
-                                        ? 'border-primary-500 ring-1 ring-primary-500'
-                                        : 'border-surface-700 hover:border-surface-500'
-                                        }`}
-                                    title={`フレーム ${index + 1}`}
-                                >
-                                    <img
-                                        src={toMediaUrl(framePath)}
-                                        alt={`Archive frame ${index + 1}`}
-                                        className="w-full h-14 object-cover"
-                                        onError={(e) => {
-                                            (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                                        }}
-                                    />
-                                </button>
-                            ))}
                         </div>
-                    </div>
+                    ) : archiveError ? (
+                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-black flex items-center justify-center overflow-hidden">
+                            <p className="text-sm text-red-300">{archiveError}</p>
+                        </div>
+                    ) : archiveGridFrames.length === 0 ? (
+                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-black flex items-center justify-center overflow-hidden">
+                            <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
+                        </div>
+                    ) : (
+                        <div className="h-full min-h-0 rounded-lg border border-surface-700 bg-surface-950 p-3 overflow-y-auto">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {archiveGridFrames.map((framePath, index) => (
+                                    <div key={`${framePath}-${index}`} className="rounded-md border border-surface-700 overflow-hidden bg-black">
+                                        <div className="h-48 flex items-center justify-center p-1">
+                                            <img
+                                                src={toMediaUrl(framePath)}
+                                                alt={`Archive frame ${index + 1}`}
+                                                className="max-w-full max-h-full object-contain"
+                                                onError={(e) => {
+                                                    (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="px-2 py-1 border-t border-surface-700 bg-surface-900 text-[11px] text-surface-400">
+                                            フレーム {index + 1}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
