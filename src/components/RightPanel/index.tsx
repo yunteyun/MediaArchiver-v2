@@ -18,6 +18,7 @@ export const RightPanel: React.FC = () => {
 
     // 中央カラム内ビューア表示中は、そのファイルを優先して右パネルへ表示する
     const file = lightboxFile ?? (focusedId ? fileMap.get(focusedId) : undefined);
+    const isCenterViewerOpen = Boolean(lightboxFile);
     const rootFolderPath = file?.rootFolderId ? (folderPathById.get(file.rootFolderId) ?? null) : null;
 
     React.useEffect(() => {
@@ -50,8 +51,7 @@ export const RightPanel: React.FC = () => {
                     <PreviewSection file={file} />
                     <div className="flex-1 overflow-y-auto">
                         <BasicInfoSection file={file} rootFolderPath={rootFolderPath} />
-                        {/* Phase 26: 書庫プレビューグリッド（BASIC INFO 下・TAG 上） */}
-                        <ArchivePreviewSection file={file} />
+                        {!isCenterViewerOpen && <ArchivePreviewSection file={file} />}
                         {/* Phase 26-C1: 評価セクション */}
                         <RatingSection file={file} />
                         <TagSection file={file} />
