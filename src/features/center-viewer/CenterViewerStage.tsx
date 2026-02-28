@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Music4 } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 
@@ -31,12 +30,13 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const kind = useMemo<'image' | 'video' | 'audio' | 'archive'>(() => {
+    const kind = useMemo<'image' | 'video' | 'audio' | 'archive' | 'unsupported'>(() => {
         if (file.type === 'video') return 'video';
         if (file.type === 'audio') return 'audio';
         if (file.type === 'archive') return 'archive';
         if (file.type === 'image') return 'image';
-        return IMAGE_LIKE_EXT_RE.test(file.name ?? '') || IMAGE_LIKE_EXT_RE.test(file.path ?? '') ? 'image' : 'archive';
+        if (IMAGE_LIKE_EXT_RE.test(file.name ?? '') || IMAGE_LIKE_EXT_RE.test(file.path ?? '')) return 'image';
+        return 'unsupported';
     }, [file.name, file.path, file.type]);
 
     useEffect(() => {
@@ -96,7 +96,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
     if (hasError) {
         return (
-            <div className="flex h-full w-full items-center justify-center rounded-[28px] bg-surface-900 px-6 py-8 text-center">
+            <div className="px-6 py-8 text-center">
                 <p className="text-sm font-semibold text-surface-200">メディアを読み込めませんでした</p>
             </div>
         );
@@ -108,7 +108,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 ref={videoRef}
                 src={toMediaUrl(file.path)}
                 style={mediaStyle}
-                className="max-h-full max-w-full rounded-[28px] bg-black shadow-2xl"
+                className="max-h-full max-w-full"
                 controls
                 autoPlay
                 onError={() => setHasError(true)}
@@ -118,27 +118,21 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
     if (kind === 'audio') {
         return (
-            <div className="w-full max-w-[720px] rounded-[28px] bg-surface-900 px-8 py-7 shadow-2xl">
-                <div className="mb-4 flex items-center gap-3 text-surface-200">
-                    <Music4 size={20} />
-                    <p className="text-sm font-semibold break-all">{file.name}</p>
-                </div>
-                <audio
-                    ref={audioRef}
-                    src={toMediaUrl(file.path)}
-                    controls
-                    autoPlay
-                    className="w-full"
-                    onError={() => setHasError(true)}
-                />
-            </div>
+            <audio
+                ref={audioRef}
+                src={toMediaUrl(file.path)}
+                controls
+                autoPlay
+                className="w-[min(720px,100%)]"
+                onError={() => setHasError(true)}
+            />
         );
     }
 
     if (kind === 'archive') {
         if (archiveLoading) {
             return (
-                <div className="flex h-full w-full items-center justify-center rounded-[28px] bg-surface-900">
+                <div className="px-6 py-8 text-center">
                     <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
                 </div>
             );
@@ -146,7 +140,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
         if (archiveError) {
             return (
-                <div className="flex h-full w-full items-center justify-center rounded-[28px] bg-surface-900">
+                <div className="px-6 py-8 text-center">
                     <p className="text-sm text-surface-300">{archiveError}</p>
                 </div>
             );
@@ -154,16 +148,16 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
         if (archiveFrames.length === 0) {
             return (
-                <div className="flex h-full w-full items-center justify-center rounded-[28px] bg-surface-900">
+                <div className="px-6 py-8 text-center">
                     <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
                 </div>
             );
         }
 
         return (
-            <div className="grid h-full w-full grid-cols-2 gap-4 overflow-auto rounded-[28px] bg-surface-900 p-5 md:grid-cols-3">
+            <div className="grid max-h-full max-w-full grid-cols-2 gap-4 overflow-auto md:grid-cols-3">
                 {archiveFrames.map((framePath, index) => (
-                    <div key={`${framePath}-${index}`} className="aspect-[4/3] overflow-hidden rounded-2xl bg-black">
+                    <div key={`${framePath}-${index}`} className="aspect-[4/3] overflow-hidden">
                         <img
                             src={toMediaUrl(framePath)}
                             alt={`Archive frame ${index + 1}`}
@@ -178,12 +172,20 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         );
     }
 
+    if (kind === 'unsupported') {
+        return (
+            <div className="px-6 py-8 text-center">
+                <p className="text-sm font-semibold text-surface-200">この形式は中央ビューアでは表示できません</p>
+            </div>
+        );
+    }
+
     return (
         <img
             src={toMediaUrl(file.path)}
             alt={file.name}
             style={mediaStyle}
-            className="max-h-full max-w-full rounded-[28px] bg-black shadow-2xl"
+            className="max-h-full max-w-full"
             onError={() => setHasError(true)}
         />
     );
