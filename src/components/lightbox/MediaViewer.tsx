@@ -18,6 +18,11 @@ interface MediaViewerProps {
 export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode, videoVolume, audioVolume, onVolumeChange, selectedArchiveImage, onSelectArchiveImage, onRequestClose }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
+    const boundedMediaStyle: React.CSSProperties = {
+        maxWidth: 'min(calc(100vw - 560px), 1180px)',
+        maxHeight: '74vh',
+        objectFit: 'contain',
+    };
 
     // Archive preview state
     const [archivePreviewFrames, setArchivePreviewFrames] = useState<string[]>([]);
@@ -146,7 +151,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                 src={toMediaUrl(file.path)}
                 controls
                 autoPlay
-                style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
+                style={boundedMediaStyle}
                 onLoadedMetadata={(e) => {
                     e.currentTarget.volume = videoVolume;
                 }}
@@ -161,7 +166,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
             <img
                 src={toMediaUrl(file.path)}
                 alt={file.name}
-                style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
+                style={boundedMediaStyle}
             />
         );
     }
@@ -362,7 +367,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                                     <img
                                         src={toMediaUrl(selectedArchiveImage)}
                                         alt="Archive preview"
-                                        style={{ maxWidth: 'calc(100vw - 450px)', maxHeight: '78vh', objectFit: 'contain' }}
+                                        style={boundedMediaStyle}
                                         className="cursor-pointer"
                                         onClick={() => onSelectArchiveImage(null)}
                                     />

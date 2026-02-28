@@ -31,7 +31,7 @@ export const InfoPanel = React.memo<InfoPanelProps>(({
 }) => {
     // 常に固定幅の2カラムレイアウト
     return (
-        <div className="w-80 xl:w-88 max-h-[74vh] self-center rounded-r-xl bg-black/70 backdrop-blur-md border-r border-white/10 p-5 overflow-y-auto shadow-2xl">
+        <div className="w-full h-full p-5 overflow-y-auto">
             <div className="space-y-4">
                 <div>
                     <p className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-1">ファイル名</p>
