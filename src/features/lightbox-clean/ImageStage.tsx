@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Music4 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Music4 } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT, LIGHTBOX_MEDIA_MAX_HEIGHT_VH } from './constants';
@@ -10,7 +10,7 @@ interface ImageStageProps {
     audioVolume: number;
 }
 
-const mediaBoxStyle: React.CSSProperties = {
+const imageStyle: React.CSSProperties = {
     display: 'block',
     maxWidth: '100%',
     maxHeight: `${LIGHTBOX_MEDIA_MAX_HEIGHT_VH}vh`,
@@ -24,7 +24,6 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
     const [isArchiveLoading, setIsArchiveLoading] = useState(false);
     const [archiveError, setArchiveError] = useState<string | null>(null);
-    const [selectedArchiveFrame, setSelectedArchiveFrame] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -38,7 +37,6 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
 
     useEffect(() => {
         setHasError(false);
-        setSelectedArchiveFrame(null);
     }, [file.id, file.path]);
 
     useEffect(() => {
@@ -59,7 +57,7 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
             try {
                 const frames = await window.electronAPI.getArchivePreviewFrames(file.path, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT);
                 if (disposed) return;
-                setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean) : []);
+                setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean).slice(0, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT) : []);
             } catch (error) {
                 if (disposed) return;
                 console.error('Failed to load archive preview frames in clean lightbox:', error);
@@ -77,39 +75,7 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
         return () => {
             disposed = true;
         };
-    }, [file.id, file.path, kind]);
-
-    const archiveGridFrames = useMemo(() => {
-        if (archiveFrames.length <= LIGHTBOX_ARCHIVE_PREVIEW_LIMIT) {
-            return archiveFrames;
-        }
-
-        // 先頭〜末尾を均等サンプリングして、最大6枚のプレビューを表示する
-        const sampled = new Set<string>();
-        const lastIndex = archiveFrames.length - 1;
-        for (let i = 0; i < LIGHTBOX_ARCHIVE_PREVIEW_LIMIT; i += 1) {
-            const index = Math.round((i * lastIndex) / Math.max(1, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT - 1));
-            sampled.add(archiveFrames[index]);
-        }
-        return Array.from(sampled).filter(Boolean).slice(0, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT);
-    }, [archiveFrames]);
-
-    const selectedArchiveFrameIndex = useMemo(() => {
-        if (!selectedArchiveFrame) {
-            return -1;
-        }
-        return archiveGridFrames.findIndex((framePath) => framePath === selectedArchiveFrame);
-    }, [archiveGridFrames, selectedArchiveFrame]);
-
-    const showAdjacentArchiveFrame = useCallback((direction: -1 | 1) => {
-        if (!archiveGridFrames.length) {
-            return;
-        }
-
-        const currentIndex = selectedArchiveFrameIndex >= 0 ? selectedArchiveFrameIndex : 0;
-        const nextIndex = (currentIndex + direction + archiveGridFrames.length) % archiveGridFrames.length;
-        setSelectedArchiveFrame(archiveGridFrames[nextIndex]);
-    }, [archiveGridFrames, selectedArchiveFrameIndex]);
+    }, [file.path, kind]);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -123,52 +89,21 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
         }
     }, [audioVolume, file.id]);
 
-    useEffect(() => {
-        if (kind !== 'archive' || !selectedArchiveFrame) {
-            return undefined;
-        }
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                setSelectedArchiveFrame(null);
-                return;
-            }
-
-            if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                showAdjacentArchiveFrame(-1);
-                return;
-            }
-
-            if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                showAdjacentArchiveFrame(1);
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [kind, selectedArchiveFrame, showAdjacentArchiveFrame]);
-
     if (hasError) {
         return (
-            <div className="rounded-xl border border-surface-700 bg-surface-900 px-6 py-8 text-center">
-                <p className="text-sm font-semibold text-surface-200">メディアを読み込めませんでした</p>
-                <p className="mt-2 text-xs text-surface-500 break-all">{file.name}</p>
+            <div className="flex h-full w-full items-center justify-center rounded-[32px] bg-[#8b8b8b] px-6 py-8 text-center">
+                <p className="text-sm font-semibold text-surface-100">メディアを読み込めませんでした</p>
             </div>
         );
     }
 
     if (kind === 'video') {
         return (
-            <div className="max-w-full rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
+            <div className="flex h-full w-full items-center justify-center rounded-[32px] bg-[#8b8b8b] p-6">
                 <video
                     ref={videoRef}
                     src={toMediaUrl(file.path)}
-                    style={mediaBoxStyle}
+                    style={imageStyle}
                     controls
                     autoPlay
                     onError={() => setHasError(true)}
@@ -179,115 +114,63 @@ export const ImageStage = React.memo<ImageStageProps>(({ file, videoVolume, audi
 
     if (kind === 'audio') {
         return (
-            <div className="rounded-xl border border-surface-700 bg-surface-900 shadow-2xl px-8 py-7 min-w-[420px] max-w-[92vw]">
-                <div className="flex items-center gap-3 text-surface-200 mb-4">
-                    <Music4 size={20} />
-                    <p className="text-sm font-semibold break-all">{file.name}</p>
+            <div className="flex h-full w-full items-center justify-center rounded-[32px] bg-[#8b8b8b] p-6">
+                <div className="w-full max-w-[640px] rounded-2xl bg-surface-950 px-8 py-7 text-surface-100">
+                    <div className="mb-4 flex items-center gap-3">
+                        <Music4 size={20} />
+                        <p className="text-sm font-semibold break-all">{file.name}</p>
+                    </div>
+                    <audio
+                        ref={audioRef}
+                        src={toMediaUrl(file.path)}
+                        controls
+                        autoPlay
+                        className="w-full"
+                        onError={() => setHasError(true)}
+                    />
                 </div>
-                <audio
-                    ref={audioRef}
-                    src={toMediaUrl(file.path)}
-                    controls
-                    autoPlay
-                    className="w-full"
-                    onError={() => setHasError(true)}
-                />
             </div>
         );
     }
 
     if (kind === 'archive') {
         return (
-            <div className="relative w-[min(94vw,1160px)] h-[min(78vh,820px)] rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
+            <div className="flex h-full w-full items-center justify-center rounded-[32px] bg-[#8b8b8b] p-6">
                 {isArchiveLoading ? (
-                    <div className="h-full w-full flex items-center justify-center">
-                        <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
-                    </div>
+                    <p className="text-sm text-surface-100">書庫プレビューを読み込み中...</p>
                 ) : archiveError ? (
-                    <div className="h-full w-full flex items-center justify-center">
-                        <p className="text-sm text-red-300">{archiveError}</p>
-                    </div>
-                ) : archiveGridFrames.length === 0 ? (
-                    <div className="h-full w-full flex items-center justify-center">
-                        <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
-                    </div>
+                    <p className="text-sm text-surface-100">{archiveError}</p>
+                ) : archiveFrames.length === 0 ? (
+                    <p className="text-sm text-surface-100">表示できるプレビューフレームがありません</p>
                 ) : (
-                    <div className="h-full w-full overflow-y-auto p-3">
-                        <div className="grid min-h-full grid-cols-2 content-center gap-3 md:grid-cols-3">
-                            {archiveGridFrames.map((framePath, index) => (
-                                <button
-                                    key={`${framePath}-${index}`}
-                                    type="button"
-                                    className="relative h-[27vh] w-full overflow-hidden rounded-lg border border-surface-800 bg-surface-950/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 md:h-[31vh]"
-                                    onClick={() => setSelectedArchiveFrame(framePath)}
-                                >
-                                    <img
-                                        src={toMediaUrl(framePath)}
-                                        alt={`Archive frame ${index + 1}`}
-                                        className="block h-full w-full cursor-zoom-in object-cover object-center"
-                                        onError={(e) => {
-                                            (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                                        }}
-                                    />
-                                </button>
-                            ))}
-                        </div>
+                    <div className="grid w-full max-w-[1180px] grid-cols-2 gap-4 md:grid-cols-3">
+                        {archiveFrames.map((framePath, index) => (
+                            <div
+                                key={`${framePath}-${index}`}
+                                className="aspect-[4/3] overflow-hidden rounded-2xl bg-[#101010]"
+                            >
+                                <img
+                                    src={toMediaUrl(framePath)}
+                                    alt={`Archive frame ${index + 1}`}
+                                    className="block h-full w-full object-cover object-center"
+                                    onError={(event) => {
+                                        event.currentTarget.style.visibility = 'hidden';
+                                    }}
+                                />
+                            </div>
+                        ))}
                     </div>
                 )}
-                {selectedArchiveFrame ? (
-                    <div
-                        className="absolute inset-0 z-10 flex items-center justify-center bg-black/85 p-6"
-                        onClick={() => setSelectedArchiveFrame(null)}
-                    >
-                        {archiveGridFrames.length > 1 ? (
-                            <button
-                                type="button"
-                                className="absolute left-4 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black/70 text-surface-100 shadow-lg transition hover:bg-black/85 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    showAdjacentArchiveFrame(-1);
-                                }}
-                                aria-label="前のフレームを表示"
-                            >
-                                <ChevronLeft size={24} />
-                            </button>
-                        ) : null}
-                        <div
-                            className="max-h-full max-w-full overflow-hidden rounded-xl border border-surface-700 bg-black shadow-2xl"
-                            onClick={(event) => event.stopPropagation()}
-                        >
-                            <img
-                                src={toMediaUrl(selectedArchiveFrame)}
-                                alt="Selected archive preview"
-                                className="block max-w-[min(88vw,1200px)] max-h-[min(82vh,920px)] object-contain"
-                                onError={() => setSelectedArchiveFrame(null)}
-                            />
-                        </div>
-                        {archiveGridFrames.length > 1 ? (
-                            <button
-                                type="button"
-                                className="absolute right-4 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-surface-600 bg-black/70 text-surface-100 shadow-lg transition hover:bg-black/85 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    showAdjacentArchiveFrame(1);
-                                }}
-                                aria-label="次のフレームを表示"
-                            >
-                                <ChevronRight size={24} />
-                            </button>
-                        ) : null}
-                    </div>
-                ) : null}
             </div>
         );
     }
 
     return (
-        <div className="max-w-full rounded-xl border border-surface-700 bg-black shadow-2xl overflow-hidden">
+        <div className="flex h-full w-full items-center justify-center rounded-[32px] bg-[#8b8b8b] p-6">
             <img
                 src={toMediaUrl(file.path)}
                 alt={file.name}
-                style={mediaBoxStyle}
+                style={imageStyle}
                 onError={() => setHasError(true)}
             />
         </div>
