@@ -75,7 +75,7 @@ export const CenterViewerRoot = React.memo(() => {
         <div className="absolute inset-0 z-20">
             <div className="absolute inset-0 bg-black/55" onClick={closeLightbox} />
 
-            <div className="absolute inset-0 flex items-center justify-center p-6">
+            <div className="absolute inset-0 flex items-center justify-center px-16 py-12">
                 <CenterViewerStage
                     file={lightboxFile}
                     videoVolume={videoVolume}
