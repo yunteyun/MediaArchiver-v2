@@ -96,7 +96,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
     if (hasError) {
         return (
-            <div className="px-6 py-8 text-center">
+            <div className="pointer-events-auto px-6 py-8 text-center">
                 <p className="text-sm font-semibold text-surface-200">メディアを読み込めませんでした</p>
             </div>
         );
@@ -108,7 +108,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 ref={videoRef}
                 src={toMediaUrl(file.path)}
                 style={mediaStyle}
-                className="max-h-full max-w-full"
+                className="pointer-events-auto max-h-full max-w-full"
                 controls
                 autoPlay
                 onError={() => setHasError(true)}
@@ -123,7 +123,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 src={toMediaUrl(file.path)}
                 controls
                 autoPlay
-                className="w-[min(720px,100%)]"
+                className="pointer-events-auto w-[min(720px,100%)]"
                 onError={() => setHasError(true)}
             />
         );
@@ -132,7 +132,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     if (kind === 'archive') {
         if (archiveLoading) {
             return (
-                <div className="px-6 py-8 text-center">
+                <div className="pointer-events-auto px-6 py-8 text-center">
                     <p className="text-sm text-surface-400">書庫プレビューを読み込み中...</p>
                 </div>
             );
@@ -140,7 +140,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
         if (archiveError) {
             return (
-                <div className="px-6 py-8 text-center">
+                <div className="pointer-events-auto px-6 py-8 text-center">
                     <p className="text-sm text-surface-300">{archiveError}</p>
                 </div>
             );
@@ -148,14 +148,14 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
         if (archiveFrames.length === 0) {
             return (
-                <div className="px-6 py-8 text-center">
+                <div className="pointer-events-auto px-6 py-8 text-center">
                     <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
                 </div>
             );
         }
 
         return (
-            <div className="grid max-h-full max-w-full grid-cols-2 gap-4 overflow-auto md:grid-cols-3">
+            <div className="pointer-events-auto grid max-h-full max-w-full grid-cols-2 gap-4 overflow-auto md:grid-cols-3">
                 {archiveFrames.map((framePath, index) => (
                     <div key={`${framePath}-${index}`} className="aspect-[4/3] overflow-hidden">
                         <img
@@ -174,7 +174,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
     if (kind === 'unsupported') {
         return (
-            <div className="px-6 py-8 text-center">
+            <div className="pointer-events-auto px-6 py-8 text-center">
                 <p className="text-sm font-semibold text-surface-200">この形式は中央ビューアでは表示できません</p>
             </div>
         );
@@ -185,7 +185,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
             src={toMediaUrl(file.path)}
             alt={file.name}
             style={mediaStyle}
-            className="max-h-full max-w-full"
+            className="pointer-events-auto max-h-full max-w-full"
             onError={() => setHasError(true)}
         />
     );
