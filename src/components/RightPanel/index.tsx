@@ -1,6 +1,7 @@
 import React from 'react';
 import { useFileStore } from '../../stores/useFileStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useUIStore } from '../../stores/useUIStore';
 import { PreviewSection } from './PreviewSection';
 import { BasicInfoSection } from './BasicInfoSection';
 import { TagSection } from './TagSection';
@@ -12,10 +13,11 @@ export const RightPanel: React.FC = () => {
     const focusedId = useFileStore((s) => s.focusedId);
     const fileMap = useFileStore((s) => s.fileMap);
     const activeProfileId = useSettingsStore((s) => s.activeProfileId);
+    const lightboxFile = useUIStore((s) => s.lightboxFile);
     const [folderPathById, setFolderPathById] = React.useState<Map<string, string>>(new Map());
 
-    // focusedId から O(1) でファイルを取得
-    const file = focusedId ? fileMap.get(focusedId) : undefined;
+    // 中央カラム内ビューア表示中は、そのファイルを優先して右パネルへ表示する
+    const file = lightboxFile ?? (focusedId ? fileMap.get(focusedId) : undefined);
     const rootFolderPath = file?.rootFolderId ? (folderPathById.get(file.rootFolderId) ?? null) : null;
 
     React.useEffect(() => {

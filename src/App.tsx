@@ -20,7 +20,7 @@ import { useRatingStore } from './stores/useRatingStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 import { MoveFolderDialog } from './components/MoveFolderDialog';
 import { useDuplicateStore } from './stores/useDuplicateStore';
-import { CleanLightboxRoot } from './features/lightbox-clean/CleanLightboxRoot';
+import { CenterViewerRoot } from './features/center-viewer/CenterViewerRoot';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -305,17 +305,19 @@ function App() {
                     </div>
                 </header>
                 {/* メインコンテンツ: 統計 / 重複ビュー / ファイルグリッド */}
-                {mainView === 'statistics' ? (
-                    <StatisticsView />
-                ) : duplicateViewOpen ? (
-                    <DuplicateView />
-                ) : (
-                    <FileGrid key={`grid-${refreshKey}`} />
-                )}
+                <div className="relative flex-1 min-h-0">
+                    {mainView === 'statistics' ? (
+                        <StatisticsView />
+                    ) : duplicateViewOpen ? (
+                        <DuplicateView />
+                    ) : (
+                        <FileGrid key={`grid-${refreshKey}`} />
+                    )}
+                    <CenterViewerRoot />
+                </div>
             </main>
             {/* Phase 23: 右サイドパネル（transform で開閉、レイアウトシフト回避） */}
             {isRightPanelOpen && <RightPanel />}
-            <CleanLightboxRoot />
             <SettingsModal />
             <ProfileModal
                 isOpen={profileModalOpen}
