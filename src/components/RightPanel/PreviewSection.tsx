@@ -45,9 +45,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const animatedSrc = isAnimated ? toMediaUrl(file.path) : null;
     const thumbnailSrc = toMediaUrl(file.thumbnailPath);
     const videoSrc = isVideo ? toMediaUrl(file.path) : null;
-    const previewShellClass = isVideo
-        ? 'min-h-[168px] max-h-[260px]'
-        : 'min-h-[160px] max-h-[320px]';
+    const backgroundSrc = isVideo ? thumbnailSrc : (animatedSrc || thumbnailSrc);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -133,16 +131,27 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
             <SectionTitle>プレビュー</SectionTitle>
             <div
-                className={`${previewShellClass} bg-black flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0 relative group rounded-md`}
+                className="h-[208px] bg-black flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0 relative group rounded-md"
                 onClick={handleClick}
                 title="クリックして拡大表示"
             >
+                {backgroundSrc && (
+                    <>
+                        <img
+                            src={backgroundSrc}
+                            alt=""
+                            aria-hidden="true"
+                            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl"
+                        />
+                        <div className="absolute inset-0 bg-black/45" />
+                    </>
+                )}
                 {isVideo && videoSrc ? (
                     <>
                         <video
                             ref={videoRef}
                             src={videoSrc}
-                            className="block w-full max-h-[260px] object-contain"
+                            className="relative z-[1] block h-full w-full object-contain"
                             autoPlay
                             muted={rightPanelVideoMuted}
                             loop={rightPanelVideoPreviewMode === 'loop'}
@@ -187,17 +196,17 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                     <img
                         src={animatedSrc}
                         alt={file.name}
-                        className="block w-full max-h-[320px] object-contain"
+                        className="relative z-[1] block h-full w-full object-contain"
                     />
                 ) : thumbnailSrc ? (
                     <img
                         src={thumbnailSrc}
                         alt={file.name}
-                        className="block w-full max-h-[320px] object-contain"
+                        className="relative z-[1] block h-full w-full object-contain"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                 ) : (
-                    <div className="flex min-h-[160px] flex-col items-center justify-center gap-2 text-surface-500">
+                    <div className="relative z-[1] flex h-full flex-col items-center justify-center gap-2 text-surface-500">
                         <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
