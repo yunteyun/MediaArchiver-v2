@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Loader2, CheckCircle, AlertCircle, Minus } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Minus } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 
 interface ScanProgressBarProps {
@@ -8,7 +8,6 @@ interface ScanProgressBarProps {
 
 export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) => {
     const scanProgress = useUIStore((s) => s.scanProgress);
-    const clearScanProgress = useUIStore((s) => s.clearScanProgress);
     const isVisible = useUIStore((s) => s.isScanProgressVisible);
     const setVisible = useUIStore((s) => s.setScanProgressVisible);
     const autoDismissPending = useUIStore((s) => s.scanProgressAutoDismissPending);
@@ -46,14 +45,6 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
     const isComplete = phase === 'complete';
     const isError = phase === 'error';
     const isCounting = phase === 'counting';
-
-    const handleClose = () => {
-        // アニメーション後にアンマウント
-        setVisible(false);
-        setTimeout(() => {
-            clearScanProgress();
-        }, 300); // transition duration と同じ
-    };
 
     const handleMinimize = () => {
         setVisible(false);
@@ -109,10 +100,11 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
                     )}
                     {(isComplete || isError) && (
                         <button
-                            onClick={handleClose}
+                            onClick={handleMinimize}
                             className="p-1 text-surface-400 hover:text-white hover:bg-surface-700 rounded transition-colors duration-200"
+                            title="最小化"
                         >
-                            <X size={14} />
+                            <Minus size={14} />
                         </button>
                     )}
                 </div>
