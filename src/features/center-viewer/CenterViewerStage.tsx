@@ -9,6 +9,7 @@ interface CenterViewerStageProps {
     file: MediaFile;
     videoVolume: number;
     audioVolume: number;
+    startTimeSeconds: number | null;
 }
 
 const mediaStyle: React.CSSProperties = {
@@ -22,6 +23,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     file,
     videoVolume,
     audioVolume,
+    startTimeSeconds,
 }) => {
     const [hasError, setHasError] = useState(false);
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
@@ -87,6 +89,30 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
             videoRef.current.volume = Math.max(0, Math.min(1, videoVolume));
         }
     }, [file.id, videoVolume]);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || file.type !== 'video' || startTimeSeconds == null || !Number.isFinite(startTimeSeconds)) {
+            return;
+        }
+
+        const seekToStartTime = () => {
+            if (!video.duration || Number.isNaN(video.duration)) {
+                return;
+            }
+            video.currentTime = Math.max(0, Math.min(video.duration, startTimeSeconds));
+        };
+
+        if (video.readyState >= 1) {
+            seekToStartTime();
+            return;
+        }
+
+        video.addEventListener('loadedmetadata', seekToStartTime, { once: true });
+        return () => {
+            video.removeEventListener('loadedmetadata', seekToStartTime);
+        };
+    }, [file.id, file.type, startTimeSeconds]);
 
     useEffect(() => {
         if (audioRef.current) {

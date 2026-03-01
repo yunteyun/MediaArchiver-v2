@@ -9,6 +9,7 @@ import { isAudioArchive } from '../../utils/fileHelpers';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { useUIStore } from '../../stores/useUIStore';
 import { SectionTitle } from './SectionTitle';
+import { getGeneratedPreviewFrameTime, parseDurationLabelToSeconds } from '../../utils/videoPreview';
 
 interface Props {
     file: MediaFile;
@@ -29,6 +30,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
     const displayFrames = isVideo ? videoFrames : frames;
     const frameAspectClass = isVideo ? 'aspect-video' : 'aspect-[3/4]';
     const title = isVideo ? '動画フレーム' : 'プレビューフレーム';
+    const videoDurationSeconds = useMemo(() => parseDurationLabelToSeconds(file.duration), [file.duration]);
 
     useEffect(() => {
         if (!isArchive) {
@@ -63,15 +65,20 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
                 </div>
             ) : displayFrames.length >= 2 ? (
                 // 2×2 グリッド表示
-                <div
-                    className="grid grid-cols-2 gap-1 cursor-pointer"
-                    onClick={() => openLightbox(file)}
-                    title="クリックしてライトボックスで開く"
-                >
+                <div className="grid grid-cols-2 gap-1">
                     {displayFrames.slice(0, 4).map((framePath, i) => (
-                        <div
+                        <button
+                            type="button"
                             key={i}
-                            className={`${frameAspectClass} overflow-hidden rounded-sm bg-surface-800 flex items-center justify-center`}
+                            className={`${frameAspectClass} overflow-hidden rounded-sm bg-surface-800 flex items-center justify-center cursor-pointer transition hover:ring-1 hover:ring-surface-500`}
+                            onClick={() => {
+                                if (isVideo && videoDurationSeconds) {
+                                    openLightbox(file, 'default', getGeneratedPreviewFrameTime(videoDurationSeconds, i, displayFrames.length));
+                                    return;
+                                }
+                                openLightbox(file);
+                            }}
+                            title={isVideo ? 'クリックしてこの場面から中央ビューアで開く' : 'クリックして中央ビューアで開く'}
                         >
                             <img
                                 src={toMediaUrl(framePath)}
@@ -79,7 +86,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
                                 className="w-full h-full object-cover"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
-                        </div>
+                        </button>
                     ))}
                     {/* 空きセルを埋める（3枚以下の場合） */}
                     {displayFrames.length < 4 && Array.from({ length: 4 - displayFrames.length }).map((_, i) => (
@@ -90,7 +97,13 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
                 // 1枚のみの場合
                 <div
                     className="w-full overflow-hidden rounded-sm cursor-pointer"
-                    onClick={() => openLightbox(file)}
+                    onClick={() => {
+                        if (isVideo && videoDurationSeconds) {
+                            openLightbox(file, 'default', getGeneratedPreviewFrameTime(videoDurationSeconds, 0, displayFrames.length));
+                            return;
+                        }
+                        openLightbox(file);
+                    }}
                 >
                     <img
                         src={toMediaUrl(displayFrames[0])}

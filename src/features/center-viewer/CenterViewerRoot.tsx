@@ -7,6 +7,7 @@ import { CenterViewerStage } from './CenterViewerStage';
 
 export const CenterViewerRoot = React.memo(() => {
     const lightboxFile = useUIStore((state) => state.lightboxFile);
+    const lightboxStartTime = useUIStore((state) => state.lightboxStartTime);
     const closeLightbox = useUIStore((state) => state.closeLightbox);
     const files = useFileStore((state) => state.files);
     const incrementAccessCount = useFileStore((state) => state.incrementAccessCount);
@@ -80,6 +81,7 @@ export const CenterViewerRoot = React.memo(() => {
                     file={lightboxFile}
                     videoVolume={videoVolume}
                     audioVolume={audioVolume}
+                    startTimeSeconds={lightboxStartTime}
                 />
             </div>
 

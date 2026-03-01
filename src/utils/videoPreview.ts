@@ -27,3 +27,28 @@ export function getSequentialPreviewTime(duration: number, segmentIndex: number)
 export function shouldFallbackSequentialPreview(duration: number): boolean {
     return duration < VIDEO_PREVIEW_SEQUENTIAL_MIN_DURATION;
 }
+
+export function parseDurationLabelToSeconds(durationLabel?: string | null): number | null {
+    if (!durationLabel) return null;
+
+    const parts = durationLabel
+        .split(':')
+        .map((part) => Number.parseInt(part, 10));
+
+    if (parts.length < 2 || parts.some((part) => Number.isNaN(part) || part < 0)) {
+        return null;
+    }
+
+    return parts.reduce((total, part) => total * 60 + part, 0);
+}
+
+export function getGeneratedPreviewFrameTime(duration: number, frameIndex: number, frameCount: number): number {
+    if (!Number.isFinite(duration) || duration <= 0 || frameCount <= 1) {
+        return 0;
+    }
+
+    const safeStart = duration * 0.05;
+    const safeEnd = duration * 0.95;
+    const step = (safeEnd - safeStart) / (frameCount - 1);
+    return Math.max(0, Math.min(duration, safeStart + step * frameIndex));
+}
