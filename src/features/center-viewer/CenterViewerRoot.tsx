@@ -7,6 +7,7 @@ import { CenterViewerStage } from './CenterViewerStage';
 
 export const CenterViewerRoot = React.memo(() => {
     const lightboxFile = useUIStore((state) => state.lightboxFile);
+    const lightboxOpenMode = useUIStore((state) => state.lightboxOpenMode);
     const lightboxStartTime = useUIStore((state) => state.lightboxStartTime);
     const closeLightbox = useUIStore((state) => state.closeLightbox);
     const files = useFileStore((state) => state.files);
@@ -79,6 +80,7 @@ export const CenterViewerRoot = React.memo(() => {
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-20 py-16">
                 <CenterViewerStage
                     file={lightboxFile}
+                    openMode={lightboxOpenMode}
                     videoVolume={videoVolume}
                     audioVolume={audioVolume}
                     startTimeSeconds={lightboxStartTime}

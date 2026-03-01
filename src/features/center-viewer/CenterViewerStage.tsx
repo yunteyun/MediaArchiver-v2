@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Archive, Music } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
+import type { LightboxOpenMode } from '../../stores/useUIStore';
 import { toMediaUrl } from '../../utils/mediaPath';
+import { isAudioArchive } from '../../utils/fileHelpers';
 
 const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
 const ARCHIVE_PREVIEW_LIMIT = 6;
 
 interface CenterViewerStageProps {
     file: MediaFile;
+    openMode: LightboxOpenMode;
     videoVolume: number;
     audioVolume: number;
     startTimeSeconds: number | null;
@@ -21,6 +25,7 @@ const mediaStyle: React.CSSProperties = {
 
 export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     file,
+    openMode,
     videoVolume,
     audioVolume,
     startTimeSeconds,
@@ -30,6 +35,12 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const [archiveLoading, setArchiveLoading] = useState(false);
     const [archiveError, setArchiveError] = useState<string | null>(null);
     const [selectedArchiveFrameIndex, setSelectedArchiveFrameIndex] = useState<number | null>(null);
+    const [archiveAudioEntries, setArchiveAudioEntries] = useState<string[]>([]);
+    const [currentArchiveAudioPath, setCurrentArchiveAudioPath] = useState<string | null>(null);
+    const [currentArchiveAudioIndex, setCurrentArchiveAudioIndex] = useState<number>(-1);
+    const [archiveAudioCurrentTime, setArchiveAudioCurrentTime] = useState(0);
+    const [archiveAudioIsPlaying, setArchiveAudioIsPlaying] = useState(false);
+    const [archiveAudioAutoPlay, setArchiveAudioAutoPlay] = useState(true);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -48,6 +59,11 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
     useEffect(() => {
         setSelectedArchiveFrameIndex(null);
+        setArchiveAudioEntries([]);
+        setCurrentArchiveAudioPath(null);
+        setCurrentArchiveAudioIndex(-1);
+        setArchiveAudioCurrentTime(0);
+        setArchiveAudioIsPlaying(false);
     }, [file.id, file.path]);
 
     useEffect(() => {
@@ -67,13 +83,18 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
             setArchiveError(null);
 
             try {
-                const frames = await window.electronAPI.getArchivePreviewFrames(file.path, ARCHIVE_PREVIEW_LIMIT);
+                const [frames, audioEntries] = await Promise.all([
+                    window.electronAPI.getArchivePreviewFrames(file.path, ARCHIVE_PREVIEW_LIMIT),
+                    window.electronAPI.getArchiveAudioFiles(file.path),
+                ]);
                 if (disposed) return;
                 setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean).slice(0, ARCHIVE_PREVIEW_LIMIT) : []);
+                setArchiveAudioEntries(Array.isArray(audioEntries) ? audioEntries.filter(Boolean) : []);
             } catch (error) {
                 if (disposed) return;
                 console.error('Failed to load archive preview frames in center viewer:', error);
                 setArchiveFrames([]);
+                setArchiveAudioEntries([]);
                 setArchiveError('書庫プレビューの取得に失敗しました');
             } finally {
                 if (!disposed) {
@@ -125,6 +146,31 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         }
     }, [audioVolume, file.id]);
 
+    const handleSelectArchiveAudio = async (entry: string, index: number) => {
+        try {
+            const extractedPath = await window.electronAPI.extractArchiveAudioFile(file.path, entry);
+            if (!extractedPath) return;
+            setCurrentArchiveAudioPath(extractedPath);
+            setCurrentArchiveAudioIndex(index);
+            setArchiveAudioCurrentTime(0);
+            setArchiveAudioIsPlaying(true);
+        } catch (error) {
+            console.error('Failed to extract archive audio file in center viewer:', error);
+        }
+    };
+
+    const handleArchiveAudioEnded = async () => {
+        setArchiveAudioIsPlaying(false);
+        setArchiveAudioCurrentTime(0);
+        if (!archiveAudioAutoPlay || currentArchiveAudioIndex < 0 || currentArchiveAudioIndex >= archiveAudioEntries.length - 1) {
+            return;
+        }
+        const nextIndex = currentArchiveAudioIndex + 1;
+        const nextEntry = archiveAudioEntries[nextIndex];
+        if (!nextEntry) return;
+        await handleSelectArchiveAudio(nextEntry, nextIndex);
+    };
+
     if (hasError) {
         return (
             <div className="pointer-events-auto px-6 py-8 text-center">
@@ -149,14 +195,28 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
     if (kind === 'audio') {
         return (
-            <audio
-                ref={audioRef}
-                src={toMediaUrl(file.path)}
-                controls
-                autoPlay
-                className="pointer-events-auto w-[min(720px,100%)]"
-                onError={() => setHasError(true)}
-            />
+            <div className="pointer-events-auto flex w-full max-w-[780px] flex-col items-center gap-6 px-6 text-surface-100">
+                {file.thumbnailPath ? (
+                    <img
+                        src={toMediaUrl(file.thumbnailPath)}
+                        alt={file.name}
+                        className="h-72 w-72 rounded-xl object-cover shadow-2xl"
+                        onError={() => setHasError(true)}
+                    />
+                ) : (
+                    <div className="flex h-72 w-72 items-center justify-center rounded-xl bg-surface-800 shadow-2xl">
+                        <Music size={72} className="text-surface-500" />
+                    </div>
+                )}
+                <audio
+                    ref={audioRef}
+                    src={toMediaUrl(file.path)}
+                    controls
+                    autoPlay
+                    className="w-full"
+                    onError={() => setHasError(true)}
+                />
+            </div>
         );
     }
 
@@ -177,7 +237,14 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
             );
         }
 
-        if (archiveFrames.length === 0) {
+        const hasAudioArchiveEntries = archiveAudioEntries.length > 0 || isAudioArchive(file);
+        const audioFocusedArchiveView = openMode === 'archive-audio' && archiveAudioEntries.length > 0;
+        const imageFocusedArchiveView = openMode === 'archive-image' && archiveFrames.length > 0;
+        const showArchivePreviewGrid = archiveFrames.length > 0 && !audioFocusedArchiveView;
+        const showArchiveAudioList = archiveAudioEntries.length > 0 && !imageFocusedArchiveView;
+        const isMixedArchiveView = showArchivePreviewGrid && showArchiveAudioList;
+
+        if (archiveFrames.length === 0 && archiveAudioEntries.length === 0) {
             return (
                 <div className="pointer-events-auto px-6 py-8 text-center">
                     <p className="text-sm text-surface-400">表示できるプレビューフレームがありません</p>
@@ -185,8 +252,51 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
             );
         }
 
+        const renderArchiveAudioPlayer = () => {
+            if (!currentArchiveAudioPath) return null;
+            return (
+                <div className="mt-4 border-t border-surface-700 pt-4">
+                    <audio
+                        ref={audioRef}
+                        src={toMediaUrl(currentArchiveAudioPath)}
+                        controls
+                        autoPlay={archiveAudioIsPlaying}
+                        className="w-full"
+                        onLoadedMetadata={(event) => {
+                            event.currentTarget.volume = audioVolume;
+                            const duration = Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0;
+                            const safeTime = Math.max(0, Math.min(archiveAudioCurrentTime, duration || archiveAudioCurrentTime));
+                            if (safeTime > 0) {
+                                event.currentTarget.currentTime = safeTime;
+                            }
+                            if (archiveAudioIsPlaying) {
+                                void event.currentTarget.play().catch(() => {
+                                    // 再開失敗は握りつぶす
+                                });
+                            }
+                        }}
+                        onTimeUpdate={(event) => setArchiveAudioCurrentTime(event.currentTarget.currentTime)}
+                        onPlay={() => setArchiveAudioIsPlaying(true)}
+                        onPause={() => setArchiveAudioIsPlaying(false)}
+                        onEnded={() => {
+                            void handleArchiveAudioEnded();
+                        }}
+                    />
+                    <label className="mt-3 flex items-center gap-2 text-sm text-surface-300">
+                        <input
+                            type="checkbox"
+                            checked={archiveAudioAutoPlay}
+                            onChange={(event) => setArchiveAudioAutoPlay(event.target.checked)}
+                            className="h-4 w-4 accent-primary-500"
+                        />
+                        連続再生
+                    </label>
+                </div>
+            );
+        };
+
         return (
-            <div className="pointer-events-auto flex max-h-full max-w-full flex-col gap-4">
+            <div className="pointer-events-auto flex max-h-full w-full max-w-[1180px] flex-col gap-4 text-surface-100">
                 {selectedArchiveFrameIndex != null ? (
                     <>
                         <div className="flex items-center justify-between gap-3 text-sm text-surface-200">
@@ -236,24 +346,69 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                         </div>
                     </>
                 ) : (
-                    <div className="grid max-h-full max-w-[980px] grid-cols-3 gap-3 overflow-auto">
-                        {archiveFrames.map((framePath, index) => (
-                            <button
-                                type="button"
-                                key={`${framePath}-${index}`}
-                                className="aspect-square overflow-hidden rounded-md bg-surface-700/80 transition hover:ring-2 hover:ring-surface-400"
-                                onClick={() => setSelectedArchiveFrameIndex(index)}
-                            >
-                                <img
-                                    src={toMediaUrl(framePath)}
-                                    alt={`Archive frame ${index + 1}`}
-                                    className="h-full w-full object-contain bg-surface-800/70"
-                                    onError={(event) => {
-                                        event.currentTarget.style.visibility = 'hidden';
-                                    }}
-                                />
-                            </button>
-                        ))}
+                    <div className={`flex max-h-full gap-5 ${showArchiveAudioList ? 'items-stretch' : 'justify-center'}`}>
+                        {showArchivePreviewGrid ? (
+                            <div className={isMixedArchiveView ? 'flex-1 min-w-0' : 'w-full'}>
+                                <div className="rounded-xl border border-surface-700 bg-black/35 p-4 shadow-2xl">
+                                    <div className="grid max-h-full grid-cols-3 gap-3 overflow-auto">
+                                        {archiveFrames.map((framePath, index) => (
+                                            <button
+                                                type="button"
+                                                key={`${framePath}-${index}`}
+                                                className="aspect-square overflow-hidden rounded-md bg-surface-700/80 transition hover:ring-2 hover:ring-surface-400"
+                                                onClick={() => setSelectedArchiveFrameIndex(index)}
+                                            >
+                                                <img
+                                                    src={toMediaUrl(framePath)}
+                                                    alt={`Archive frame ${index + 1}`}
+                                                    className="h-full w-full object-contain bg-surface-800/70"
+                                                    onError={(event) => {
+                                                        event.currentTarget.style.visibility = 'hidden';
+                                                    }}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : hasAudioArchiveEntries ? (
+                            <div className="flex h-56 w-56 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-surface-700 to-surface-900 shadow-2xl">
+                                <Music size={72} className="text-primary-400" />
+                            </div>
+                        ) : null}
+
+                        {showArchiveAudioList && (
+                            <div className={`${showArchivePreviewGrid ? 'w-[420px]' : 'w-full max-w-[780px]'} min-w-0`}>
+                                <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-700 bg-black/45 p-5 shadow-2xl">
+                                    <div className="mb-4 flex items-center gap-3 text-lg font-medium text-surface-100">
+                                        <Music size={22} />
+                                        <span>音声ファイル ({archiveAudioEntries.length})</span>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto">
+                                        {archiveAudioEntries.map((entry, index) => {
+                                            const isPlaying = currentArchiveAudioIndex === index;
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={`${entry}-${index}`}
+                                                    className={`mb-1 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition ${isPlaying ? 'bg-primary-600 text-white shadow-lg' : 'text-surface-200 hover:bg-surface-700'}`}
+                                                    onClick={() => {
+                                                        void handleSelectArchiveAudio(entry, index);
+                                                    }}
+                                                >
+                                                    <Music
+                                                        size={18}
+                                                        className={`flex-shrink-0 ${isPlaying ? 'animate-pulse text-white' : 'text-primary-400'}`}
+                                                    />
+                                                    <span className="truncate">{entry.split('/').pop() || entry}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {renderArchiveAudioPlayer()}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -263,6 +418,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     if (kind === 'unsupported') {
         return (
             <div className="pointer-events-auto px-6 py-8 text-center">
+                <Archive size={56} className="mx-auto mb-4 text-surface-500" />
                 <p className="text-sm font-semibold text-surface-200">この形式は中央ビューアでは表示できません</p>
             </div>
         );
