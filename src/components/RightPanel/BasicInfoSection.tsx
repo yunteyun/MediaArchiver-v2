@@ -58,6 +58,29 @@ function parseResolution(metadata?: string): string | null {
     return null;
 }
 
+function getDisplayContainer(metadata: ParsedMetadata | null, extension: string): string | null {
+    const raw = metadata?.container || metadata?.format;
+    if (!raw) {
+        return extension !== '-' ? extension : null;
+    }
+
+    const parts = raw
+        .split(',')
+        .map((part) => part.trim().toLowerCase())
+        .filter(Boolean);
+
+    if (parts.length === 0) {
+        return extension !== '-' ? extension : null;
+    }
+
+    if (extension !== '-') {
+        const matched = parts.find((part) => part === extension);
+        if (matched) return matched;
+    }
+
+    return parts[0] ?? null;
+}
+
 const typeLabel: Record<string, string> = {
     video: '動画',
     image: '画像',
@@ -132,6 +155,7 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
         ? `${Math.round(metadata.bitrate / 1000)} kbps`
         : null;
     const isVideo = file.type === 'video';
+    const displayContainer = getDisplayContainer(metadata, extension);
 
     return (
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
@@ -160,14 +184,13 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
                         {!isVideo && file.duration && <InfoRow label="再生時間" value={file.duration} />}
                         <InfoRow label="拡張子" value={extension} />
                         <InfoRow label="ファイルパス" value={file.path} />
-                        {metadata?.format && <InfoRow label="形式" value={metadata.format} />}
                         {archiveImageCount != null && <InfoRow label="書庫内画像数" value={`${archiveImageCount}`} />}
                         {file.type === 'archive' && metadata?.hasAudio && <InfoRow label="書庫内音声" value="あり" />}
                     </InfoGroup>
 
-                    {(isVideo || metadata?.container || metadata?.videoCodec || metadata?.codec || metadata?.audioCodec || (typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps)) || bitrate) && (
+                    {(isVideo || displayContainer || metadata?.videoCodec || metadata?.codec || metadata?.audioCodec || (typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps)) || bitrate) && (
                         <InfoGroup title="技術情報">
-                            {metadata?.container && <InfoRow label="コンテナ" value={metadata.container} />}
+                            {displayContainer && <InfoRow label="コンテナ" value={displayContainer} />}
                             {(metadata?.videoCodec || metadata?.codec) && (
                                 <InfoRow label="映像コーデック" value={metadata.videoCodec ?? metadata.codec ?? ''} />
                             )}
