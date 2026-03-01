@@ -241,13 +241,13 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                             <button
                                 type="button"
                                 key={`${framePath}-${index}`}
-                                className="aspect-square overflow-hidden rounded-md bg-surface-800 transition hover:ring-2 hover:ring-surface-400"
+                                className="aspect-square overflow-hidden rounded-md bg-surface-700/80 transition hover:ring-2 hover:ring-surface-400"
                                 onClick={() => setSelectedArchiveFrameIndex(index)}
                             >
                                 <img
                                     src={toMediaUrl(framePath)}
                                     alt={`Archive frame ${index + 1}`}
-                                    className="h-full w-full object-contain bg-surface-900"
+                                    className="h-full w-full object-contain bg-surface-800/70"
                                     onError={(event) => {
                                         event.currentTarget.style.visibility = 'hidden';
                                     }}
