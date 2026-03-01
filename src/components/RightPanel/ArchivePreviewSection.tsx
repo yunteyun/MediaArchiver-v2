@@ -83,7 +83,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
                             <img
                                 src={toMediaUrl(framePath)}
                                 alt={`frame ${i + 1}`}
-                                className="w-full h-full object-cover"
+                                className="h-full w-full object-contain bg-surface-900"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                         </button>
@@ -108,7 +108,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
                     <img
                         src={toMediaUrl(displayFrames[0])}
                         alt="preview"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain bg-surface-900"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                 </div>
