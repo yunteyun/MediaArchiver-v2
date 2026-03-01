@@ -149,7 +149,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                             playsInline
                             preload="metadata"
                         />
-                        <div className="absolute right-2 top-2 z-10 flex gap-1.5">
+                        <div className="absolute right-2 top-2 z-10 flex gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                             <button
                                 type="button"
                                 onClick={(event) => {

@@ -28,7 +28,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
     }, [file.previewFrames, isVideo]);
     const shouldShow = isArchive || (isVideo && videoFrames.length > 0);
     const displayFrames = isVideo ? videoFrames : frames;
-    const frameAspectClass = isVideo ? 'aspect-video' : 'aspect-[3/4]';
+    const frameAspectClass = isVideo ? 'aspect-square' : 'aspect-[3/4]';
     const title = isVideo ? '動画フレーム' : 'プレビューフレーム';
     const videoDurationSeconds = useMemo(() => parseDurationLabelToSeconds(file.duration), [file.duration]);
 
@@ -96,7 +96,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
             ) : displayFrames.length === 1 ? (
                 // 1枚のみの場合
                 <div
-                    className="w-full overflow-hidden rounded-sm cursor-pointer"
+                    className={`w-full overflow-hidden rounded-sm cursor-pointer ${isVideo ? 'aspect-square bg-surface-800' : ''}`}
                     onClick={() => {
                         if (isVideo && videoDurationSeconds) {
                             openLightbox(file, 'default', getGeneratedPreviewFrameTime(videoDurationSeconds, 0, displayFrames.length));
@@ -108,7 +108,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
                     <img
                         src={toMediaUrl(displayFrames[0])}
                         alt="preview"
-                        className={`w-full ${isVideo ? 'aspect-video' : ''} object-cover`}
+                        className="h-full w-full object-cover"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                     />
                 </div>
