@@ -79,7 +79,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
                         className="overflow-hidden whitespace-pre-wrap break-words text-xs leading-5 text-surface-500"
                         style={{
                             display: '-webkit-box',
-                            WebkitLineClamp: 3,
+                            WebkitLineClamp: 5,
                             WebkitBoxOrient: 'vertical',
                         }}
                     >
