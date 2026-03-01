@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard } from 'lucide-react';
+import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard, Maximize2 } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
@@ -267,6 +267,8 @@ function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
 }
 
 const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
+const HOVER_ZOOM_PREVIEW_SIZE = 360;
+const HOVER_ZOOM_PREVIEW_GAP = 12;
 
 const activeVisibleAnimatedPreviewIds = new Set<string>();
 const visibleAnimatedPreviewListeners = new Set<() => void>();
@@ -398,9 +400,11 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const flipbookIntervalRef = useRef<number | null>(null);
     const [animatedPreviewSessionKey, setAnimatedPreviewSessionKey] = useState(0);
     const thumbnailAreaRef = useRef<HTMLDivElement>(null);
+    const cardRootRef = useRef<HTMLDivElement>(null);
     const [isThumbnailVisible, setIsThumbnailVisible] = useState(false);
     const [visibleAnimatedPreviewVersion, setVisibleAnimatedPreviewVersion] = useState(0);
     const [isVisibleAnimatedPreviewActive, setIsVisibleAnimatedPreviewActive] = useState(false);
+    const [hoverZoomPosition, setHoverZoomPosition] = useState<{ top: number; left: number } | null>(null);
 
     // Play mode state
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -425,6 +429,15 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const isAnimatedImage = useMemo(() => {
         return file.type === 'image' && file.isAnimated === true;
     }, [file.type, file.isAnimated]);
+
+    const shouldShowHoverZoomPreview = useMemo(() => {
+        return (
+            isHovered &&
+            file.type === 'image' &&
+            !file.isAnimated &&
+            Boolean(file.thumbnailPath || file.path)
+        );
+    }, [file.isAnimated, file.path, file.thumbnailPath, file.type, isHovered]);
 
     const shouldAnimateImagePreview = useMemo(() => {
         return (
@@ -536,6 +549,46 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             clearFlipbookInterval();
         };
     }, [clearFlipbookInterval]);
+
+    useEffect(() => {
+        if (!shouldShowHoverZoomPreview || !cardRootRef.current) {
+            setHoverZoomPosition(null);
+            return;
+        }
+
+        const updatePosition = () => {
+            const rect = cardRootRef.current?.getBoundingClientRect();
+            if (!rect) return;
+
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const previewSize = HOVER_ZOOM_PREVIEW_SIZE;
+            const gap = HOVER_ZOOM_PREVIEW_GAP;
+
+            const preferredLeft = rect.right + gap;
+            const fallbackLeft = rect.left - previewSize - gap;
+            const left = preferredLeft + previewSize <= viewportWidth - 12
+                ? preferredLeft
+                : Math.max(12, fallbackLeft);
+
+            const preferredTop = rect.top;
+            const top = Math.min(
+                Math.max(12, preferredTop),
+                Math.max(12, viewportHeight - previewSize - 12)
+            );
+
+            setHoverZoomPosition({ top, left });
+        };
+
+        updatePosition();
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+
+        return () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            window.removeEventListener('resize', updatePosition);
+        };
+    }, [shouldShowHoverZoomPreview]);
 
     useEffect(() => {
         if (!isAnimatedImage || !thumbnailAreaRef.current) {
@@ -937,6 +990,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     return (
         <div
+            ref={cardRootRef}
             onClick={handleCardClick}
             onDoubleClick={handleDoubleClick}
             onContextMenu={handleContextMenu}
@@ -1059,6 +1113,21 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     )}
                 </div>
 
+                {file.type === 'image' && !file.isAnimated && (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            openLightbox(file);
+                        }}
+                        className={`absolute top-1 left-1 z-10 rounded-sm border border-surface-600/80 bg-black/60 p-1 text-surface-200 transition-all ${isHovered ? 'opacity-100' : 'pointer-events-none opacity-0'} hover:bg-black/80 hover:text-white`}
+                        title="中央ビューアで拡大表示"
+                        aria-label="中央ビューアで拡大表示"
+                    >
+                        <Maximize2 size={12} />
+                    </button>
+                )}
+
 
             </div>
 
@@ -1126,6 +1195,26 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             </span>
                         ))}
                     </div>
+                </div>,
+                document.body
+            )}
+
+            {shouldShowHoverZoomPreview && hoverZoomPosition && displayImageSrc && createPortal(
+                <div
+                    className="pointer-events-none fixed overflow-hidden rounded-lg border border-surface-600 bg-surface-800/95 shadow-2xl shadow-black/50 backdrop-blur-sm"
+                    style={{
+                        top: hoverZoomPosition.top,
+                        left: hoverZoomPosition.left,
+                        width: HOVER_ZOOM_PREVIEW_SIZE,
+                        height: HOVER_ZOOM_PREVIEW_SIZE,
+                        zIndex: 9998,
+                    }}
+                >
+                    <img
+                        src={displayImageSrc}
+                        alt={`${file.name} enlarged preview`}
+                        className="h-full w-full object-contain bg-surface-900/80"
+                    />
                 </div>,
                 document.body
             )}
