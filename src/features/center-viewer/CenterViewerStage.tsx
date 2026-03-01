@@ -3,7 +3,7 @@ import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 
 const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
-const ARCHIVE_PREVIEW_LIMIT = 4;
+const ARCHIVE_PREVIEW_LIMIT = 6;
 
 interface CenterViewerStageProps {
     file: MediaFile;
@@ -236,18 +236,18 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                         </div>
                     </>
                 ) : (
-                    <div className="grid max-h-full max-w-[760px] grid-cols-2 gap-2 overflow-auto">
+                    <div className="grid max-h-full max-w-[980px] grid-cols-3 gap-3 overflow-auto">
                         {archiveFrames.map((framePath, index) => (
                             <button
                                 type="button"
                                 key={`${framePath}-${index}`}
-                                className="aspect-[3/4] overflow-hidden rounded-md bg-surface-800 transition hover:ring-2 hover:ring-surface-400"
+                                className="aspect-square overflow-hidden rounded-md bg-surface-800 transition hover:ring-2 hover:ring-surface-400"
                                 onClick={() => setSelectedArchiveFrameIndex(index)}
                             >
                                 <img
                                     src={toMediaUrl(framePath)}
                                     alt={`Archive frame ${index + 1}`}
-                                    className="h-full w-full object-cover object-center"
+                                    className="h-full w-full object-contain bg-surface-900"
                                     onError={(event) => {
                                         event.currentTarget.style.visibility = 'hidden';
                                     }}
