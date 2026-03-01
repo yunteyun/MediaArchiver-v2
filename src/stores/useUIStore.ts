@@ -57,6 +57,7 @@ interface UIState {
     openSettingsModal: (tab?: SettingsModalTab) => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
+    clearScanProgress: () => void;
     showToast: (message: string, type?: ToastData['type'], duration?: number) => void;
     removeToast: (id: string) => void;
     openDuplicateView: () => void;
@@ -122,6 +123,7 @@ export const useUIStore = create<UIState>((set) => ({
         // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
         isScanProgressVisible: progress?.phase === 'counting' ? true : state.isScanProgressVisible
     })),
+    clearScanProgress: () => set({ scanProgress: null, isScanProgressVisible: false }),
     setScanProgressVisible: (visible) => set({ isScanProgressVisible: visible }),
     showToast: (message: string, type: ToastData['type'] = 'info', duration = 3000) => set((state) => ({
         toasts: [...state.toasts, { id: Date.now().toString(), message, type, duration }]

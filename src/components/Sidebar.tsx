@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X } from 'lucide-react';
+import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
@@ -27,6 +27,7 @@ export const Sidebar = React.memo(() => {
     const toggleSidebar = useUIStore((s) => s.toggleSidebar);
     const scanProgress = useUIStore((s) => s.scanProgress);
     const isScanProgressVisible = useUIStore((s) => s.isScanProgressVisible);
+    const clearScanProgress = useUIStore((s) => s.clearScanProgress);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
 
@@ -233,6 +234,35 @@ export const Sidebar = React.memo(() => {
         return folders.filter((f) => include.has(String(f.path).toLowerCase()));
     }, [folders, folderTreeSearch]);
 
+    const hiddenScanIndicator = useMemo(() => {
+        if (!scanProgress || isScanProgressVisible) return null;
+
+        if (scanProgress.phase === 'complete') {
+            return {
+                icon: <CheckCircle2 size={18} className="flex-shrink-0 text-green-400" />,
+                text: 'スキャン結果',
+                title: 'スキャン結果を表示',
+                className: 'hover:bg-surface-800 text-green-400',
+            };
+        }
+
+        if (scanProgress.phase === 'error') {
+            return {
+                icon: <AlertCircle size={18} className="flex-shrink-0 text-red-400" />,
+                text: 'スキャンエラー',
+                title: 'スキャン結果を表示',
+                className: 'hover:bg-surface-800 text-red-400',
+            };
+        }
+
+        return {
+            icon: <Loader2 size={18} className="flex-shrink-0 animate-spin text-blue-400" />,
+            text: 'スキャン中...',
+            title: 'スキャン中 - クリックで表示',
+            className: 'hover:bg-surface-800 text-blue-400',
+        };
+    }, [isScanProgressVisible, scanProgress]);
+
 
     return (
         <aside
@@ -437,20 +467,36 @@ export const Sidebar = React.memo(() => {
                     )}
                 </div>
 
-                {/* スキャンインジケーター（スキャン中 & 非表示の場合のみ） */}
-                {scanProgress && scanProgress.phase !== 'complete' && scanProgress.phase !== 'error' && !isScanProgressVisible && (
+                {/* スキャンインジケーター / 結果再表示 */}
+                {hiddenScanIndicator && (
                     <div
                         onClick={() => useUIStore.getState().setScanProgressVisible(true)}
                         className={`
                             flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                            hover:bg-surface-800 text-blue-400
+                            ${hiddenScanIndicator.className}
                             ${sidebarCollapsed ? 'justify-center' : ''}
                         `}
-                        title="スキャン中 - クリックで表示"
+                        title={hiddenScanIndicator.title}
                     >
-                        <Loader2 size={18} className="flex-shrink-0 animate-spin" />
+                        {hiddenScanIndicator.icon}
                         {!sidebarCollapsed && (
-                            <span className="truncate text-sm font-medium">スキャン中...</span>
+                            <>
+                                <span className="truncate text-sm font-medium">{hiddenScanIndicator.text}</span>
+                                {(scanProgress.phase === 'complete' || scanProgress.phase === 'error') && (
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            clearScanProgress();
+                                        }}
+                                        className="ml-auto rounded p-1 text-surface-400 transition-colors hover:bg-surface-700 hover:text-surface-100"
+                                        title="表示を閉じる"
+                                        aria-label="表示を閉じる"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </>
                         )}
                     </div>
                 )}

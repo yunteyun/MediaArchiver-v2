@@ -8,7 +8,7 @@ interface ScanProgressBarProps {
 
 export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) => {
     const scanProgress = useUIStore((s) => s.scanProgress);
-    const setScanProgress = useUIStore((s) => s.setScanProgress);
+    const clearScanProgress = useUIStore((s) => s.clearScanProgress);
     const isVisible = useUIStore((s) => s.isScanProgressVisible);
     const setVisible = useUIStore((s) => s.setScanProgressVisible);
 
@@ -25,6 +25,17 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
         }
     }, [isVisible]);
 
+    useEffect(() => {
+        if (!scanProgress || !isVisible) return;
+        if (scanProgress.phase !== 'complete' && scanProgress.phase !== 'error') return;
+
+        const timer = setTimeout(() => {
+            setVisible(false);
+        }, 4000);
+
+        return () => clearTimeout(timer);
+    }, [isVisible, scanProgress, setVisible]);
+
     // アンマウント条件: scanProgress が null の場合のみ
     // 表示/非表示は transform/opacity で制御
     if (!scanProgress) return null;
@@ -39,7 +50,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
         // アニメーション後にアンマウント
         setVisible(false);
         setTimeout(() => {
-            setScanProgress(null);
+            clearScanProgress();
         }, 300); // transition duration と同じ
     };
 

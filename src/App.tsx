@@ -157,18 +157,17 @@ function App() {
         const error = useToastStore.getState().error;
         const cleanup = window.electronAPI.onScanProgress((progress) => {
             setScanProgress(progress);
-            // スキャン完了時（progress === null）にトースト表示
-            if (progress === null) {
-                const fileCount = useFileStore.getState().files.length;
-                success(`スキャンが完了しました (${fileCount}件)`);
-            }
-            // サムネイル再生成完了時にトースト表示
-            else if (progress.phase === 'complete' && progress.message === 'サムネイル再生成完了') {
+            if (progress?.phase === 'complete' && progress.message === 'サムネイル再生成完了') {
                 success('サムネイルを再生成しました');
             }
-            // エラー時にトースト表示
-            else if (progress.phase === 'error' && progress.message?.includes('サムネイル再生成')) {
+            else if (progress?.phase === 'complete') {
+                success('スキャンが完了しました');
+            }
+            else if (progress?.phase === 'error' && progress.message?.includes('サムネイル再生成')) {
                 error('サムネイルの再生成に失敗しました');
+            }
+            else if (progress?.phase === 'error') {
+                error('スキャン中にエラーが発生しました');
             }
         });
         return cleanup;
