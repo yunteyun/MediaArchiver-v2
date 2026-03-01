@@ -243,6 +243,18 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         const showArchivePreviewGrid = archiveFrames.length > 0 && !audioFocusedArchiveView;
         const showArchiveAudioList = archiveAudioEntries.length > 0 && !imageFocusedArchiveView;
         const isMixedArchiveView = showArchivePreviewGrid && showArchiveAudioList;
+        const archiveGridColumnClass = archiveFrames.length <= 1
+            ? 'grid-cols-1'
+            : archiveFrames.length <= 4
+                ? 'grid-cols-2'
+                : 'grid-cols-3';
+        const archivePreviewPanelClass = isMixedArchiveView
+            ? archiveFrames.length <= 1
+                ? 'w-[min(30vw,280px)] flex-shrink-0'
+                : archiveFrames.length <= 4
+                    ? 'w-[min(42vw,420px)] flex-shrink-0'
+                    : 'w-[min(48vw,520px)] flex-shrink-0'
+            : 'w-full';
 
         if (archiveFrames.length === 0 && archiveAudioEntries.length === 0) {
             return (
@@ -346,22 +358,22 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                         </div>
                     </>
                 ) : (
-                    <div className={`flex max-h-full gap-5 ${showArchiveAudioList ? 'items-stretch' : 'justify-center'}`}>
+                    <div className={`flex max-h-full gap-5 ${showArchiveAudioList ? 'items-stretch justify-center' : 'justify-center'}`}>
                         {showArchivePreviewGrid ? (
-                            <div className={isMixedArchiveView ? 'flex-1 min-w-0' : 'w-full'}>
-                                <div className="rounded-xl border border-surface-700 bg-black/35 p-4 shadow-2xl">
-                                    <div className="grid max-h-full grid-cols-3 gap-3 overflow-auto">
+                            <div className={archivePreviewPanelClass}>
+                                <div className="rounded-xl border border-surface-600/80 bg-black/60 p-4 shadow-2xl backdrop-blur-sm">
+                                    <div className={`grid max-h-full ${archiveGridColumnClass} gap-3 overflow-auto`}>
                                         {archiveFrames.map((framePath, index) => (
                                             <button
                                                 type="button"
                                                 key={`${framePath}-${index}`}
-                                                className="aspect-square overflow-hidden rounded-md bg-surface-700/80 transition hover:ring-2 hover:ring-surface-400"
+                                                className="aspect-square overflow-hidden rounded-md border border-surface-600/70 bg-surface-800/90 transition hover:ring-2 hover:ring-surface-400"
                                                 onClick={() => setSelectedArchiveFrameIndex(index)}
                                             >
                                                 <img
                                                     src={toMediaUrl(framePath)}
                                                     alt={`Archive frame ${index + 1}`}
-                                                    className="h-full w-full object-contain bg-surface-800/70"
+                                                    className="h-full w-full object-contain bg-surface-800/95"
                                                     onError={(event) => {
                                                         event.currentTarget.style.visibility = 'hidden';
                                                     }}
@@ -372,14 +384,14 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                                 </div>
                             </div>
                         ) : hasAudioArchiveEntries ? (
-                            <div className="flex h-56 w-56 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-surface-700 to-surface-900 shadow-2xl">
+                            <div className="flex h-56 w-56 flex-shrink-0 items-center justify-center rounded-xl border border-surface-600/80 bg-gradient-to-br from-surface-700 to-surface-900 shadow-2xl">
                                 <Music size={72} className="text-primary-400" />
                             </div>
                         ) : null}
 
                         {showArchiveAudioList && (
-                            <div className={`${showArchivePreviewGrid ? 'w-[420px]' : 'w-full max-w-[780px]'} min-w-0`}>
-                                <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-700 bg-black/45 p-5 shadow-2xl">
+                            <div className={`${showArchivePreviewGrid ? 'w-[420px]' : 'w-full max-w-[780px]'} min-w-0 flex-shrink-0`}>
+                                <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-600/80 bg-black/68 p-5 shadow-2xl backdrop-blur-sm">
                                     <div className="mb-4 flex items-center gap-3 text-lg font-medium text-surface-100">
                                         <Music size={22} />
                                         <span>音声ファイル ({archiveAudioEntries.length})</span>
