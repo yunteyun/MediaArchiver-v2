@@ -31,6 +31,7 @@ interface UIState {
     settingsModalOpen: boolean;
     settingsModalRequestedTab: SettingsModalTab | null;
     scanProgress: ScanProgress | null;
+    scanProgressAutoDismissPending: boolean;
     toasts: ToastData[];
     duplicateViewOpen: boolean;
     mainView: 'grid' | 'statistics';  // メインエリアの表示切り替え
@@ -58,6 +59,7 @@ interface UIState {
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
     clearScanProgress: () => void;
+    acknowledgeScanProgress: () => void;
     showToast: (message: string, type?: ToastData['type'], duration?: number) => void;
     removeToast: (id: string) => void;
     openDuplicateView: () => void;
@@ -90,6 +92,7 @@ export const useUIStore = create<UIState>((set) => ({
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
     scanProgress: null,
+    scanProgressAutoDismissPending: false,
     toasts: [],
     duplicateViewOpen: false,
     mainView: 'grid',
@@ -118,12 +121,19 @@ export const useUIStore = create<UIState>((set) => ({
     closeSettingsModal: () => set({ settingsModalOpen: false }),
     setScanProgress: (progress) => set((state) => ({
         scanProgress: progress,
+        scanProgressAutoDismissPending:
+            progress?.phase === 'complete' || progress?.phase === 'error'
+                ? true
+                : progress?.phase === 'counting' || progress?.phase === 'scanning'
+                    ? false
+                    : state.scanProgressAutoDismissPending,
         // NOTE:
         // スキャン開始時のみ UX 向上のため自動表示する。
         // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
         isScanProgressVisible: progress?.phase === 'counting' ? true : state.isScanProgressVisible
     })),
-    clearScanProgress: () => set({ scanProgress: null, isScanProgressVisible: false }),
+    clearScanProgress: () => set({ scanProgress: null, isScanProgressVisible: false, scanProgressAutoDismissPending: false }),
+    acknowledgeScanProgress: () => set({ scanProgressAutoDismissPending: false }),
     setScanProgressVisible: (visible) => set({ isScanProgressVisible: visible }),
     showToast: (message: string, type: ToastData['type'] = 'info', duration = 3000) => set((state) => ({
         toasts: [...state.toasts, { id: Date.now().toString(), message, type, duration }]

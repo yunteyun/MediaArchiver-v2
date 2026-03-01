@@ -28,6 +28,7 @@ export const Sidebar = React.memo(() => {
     const scanProgress = useUIStore((s) => s.scanProgress);
     const isScanProgressVisible = useUIStore((s) => s.isScanProgressVisible);
     const clearScanProgress = useUIStore((s) => s.clearScanProgress);
+    const acknowledgeScanProgress = useUIStore((s) => s.acknowledgeScanProgress);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
 
@@ -470,7 +471,10 @@ export const Sidebar = React.memo(() => {
                 {/* スキャンインジケーター / 結果再表示 */}
                 {hiddenScanIndicator && (
                     <div
-                        onClick={() => useUIStore.getState().setScanProgressVisible(true)}
+                        onClick={() => {
+                            acknowledgeScanProgress();
+                            useUIStore.getState().setScanProgressVisible(true);
+                        }}
                         className={`
                             flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
                             ${hiddenScanIndicator.className}

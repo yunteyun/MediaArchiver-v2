@@ -11,6 +11,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
     const clearScanProgress = useUIStore((s) => s.clearScanProgress);
     const isVisible = useUIStore((s) => s.isScanProgressVisible);
     const setVisible = useUIStore((s) => s.setScanProgressVisible);
+    const autoDismissPending = useUIStore((s) => s.scanProgressAutoDismissPending);
 
     // ローカル状態でアニメーション用の遅延を管理
     const [shouldAnimate, setShouldAnimate] = useState(false);
@@ -26,7 +27,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
     }, [isVisible]);
 
     useEffect(() => {
-        if (!scanProgress || !isVisible) return;
+        if (!scanProgress || !isVisible || !autoDismissPending) return;
         if (scanProgress.phase !== 'complete' && scanProgress.phase !== 'error') return;
 
         const timer = setTimeout(() => {
@@ -34,7 +35,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
         }, 4000);
 
         return () => clearTimeout(timer);
-    }, [isVisible, scanProgress, setVisible]);
+    }, [autoDismissPending, isVisible, scanProgress, setVisible]);
 
     // アンマウント条件: scanProgress が null の場合のみ
     // 表示/非表示は transform/opacity で制御
