@@ -4,7 +4,7 @@ import pLimit from 'p-limit';
 import * as db from './database';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { generateThumbnail, getVideoDuration, generatePreviewFrames, checkIsAnimated } from './thumbnail';
+import { generateThumbnail, getVideoDuration, getMediaMetadata, generatePreviewFrames, checkIsAnimated } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
 import * as archiveHandler from './archiveHandler';
 
@@ -336,7 +336,9 @@ async function scanDirectoryInternal(
                     // Phase 15-2: 画像はメタデータ(width/height)も必要
                     const hasMetadata = !!existing?.metadata;
                     const isComplete = type === 'video'
-                        ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0))
+                        ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0) && hasMetadata)
+                        : type === 'audio'
+                            ? (hasThumbnail && hasMetadata)
                         : type === 'image'
                             ? (hasThumbnail && hasMetadata)
                             : (!isMedia || hasThumbnail);
@@ -484,6 +486,17 @@ async function scanDirectoryInternal(
                             }
                         } catch (e) {
                             log.error('Image metadata extraction failed:', e);
+                        }
+                    }
+
+                    if ((type === 'video' || type === 'audio') && !metadata) {
+                        try {
+                            const mediaMeta = await getMediaMetadata(fullPath);
+                            if (mediaMeta) {
+                                metadata = JSON.stringify(mediaMeta);
+                            }
+                        } catch (e) {
+                            log.error('Media metadata extraction failed:', e);
                         }
                     }
 

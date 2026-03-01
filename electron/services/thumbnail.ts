@@ -27,6 +27,76 @@ if (ffprobePath) {
     ffmpeg.setFfprobePath(ffprobePath.replace('app.asar', 'app.asar.unpacked'));
 }
 
+interface ExtractedMediaMetadata {
+    width?: number;
+    height?: number;
+    format?: string;
+    container?: string;
+    codec?: string;
+    videoCodec?: string;
+    audioCodec?: string;
+    fps?: number;
+    bitrate?: number;
+}
+
+function parseFps(value?: string): number | undefined {
+    if (!value || value === '0/0') return undefined;
+    const [num, den] = value.split('/').map(Number);
+    if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return undefined;
+    const fps = num / den;
+    return Number.isFinite(fps) ? Number(fps.toFixed(3)) : undefined;
+}
+
+export async function getMediaMetadata(filePath: string): Promise<ExtractedMediaMetadata | null> {
+    return new Promise((resolve) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err || !metadata) {
+                resolve(null);
+                return;
+            }
+
+            const videoStream = metadata.streams?.find((stream) => stream.codec_type === 'video');
+            const audioStream = metadata.streams?.find((stream) => stream.codec_type === 'audio');
+            const format = metadata.format;
+
+            const extracted: ExtractedMediaMetadata = {};
+
+            if (typeof videoStream?.width === 'number') extracted.width = videoStream.width;
+            if (typeof videoStream?.height === 'number') extracted.height = videoStream.height;
+
+            if (typeof format?.format_name === 'string' && format.format_name) {
+                extracted.format = format.format_name;
+                extracted.container = format.format_name;
+            }
+
+            if (typeof videoStream?.codec_name === 'string' && videoStream.codec_name) {
+                extracted.videoCodec = videoStream.codec_name;
+                extracted.codec = videoStream.codec_name;
+            }
+
+            if (typeof audioStream?.codec_name === 'string' && audioStream.codec_name) {
+                extracted.audioCodec = audioStream.codec_name;
+            }
+
+            const fps = parseFps(
+                typeof videoStream?.avg_frame_rate === 'string' && videoStream.avg_frame_rate !== '0/0'
+                    ? videoStream.avg_frame_rate
+                    : typeof videoStream?.r_frame_rate === 'string'
+                        ? videoStream.r_frame_rate
+                        : undefined
+            );
+            if (fps !== undefined) extracted.fps = fps;
+
+            const bitrate = Number(format?.bit_rate);
+            if (Number.isFinite(bitrate) && bitrate > 0) {
+                extracted.bitrate = bitrate;
+            }
+
+            resolve(Object.keys(extracted).length > 0 ? extracted : null);
+        });
+    });
+}
+
 export async function generateThumbnail(filePath: string, resolution: number = 320): Promise<string | null> {
     const ext = path.extname(filePath).toLowerCase();
 
