@@ -2,6 +2,11 @@ import React, { useEffect, useRef } from 'react';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { toMediaUrl } from '../../utils/mediaPath';
+import {
+    getSequentialPreviewTime,
+    shouldFallbackSequentialPreview,
+    VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS,
+} from '../../utils/videoPreview';
 import type { MediaFile } from '../../types/file';
 import { SectionTitle } from './SectionTitle';
 
@@ -19,6 +24,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const setRightPanelVideoMuted = useSettingsStore((s) => s.setRightPanelVideoMuted);
     const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const jumpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const isVideo = file.type === 'video';
     const isCenterViewerOpen = Boolean(lightboxFile);
@@ -49,15 +55,74 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     useEffect(() => {
         const video = videoRef.current;
         if (!video || !isVideo) return;
-        video.loop = rightPanelVideoPreviewMode === 'loop';
-        video.currentTime = 0;
 
-        if (isCenterViewerOpen) {
-            video.pause();
-            return;
+        if (jumpIntervalRef.current) {
+            clearInterval(jumpIntervalRef.current);
+            jumpIntervalRef.current = null;
         }
 
-        void video.play().catch(() => undefined);
+        let disposed = false;
+        let currentSegment = 0;
+
+        const startPreview = async () => {
+            if (disposed) return;
+
+            if (rightPanelVideoPreviewMode === 'loop') {
+                video.loop = true;
+                video.currentTime = 0;
+                if (isCenterViewerOpen) {
+                    video.pause();
+                    return;
+                }
+                void video.play().catch(() => undefined);
+                return;
+            }
+
+            video.loop = false;
+            const duration = video.duration;
+            if (duration && !shouldFallbackSequentialPreview(duration)) {
+                video.currentTime = getSequentialPreviewTime(duration, 0);
+                currentSegment = 0;
+            } else {
+                video.currentTime = 0;
+            }
+
+            if (isCenterViewerOpen) {
+                video.pause();
+                return;
+            }
+
+            void video.play().catch(() => undefined);
+
+            if (duration && !shouldFallbackSequentialPreview(duration)) {
+                jumpIntervalRef.current = setInterval(() => {
+                    if (!video.duration || Number.isNaN(video.duration)) return;
+                    currentSegment = (currentSegment + 1) % VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS;
+                    video.currentTime = getSequentialPreviewTime(video.duration, currentSegment);
+                }, 2000);
+            }
+        };
+
+        const handleLoadedMetadata = () => {
+            void startPreview();
+        };
+
+        if (video.readyState >= 1) {
+            void startPreview();
+        } else {
+            video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+        }
+
+        return () => {
+            disposed = true;
+            if (jumpIntervalRef.current) {
+                clearInterval(jumpIntervalRef.current);
+                jumpIntervalRef.current = null;
+            }
+            video.pause();
+            video.currentTime = 0;
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        };
     }, [file.id, isCenterViewerOpen, isVideo, rightPanelVideoPreviewMode]);
 
     return (

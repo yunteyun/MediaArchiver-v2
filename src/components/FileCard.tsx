@@ -9,6 +9,12 @@ import { useTagStore, type Tag } from '../stores/useTagStore';
 
 import { toMediaUrl } from '../utils/mediaPath';
 import { isAudioArchive } from '../utils/fileHelpers';
+import {
+    getRandomSafeTime,
+    getSequentialPreviewTime,
+    shouldFallbackSequentialPreview,
+    VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS,
+} from '../utils/videoPreview';
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import { getDisplayModeDefinition } from './fileCard/displayModes';
 import type { DisplayMode, FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
@@ -260,10 +266,6 @@ function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
     return result;
 }
 
-// Phase 17-3: ランダムジャンプ再生の定数
-const SAFE_MARGIN_RATIO = 0.1; // 先頭・末尾10%除外
-const SEQUENTIAL_SEGMENTS = 5; // sequential モードのセグメント数
-const SEQUENTIAL_MIN_DURATION = 8; // sequential モード最小動画長（秒）
 const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
 
 const activeVisibleAnimatedPreviewIds = new Set<string>();
@@ -294,25 +296,6 @@ function releaseVisibleAnimatedPreviewSlot(fileId: string) {
     if (!activeVisibleAnimatedPreviewIds.delete(fileId)) return;
     notifyVisibleAnimatedPreviewListeners();
 }
-
-// Phase 17-3: 安全なランダム位置計算
-const getRandomSafeTime = (duration: number, currentTime?: number): number => {
-    const safeStart = duration * SAFE_MARGIN_RATIO;
-    const safeEnd = duration * (1 - SAFE_MARGIN_RATIO);
-    let nextTime = safeStart + Math.random() * (safeEnd - safeStart);
-
-    // 直前位置と近すぎる場合は再抽選（10%以上離す）
-    if (currentTime !== undefined) {
-        const minGap = duration * 0.1;
-        if (Math.abs(nextTime - currentTime) < minGap) {
-            nextTime = safeStart + Math.random() * (safeEnd - safeStart);
-        }
-    }
-
-    return nextTime;
-};
-
-
 
 interface FileCardProps {
     file: MediaFile;
@@ -788,15 +771,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             if (duration && duration > 2) {
                 // sequential ガード: 短い動画は light にフォールバック
                 const effectiveJumpType =
-                    playMode.jumpType === 'sequential' && duration < SEQUENTIAL_MIN_DURATION
+                    playMode.jumpType === 'sequential' && shouldFallbackSequentialPreview(duration)
                         ? 'light'
                         : playMode.jumpType;
 
                 if (effectiveJumpType === 'random') {
                     video.currentTime = getRandomSafeTime(duration);
                 } else if (effectiveJumpType === 'sequential') {
-                    const safeStart = duration * SAFE_MARGIN_RATIO;
-                    video.currentTime = safeStart;
+                    video.currentTime = getSequentialPreviewTime(duration, 0);
                     currentSegment = 0;
                 }
                 // 'light' の場合は currentTime = 0 のまま
@@ -813,7 +795,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
             // ジャンプループ（light モードではスキップ）
             const effectiveJumpType =
-                playMode.jumpType === 'sequential' && video.duration < SEQUENTIAL_MIN_DURATION
+                playMode.jumpType === 'sequential' && shouldFallbackSequentialPreview(video.duration)
                     ? 'light'
                     : playMode.jumpType;
 
@@ -824,12 +806,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     if (effectiveJumpType === 'random') {
                         video.currentTime = getRandomSafeTime(video.duration, video.currentTime);
                     } else if (effectiveJumpType === 'sequential') {
-                        const safeStart = video.duration * SAFE_MARGIN_RATIO;
-                        const safeEnd = video.duration * (1 - SAFE_MARGIN_RATIO);
-                        const segmentDuration = (safeEnd - safeStart) / SEQUENTIAL_SEGMENTS;
-
-                        currentSegment = (currentSegment + 1) % SEQUENTIAL_SEGMENTS;
-                        video.currentTime = safeStart + (currentSegment * segmentDuration);
+                        currentSegment = (currentSegment + 1) % VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS;
+                        video.currentTime = getSequentialPreviewTime(video.duration, currentSegment);
                     }
                 }, playMode.jumpInterval);
             }
