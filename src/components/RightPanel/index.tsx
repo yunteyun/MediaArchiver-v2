@@ -45,7 +45,7 @@ export const RightPanel: React.FC = () => {
     }, [activeProfileId]);
 
     return (
-        <aside className="w-[280px] shrink-0 h-full flex flex-col bg-surface-900 border-l border-surface-700 overflow-hidden">
+        <aside className="w-[300px] shrink-0 h-full flex flex-col bg-surface-900 border-l border-surface-700 overflow-hidden">
             {file ? (
                 <>
                     <div className="flex-1 overflow-y-auto">
