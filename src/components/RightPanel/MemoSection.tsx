@@ -17,12 +17,15 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
     React.useEffect(() => {
         setNotes(file.notes || '');
         setSaveStatus('idle');
-        setIsOpen(false);
         if (saveTimerRef.current) {
             clearTimeout(saveTimerRef.current);
             saveTimerRef.current = null;
         }
     }, [file.id, file.notes]);
+
+    React.useEffect(() => {
+        setIsOpen(false);
+    }, [file.id]);
 
     React.useEffect(() => () => {
         if (saveTimerRef.current) {

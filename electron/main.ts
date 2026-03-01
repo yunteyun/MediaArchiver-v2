@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol } from 'electron';
+import { app, BrowserWindow, protocol, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { createRequire } from 'node:module';
@@ -105,6 +105,23 @@ const createWindow = () => {
     if (process.env.VITE_DEV_SERVER_URL) {
         mainWindow.webContents.openDevTools();
     }
+
+    // テキスト入力系では OS 標準に近い編集メニューを使えるようにする
+    mainWindow.webContents.on('context-menu', (_event, params) => {
+        if (!params.isEditable) return;
+
+        const menu = Menu.buildFromTemplate([
+            { role: 'undo', label: '元に戻す' },
+            { role: 'redo', label: 'やり直す' },
+            { type: 'separator' },
+            { role: 'cut', label: '切り取り' },
+            { role: 'copy', label: 'コピー' },
+            { role: 'paste', label: '貼り付け' },
+            { role: 'selectAll', label: 'すべて選択' },
+        ]);
+
+        menu.popup({ window: mainWindow ?? undefined });
+    });
 };
 
 app.whenReady().then(async () => {
