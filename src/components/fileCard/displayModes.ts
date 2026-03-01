@@ -41,10 +41,10 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         infoVariant: 'detailed',
         layout: {
             aspectRatio: '2/3',
-            cardWidth: 210,
-            thumbnailHeight: 315,
+            cardWidth: 220,
+            thumbnailHeight: 330,
             infoAreaHeight: 76,
-            totalHeight: 391,
+            totalHeight: 406,
         },
     },
     video: {
