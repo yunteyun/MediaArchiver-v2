@@ -13,10 +13,10 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         infoVariant: 'detailed',
         layout: {
             aspectRatio: '1/1',
-            cardWidth: 240,
-            thumbnailHeight: 240,
+            cardWidth: 220,
+            thumbnailHeight: 220,
             infoAreaHeight: 80,
-            totalHeight: 320,
+            totalHeight: 300,
         },
     },
     standardLarge: {
