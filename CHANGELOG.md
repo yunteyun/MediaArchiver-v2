@@ -79,6 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 #### FileCard / 表示モード
 - 右サイドバー表示中に `標準（M）` と `標準（L）` のカード幅差が潰れやすい問題を調整し、列数が同じでも各モードの基準幅が維持されるようにした。
 - `標準（M/L）` などで右端に余り幅が溜まりやすい表示を調整し、`標準（S/簡易）` 以外は行全体を中央寄せして余白の偏りを抑えた。
+- `標準（M/L）` などはカード幅を少しだけ伸ばせる余地も持たせ、右サイドバー表示中でも隙間が空きすぎない密度へ再調整した。
 - FileCard 表示モード定義を `src/components/fileCard/displayModes.ts` に分離し、`FileGrid` / `SortMenu` と共有する構成へ整理。
 - FileCard の情報欄を `FileCardInfoArea` / `FileCardInfoCompact` / `FileCardInfoDetailed` に分離し、モード別UI調整の保守性を改善。
 - 表示モードラベルとメニュー構成を整理（`標準（S/簡易）` / `標準（M）` / `標準（L）` / `動画（ワイド）` / `漫画`）。

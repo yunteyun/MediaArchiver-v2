@@ -16,6 +16,12 @@ import { groupFiles } from '../utils/groupFiles';
 
 const CARD_GAP = 8;
 const GROUP_HEADER_HEIGHT = 40;
+const DISPLAY_MODE_CARD_GROWTH: Partial<Record<import('../stores/useSettingsStore').DisplayMode, number>> = {
+    standard: 16,
+    standardLarge: 16,
+    manga: 12,
+    video: 12,
+};
 
 type GroupVirtualRow =
     | { kind: 'header'; key: string; group: import('../utils/groupFiles').FileGroup }
@@ -308,7 +314,8 @@ export const FileGrid = React.memo(() => {
         // これにより右サイドバー表示などで列数が同じ場合でも、M/L の差が潰れにくくなる。
         const totalGapWidth = (cols - 1) * CARD_GAP;
         const distributedCardW = Math.floor((availableWidth - totalGapWidth) / cols);
-        const effectiveCardW = Math.max(1, Math.min(config.cardWidth, distributedCardW));
+        const maxCardWidth = config.cardWidth + (DISPLAY_MODE_CARD_GROWTH[displayMode] ?? 0);
+        const effectiveCardW = Math.max(1, Math.min(maxCardWidth, distributedCardW));
 
         // アスペクト比を維持してサムネイル高さを再計算
         const aspectRatio = config.thumbnailHeight / config.cardWidth;
@@ -324,7 +331,7 @@ export const FileGrid = React.memo(() => {
             effectiveCardWidth: effectiveCardW,
             effectiveThumbnailHeight: effectiveThumbnailH
         };
-    }, [config, containerWidth]);
+    }, [config, containerWidth, displayMode]);
 
     const rows = useMemo(() => Math.ceil(gridItems.length / columns), [gridItems.length, columns]);
 
