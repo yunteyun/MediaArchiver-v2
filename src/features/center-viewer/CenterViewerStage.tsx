@@ -236,12 +236,12 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                         </div>
                     </>
                 ) : (
-                    <div className="grid max-h-full max-w-full grid-cols-2 gap-4 overflow-auto md:grid-cols-3">
+                    <div className="grid max-h-full max-w-[1120px] grid-cols-2 gap-3 overflow-auto md:grid-cols-3">
                         {archiveFrames.map((framePath, index) => (
                             <button
                                 type="button"
                                 key={`${framePath}-${index}`}
-                                className="aspect-[4/3] overflow-hidden rounded-md transition hover:ring-2 hover:ring-surface-400"
+                                className="aspect-square overflow-hidden rounded-md transition hover:ring-2 hover:ring-surface-400"
                                 onClick={() => setSelectedArchiveFrameIndex(index)}
                             >
                                 <img
