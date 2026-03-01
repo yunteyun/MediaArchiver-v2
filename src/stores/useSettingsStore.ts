@@ -22,6 +22,7 @@ export type FileCardTagOrderMode = 'balanced' | 'strict';
 export type FileTypeCategory = 'video' | 'image' | 'archive' | 'audio';
 export type FlipbookSpeed = 'slow' | 'normal' | 'fast';
 export type AnimatedImagePreviewMode = 'off' | 'hover' | 'visible';
+export type RightPanelVideoPreviewMode = 'loop' | 'long';
 
 export interface FileTypeCategoryFilters {
     video: boolean;
@@ -62,6 +63,8 @@ interface SettingsState {
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
+    rightPanelVideoMuted: boolean;
+    rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
@@ -114,6 +117,8 @@ interface SettingsState {
     setThumbnailAction: (action: 'scrub' | 'flipbook' | 'play') => void;
     setFlipbookSpeed: (speed: FlipbookSpeed) => void;
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
+    setRightPanelVideoMuted: (muted: boolean) => void;
+    setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
@@ -164,6 +169,8 @@ export const useSettingsStore = create<SettingsState>()(
             thumbnailAction: 'scrub',
             flipbookSpeed: 'normal',
             animatedImagePreviewMode: 'hover',
+            rightPanelVideoMuted: true,
+            rightPanelVideoPreviewMode: 'loop',
             sortBy: 'date',
             sortOrder: 'desc',
             videoVolume: 0.5,
@@ -214,6 +221,8 @@ export const useSettingsStore = create<SettingsState>()(
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),
             setAnimatedImagePreviewMode: (animatedImagePreviewMode) => set({ animatedImagePreviewMode }),
+            setRightPanelVideoMuted: (rightPanelVideoMuted) => set({ rightPanelVideoMuted }),
+            setRightPanelVideoPreviewMode: (rightPanelVideoPreviewMode) => set({ rightPanelVideoPreviewMode }),
             setSortBy: (sortBy) => set({ sortBy }),
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setVideoVolume: (volume) => set({ videoVolume: volume }),

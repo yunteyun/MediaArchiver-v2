@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { toMediaUrl } from '../../utils/mediaPath';
 import type { MediaFile } from '../../types/file';
@@ -10,10 +11,17 @@ interface PreviewSectionProps {
 
 export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const openLightbox = useUIStore((s) => s.openLightbox);
+    const lightboxFile = useUIStore((s) => s.lightboxFile);
     const setPreviewContext = useUIStore((s) => s.setPreviewContext);
+    const videoVolume = useSettingsStore((s) => s.videoVolume);
+    const rightPanelVideoMuted = useSettingsStore((s) => s.rightPanelVideoMuted);
+    const rightPanelVideoPreviewMode = useSettingsStore((s) => s.rightPanelVideoPreviewMode);
+    const setRightPanelVideoMuted = useSettingsStore((s) => s.setRightPanelVideoMuted);
+    const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
     const videoRef = useRef<HTMLVideoElement>(null);
 
     const isVideo = file.type === 'video';
+    const isCenterViewerOpen = Boolean(lightboxFile);
     // GIF/WebP アニメーション: サムネイルではなく元ファイルを直接表示
     const isAnimated = file.isAnimated === true;
 
@@ -31,6 +39,27 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const thumbnailSrc = toMediaUrl(file.thumbnailPath);
     const videoSrc = isVideo ? toMediaUrl(file.path) : null;
 
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || !isVideo) return;
+        video.muted = rightPanelVideoMuted;
+        video.volume = rightPanelVideoMuted ? 0 : Math.max(0, Math.min(1, videoVolume));
+    }, [isVideo, rightPanelVideoMuted, videoVolume, file.id]);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || !isVideo) return;
+        video.loop = rightPanelVideoPreviewMode === 'loop';
+        video.currentTime = 0;
+
+        if (isCenterViewerOpen) {
+            video.pause();
+            return;
+        }
+
+        void video.play().catch(() => undefined);
+    }, [file.id, isCenterViewerOpen, isVideo, rightPanelVideoPreviewMode]);
+
     return (
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
             <SectionTitle>プレビュー</SectionTitle>
@@ -46,11 +75,37 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                             src={videoSrc}
                             className="max-w-full max-h-full object-contain"
                             autoPlay
-                            muted
-                            loop
+                            muted={rightPanelVideoMuted}
+                            loop={rightPanelVideoPreviewMode === 'loop'}
                             playsInline
                             preload="metadata"
                         />
+                        <div className="absolute right-2 top-2 z-10 flex gap-1.5">
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setRightPanelVideoMuted(!rightPanelVideoMuted);
+                                }}
+                                className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
+                                title={rightPanelVideoMuted ? '音声を再生' : 'ミュート'}
+                            >
+                                {rightPanelVideoMuted ? '音声OFF' : '音声ON'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setRightPanelVideoPreviewMode(
+                                        rightPanelVideoPreviewMode === 'loop' ? 'long' : 'loop'
+                                    );
+                                }}
+                                className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
+                                title={rightPanelVideoPreviewMode === 'loop' ? '長めプレビューへ切替' : 'ループ再生へ切替'}
+                            >
+                                {rightPanelVideoPreviewMode === 'loop' ? 'ループ' : '長め'}
+                            </button>
+                        </div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                             <div className="bg-black/50 rounded-full p-2">
                                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
