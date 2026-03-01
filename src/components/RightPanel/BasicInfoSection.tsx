@@ -119,17 +119,21 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
     const bitrate = typeof metadata?.bitrate === 'number' && Number.isFinite(metadata.bitrate)
         ? `${Math.round(metadata.bitrate / 1000)} kbps`
         : null;
+    const isVideo = file.type === 'video';
 
     return (
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
             <SectionTitle>基本情報</SectionTitle>
             <div className="space-y-1.5">
                 <InfoRow label="種別" value={typeLabel[file.type] ?? file.type} />
-                <InfoRow label="サイズ" value={formatBytes(file.size)} />
-                <InfoRow label="作成日" value={formatDate(file.createdAt)} />
+                {isVideo && file.duration && (
+                    <InfoRow label="再生時間" value={file.duration} />
+                )}
                 {resolution && (
                     <InfoRow label="解像度" value={resolution} />
                 )}
+                <InfoRow label="サイズ" value={formatBytes(file.size)} />
+                <InfoRow label="作成日" value={formatDate(file.createdAt)} />
                 {relativeFolderPath && (
                     <InfoRow label="相対フォルダ" value={relativeFolderPath} />
                 )}
@@ -140,7 +144,7 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
                 </summary>
                 <div className="space-y-1.5 border-t border-surface-800 px-3 py-3">
                     {updatedAt && <InfoRow label="更新日時" value={updatedAt} />}
-                    {file.duration && <InfoRow label="再生時間" value={file.duration} />}
+                    {!isVideo && file.duration && <InfoRow label="再生時間" value={file.duration} />}
                     <InfoRow label="拡張子" value={extension} />
                     <InfoRow label="ファイルパス" value={file.path} />
                     {metadata?.format && <InfoRow label="形式" value={metadata.format} />}
