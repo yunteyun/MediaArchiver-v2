@@ -49,10 +49,10 @@ export const RightPanel: React.FC = () => {
             {file ? (
                 <>
                     <div className="flex-1 overflow-y-auto">
+                        <PreviewSection file={file} />
                         <FileHeaderSection file={file} />
                         <EditMetaSection file={file} />
                         <MemoSection file={file} />
-                        <PreviewSection file={file} />
                         <ArchivePreviewSection file={file} />
                         <BasicInfoSection file={file} rootFolderPath={rootFolderPath} />
                     </div>

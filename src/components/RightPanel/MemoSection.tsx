@@ -11,11 +11,13 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
     const refreshFile = useFileStore((state) => state.refreshFile);
     const [notes, setNotes] = React.useState(file.notes || '');
     const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'saved'>('idle');
+    const [isOpen, setIsOpen] = React.useState(false);
     const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     React.useEffect(() => {
         setNotes(file.notes || '');
         setSaveStatus('idle');
+        setIsOpen(false);
         if (saveTimerRef.current) {
             clearTimeout(saveTimerRef.current);
             saveTimerRef.current = null;
@@ -59,22 +61,40 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
         void saveNotes(notes);
     }, [notes, saveNotes]);
 
+    const previewText = notes.trim()
+        ? notes.trim().split(/\r?\n/, 1)[0]
+        : 'メモなし';
+
     return (
-        <section className="px-4 py-3 space-y-2 border-b border-surface-700">
-            <div className="flex items-center justify-between gap-3">
-                <SectionTitle>メモ</SectionTitle>
-                <span className="text-[11px] text-surface-500">
-                    {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '保存済み' : ''}
-                </span>
-            </div>
-            <textarea
-                value={notes}
-                onChange={(event) => handleChange(event.target.value)}
-                onBlur={handleBlur}
-                rows={5}
-                placeholder="メモを入力..."
-                className="w-full resize-y rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
-            />
+        <section className="px-4 py-3 border-b border-surface-700">
+            <button
+                type="button"
+                onClick={() => setIsOpen((prev) => !prev)}
+                className="flex w-full items-start justify-between gap-3 text-left"
+            >
+                <div className="min-w-0 space-y-1">
+                    <SectionTitle>メモ</SectionTitle>
+                    <p className="truncate text-xs text-surface-500">{previewText}</p>
+                </div>
+                <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[11px] text-surface-500">
+                        {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '保存済み' : ''}
+                    </span>
+                    <span className="text-surface-500">{isOpen ? '−' : '+'}</span>
+                </div>
+            </button>
+            {isOpen && (
+                <div className="pt-3">
+                    <textarea
+                        value={notes}
+                        onChange={(event) => handleChange(event.target.value)}
+                        onBlur={handleBlur}
+                        rows={5}
+                        placeholder="メモを入力..."
+                        className="w-full resize-y rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
+                    />
+                </div>
+            )}
         </section>
     );
 });
