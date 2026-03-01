@@ -269,6 +269,7 @@ function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
 const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
 const HOVER_ZOOM_PREVIEW_SIZE = 360;
 const HOVER_ZOOM_PREVIEW_GAP = 12;
+const HOVER_ZOOM_PREVIEW_DELAY_MS = 220;
 
 const activeVisibleAnimatedPreviewIds = new Set<string>();
 const visibleAnimatedPreviewListeners = new Set<() => void>();
@@ -405,6 +406,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const [visibleAnimatedPreviewVersion, setVisibleAnimatedPreviewVersion] = useState(0);
     const [isVisibleAnimatedPreviewActive, setIsVisibleAnimatedPreviewActive] = useState(false);
     const [hoverZoomPosition, setHoverZoomPosition] = useState<{ top: number; left: number } | null>(null);
+    const [isZoomButtonHovered, setIsZoomButtonHovered] = useState(false);
+    const hoverZoomDelayRef = useRef<number | null>(null);
 
     // Play mode state
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -432,12 +435,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
     const shouldShowHoverZoomPreview = useMemo(() => {
         return (
-            isHovered &&
+            isZoomButtonHovered &&
             file.type === 'image' &&
             !file.isAnimated &&
             Boolean(file.thumbnailPath || file.path)
         );
-    }, [file.isAnimated, file.path, file.thumbnailPath, file.type, isHovered]);
+    }, [file.isAnimated, file.path, file.thumbnailPath, file.type, isZoomButtonHovered]);
 
     const shouldAnimateImagePreview = useMemo(() => {
         return (
@@ -549,6 +552,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             clearFlipbookInterval();
         };
     }, [clearFlipbookInterval]);
+
+    useEffect(() => {
+        return () => {
+            if (hoverZoomDelayRef.current) {
+                clearTimeout(hoverZoomDelayRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!shouldShowHoverZoomPreview || !cardRootRef.current) {
@@ -758,7 +769,12 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }
         clearFlipbookInterval();
         setIsHovered(false);
+        setIsZoomButtonHovered(false);
         setScrubIndex(0);
+        if (hoverZoomDelayRef.current) {
+            clearTimeout(hoverZoomDelayRef.current);
+            hoverZoomDelayRef.current = null;
+        }
 
         // Phase 17-3: 同時再生制御
         setHoveredPreview(null);
@@ -1120,11 +1136,27 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                             e.stopPropagation();
                             openLightbox(file);
                         }}
-                        className={`absolute top-1 left-1 z-10 rounded-sm border border-surface-600/80 bg-black/60 p-1 text-surface-200 transition-all ${isHovered ? 'opacity-100' : 'pointer-events-none opacity-0'} hover:bg-black/80 hover:text-white`}
+                        onMouseEnter={() => {
+                            if (hoverZoomDelayRef.current) {
+                                clearTimeout(hoverZoomDelayRef.current);
+                            }
+                            hoverZoomDelayRef.current = window.setTimeout(() => {
+                                setIsZoomButtonHovered(true);
+                                hoverZoomDelayRef.current = null;
+                            }, HOVER_ZOOM_PREVIEW_DELAY_MS);
+                        }}
+                        onMouseLeave={() => {
+                            if (hoverZoomDelayRef.current) {
+                                clearTimeout(hoverZoomDelayRef.current);
+                                hoverZoomDelayRef.current = null;
+                            }
+                            setIsZoomButtonHovered(false);
+                        }}
+                        className={`absolute bottom-2 left-2 z-10 rounded-md border border-surface-500/80 bg-black/65 p-2 text-surface-100 shadow-lg transition-all ${isHovered ? 'opacity-100' : 'pointer-events-none opacity-0'} hover:scale-105 hover:bg-black/85 hover:text-white`}
                         title="中央ビューアで拡大表示"
                         aria-label="中央ビューアで拡大表示"
                     >
-                        <Maximize2 size={12} />
+                        <Maximize2 size={18} />
                     </button>
                 )}
 
