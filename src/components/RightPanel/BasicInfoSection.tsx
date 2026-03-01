@@ -164,15 +164,25 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
         ? `${Math.round(metadata.bitrate / 1000)} kbps`
         : null;
     const isVideo = file.type === 'video';
+    const isAudio = file.type === 'audio';
     const isArchive = file.type === 'archive';
     const displayContainer = getDisplayContainer(metadata, extension);
+    const hasDurationInBasic = (isVideo || isAudio) && Boolean(file.duration);
+    const hasTechnicalInfo = Boolean(
+        displayContainer
+        || metadata?.videoCodec
+        || metadata?.codec
+        || metadata?.audioCodec
+        || (typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps))
+        || bitrate,
+    );
 
     return (
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
             <SectionTitle>基本情報</SectionTitle>
             <div className="space-y-1.5">
                 <InfoRow label="種別" value={typeLabel[file.type] ?? file.type} />
-                {isVideo && file.duration && (
+                {hasDurationInBasic && file.duration && (
                     <InfoRow label="再生時間" value={file.duration} />
                 )}
                 {resolution && (
@@ -197,7 +207,7 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
                 <div className="space-y-3 border-t border-surface-800 px-3 py-3">
                     <InfoGroup title="詳細情報">
                         {updatedAt && <InfoRow label="更新日時" value={updatedAt} />}
-                        {!isVideo && file.duration && <InfoRow label="再生時間" value={file.duration} />}
+                        {!hasDurationInBasic && file.duration && <InfoRow label="再生時間" value={file.duration} />}
                         <InfoRow label="拡張子" value={extension} />
                         <InfoRow label="ファイルパス" value={file.path} />
                         {archiveFileCount != null && <InfoRow label="総項目数" value={`${archiveFileCount}`} />}
@@ -211,7 +221,7 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
                         )}
                     </InfoGroup>
 
-                    {(isVideo || isArchive || displayContainer || metadata?.videoCodec || metadata?.codec || metadata?.audioCodec || (typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps)) || bitrate) && (
+                    {(isVideo || isAudio || isArchive || hasTechnicalInfo) && (
                         <InfoGroup title="技術情報">
                             {displayContainer && <InfoRow label="コンテナ" value={displayContainer} />}
                             {(metadata?.videoCodec || metadata?.codec) && (
