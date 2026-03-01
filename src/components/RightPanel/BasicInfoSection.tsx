@@ -26,6 +26,7 @@ function formatDateTime(ts?: number | null): string | null {
 }
 
 interface ParsedMetadata {
+    fileCount?: number;
     width?: number;
     height?: number;
     format?: string;
@@ -37,6 +38,8 @@ interface ParsedMetadata {
     bitrate?: number;
     hasAudio?: boolean;
     imageEntries?: string[];
+    audioEntries?: string[];
+    firstImageEntry?: string | null;
 }
 
 function parseMetadata(metadata?: string): ParsedMetadata | null {
@@ -151,10 +154,17 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
     const archiveImageCount = file.type === 'archive' && Array.isArray(metadata?.imageEntries)
         ? metadata.imageEntries.length
         : null;
+    const archiveAudioCount = file.type === 'archive' && Array.isArray(metadata?.audioEntries)
+        ? metadata.audioEntries.length
+        : null;
+    const archiveFileCount = file.type === 'archive' && typeof metadata?.fileCount === 'number'
+        ? metadata.fileCount
+        : null;
     const bitrate = typeof metadata?.bitrate === 'number' && Number.isFinite(metadata.bitrate)
         ? `${Math.round(metadata.bitrate / 1000)} kbps`
         : null;
     const isVideo = file.type === 'video';
+    const isArchive = file.type === 'archive';
     const displayContainer = getDisplayContainer(metadata, extension);
 
     return (
@@ -170,6 +180,12 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
                 )}
                 <InfoRow label="サイズ" value={formatBytes(file.size)} />
                 <InfoRow label="作成日" value={formatDate(file.createdAt)} />
+                {isArchive && archiveImageCount != null && (
+                    <InfoRow label="画像数" value={`${archiveImageCount}`} />
+                )}
+                {isArchive && archiveAudioCount != null && archiveAudioCount > 0 && (
+                    <InfoRow label="音声数" value={`${archiveAudioCount}`} />
+                )}
                 {relativeFolderPath && (
                     <InfoRow label="相対フォルダ" value={relativeFolderPath} />
                 )}
@@ -184,11 +200,18 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
                         {!isVideo && file.duration && <InfoRow label="再生時間" value={file.duration} />}
                         <InfoRow label="拡張子" value={extension} />
                         <InfoRow label="ファイルパス" value={file.path} />
-                        {archiveImageCount != null && <InfoRow label="書庫内画像数" value={`${archiveImageCount}`} />}
-                        {file.type === 'archive' && metadata?.hasAudio && <InfoRow label="書庫内音声" value="あり" />}
+                        {archiveFileCount != null && <InfoRow label="総項目数" value={`${archiveFileCount}`} />}
+                        {isArchive && archiveImageCount != null && <InfoRow label="書庫内画像数" value={`${archiveImageCount}`} />}
+                        {isArchive && archiveAudioCount != null && archiveAudioCount > 0 && (
+                            <InfoRow label="書庫内音声数" value={`${archiveAudioCount}`} />
+                        )}
+                        {isArchive && metadata?.hasAudio && archiveAudioCount == null && <InfoRow label="書庫内音声" value="あり" />}
+                        {isArchive && metadata?.firstImageEntry && (
+                            <InfoRow label="先頭画像" value={metadata.firstImageEntry} />
+                        )}
                     </InfoGroup>
 
-                    {(isVideo || displayContainer || metadata?.videoCodec || metadata?.codec || metadata?.audioCodec || (typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps)) || bitrate) && (
+                    {(isVideo || isArchive || displayContainer || metadata?.videoCodec || metadata?.codec || metadata?.audioCodec || (typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps)) || bitrate) && (
                         <InfoGroup title="技術情報">
                             {displayContainer && <InfoRow label="コンテナ" value={displayContainer} />}
                             {(metadata?.videoCodec || metadata?.codec) && (
