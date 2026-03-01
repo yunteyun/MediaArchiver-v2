@@ -4,18 +4,16 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { isArchive, getArchiveThumbnail } from './archiveHandler';
+import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { getBasePath } from './storageConfig';
+import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
+import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 
 const log = logger.scope('Thumbnail');
 
 // Phase 25: basePath から動的取得（モジュールロード時に確定させない）
-function getThumbnailDir(): string {
-    const dir = path.join(getBasePath(), 'thumbnails');
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-    return dir;
+function getCurrentProfileIdForThumbnails(): string | null {
+    return dbManager.getCurrentProfileId();
 }
 
 // Configure ffmpeg/ffprobe paths
@@ -27,6 +25,76 @@ if (ffmpegPath) {
 }
 if (ffprobePath) {
     ffmpeg.setFfprobePath(ffprobePath.replace('app.asar', 'app.asar.unpacked'));
+}
+
+interface ExtractedMediaMetadata {
+    width?: number;
+    height?: number;
+    format?: string;
+    container?: string;
+    codec?: string;
+    videoCodec?: string;
+    audioCodec?: string;
+    fps?: number;
+    bitrate?: number;
+}
+
+function parseFps(value?: string): number | undefined {
+    if (!value || value === '0/0') return undefined;
+    const [num, den] = value.split('/').map(Number);
+    if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return undefined;
+    const fps = num / den;
+    return Number.isFinite(fps) ? Number(fps.toFixed(3)) : undefined;
+}
+
+export async function getMediaMetadata(filePath: string): Promise<ExtractedMediaMetadata | null> {
+    return new Promise((resolve) => {
+        ffmpeg.ffprobe(filePath, (err, metadata) => {
+            if (err || !metadata) {
+                resolve(null);
+                return;
+            }
+
+            const videoStream = metadata.streams?.find((stream) => stream.codec_type === 'video');
+            const audioStream = metadata.streams?.find((stream) => stream.codec_type === 'audio');
+            const format = metadata.format;
+
+            const extracted: ExtractedMediaMetadata = {};
+
+            if (typeof videoStream?.width === 'number') extracted.width = videoStream.width;
+            if (typeof videoStream?.height === 'number') extracted.height = videoStream.height;
+
+            if (typeof format?.format_name === 'string' && format.format_name) {
+                extracted.format = format.format_name;
+                extracted.container = format.format_name;
+            }
+
+            if (typeof videoStream?.codec_name === 'string' && videoStream.codec_name) {
+                extracted.videoCodec = videoStream.codec_name;
+                extracted.codec = videoStream.codec_name;
+            }
+
+            if (typeof audioStream?.codec_name === 'string' && audioStream.codec_name) {
+                extracted.audioCodec = audioStream.codec_name;
+            }
+
+            const fps = parseFps(
+                typeof videoStream?.avg_frame_rate === 'string' && videoStream.avg_frame_rate !== '0/0'
+                    ? videoStream.avg_frame_rate
+                    : typeof videoStream?.r_frame_rate === 'string'
+                        ? videoStream.r_frame_rate
+                        : undefined
+            );
+            if (fps !== undefined) extracted.fps = fps;
+
+            const bitrate = Number(format?.bit_rate);
+            if (Number.isFinite(bitrate) && bitrate > 0) {
+                extracted.bitrate = bitrate;
+            }
+
+            resolve(Object.keys(extracted).length > 0 ? extracted : null);
+        });
+    });
 }
 
 export async function generateThumbnail(filePath: string, resolution: number = 320): Promise<string | null> {
@@ -61,8 +129,7 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
  * Phase 26: seekInput('%') を廃止 → ffprobe で秒数を取得して絶対値でシーク（Windowsでの Invalid argument 回避）
  */
 async function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
-    const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(getThumbnailDir(), filename);
+    const outputPath = createThumbnailOutputPath('video', '.webp', getCurrentProfileIdForThumbnails());
 
     try {
         // ffprobe で動画の長さを取得
@@ -85,7 +152,7 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
                     '-vframes', '1',
                     '-vf', `scale=${resolution}:-1`,
                     '-vcodec', 'libwebp',
-                    '-quality', '75',
+                    '-quality', String(THUMBNAIL_WEBP_QUALITY.video),
                     '-threads', '1',  // コイル鳴き軽減
                 ])
                 .seekInput(seekSec)
@@ -108,8 +175,7 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
  * アルバムアートがない場合はnullを返す
  */
 function generateAudioThumbnail(audioPath: string): Promise<string | null> {
-    const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(getThumbnailDir(), filename);
+    const outputPath = createThumbnailOutputPath('audio', '.webp', getCurrentProfileIdForThumbnails());
 
     return new Promise((resolve) => {
         // FFmpegでアルバムアート（埋め込み画像）を抽出
@@ -136,7 +202,7 @@ function generateAudioThumbnail(audioPath: string): Promise<string | null> {
  */
 export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
     const videoId = uuidv4();
-    const frameDir = path.join(getThumbnailDir(), 'frames', videoId);
+    const frameDir = createPreviewFramesDir(videoId, getCurrentProfileIdForThumbnails());
 
     try {
         // フレームディレクトリ作成
@@ -171,7 +237,7 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                 .outputOptions([
                     '-threads', '1',  // コイル鳴き軽減
                     '-vcodec', 'libwebp',
-                    '-quality', '70',
+                    '-quality', String(THUMBNAIL_WEBP_QUALITY.previewFrame),
                 ])
                 .screenshots({
                     count: frameCount,
@@ -216,16 +282,15 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
 }
 
 /**
- * 静止画サムネイルを WebP で生成（quality: 82）
+ * 静止画サムネイルを WebP で生成
  */
 async function generateImageThumbnail(imagePath: string, resolution: number = 320): Promise<string | null> {
-    const filename = `${uuidv4()}.webp`;
-    const outputPath = path.join(getThumbnailDir(), filename);
+    const outputPath = createThumbnailOutputPath('image', '.webp', getCurrentProfileIdForThumbnails());
 
     try {
         await sharp(imagePath)
             .resize(resolution, null, { fit: 'inside', withoutEnlargement: true })
-            .webp({ quality: 82 })
+            .webp({ quality: THUMBNAIL_WEBP_QUALITY.image })
             .toFile(outputPath);
         return outputPath;
     } catch (err) {
@@ -320,6 +385,52 @@ async function isAnimatedWebp(filePath: string): Promise<boolean> {
     }
 }
 
+// Binary check for APNG (PNG + acTL chunk)
+async function isAnimatedPng(filePath: string): Promise<boolean> {
+    try {
+        const handle = await fs.promises.open(filePath, 'r');
+        const buf = Buffer.alloc(1024 * 256); // First 256KB is enough for PNG chunks header scan
+        const { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+        await handle.close();
+
+        if (bytesRead < 16) return false;
+
+        // PNG signature
+        const pngSignature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        if (!buf.subarray(0, 8).equals(pngSignature)) return false;
+
+        let offset = 8;
+        while (offset + 8 <= bytesRead) {
+            const chunkLength = buf.readUInt32BE(offset);
+            const typeStart = offset + 4;
+            const dataStart = offset + 8;
+            const dataEnd = dataStart + chunkLength;
+            const crcEnd = dataEnd + 4;
+
+            if (crcEnd > bytesRead) {
+                return false;
+            }
+
+            const chunkType = buf.toString('ascii', typeStart, typeStart + 4);
+
+            if (chunkType === 'acTL') {
+                return true;
+            }
+
+            // APNG control chunks must appear before first IDAT. Once image data starts without acTL, treat as static PNG.
+            if (chunkType === 'IDAT' || chunkType === 'IEND') {
+                return false;
+            }
+
+            offset = crcEnd;
+        }
+
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 export async function checkIsAnimated(filePath: string): Promise<boolean> {
     const ext = path.extname(filePath).toLowerCase();
     if (ext === '.gif') {
@@ -327,6 +438,9 @@ export async function checkIsAnimated(filePath: string): Promise<boolean> {
     }
     if (ext === '.webp') {
         return isAnimatedWebp(filePath);
+    }
+    if (ext === '.png') {
+        return isAnimatedPng(filePath);
     }
     return false;
 }

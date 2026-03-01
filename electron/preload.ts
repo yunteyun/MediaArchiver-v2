@@ -10,6 +10,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
     // === Database ===
     getFiles: (folderId?: string) => ipcRenderer.invoke('db:getFiles', folderId),
+    getFilesByFolderPathDirect: (folderPath: string) => ipcRenderer.invoke('db:getFilesByFolderPathDirect', folderPath),
+    getFilesByFolderPathRecursive: (folderPath: string) => ipcRenderer.invoke('db:getFilesByFolderPathRecursive', folderPath),
     getFileById: (fileId: string) => ipcRenderer.invoke('db:getFileById', fileId),
 
     // === Folder ===
@@ -17,6 +19,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFolders: () => ipcRenderer.invoke('folder:list'),
     deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
     getFolderMetadata: () => ipcRenderer.invoke('folder:getMetadata'),
+    getFolderTreePaths: () => ipcRenderer.invoke('folder:getTreePaths'),
+    getFolderTreeStats: () => ipcRenderer.invoke('folder:getTreeStats'),
+    setFolderAutoScan: (folderId: string, enabled: boolean) =>
+        ipcRenderer.invoke('folder:setAutoScan', { folderId, enabled }),
+    setFolderWatchNewFiles: (folderId: string, enabled: boolean) =>
+        ipcRenderer.invoke('folder:setWatchNewFiles', { folderId, enabled }),
+    setFolderScanFileTypeOverrides: (
+        folderId: string,
+        overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
+    ) => ipcRenderer.invoke('folder:setScanFileTypeOverrides', { folderId, overrides }),
+    clearFolderScanFileTypeOverrides: (folderId: string) =>
+        ipcRenderer.invoke('folder:clearScanFileTypeOverrides', { folderId }),
 
     // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得
     getFilesByDrive: (drive: string) => ipcRenderer.invoke('getFilesByDrive', drive),
@@ -39,6 +53,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === File Operations ===
     updateFileNotes: (fileId: string, notes: string) =>
         ipcRenderer.invoke('file:updateNotes', { fileId, notes }),
+    renameFile: (fileId: string, newName: string) =>
+        ipcRenderer.invoke('file:rename', { fileId, newName }),
 
     // Phase 17: Access Count
     incrementAccessCount: (fileId: string) =>
@@ -48,6 +64,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // === Dialog ===
     selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
+    saveTextFile: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }>; content: string }) =>
+        ipcRenderer.invoke('dialog:saveTextFile', options),
+    openTextFile: (options?: { title?: string; filters?: Array<{ name: string; extensions: string[] }> }) =>
+        ipcRenderer.invoke('dialog:openTextFile', options),
+    openBinaryFile: (options?: { title?: string; filters?: Array<{ name: string; extensions: string[] }> }) =>
+        ipcRenderer.invoke('dialog:openBinaryFile', options),
 
     // === Events (Main -> Renderer) ===
     onScanProgress: (callback: (progress: any) => void) => {
@@ -62,6 +84,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setPreviewFrameCount: (count: number) => ipcRenderer.invoke('scanner:setPreviewFrameCount', count),
     setScanThrottleMs: (ms: number) => ipcRenderer.invoke('scanner:setScanThrottleMs', ms),
     setThumbnailResolution: (resolution: number) => ipcRenderer.invoke('scanner:setThumbnailResolution', resolution),
+    setScanFileTypeCategories: (filters: { video?: boolean; image?: boolean; archive?: boolean; audio?: boolean }) =>
+        ipcRenderer.invoke('scanner:setFileTypeCategories', filters),
     autoScan: () => ipcRenderer.invoke('scanner:autoScan'),
 
     // === Context Menu ===
@@ -100,6 +124,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const handler = (_event: any, data: any) => callback(data);
         ipcRenderer.on('file:externalOpenCountUpdated', handler);
         return () => ipcRenderer.removeListener('file:externalOpenCountUpdated', handler);
+    },
+    onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' | 'archive-image' }) => void) => {
+        const handler = (_event: any, data: any) => callback(data);
+        ipcRenderer.on('file:openAsMode', handler);
+        return () => ipcRenderer.removeListener('file:openAsMode', handler);
     },
 
     // Phase 22-C-2: ファイル移動ダイアログ
@@ -179,6 +208,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteProfile: (id: string) => ipcRenderer.invoke('profile:delete', id),
     getActiveProfileId: () => ipcRenderer.invoke('profile:getActive'),
     switchProfile: (profileId: string) => ipcRenderer.invoke('profile:switch', profileId),
+    getProfileScopedSettings: () => ipcRenderer.invoke('profileSettings:get'),
+    setProfileScopedSettings: (partial: any) => ipcRenderer.invoke('profileSettings:set', partial),
+    replaceProfileScopedSettings: (settings: any) => ipcRenderer.invoke('profileSettings:replace', settings),
 
     onProfileSwitched: (callback: (profileId: string) => void) => {
         const handler = (_event: any, profileId: string) => callback(profileId);

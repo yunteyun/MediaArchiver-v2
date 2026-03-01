@@ -6,6 +6,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Tag as TagIcon, Filter, X, Settings, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { useTagStore } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
+import { SidebarSectionHeader } from '../SidebarSectionHeader';
 
 interface CategoryHeaderProps {
     categoryId: string;
@@ -28,7 +29,7 @@ const CategoryHeader = React.memo<CategoryHeaderProps>(({ categoryId, categoryNa
             ) : (
                 <ChevronDown size={12} className="text-surface-500" />
             )}
-            <span className="text-xs text-surface-500">{categoryName}</span>
+            <span className="text-xs font-medium text-surface-400">{categoryName}</span>
         </button>
     );
 });
@@ -68,46 +69,61 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
         );
     }, [tags, searchQuery]);
 
-    // Group tags by category
-    const uncategorizedTags = filteredTags.filter(t => !t.categoryId);
-    const categorizedGroups = categories
+    // Group tags by category（カテゴリ順 + タグ順）
+    const uncategorizedTags = useMemo(() => (
+        filteredTags
+            .filter(t => !t.categoryId)
+            .slice()
+            .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
+    ), [filteredTags]);
+
+    const categorizedGroups = useMemo(() => (
+        [...categories]
+        .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
         .map(cat => ({
             category: cat,
-            tags: filteredTags.filter(t => t.categoryId === cat.id)
+            tags: filteredTags
+                .filter(t => t.categoryId === cat.id)
+                .slice()
+                .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
         }))
-        .filter(g => g.tags.length > 0);
+        .filter(g => g.tags.length > 0)
+    ), [categories, filteredTags]);
 
     const hasFilters = selectedTagIds.length > 0;
 
     return (
-        <div className="border-t border-surface-700 pt-4 mt-4">
+        <div className="border-t border-surface-700 pt-2 mt-2">
             {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-surface-300">
-                    <TagIcon size={16} />
-                    <span>タグフィルター</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    {hasFilters && (
-                        <button
-                            onClick={clearTagFilter}
-                            className="text-xs text-surface-500 hover:text-surface-300 flex items-center gap-1"
-                        >
-                            <X size={12} />
-                            クリア
-                        </button>
-                    )}
-                    {onOpenManager && (
-                        <button
-                            onClick={onOpenManager}
-                            className="p-1 hover:bg-surface-700 rounded"
-                            title="タグ管理"
-                        >
-                            <Settings size={14} className="text-surface-400 hover:text-surface-200" />
-                        </button>
-                    )}
-                </div>
-            </div>
+            <SidebarSectionHeader
+                icon={TagIcon}
+                title="タグフィルター"
+                className="mb-3"
+                actions={
+                    <>
+                        {onOpenManager && (
+                            <button
+                                onClick={onOpenManager}
+                                className="inline-flex items-center gap-1 text-[11px] text-surface-500 hover:text-surface-200 transition-colors"
+                                title="タグ管理"
+                            >
+                                <Settings size={12} />
+                                管理
+                            </button>
+                        )}
+                        {hasFilters && (
+                            <button
+                                onClick={clearTagFilter}
+                                className="inline-flex items-center gap-1 text-[11px] text-surface-500 hover:text-surface-300 transition-colors"
+                                title="すべて解除"
+                            >
+                                <X size={11} />
+                                全解除
+                            </button>
+                        )}
+                    </>
+                }
+            />
 
             {/* Search Bar */}
             <div className="mb-3 relative">
@@ -124,7 +140,7 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
             {/* Filter Mode Toggle */}
             {selectedTagIds.length > 1 && (
                 <div className="flex items-center gap-2 mb-3 text-xs">
-                    <Filter size={12} className="text-surface-500" />
+                    <Filter size={11} className="text-surface-500" />
                     <button
                         onClick={() => setFilterMode('OR')}
                         className={`px-2 py-0.5 rounded ${filterMode === 'OR' ? 'bg-primary-500/20 text-primary-300' : 'text-surface-500 hover:text-surface-300'}`}
@@ -181,6 +197,7 @@ export const TagFilterPanel = React.memo(({ onOpenManager }: TagFilterPanelProps
                                             key={tag.id}
                                             name={tag.name}
                                             color={tag.color}
+                                            categoryColor={tag.categoryColor ?? category.color}
                                             selected={selectedTagIds.includes(tag.id)}
                                             onClick={() => toggleTagFilter(tag.id)}
                                             icon={tag.icon}

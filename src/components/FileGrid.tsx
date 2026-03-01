@@ -6,7 +6,8 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import { FileCard, DISPLAY_MODE_CONFIGS } from './FileCard';
+import { FileCard } from './FileCard';
+import { DISPLAY_MODE_LAYOUT_CONFIGS } from './fileCard/displayModes';
 import { FolderCard } from './FolderCard';
 import { Header } from './SortMenu';
 import { GroupHeader } from './GroupHeader';
@@ -14,10 +15,23 @@ import type { GridItem } from '../types/grid';
 import { groupFiles } from '../utils/groupFiles';
 
 const CARD_GAP = 8;
+const GROUP_HEADER_HEIGHT = 40;
+const DISPLAY_MODE_CARD_GROWTH: Partial<Record<import('../stores/useSettingsStore').DisplayMode, number>> = {
+    standard: 16,
+    standardLarge: 16,
+    manga: 12,
+    video: 12,
+};
+
+type GroupVirtualRow =
+    | { kind: 'header'; key: string; group: import('../utils/groupFiles').FileGroup }
+    | { kind: 'files'; key: string; groupKey: string; files: import('../types/file').MediaFile[] };
 
 
 
 export const FileGrid = React.memo(() => {
+    const isDev = import.meta.env.DEV;
+    const groupPerfDebugEnabled = isDev && (globalThis as { __MA_DEBUG_GROUP_PERF?: boolean }).__MA_DEBUG_GROUP_PERF === true;
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const focusedId = useFileStore((s) => s.focusedId);
@@ -38,7 +52,8 @@ export const FileGrid = React.memo(() => {
     const sortOrder = useSettingsStore((s) => s.sortOrder);
     // Phase 14: 表示モード取得
     const displayMode = useSettingsStore((s) => s.displayMode);
-    const config = DISPLAY_MODE_CONFIGS[displayMode];
+    const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
+    const shouldCenterRows = displayMode !== 'compact';
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);
@@ -158,8 +173,25 @@ export const FileGrid = React.memo(() => {
 
     // グループ化されたファイル（Phase 12-10）
     const groupedFiles = useMemo(() => {
-        return groupFiles(files, groupBy, sortBy, sortOrder);
-    }, [files, groupBy, sortBy, sortOrder]);
+        if (!groupPerfDebugEnabled || groupBy === 'none') {
+            return groupFiles(files, groupBy, sortBy, sortOrder);
+        }
+
+        const start = performance.now();
+        const result = groupFiles(files, groupBy, sortBy, sortOrder);
+        const elapsedMs = performance.now() - start;
+        const totalGroupedFiles = result.reduce((sum, group) => sum + group.files.length, 0);
+
+        console.debug('[perf][FileGrid][grouping]', {
+            groupBy,
+            files: files.length,
+            groups: result.length,
+            groupedFiles: totalGroupedFiles,
+            elapsedMs: Number(elapsedMs.toFixed(2)),
+        });
+
+        return result;
+    }, [files, groupBy, sortBy, sortOrder, groupPerfDebugEnabled]);
 
     // GridItem統合リスト生成（Phase 12-4）
     const gridItems = useMemo((): GridItem[] => {
@@ -268,19 +300,22 @@ export const FileGrid = React.memo(() => {
     }, [removeFile]);
 
     // Phase 14-6: レスポンシブカードサイズ計算
-    const { cardHeight, columns, rows, effectiveCardWidth, effectiveThumbnailHeight } = useMemo(() => {
+    const { cardHeight, columns, effectiveCardWidth, effectiveThumbnailHeight } = useMemo(() => {
         // ⚠️ containerWidth は ResizeObserver.contentRect.width で取得済み（p-4 パディング除外済み）
         // ここでは仮想行の padding（CARD_GAP/2 * 左右 = CARD_GAP）のみ差し引く
         const rowPadding = CARD_GAP; // 各行の左右パディング合計
-        const availableWidth = containerWidth - rowPadding;
+        const availableWidth = Math.max(0, containerWidth - rowPadding);
 
         // 最小カード幅として config.cardWidth を使用
         const minCardWidth = config.cardWidth;
         const cols = Math.max(1, Math.floor((availableWidth + CARD_GAP) / (minCardWidth + CARD_GAP)));
 
-        // コンテナ幅を均等分配（ギャップを考慮）
+        // 列数は target 幅で決めるが、カード自体は target 幅を基本維持する。
+        // これにより右サイドバー表示などで列数が同じ場合でも、M/L の差が潰れにくくなる。
         const totalGapWidth = (cols - 1) * CARD_GAP;
-        const effectiveCardW = Math.floor((availableWidth - totalGapWidth) / cols);
+        const distributedCardW = Math.floor((availableWidth - totalGapWidth) / cols);
+        const maxCardWidth = config.cardWidth + (DISPLAY_MODE_CARD_GROWTH[displayMode] ?? 0);
+        const effectiveCardW = Math.max(1, Math.min(maxCardWidth, distributedCardW));
 
         // アスペクト比を維持してサムネイル高さを再計算
         const aspectRatio = config.thumbnailHeight / config.cardWidth;
@@ -289,16 +324,73 @@ export const FileGrid = React.memo(() => {
         // totalHeight を再計算
         const totalH = effectiveThumbnailH + config.infoAreaHeight;
         const h = totalH + CARD_GAP * 2;
-        const r = Math.ceil(gridItems.length / cols);
 
         return {
             cardHeight: h,
             columns: cols,
-            rows: r,
             effectiveCardWidth: effectiveCardW,
             effectiveThumbnailHeight: effectiveThumbnailH
         };
-    }, [config, containerWidth, gridItems.length]);
+    }, [config, containerWidth, displayMode]);
+
+    const rows = useMemo(() => Math.ceil(gridItems.length / columns), [gridItems.length, columns]);
+
+    const groupedVirtualRows = useMemo((): GroupVirtualRow[] => {
+        if (groupBy === 'none') return [];
+
+        const rowsForGroups: GroupVirtualRow[] = [];
+        for (const group of groupedFiles) {
+            if (group.label) {
+                rowsForGroups.push({
+                    kind: 'header',
+                    key: `${group.key}:header`,
+                    group,
+                });
+            }
+
+            for (let i = 0; i < group.files.length; i += columns) {
+                rowsForGroups.push({
+                    kind: 'files',
+                    key: `${group.key}:row:${Math.floor(i / columns)}`,
+                    groupKey: group.key,
+                    files: group.files.slice(i, i + columns),
+                });
+            }
+        }
+        return rowsForGroups;
+    }, [groupBy, groupedFiles, columns]);
+
+    const groupedFileGroupByKey = useMemo(
+        () => new Map(groupedFiles.map((group) => [group.key, group])),
+        [groupedFiles]
+    );
+
+    const groupedFileRowIndexByFileId = useMemo(() => {
+        const rowIndexByFileId = new Map<string, number>();
+        groupedVirtualRows.forEach((row, rowIndex) => {
+            if (row.kind !== 'files') return;
+            row.files.forEach((file) => rowIndexByFileId.set(file.id, rowIndex));
+        });
+        return rowIndexByFileId;
+    }, [groupedVirtualRows]);
+
+    useEffect(() => {
+        if (!groupPerfDebugEnabled || groupBy === 'none') return;
+
+        const totalGroupedFiles = groupedFiles.reduce((sum, group) => sum + group.files.length, 0);
+        const largestGroupSize = groupedFiles.reduce((max, group) => Math.max(max, group.files.length), 0);
+
+        console.debug('[perf][FileGrid][grouped-render-input]', {
+            groupBy,
+            groups: groupedFiles.length,
+            totalGroupedFiles,
+            largestGroupSize,
+            columns,
+            cardWidth: effectiveCardWidth,
+            cardHeight,
+            virtualRows: groupedVirtualRows.length,
+        });
+    }, [groupPerfDebugEnabled, groupBy, groupedFiles, groupedVirtualRows.length, columns, effectiveCardWidth, cardHeight]);
 
     const rowVirtualizer = useVirtualizer({
         count: rows,
@@ -306,6 +398,42 @@ export const FileGrid = React.memo(() => {
         estimateSize: () => cardHeight,
         overscan: 3,
     });
+
+    const groupRowVirtualizer = useVirtualizer({
+        count: groupedVirtualRows.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: (index) => groupedVirtualRows[index]?.kind === 'header' ? GROUP_HEADER_HEIGHT : cardHeight,
+        overscan: 6,
+        getItemKey: (index) => groupedVirtualRows[index]?.key ?? index,
+    });
+
+    const groupVirtualItems = groupBy !== 'none' ? groupRowVirtualizer.getVirtualItems() : [];
+    const scrollTop = parentRef.current?.scrollTop ?? 0;
+    const firstVisibleGroupVirtualItem = groupVirtualItems.find((item) => (item.start + item.size) > scrollTop) ?? groupVirtualItems[0];
+    const firstVisibleGroupRow = firstVisibleGroupVirtualItem
+        ? groupedVirtualRows[firstVisibleGroupVirtualItem.index]
+        : undefined;
+    const pseudoStickyGroup = firstVisibleGroupRow?.kind === 'files'
+        ? groupedFileGroupByKey.get(firstVisibleGroupRow.groupKey)
+        : null;
+    const nextHeaderVirtualItem = firstVisibleGroupVirtualItem
+        ? groupVirtualItems.find((item) =>
+            item.index > firstVisibleGroupVirtualItem.index &&
+            groupedVirtualRows[item.index]?.kind === 'header'
+        )
+        : undefined;
+    const pseudoStickyHeaderOffsetY = nextHeaderVirtualItem
+        ? Math.min(0, nextHeaderVirtualItem.start - scrollTop - GROUP_HEADER_HEIGHT)
+        : 0;
+
+    // 表示モード切替直後は仮想行サイズのキャッシュが一瞬古いまま残ることがあるため再計測する
+    useEffect(() => {
+        const rafId = window.requestAnimationFrame(() => {
+            rowVirtualizer.measure();
+            groupRowVirtualizer.measure();
+        });
+        return () => window.cancelAnimationFrame(rafId);
+    }, [rowVirtualizer, groupRowVirtualizer, cardHeight, columns, rows, groupedVirtualRows.length, displayMode, groupBy]);
 
     // 現在のフォーカスインデックスを計算（Phase 12-4: gridItems対応）
     const focusedIndex = useMemo(() => {
@@ -317,11 +445,21 @@ export const FileGrid = React.memo(() => {
 
     // フォーカス変更時にスクロール追従
     useEffect(() => {
-        if (focusedIndex >= 0 && rowVirtualizer) {
+        if (focusedId == null) return;
+
+        if (groupBy !== 'none') {
+            const groupedRowIndex = groupedFileRowIndexByFileId.get(focusedId);
+            if (groupedRowIndex !== undefined) {
+                groupRowVirtualizer.scrollToIndex(groupedRowIndex, { align: 'auto' });
+            }
+            return;
+        }
+
+        if (focusedIndex >= 0) {
             const rowIndex = Math.floor(focusedIndex / columns);
             rowVirtualizer.scrollToIndex(rowIndex, { align: 'auto' });
         }
-    }, [focusedIndex, columns, rowVirtualizer]);
+    }, [focusedId, focusedIndex, groupBy, groupedFileRowIndexByFileId, groupRowVirtualizer, columns, rowVirtualizer]);
 
     // キーボードショートカットハンドラ（Phase 12-4: gridItems対応）
     const moveSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
@@ -444,30 +582,75 @@ export const FileGrid = React.memo(() => {
                     ref={scrollContainerRef}
                     className="flex-1 overflow-y-auto bg-surface-950"
                 >
-                    {groupedFiles.map((group) => (
-                        <div key={group.key}>
-                            {/* グループヘッダー */}
-                            {group.label && <GroupHeader group={group} />}
+                    {pseudoStickyGroup && (
+                        <div
+                            className="sticky top-0 z-20 pointer-events-none"
+                            style={{
+                                transform: pseudoStickyHeaderOffsetY === 0
+                                    ? undefined
+                                    : `translateY(${pseudoStickyHeaderOffsetY}px)`,
+                                transition: 'transform 80ms linear',
+                                willChange: 'transform',
+                            }}
+                        >
+                            <GroupHeader group={pseudoStickyGroup} sticky={false} />
+                        </div>
+                    )}
+                    <div
+                        style={{
+                            height: `${groupRowVirtualizer.getTotalSize()}px`,
+                            width: '100%',
+                            position: 'relative',
+                        }}
+                    >
+                        {groupRowVirtualizer.getVirtualItems().map((virtualRow) => {
+                            const row = groupedVirtualRows[virtualRow.index];
+                            if (!row) return null;
 
-                            {/* グループ内のファイルグリッド */}
-                            <div
-                                style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: `repeat(${columns}, ${effectiveCardWidth}px)`,
-                                    gap: `${CARD_GAP}px`,
-                                    padding: `${CARD_GAP}px`,
-                                }}
-                            >
-                                {group.files.map((file) => {
-                                    const cardW = effectiveCardWidth;
-                                    const cardH = effectiveThumbnailHeight + config.infoAreaHeight;
+                            if (row.kind === 'header') {
+                                return (
+                                    <div
+                                        key={row.key}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: `${virtualRow.size}px`,
+                                            transform: `translateY(${virtualRow.start}px)`,
+                                        }}
+                                    >
+                                        <GroupHeader group={row.group} sticky={false} />
+                                    </div>
+                                );
+                            }
 
-                                    return (
+                            const cardW = effectiveCardWidth;
+                            const cardH = effectiveThumbnailHeight + config.infoAreaHeight;
+
+                            return (
+                                <div
+                                    key={row.key}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: '100%',
+                                        height: `${virtualRow.size}px`,
+                                        transform: `translateY(${virtualRow.start}px)`,
+                                        display: 'flex',
+                                        justifyContent: shouldCenterRows ? 'center' : 'flex-start',
+                                        gap: `${CARD_GAP}px`,
+                                        padding: `${CARD_GAP / 2}px`,
+                                    }}
+                                >
+                                    {row.files.map((file) => (
                                         <div
                                             key={file.id}
                                             style={{
                                                 width: `${cardW}px`,
                                                 height: `${cardH}px`,
+                                                flexShrink: 0,
                                             }}
                                         >
                                             <FileCard
@@ -477,11 +660,11 @@ export const FileGrid = React.memo(() => {
                                                 onSelect={handleSelect}
                                             />
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ))}
+                                    ))}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         );
@@ -517,6 +700,7 @@ export const FileGrid = React.memo(() => {
                                     height: `${virtualRow.size}px`,
                                     transform: `translateY(${virtualRow.start}px)`,
                                     display: 'flex',
+                                    justifyContent: shouldCenterRows ? 'center' : 'flex-start',
                                     gap: `${CARD_GAP}px`,
                                     padding: `${CARD_GAP / 2}px`,
                                 }}

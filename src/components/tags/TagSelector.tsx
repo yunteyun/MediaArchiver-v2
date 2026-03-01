@@ -3,7 +3,7 @@
  * Portal化によりoverflow:autoな親コンテナでもドロップダウンが隠れない
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Check, Search } from 'lucide-react';
 import { useTagStore, Tag } from '../../stores/useTagStore';
@@ -28,6 +28,8 @@ export const TagSelector = React.memo(({
 
     const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
+    const categoryColorById = useMemo(() => new Map(categories.map(c => [c.id, c.color])), [categories]);
+    const categorySortOrderById = useMemo(() => new Map(categories.map(c => [c.id, c.sortOrder])), [categories]);
 
     // Filter tags by search
     const filteredTags = search
@@ -122,6 +124,19 @@ export const TagSelector = React.memo(({
         }))
         .filter(g => g.tags.length > 0);
 
+    const selectedTagsSorted = useMemo(() => {
+        return selectedTagIds
+            .map(tagId => tags.find(t => t.id === tagId))
+            .filter((tag): tag is Tag => !!tag)
+            .slice()
+            .sort((a, b) => {
+                const aCatOrder = a.categoryId ? (categorySortOrderById.get(a.categoryId) ?? 999) : Number.MAX_SAFE_INTEGER;
+                const bCatOrder = b.categoryId ? (categorySortOrderById.get(b.categoryId) ?? 999) : Number.MAX_SAFE_INTEGER;
+                if (aCatOrder !== bCatOrder) return aCatOrder - bCatOrder;
+                return (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
+            });
+    }, [selectedTagIds, tags, categorySortOrderById]);
+
     // カテゴリ色 → CSS背景クラス
     const colorBgClass = (color: string) =>
         color === 'amber' ? 'bg-amber-600'
@@ -202,19 +217,18 @@ export const TagSelector = React.memo(({
         <div className="relative">
             {/* Selected Tags Display */}
             <div className="flex flex-wrap gap-1 mb-2">
-                {selectedTagIds.map(tagId => {
-                    const tag = tags.find(t => t.id === tagId);
-                    if (!tag) return null;
-                    return (
+                {selectedTagsSorted.map(tag => (
                         <TagBadge
                             key={tag.id}
                             name={tag.name}
                             color={tag.color}
+                            categoryColor={tag.categoryColor || (tag.categoryId ? categoryColorById.get(tag.categoryId) : undefined)}
+                            icon={tag.icon}
+                            description={tag.description}
                             removable
                             onRemove={() => onRemove(tag.id)}
                         />
-                    );
-                })}
+                ))}
             </div>
 
             {/* Add Tag Button */}
@@ -254,7 +268,13 @@ const TagItem = React.memo(({
             }`}>
             {isSelected && <Check size={12} className="text-white" />}
         </div>
-        <TagBadge name={tag.name} color={tag.color} />
+        <TagBadge
+            name={tag.name}
+            color={tag.color}
+            categoryColor={tag.categoryColor}
+            icon={tag.icon}
+            description={tag.description}
+        />
     </button>
 ));
 

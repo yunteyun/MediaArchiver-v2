@@ -1,16 +1,32 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, getFolders, getFiles } from '../services/database';
+import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles } from '../services/database';
 import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
 import { spawn } from 'child_process';
+import { access, rename } from 'fs/promises';
+import { constants as fsConstants } from 'fs';
 import { getCachedExternalApps } from './app';
+
+const INVALID_WINDOWS_FILENAME_RE = /[<>:"/\\|?*\u0000-\u001f]/;
+const RESERVED_WINDOWS_NAME_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
+
+function validateNewFileName(newName: string): string | null {
+    const trimmed = newName.trim();
+    if (!trimmed) return 'ファイル名を入力してください';
+    if (trimmed === '.' || trimmed === '..') return 'そのファイル名は使用できません';
+    if (INVALID_WINDOWS_FILENAME_RE.test(trimmed)) return 'ファイル名に使用できない文字が含まれています';
+    if (/[.\s]$/.test(trimmed)) return 'ファイル名の末尾に空白やドットは使用できません';
+    if (RESERVED_WINDOWS_NAME_RE.test(trimmed)) return '予約語のファイル名は使用できません';
+    return null;
+}
 
 export function registerFileHandlers() {
     ipcMain.handle('file:showContextMenu', async (event, { fileId, filePath, selectedFileIds }) => {
         // Bug 2修正: 複数選択対応
         const effectiveFileIds = selectedFileIds && selectedFileIds.length > 0 ? selectedFileIds : [fileId];
         const isMultiple = effectiveFileIds.length > 1;
+        const singleFile = !isMultiple ? findFileById(fileId) : null;
 
         const ext = path.extname(filePath).toLowerCase().substring(1);
         const cachedApps = getCachedExternalApps();
@@ -36,6 +52,34 @@ export function registerFileHandlers() {
                 }
             },
         ];
+
+        // 「別のモードで開く」
+        // NOTE:
+        // metadata.hasAudio が未保存の旧データでもメニューを出せるよう、
+        // 書庫なら表示して、実際の表示は Lightbox 側の内容に委ねる。
+        if (!isMultiple && singleFile?.type === 'archive') {
+            const openAsSubmenu: Electron.MenuItemConstructorOptions[] = [];
+            openAsSubmenu.push({
+                label: '画像書庫として開く',
+                click: () => {
+                    event.sender.send('file:openAsMode', { fileId, mode: 'archive-image' });
+                }
+            });
+            openAsSubmenu.push({
+                label: '音声書庫として開く',
+                click: () => {
+                    event.sender.send('file:openAsMode', { fileId, mode: 'archive-audio' });
+                }
+            });
+
+            if (openAsSubmenu.length > 0) {
+                menuTemplate.push({ type: 'separator' });
+                menuTemplate.push({
+                    label: '別のモードで開く',
+                    submenu: openAsSubmenu,
+                });
+            }
+        }
 
         // 登録済み外部アプリを追加
         if (compatibleApps.length > 0) {
@@ -325,6 +369,80 @@ export function registerFileHandlers() {
                 success: false,
                 error: error instanceof Error ? error.message : String(error)
             };
+        }
+    });
+
+    ipcMain.handle('file:rename', async (_event, { fileId, newName }: { fileId: string; newName: string }) => {
+        try {
+            if (!fileId || typeof fileId !== 'string') {
+                return { success: false, error: '対象ファイルが不正です' };
+            }
+
+            const nameValidationError = validateNewFileName(newName ?? '');
+            if (nameValidationError) {
+                return { success: false, error: nameValidationError };
+            }
+
+            const file = findFileById(fileId);
+            if (!file) {
+                return { success: false, error: 'ファイルが見つかりません' };
+            }
+
+            const normalizedName = newName.trim();
+            if (normalizedName === file.name) {
+                return { success: true, newName: file.name, newPath: file.path };
+            }
+
+            const sourcePath = file.path;
+            const parentDir = path.dirname(sourcePath);
+            const targetPath = path.join(parentDir, normalizedName);
+
+            try {
+                await access(sourcePath, fsConstants.F_OK);
+            } catch {
+                return { success: false, error: '元ファイルが見つかりません' };
+            }
+
+            const sourceLower = sourcePath.toLowerCase();
+            const targetLower = targetPath.toLowerCase();
+            const caseInsensitiveSamePath = sourceLower === targetLower;
+
+            try {
+                await access(targetPath, fsConstants.F_OK);
+                if (!caseInsensitiveSamePath) {
+                    return { success: false, error: '同じ名前のファイルが既に存在します' };
+                }
+            } catch {
+                // not exists
+            }
+
+            if (sourcePath === targetPath) {
+                return { success: true, newName: file.name, newPath: file.path };
+            }
+
+            if (caseInsensitiveSamePath) {
+                const tempPath = path.join(parentDir, `.__rename_tmp__${Date.now()}_${Math.random().toString(16).slice(2)}`);
+                await rename(sourcePath, tempPath);
+                await rename(tempPath, targetPath);
+            } else {
+                await rename(sourcePath, targetPath);
+            }
+
+            updateFileNameAndPath(fileId, normalizedName, targetPath);
+            return { success: true, newName: normalizedName, newPath: targetPath };
+        } catch (error) {
+            console.error('[File Rename] Failed:', error);
+            const err = error as NodeJS.ErrnoException;
+            if (err?.code === 'EEXIST') {
+                return { success: false, error: '同じ名前のファイルが既に存在します' };
+            }
+            if (err?.code === 'ENOENT') {
+                return { success: false, error: 'ファイルが見つかりません' };
+            }
+            if (err?.code === 'EACCES' || err?.code === 'EPERM') {
+                return { success: false, error: 'ファイル名を変更する権限がありません' };
+            }
+            return { success: false, error: err?.message || 'ファイル名の変更に失敗しました' };
         }
     });
 

@@ -16,6 +16,10 @@
     - TagManagerModal: 左ペインにGripVerticalハンドル + HTML5 D&D でカテゴリ並び替え実装
     - useTagStore: updateCategory に sortOrder 型を追加
     - コミット: `d388dc4`
+  - **1.1.3 Hotfix: リリース版書庫サムネイル取得障害**:
+    - `package.json` に `asarUnpack` と `afterPack` 検証スクリプト追加
+    - `archiveHandler.ts` を `process.resourcesPath` ベースに変更
+    - `databaseManager.ts` に空ディレクトリ生成 (`ensureDbDirectory`) 追加
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備

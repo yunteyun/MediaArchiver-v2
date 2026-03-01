@@ -15,16 +15,23 @@ export interface ScanProgress {
     };
 }
 
+export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
+export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
+
 interface UIState {
     sidebarWidth: number;
     sidebarCollapsed: boolean;
     viewMode: 'grid' | 'list';
     lightboxFile: MediaFile | null;
+    lightboxOpenMode: LightboxOpenMode;
+    lightboxStartTime: number | null;
     sortBy: 'name' | 'date' | 'size' | 'type';
     sortOrder: 'asc' | 'desc';
     searchQuery: string;
     settingsModalOpen: boolean;
+    settingsModalRequestedTab: SettingsModalTab | null;
     scanProgress: ScanProgress | null;
+    scanProgressAutoDismissPending: boolean;
     toasts: ToastData[];
     duplicateViewOpen: boolean;
     mainView: 'grid' | 'statistics';  // メインエリアの表示切り替え
@@ -43,14 +50,16 @@ interface UIState {
     setSidebarWidth: (width: number) => void;
     toggleSidebar: () => void;
     setViewMode: (mode: 'grid' | 'list') => void;
-    openLightbox: (file: MediaFile) => void;
+    openLightbox: (file: MediaFile, mode?: LightboxOpenMode, startTime?: number | null) => void;
     closeLightbox: () => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
     setSortOrder: (order: 'asc' | 'desc') => void;
     setSearchQuery: (query: string) => void;
-    openSettingsModal: () => void;
+    openSettingsModal: (tab?: SettingsModalTab) => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
+    clearScanProgress: () => void;
+    acknowledgeScanProgress: () => void;
     showToast: (message: string, type?: ToastData['type'], duration?: number) => void;
     removeToast: (id: string) => void;
     openDuplicateView: () => void;
@@ -75,11 +84,15 @@ export const useUIStore = create<UIState>((set) => ({
     sidebarCollapsed: false,
     viewMode: 'grid',
     lightboxFile: null,
+    lightboxOpenMode: 'default',
+    lightboxStartTime: null,
     sortBy: 'name',
     sortOrder: 'asc',
     searchQuery: '',
     settingsModalOpen: false,
+    settingsModalRequestedTab: null,
     scanProgress: null,
+    scanProgressAutoDismissPending: false,
     toasts: [],
     duplicateViewOpen: false,
     mainView: 'grid',
@@ -99,20 +112,28 @@ export const useUIStore = create<UIState>((set) => ({
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
     setViewMode: (viewMode) => set({ viewMode }),
-    openLightbox: (file) => set({ lightboxFile: file }),
-    closeLightbox: () => set({ lightboxFile: null }),
+    openLightbox: (file, mode = 'default', startTime = null) => set({ lightboxFile: file, lightboxOpenMode: mode, lightboxStartTime: startTime }),
+    closeLightbox: () => set({ lightboxFile: null, lightboxOpenMode: 'default', lightboxStartTime: null }),
     setSortBy: (sortBy) => set({ sortBy }),
     setSortOrder: (order) => set({ sortOrder: order }),
     setSearchQuery: (query) => set({ searchQuery: query }),
-    openSettingsModal: () => set({ settingsModalOpen: true }),
+    openSettingsModal: (tab) => set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null }),
     closeSettingsModal: () => set({ settingsModalOpen: false }),
     setScanProgress: (progress) => set((state) => ({
         scanProgress: progress,
+        scanProgressAutoDismissPending:
+            progress?.phase === 'complete' || progress?.phase === 'error'
+                ? true
+                : progress?.phase === 'counting' || progress?.phase === 'scanning'
+                    ? false
+                    : state.scanProgressAutoDismissPending,
         // NOTE:
         // スキャン開始時のみ UX 向上のため自動表示する。
         // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
         isScanProgressVisible: progress?.phase === 'counting' ? true : state.isScanProgressVisible
     })),
+    clearScanProgress: () => set({ scanProgress: null, isScanProgressVisible: false, scanProgressAutoDismissPending: false }),
+    acknowledgeScanProgress: () => set({ scanProgressAutoDismissPending: false }),
     setScanProgressVisible: (visible) => set({ isScanProgressVisible: visible }),
     showToast: (message: string, type: ToastData['type'] = 'info', duration = 3000) => set((state) => ({
         toasts: [...state.toasts, { id: Date.now().toString(), message, type, duration }]

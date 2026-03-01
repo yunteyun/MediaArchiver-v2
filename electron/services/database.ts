@@ -54,11 +54,99 @@ export interface MediaFolder {
     created_at: number;
     parent_id: string | null;  // Phase 22-C: 親フォルダID
     drive: string;              // Phase 22-C: ドライブ文字
+    auto_scan?: number;         // 起動時スキャン対象
+    watch_new_files?: number;   // 起動中の新規/更新検知スキャン
+    scan_settings_json?: string | null; // Phase 27: 登録フォルダごとのスキャン設定
+    last_scan_at?: number | null;
+    last_scan_status?: string | null;
+    last_scan_message?: string | null;
+}
+
+export interface FolderScanFileTypeOverrides {
+    video?: boolean;
+    image?: boolean;
+    archive?: boolean;
+    audio?: boolean;
+}
+
+export interface FolderScanSettings {
+    fileTypeOverrides?: FolderScanFileTypeOverrides;
 }
 
 // --- Helper ---
 function getDb() {
     return dbManager.getDb();
+}
+
+function parsePreviewFrames(previewFramesRaw?: string): string[] {
+    if (!previewFramesRaw) return [];
+
+    const raw = previewFramesRaw.trim();
+    if (!raw) return [];
+
+    // Backward/forward compatibility:
+    // - legacy: JSON array string
+    // - current: comma-separated absolute paths
+    if (raw.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+            }
+        } catch {
+            // fall through to comma-split
+        }
+    }
+
+    return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function parseFolderScanSettings(scanSettingsJson?: string | null): FolderScanSettings {
+    if (!scanSettingsJson) return {};
+    try {
+        const parsed = JSON.parse(scanSettingsJson);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        const fileTypeOverridesRaw = (parsed as Record<string, unknown>).fileTypeOverrides;
+        const fileTypeOverrides =
+            fileTypeOverridesRaw && typeof fileTypeOverridesRaw === 'object' && !Array.isArray(fileTypeOverridesRaw)
+                ? {
+                    video: typeof (fileTypeOverridesRaw as Record<string, unknown>).video === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).video as boolean
+                        : undefined,
+                    image: typeof (fileTypeOverridesRaw as Record<string, unknown>).image === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).image as boolean
+                        : undefined,
+                    archive: typeof (fileTypeOverridesRaw as Record<string, unknown>).archive === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).archive as boolean
+                        : undefined,
+                    audio: typeof (fileTypeOverridesRaw as Record<string, unknown>).audio === 'boolean'
+                        ? (fileTypeOverridesRaw as Record<string, unknown>).audio as boolean
+                        : undefined,
+                }
+                : undefined;
+
+        return fileTypeOverrides ? { fileTypeOverrides } : {};
+    } catch {
+        return {};
+    }
+}
+
+function serializeFolderScanSettings(settings: FolderScanSettings): string | null {
+    const normalizedOverrides = settings.fileTypeOverrides
+        ? {
+            video: typeof settings.fileTypeOverrides.video === 'boolean' ? settings.fileTypeOverrides.video : undefined,
+            image: typeof settings.fileTypeOverrides.image === 'boolean' ? settings.fileTypeOverrides.image : undefined,
+            archive: typeof settings.fileTypeOverrides.archive === 'boolean' ? settings.fileTypeOverrides.archive : undefined,
+            audio: typeof settings.fileTypeOverrides.audio === 'boolean' ? settings.fileTypeOverrides.audio : undefined,
+        }
+        : undefined;
+
+    const hasAnyOverride = !!normalizedOverrides && Object.values(normalizedOverrides).some(v => typeof v === 'boolean');
+    if (!hasAnyOverride) return null;
+
+    return JSON.stringify({
+        fileTypeOverrides: normalizedOverrides
+    });
 }
 
 // snake_case DB row → camelCase MediaFile 変換ヘルパー
@@ -135,6 +223,26 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
         ...mapRow(f),
         tags: getTags(f.id)
     }));
+}
+
+function normalizeDirPathForMatch(dirPath: string): string {
+    return dirPath.replace(/[\\/]+$/, '');
+}
+
+export function getFilesByFolderPathDirect(folderPath: string): MediaFile[] {
+    const normalized = normalizeDirPathForMatch(folderPath);
+    return getFiles().filter((f) => normalizeDirPathForMatch(path.dirname(f.path)) === normalized);
+}
+
+export function getFilesByFolderPathRecursive(folderPath: string): MediaFile[] {
+    const normalized = normalizeDirPathForMatch(folderPath);
+    const normalizedLower = normalized.toLowerCase();
+    const prefixLower = `${normalized}\\`.toLowerCase();
+    return getFiles().filter((f) => {
+        const fileDirLower = normalizeDirPathForMatch(path.dirname(f.path)).toLowerCase();
+        const filePathLower = f.path.toLowerCase();
+        return fileDirLower === normalizedLower || filePathLower.startsWith(prefixLower);
+    });
 }
 
 /**
@@ -263,7 +371,7 @@ export function deleteFile(id: string) {
         // プレビューフレーム削除
         if (file.preview_frames) {
             try {
-                const frames: string[] = JSON.parse(file.preview_frames);
+                const frames = parsePreviewFrames(file.preview_frames);
                 frames.forEach(framePath => {
                     if (fs.existsSync(framePath)) {
                         try {
@@ -298,6 +406,12 @@ export function updateFileLocation(id: string, newPath: string, newRootFolderId:
     const db = getDb();
     db.prepare('UPDATE files SET path = ?, root_folder_id = ? WHERE id = ?')
         .run(newPath, newRootFolderId, id);
+}
+
+export function updateFileNameAndPath(id: string, newName: string, newPath: string) {
+    const db = getDb();
+    db.prepare('UPDATE files SET name = ?, path = ? WHERE id = ?')
+        .run(newName, newPath, id);
 }
 
 export function updateFileHash(id: string, hash: string) {
@@ -379,9 +493,90 @@ export function getFolders(): MediaFolder[] {
     return db.prepare('SELECT * FROM folders ORDER BY created_at DESC').all() as MediaFolder[];
 }
 
+export function getFolderTreePaths(): string[] {
+    const folders = getFolders();
+    const registeredPaths = new Set(folders.map((f) => normalizeDirPathForMatch(f.path)));
+    const allPaths = new Set<string>(registeredPaths);
+    const rootById = new Map(folders.map((f) => [f.id, normalizeDirPathForMatch(f.path)] as const));
+
+    const files = getFiles();
+    for (const file of files) {
+        const rootPath = file.root_folder_id ? rootById.get(file.root_folder_id) : undefined;
+        let current = normalizeDirPathForMatch(path.dirname(file.path));
+
+        while (current && current !== '.' && current !== path.dirname(current)) {
+            allPaths.add(current);
+            if (rootPath && current.toLowerCase() === rootPath.toLowerCase()) {
+                break;
+            }
+            current = normalizeDirPathForMatch(path.dirname(current));
+        }
+    }
+
+    return [...allPaths];
+}
+
+export function getFolderTreeRecursiveCountsByPath(): Record<string, number> {
+    const result: Record<string, number> = {};
+    const files = getFiles();
+
+    for (const file of files) {
+        let current = normalizeDirPathForMatch(path.dirname(file.path));
+        while (current && current !== '.' && current !== path.dirname(current)) {
+            const key = current.toLowerCase();
+            result[key] = (result[key] || 0) + 1;
+            current = normalizeDirPathForMatch(path.dirname(current));
+        }
+        if (current && current !== '.' ) {
+            const key = current.toLowerCase();
+            result[key] = (result[key] || 0) + 1;
+        }
+    }
+
+    return result;
+}
+
 export function getFolderByPath(folderPath: string): MediaFolder | undefined {
     const db = getDb();
     return db.prepare('SELECT * FROM folders WHERE path = ?').get(folderPath) as MediaFolder | undefined;
+}
+
+export function getFolderById(folderId: string): MediaFolder | undefined {
+    const db = getDb();
+    return db.prepare('SELECT * FROM folders WHERE id = ?').get(folderId) as MediaFolder | undefined;
+}
+
+export function getFolderScanSettings(folderId: string): FolderScanSettings {
+    const folder = getFolderById(folderId);
+    return parseFolderScanSettings(folder?.scan_settings_json);
+}
+
+export function setFolderScanFileTypeOverride(
+    folderId: string,
+    category: keyof FolderScanFileTypeOverrides,
+    value: boolean | null
+): FolderScanSettings {
+    const db = getDb();
+    const current = getFolderScanSettings(folderId);
+    const nextOverrides: FolderScanFileTypeOverrides = { ...(current.fileTypeOverrides || {}) };
+
+    if (value === null) {
+        delete nextOverrides[category];
+    } else {
+        nextOverrides[category] = value;
+    }
+
+    const nextSettings: FolderScanSettings = {
+        fileTypeOverrides: nextOverrides
+    };
+    const serialized = serializeFolderScanSettings(nextSettings);
+    db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
+    return parseFolderScanSettings(serialized);
+}
+
+export function clearFolderScanSettings(folderId: string): void {
+    const db = getDb();
+    db.prepare('UPDATE folders SET scan_settings_json = NULL WHERE id = ?').run(folderId);
 }
 
 export function addFolder(folderPath: string, name?: string): MediaFolder {
@@ -404,7 +599,55 @@ export function addFolder(folderPath: string, name?: string): MediaFolder {
     db.prepare('INSERT INTO folders (id, path, name, created_at, parent_id, drive) VALUES (?, ?, ?, ?, ?, ?)')
         .run(id, folderPath, folderName, now, parent_id, drive);
 
-    return { id, path: folderPath, name: folderName, created_at: now, parent_id, drive };
+    return {
+        id,
+        path: folderPath,
+        name: folderName,
+        created_at: now,
+        parent_id,
+        drive,
+        auto_scan: 0,
+        watch_new_files: 0,
+        scan_settings_json: null
+    };
+}
+
+export function setFolderAutoScanEnabled(folderId: string, enabled: boolean): void {
+    const db = getDb();
+    db.prepare('UPDATE folders SET auto_scan = ? WHERE id = ?').run(enabled ? 1 : 0, folderId);
+}
+
+export function setFolderWatchNewFilesEnabled(folderId: string, enabled: boolean): void {
+    const db = getDb();
+    db.prepare('UPDATE folders SET watch_new_files = ? WHERE id = ?').run(enabled ? 1 : 0, folderId);
+}
+
+export function getAutoScanFolders(): MediaFolder[] {
+    const db = getDb();
+    return db.prepare('SELECT * FROM folders WHERE COALESCE(auto_scan, 0) = 1 ORDER BY created_at DESC').all() as MediaFolder[];
+}
+
+export function getWatchNewFilesFolders(): MediaFolder[] {
+    const db = getDb();
+    return db.prepare('SELECT * FROM folders WHERE COALESCE(watch_new_files, 0) = 1 ORDER BY created_at DESC').all() as MediaFolder[];
+}
+
+export function updateFolderLastScanStatus(
+    folderId: string,
+    params: {
+        at: number;
+        status: 'running' | 'success' | 'error' | 'cancelled';
+        message?: string | null;
+    }
+): void {
+    const db = getDb();
+    db.prepare(`
+        UPDATE folders
+        SET last_scan_at = ?,
+            last_scan_status = ?,
+            last_scan_message = ?
+        WHERE id = ?
+    `).run(params.at, params.status, params.message ?? null, folderId);
 }
 
 export function deleteFolder(id: string) {
@@ -450,26 +693,30 @@ export function getFolderFileCounts(): Record<string, number> {
 export function getFolderThumbnails(): Record<string, string> {
     const db = getDb();
 
-    // 各フォルダの最初のファイル（created_atが最小）のサムネイルを取得
+    // created_at順に候補を列挙し、実在するサムネイルを各フォルダで最初に採用する。
+    // 保存先移行や再生成の途中で古い thumbnail_path が残っていても、
+    // 同フォルダ内に有効なサムネイルがあればフォルダカード表示を復旧しやすくする。
     const rows = db.prepare(`
-        SELECT 
-            f1.root_folder_id,
-            f1.thumbnail_path
-        FROM files f1
-        INNER JOIN (
-            SELECT root_folder_id, MIN(created_at) as min_created
-            FROM files
-            WHERE root_folder_id IS NOT NULL
-              AND thumbnail_path IS NOT NULL
-            GROUP BY root_folder_id
-        ) f2 ON f1.root_folder_id = f2.root_folder_id 
-            AND f1.created_at = f2.min_created
-        WHERE f1.thumbnail_path IS NOT NULL
+        SELECT
+            root_folder_id,
+            thumbnail_path
+        FROM files
+        WHERE root_folder_id IS NOT NULL
+          AND thumbnail_path IS NOT NULL
+        ORDER BY root_folder_id ASC, created_at ASC, id ASC
     `).all() as { root_folder_id: string; thumbnail_path: string }[];
 
     const result: Record<string, string> = {};
     for (const row of rows) {
-        result[row.root_folder_id] = row.thumbnail_path;
+        if (result[row.root_folder_id]) {
+            continue;
+        }
+        if (!row.thumbnail_path) {
+            continue;
+        }
+        if (fs.existsSync(row.thumbnail_path)) {
+            result[row.root_folder_id] = row.thumbnail_path;
+        }
     }
     return result;
 }

@@ -30,6 +30,25 @@ interface Profile {
     updatedAt: number;
 }
 
+interface FileTypeCategoryFilters {
+    video: boolean;
+    image: boolean;
+    archive: boolean;
+    audio: boolean;
+}
+
+interface ProfileScopedSettingsV1 {
+    fileTypeFilters: FileTypeCategoryFilters;
+    previewFrameCount: number;
+    scanThrottleMs: number;
+    thumbnailResolution: number;
+}
+
+interface ProfileScopedSettingsResponse {
+    settings: ProfileScopedSettingsV1;
+    exists: boolean;
+}
+
 // Phase 26-D: 複合検索型定義
 interface SearchConditionTagFilter {
     ids: string[];
@@ -67,6 +86,8 @@ declare global {
         electronAPI: {
             // Database
             getFiles: (folderId?: string) => Promise<any[]>;
+            getFilesByFolderPathDirect: (folderPath: string) => Promise<any[]>;
+            getFilesByFolderPathRecursive: (folderPath: string) => Promise<any[]>;
             getFileById: (fileId: string) => Promise<any | null>;
 
             // Folder
@@ -74,6 +95,15 @@ declare global {
             getFolders: () => Promise<any[]>;
             deleteFolder: (folderId: string) => Promise<void>;
             getFolderMetadata: () => Promise<{ fileCounts: Record<string, number>; thumbnails: Record<string, string> }>;
+            getFolderTreePaths: () => Promise<string[]>;
+            getFolderTreeStats: () => Promise<{ paths: string[]; recursiveCountsByPath: Record<string, number> }>;
+            setFolderAutoScan: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
+            setFolderWatchNewFiles: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
+            setFolderScanFileTypeOverrides: (
+                folderId: string,
+                overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
+            ) => Promise<{ success: boolean }>;
+            clearFolderScanFileTypeOverrides: (folderId: string) => Promise<{ success: boolean }>;
 
             // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得
             getFilesByDrive: (drive: string) => Promise<any[]>;
@@ -100,9 +130,24 @@ declare global {
 
             // File Operations
             updateFileNotes: (fileId: string, notes: string) => Promise<{ success: boolean }>;
+            renameFile: (fileId: string, newName: string) => Promise<{ success: boolean; newName?: string; newPath?: string; error?: string }>;
 
             // Dialog
             selectFolder: () => Promise<string | null>;
+            saveTextFile: (options: {
+                title?: string;
+                defaultPath?: string;
+                filters?: Array<{ name: string; extensions: string[] }>;
+                content: string;
+            }) => Promise<{ canceled: boolean; filePath?: string }>;
+            openTextFile: (options?: {
+                title?: string;
+                filters?: Array<{ name: string; extensions: string[] }>;
+            }) => Promise<{ canceled: boolean; filePath?: string; content?: string }>;
+            openBinaryFile: (options?: {
+                title?: string;
+                filters?: Array<{ name: string; extensions: string[] }>;
+            }) => Promise<{ canceled: boolean; filePath?: string; bytes?: Uint8Array }>;
 
             // Events
             onScanProgress: (callback: (progress: any) => void) => () => void;
@@ -110,6 +155,7 @@ declare global {
             setPreviewFrameCount: (count: number) => Promise<void>;
             setScanThrottleMs: (ms: number) => Promise<void>;
             setThumbnailResolution: (resolution: number) => Promise<void>;
+            setScanFileTypeCategories: (filters: Partial<FileTypeCategoryFilters>) => Promise<void>;
             autoScan: () => Promise<void>;
 
             // Context Menu
@@ -122,6 +168,7 @@ declare global {
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
             onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => () => void;
+            onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' | 'archive-image' }) => void) => () => void;
 
             // Phase 22-C-2: ファイル移動ダイアログ
             onOpenMoveDialog: (callback: (data: { fileIds: string[]; currentFolderId: string | null }) => void) => () => void;
@@ -176,6 +223,9 @@ declare global {
             deleteProfile: (id: string) => Promise<boolean>;
             getActiveProfileId: () => Promise<string>;
             switchProfile: (profileId: string) => Promise<{ success: boolean }>;
+            getProfileScopedSettings: () => Promise<ProfileScopedSettingsResponse>;
+            setProfileScopedSettings: (partial: Partial<ProfileScopedSettingsV1>) => Promise<ProfileScopedSettingsResponse>;
+            replaceProfileScopedSettings: (settings: ProfileScopedSettingsV1) => Promise<ProfileScopedSettingsResponse>;
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
 
             // Duplicate Detection

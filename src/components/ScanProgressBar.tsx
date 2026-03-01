@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Loader2, CheckCircle, AlertCircle, Minus } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Minus } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 
 interface ScanProgressBarProps {
@@ -8,9 +8,9 @@ interface ScanProgressBarProps {
 
 export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) => {
     const scanProgress = useUIStore((s) => s.scanProgress);
-    const setScanProgress = useUIStore((s) => s.setScanProgress);
     const isVisible = useUIStore((s) => s.isScanProgressVisible);
     const setVisible = useUIStore((s) => s.setScanProgressVisible);
+    const autoDismissPending = useUIStore((s) => s.scanProgressAutoDismissPending);
 
     // ローカル状態でアニメーション用の遅延を管理
     const [shouldAnimate, setShouldAnimate] = useState(false);
@@ -25,6 +25,17 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
         }
     }, [isVisible]);
 
+    useEffect(() => {
+        if (!scanProgress || !isVisible || !autoDismissPending) return;
+        if (scanProgress.phase !== 'complete' && scanProgress.phase !== 'error') return;
+
+        const timer = setTimeout(() => {
+            setVisible(false);
+        }, 4000);
+
+        return () => clearTimeout(timer);
+    }, [autoDismissPending, isVisible, scanProgress, setVisible]);
+
     // アンマウント条件: scanProgress が null の場合のみ
     // 表示/非表示は transform/opacity で制御
     if (!scanProgress) return null;
@@ -34,14 +45,6 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
     const isComplete = phase === 'complete';
     const isError = phase === 'error';
     const isCounting = phase === 'counting';
-
-    const handleClose = () => {
-        // アニメーション後にアンマウント
-        setVisible(false);
-        setTimeout(() => {
-            setScanProgress(null);
-        }, 300); // transition duration と同じ
-    };
 
     const handleMinimize = () => {
         setVisible(false);
@@ -97,10 +100,11 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
                     )}
                     {(isComplete || isError) && (
                         <button
-                            onClick={handleClose}
+                            onClick={handleMinimize}
                             className="p-1 text-surface-400 hover:text-white hover:bg-surface-700 rounded transition-colors duration-200"
+                            title="最小化"
                         >
-                            <X size={14} />
+                            <Minus size={14} />
                         </button>
                     )}
                 </div>

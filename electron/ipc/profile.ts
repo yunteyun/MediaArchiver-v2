@@ -4,6 +4,7 @@
 
 import { ipcMain, BrowserWindow } from 'electron';
 import { dbManager, Profile } from '../services/databaseManager';
+import { syncFolderWatchers } from '../services/folderWatchService';
 
 export function registerProfileHandlers() {
     // プロファイル一覧取得
@@ -39,6 +40,7 @@ export function registerProfileHandlers() {
     // プロファイル切替
     ipcMain.handle('profile:switch', async (event, profileId: string): Promise<{ success: boolean }> => {
         dbManager.switchProfile(profileId);
+        syncFolderWatchers();
 
         // Rendererに通知（データ再読み込みのため）
         const window = BrowserWindow.fromWebContents(event.sender);

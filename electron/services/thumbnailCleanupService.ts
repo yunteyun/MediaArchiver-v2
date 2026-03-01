@@ -7,8 +7,10 @@
 
 import fs from 'fs';
 import path from 'path';
+import Database from 'better-sqlite3';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
+import { getProfileThumbnailRootDir } from './thumbnailPaths';
 import { getBasePath } from './storageConfig';
 
 const log = logger.scope('ThumbnailCleanup');
@@ -42,7 +44,11 @@ export interface CleanupResult {
  * サムネイルディレクトリのパスを取得
  * Phase 25対応: getBasePath() から動的取得（保存場所カスタマイズに対応）
  */
-function getThumbnailDir(): string {
+function getThumbnailDir(profileId: string): string {
+    return getProfileThumbnailRootDir(profileId);
+}
+
+function getLegacyThumbnailDir(): string {
     return path.join(getBasePath(), 'thumbnails');
 }
 
@@ -71,6 +77,76 @@ function getAllFiles(dir: string): string[] {
     return files;
 }
 
+function parsePreviewFrames(previewFramesRaw?: string): string[] {
+    if (!previewFramesRaw) return [];
+    const raw = previewFramesRaw.trim();
+    if (!raw) return [];
+
+    if (raw.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+            }
+        } catch {
+            // fall through to comma split
+        }
+    }
+
+    return raw.split(',').map(v => v.trim()).filter(Boolean);
+}
+
+function isArchivePreviewCacheFile(filePath: string): boolean {
+    const normalized = path.normalize(filePath).toLowerCase();
+    const marker = `${path.sep}archive-preview${path.sep}`;
+    return normalized.includes(marker);
+}
+
+type ThumbnailRow = { thumbnail_path?: string; preview_frames?: string };
+
+function loadRegisteredThumbnailRowsFromDb(db: Database.Database): ThumbnailRow[] {
+    return db.prepare(`
+        SELECT thumbnail_path, preview_frames FROM files
+        WHERE thumbnail_path IS NOT NULL OR preview_frames IS NOT NULL
+    `).all() as ThumbnailRow[];
+}
+
+/**
+ * 旧保存構造（thumbnails 直下）fallback時は、現行プロファイルDBだけだと
+ * 他プロファイル参照中のファイルを誤って孤立扱いする可能性がある。
+ * そのため profiles.db に登録されている全プロファイルDBの参照を集約する。
+ */
+function loadRegisteredThumbnailRowsForLegacyFallback(): ThumbnailRow[] {
+    const rows: ThumbnailRow[] = [];
+    const profiles = dbManager.getProfiles();
+
+    for (const profile of profiles) {
+        const dbPath = path.join(getBasePath(), profile.dbFilename);
+        if (!fs.existsSync(dbPath)) {
+            log.warn(`Profile DB not found during legacy fallback scan: ${dbPath}`);
+            continue;
+        }
+
+        let profileDb: Database.Database | null = null;
+        try {
+            profileDb = new Database(dbPath, { readonly: true });
+            rows.push(...loadRegisteredThumbnailRowsFromDb(profileDb));
+        } catch (error) {
+            log.warn(`Failed to scan profile DB during legacy fallback: ${dbPath}`, error);
+        } finally {
+            try {
+                if (profileDb && profileDb.open) {
+                    profileDb.close();
+                }
+            } catch {
+                // ignore close errors for diagnostic path
+            }
+        }
+    }
+
+    return rows;
+}
+
 // --- Public API ---
 
 /**
@@ -86,11 +162,24 @@ function getAllFiles(dir: string): string[] {
 export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticResult> {
     log.info(`Starting thumbnail diagnostic for profile: ${profileId}`);
 
-    const thumbnailDir = getThumbnailDir();
+    let thumbnailDir = getThumbnailDir(profileId);
+    let usingLegacyFallback = false;
     const db = dbManager.getDb();
 
     // 1. サムネイルDir上の全ファイルを取得
-    const diskFiles = getAllFiles(thumbnailDir);
+    let diskFiles = getAllFiles(thumbnailDir);
+
+    // 旧保存構造からの移行途中は profile 配下が空でも旧 thumbnails 直下に存在しうる
+    if (diskFiles.length === 0) {
+        const legacyDir = getLegacyThumbnailDir();
+        const legacyFiles = getAllFiles(legacyDir);
+        if (legacyFiles.length > 0) {
+            thumbnailDir = legacyDir;
+            diskFiles = legacyFiles;
+            usingLegacyFallback = true;
+            log.info(`Using legacy thumbnail dir fallback for diagnostic: ${legacyDir}`);
+        }
+    }
     log.debug(`Found ${diskFiles.length} files on disk in thumbnail dir: ${thumbnailDir}`);
 
     if (diskFiles.length === 0) {
@@ -104,12 +193,11 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
     }
 
     // 2. DBから登録済みサムネイルパスを収集（正規化して Set に）
-    const registeredRows = db.prepare(`
-        SELECT thumbnail_path, preview_frames FROM files
-        WHERE thumbnail_path IS NOT NULL OR preview_frames IS NOT NULL
-    `).all() as Array<{ thumbnail_path?: string; preview_frames?: string }>;
+    const registeredRows = usingLegacyFallback
+        ? loadRegisteredThumbnailRowsForLegacyFallback()
+        : loadRegisteredThumbnailRowsFromDb(db);
 
-    log.debug(`Found ${registeredRows.length} files with thumbnails or preview frames in DB`);
+    log.debug(`Found ${registeredRows.length} files with thumbnails or preview frames in DB${usingLegacyFallback ? ' (all profiles, legacy fallback)' : ''}`);
 
     const registeredSet = new Set<string>();
     for (const row of registeredRows) {
@@ -117,7 +205,7 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
             registeredSet.add(path.normalize(path.resolve(row.thumbnail_path)));
         }
         if (row.preview_frames) {
-            const frames = row.preview_frames.split(',').filter(f => f.trim().length > 0);
+            const frames = parsePreviewFrames(row.preview_frames);
             for (const f of frames) {
                 registeredSet.add(path.normalize(path.resolve(f.trim())));
             }
@@ -132,6 +220,11 @@ export async function diagnoseThumbnails(profileId: string): Promise<DiagnosticR
 
     for (const diskPath of diskFiles) {
         const normalizedPath = path.normalize(path.resolve(diskPath));
+
+        // archive-preview は固定キャッシュ（DB未登録）なので孤立判定対象から除外する
+        if (isArchivePreviewCacheFile(normalizedPath)) {
+            continue;
+        }
 
         if (!registeredSet.has(normalizedPath)) {
             let size = 0;

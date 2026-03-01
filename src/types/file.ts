@@ -30,4 +30,17 @@ export interface MediaFolder {
     createdAt: number;
     parentId: string | null;  // Phase 22-C: 親フォルダID
     drive: string;             // Phase 22-C: ドライブ文字（C:, D:など）
+    isVirtualFolder?: boolean;
+    autoScan?: number;
+    watchNewFiles?: number;
+    auto_scan?: number;
+    watch_new_files?: number;
+    lastScanAt?: number | null;
+    lastScanStatus?: string | null;
+    lastScanMessage?: string | null;
+    last_scan_at?: number | null;
+    last_scan_status?: string | null;
+    last_scan_message?: string | null;
+    scanSettingsJson?: string | null; // renderer側で使うcamelCase（将来用）
+    scan_settings_json?: string | null; // Electron IPC返却のsnake_case互換
 }

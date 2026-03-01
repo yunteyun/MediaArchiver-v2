@@ -26,6 +26,7 @@ export interface TagDefinition {
     name: string;
     color: string;
     categoryId: string | null;
+    categoryColor?: string;
     sortOrder: number;
     createdAt: number;
     icon: string;
@@ -86,9 +87,11 @@ export function deleteCategory(id: string): void {
 
 export function getAllTags(): TagDefinition[] {
     const rows = db().prepare(`
-        SELECT id, name, color, category_id, sort_order, created_at, icon, description
-        FROM tag_definitions 
-        ORDER BY sort_order ASC, name ASC
+        SELECT td.id, td.name, td.color, td.category_id, td.sort_order, td.created_at, td.icon, td.description,
+               tc.color as category_color
+        FROM tag_definitions td
+        LEFT JOIN tag_categories tc ON td.category_id = tc.id
+        ORDER BY td.sort_order ASC, td.name ASC
     `).all() as any[];
 
     return rows.map(row => ({
@@ -96,6 +99,7 @@ export function getAllTags(): TagDefinition[] {
         name: row.name,
         color: row.color,
         categoryId: row.category_id,
+        categoryColor: row.category_color || undefined,
         sortOrder: row.sort_order,
         createdAt: row.created_at,
         icon: row.icon || '',

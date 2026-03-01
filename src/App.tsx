@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Toaster } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
-import { LightBox } from './components/lightbox/LightBox';
 import { SettingsModal } from './components/SettingsModal';
 import { ProfileSwitcher } from './components/ProfileSwitcher';
 import { ProfileModal } from './components/ProfileModal';
@@ -15,16 +14,20 @@ import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
 import { useUIStore } from './stores/useUIStore';
-import { useSettingsStore } from './stores/useSettingsStore';
+import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, useSettingsStore } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
+import { useRatingStore } from './stores/useRatingStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 import { MoveFolderDialog } from './components/MoveFolderDialog';
 import { useDuplicateStore } from './stores/useDuplicateStore';
+import { CenterViewerRoot } from './features/center-viewer/CenterViewerRoot';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const loadProfiles = useProfileStore((s) => s.loadProfiles);
+    const profiles = useProfileStore((s) => s.profiles);
+    const activeProfileId = useProfileStore((s) => s.activeProfileId);
     const setFiles = useFileStore((s) => s.setFiles);
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
@@ -47,20 +50,75 @@ function App() {
     // Phase 23: 右サイドパネル
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
+    const profileSettingsLoadSeqRef = useRef(0);
 
-    // autoScanOnStartup は起動後1回だけ評価するため、初期値を取得
-    const autoScanOnStartupRef = useRef(false);
     useEffect(() => {
         // 設定は永続化されているので、初回マウント時にstoreから読み取り
         const settings = useSettingsStore.getState();
-        autoScanOnStartupRef.current = settings.autoScanOnStartup;
         // プレビューフレーム数をメインプロセスに同期
         window.electronAPI.setPreviewFrameCount(settings.previewFrameCount);
         // スキャン速度抑制をメインプロセスに同期
         window.electronAPI.setScanThrottleMs(settings.scanThrottleMs);
         // サムネイル解像度をメインプロセスに同期
         window.electronAPI.setThumbnailResolution(settings.thumbnailResolution);
+        window.electronAPI.setScanFileTypeCategories(settings.profileFileTypeFilters).catch(console.error);
     }, []);
+
+    const syncProfileScopedSettingsToScanner = useCallback(async (settings: {
+        previewFrameCount: number;
+        fileTypeFilters: { video: boolean; image: boolean; archive: boolean; audio: boolean };
+        scanThrottleMs: number;
+        thumbnailResolution: number;
+    }) => {
+        await Promise.all([
+            window.electronAPI.setPreviewFrameCount(settings.previewFrameCount),
+            window.electronAPI.setScanFileTypeCategories(settings.fileTypeFilters),
+            window.electronAPI.setScanThrottleMs(settings.scanThrottleMs),
+            window.electronAPI.setThumbnailResolution(settings.thumbnailResolution),
+        ]);
+    }, []);
+
+    const loadAndApplyActiveProfileScopedSettings = useCallback(async () => {
+        if (!activeProfileId || profiles.length === 0) return;
+
+        const seq = ++profileSettingsLoadSeqRef.current;
+        const settingsStore = useSettingsStore.getState();
+
+        try {
+            let response = await window.electronAPI.getProfileScopedSettings();
+
+            if (!response.exists) {
+                let initialSettings = response.settings;
+
+                if (!settingsStore.profileSettingsMigrationV1Done) {
+                    const shouldMigrate = window.confirm(
+                        'プロファイル別スキャン設定の初回移行を行います。\n\n' +
+                        'OK: 現在のプレビューフレーム数を引き継ぐ\n' +
+                        'キャンセル: 既定値で開始する'
+                    );
+
+                    initialSettings = {
+                        fileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
+                        previewFrameCount: shouldMigrate ? settingsStore.previewFrameCount : 10,
+                        scanThrottleMs: shouldMigrate ? settingsStore.scanThrottleMs : 0,
+                        thumbnailResolution: shouldMigrate ? settingsStore.thumbnailResolution : 320,
+                    };
+
+                    response = await window.electronAPI.replaceProfileScopedSettings(initialSettings);
+                    useSettingsStore.getState().setProfileSettingsMigrationV1Done(true);
+                } else {
+                    response = await window.electronAPI.replaceProfileScopedSettings(initialSettings);
+                }
+            }
+
+            if (seq !== profileSettingsLoadSeqRef.current) return;
+
+            useSettingsStore.getState().applyProfileScopedSettings(response.settings);
+            await syncProfileScopedSettingsToScanner(response.settings);
+        } catch (e) {
+            console.error('Failed to load/apply profile scoped settings:', e);
+        }
+    }, [activeProfileId, profiles.length, syncProfileScopedSettingsToScanner]);
 
     // 外部アプリ設定を Electron 側に同期（起動時および変更時）
     useEffect(() => {
@@ -72,15 +130,25 @@ function App() {
         loadProfiles();
     }, [loadProfiles]);
 
-    // 起動時自動スキャン（初回マウント時のみ）
     useEffect(() => {
-        if (autoScanOnStartupRef.current) {
-            // 少し遅延を入れてUIが準備できてから実行
-            const timer = setTimeout(() => {
-                window.electronAPI.autoScan().catch(console.error);
-            }, 500);
-            return () => clearTimeout(timer);
-        }
+        void loadAndApplyActiveProfileScopedSettings();
+    }, [loadAndApplyActiveProfileScopedSettings]);
+
+    // 評価フィルター用キャッシュを起動時に一括ロード
+    useEffect(() => {
+        useRatingStore.getState().loadAllFileRatings().catch((e) => {
+            console.error('Failed to preload rating cache:', e);
+        });
+    }, []);
+
+    // 起動時自動スキャン（初回マウント時のみ）
+    // 実際の対象は「フォルダ別設定で起動時スキャンONのフォルダ」のみ。
+    useEffect(() => {
+        // 少し遅延を入れてUIが準備できてから実行
+        const timer = setTimeout(() => {
+            window.electronAPI.autoScan().catch(console.error);
+        }, 500);
+        return () => clearTimeout(timer);
     }, []);
 
     // スキャン進捗イベントを監視
@@ -89,18 +157,17 @@ function App() {
         const error = useToastStore.getState().error;
         const cleanup = window.electronAPI.onScanProgress((progress) => {
             setScanProgress(progress);
-            // スキャン完了時（progress === null）にトースト表示
-            if (progress === null) {
-                const fileCount = useFileStore.getState().files.length;
-                success(`スキャンが完了しました (${fileCount}件)`);
-            }
-            // サムネイル再生成完了時にトースト表示
-            else if (progress.phase === 'complete' && progress.message === 'サムネイル再生成完了') {
+            if (progress?.phase === 'complete' && progress.message === 'サムネイル再生成完了') {
                 success('サムネイルを再生成しました');
             }
-            // エラー時にトースト表示
-            else if (progress.phase === 'error' && progress.message?.includes('サムネイル再生成')) {
+            else if (progress?.phase === 'complete') {
+                success('スキャンが完了しました');
+            }
+            else if (progress?.phase === 'error' && progress.message?.includes('サムネイル再生成')) {
                 error('サムネイルの再生成に失敗しました');
+            }
+            else if (progress?.phase === 'error') {
+                error('スキャン中にエラーが発生しました');
             }
         });
         return cleanup;
@@ -118,10 +185,16 @@ function App() {
                 setFiles([]);
                 setCurrentFolderId(null);
                 clearTagFilter();
+                useRatingStore.getState().clearRatingFilters();
                 // 重複検索ストアをリセット（前プロファイルの結果を残さない）
                 useDuplicateStore.getState().reset();
                 // コンポーネントを再マウント
                 setRefreshKey((k) => k + 1);
+
+                // 新プロファイルの評価キャッシュを再ロード
+                useRatingStore.getState().loadAllFileRatings().catch((e) => {
+                    console.error('Failed to reload rating cache after profile switch:', e);
+                });
             };
             handleProfileSwitch();
         });
@@ -133,6 +206,21 @@ function App() {
         const cleanup = window.electronAPI.onOpenMoveDialog((data) => {
             const { openMoveDialog } = useUIStore.getState();
             openMoveDialog(data.fileIds, data.currentFolderId);
+        });
+        return cleanup;
+    }, []);
+
+    // 別モードで開く（コンテキストメニュー）
+    useEffect(() => {
+        const cleanup = window.electronAPI.onOpenFileAsMode(async (data) => {
+            try {
+                const localFile = useFileStore.getState().files.find((f) => f.id === data.fileId);
+                const targetFile = localFile ?? await window.electronAPI.getFileById(data.fileId);
+                if (!targetFile) return;
+                useUIStore.getState().openLightbox(targetFile, data.mode);
+            } catch (e) {
+                console.error('Failed to open file as mode:', e);
+            }
         });
         return cleanup;
     }, []);
@@ -216,17 +304,19 @@ function App() {
                     </div>
                 </header>
                 {/* メインコンテンツ: 統計 / 重複ビュー / ファイルグリッド */}
-                {mainView === 'statistics' ? (
-                    <StatisticsView />
-                ) : duplicateViewOpen ? (
-                    <DuplicateView />
-                ) : (
-                    <FileGrid key={`grid-${refreshKey}`} />
-                )}
+                <div className="relative flex-1 min-h-0">
+                    {mainView === 'statistics' ? (
+                        <StatisticsView />
+                    ) : duplicateViewOpen ? (
+                        <DuplicateView />
+                    ) : (
+                        <FileGrid key={`grid-${refreshKey}`} />
+                    )}
+                    <CenterViewerRoot />
+                </div>
             </main>
             {/* Phase 23: 右サイドパネル（transform で開閉、レイアウトシフト回避） */}
             {isRightPanelOpen && <RightPanel />}
-            <LightBox />
             <SettingsModal />
             <ProfileModal
                 isOpen={profileModalOpen}

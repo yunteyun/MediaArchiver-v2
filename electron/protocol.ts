@@ -8,6 +8,7 @@
 import { protocol } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { getBasePath } from './services/storageConfig';
 
 /**
  * Get MIME type from file extension
@@ -33,6 +34,28 @@ function getMimeType(filePath: string): string {
     return mimeTypes[ext] || 'application/octet-stream';
 }
 
+function tryResolveThumbnailPathFallback(originalPath: string): string {
+    if (fs.existsSync(originalPath)) {
+        return originalPath;
+    }
+
+    const normalized = path.normalize(originalPath);
+    const marker = `${path.sep}thumbnails${path.sep}`;
+    const markerIndex = normalized.toLowerCase().indexOf(marker.toLowerCase());
+    if (markerIndex < 0) {
+        return originalPath;
+    }
+
+    const relativeFromThumbnails = normalized.slice(markerIndex + marker.length);
+    const fallbackPath = path.join(getBasePath(), 'thumbnails', relativeFromThumbnails);
+
+    if (fs.existsSync(fallbackPath)) {
+        return fallbackPath;
+    }
+
+    return originalPath;
+}
+
 /**
  * Register the media:// protocol handler
  * 
@@ -42,9 +65,18 @@ function getMimeType(filePath: string): string {
 export function registerMediaProtocol() {
     protocol.handle('media', (request) => {
         try {
-            // Extract file path from media:// URL
-            const urlPath = request.url.replace('media://', '');
-            const decodedPath = decodeURIComponent(urlPath);
+            const parsed = new URL(request.url);
+
+            // New format: media://local/<encoded-path>
+            // Legacy format: media://<encoded-path>
+            let encodedPath = '';
+            if (parsed.hostname === 'local') {
+                encodedPath = parsed.pathname.replace(/^\/+/, '');
+            } else {
+                encodedPath = request.url.replace(/^media:\/\//, '');
+            }
+
+            const decodedPath = decodeURIComponent(encodedPath);
 
             // Normalize path (remove leading slash on Windows if needed, though usually fileURLToPath handles it)
             // But here we need direct fs access path
@@ -58,6 +90,15 @@ export function registerMediaProtocol() {
                     filePath = filePath.substring(1);
                 }
             }
+
+            // Normalize /D:/... to D:/... on Windows
+            if (process.platform === 'win32' && /^\/[a-zA-Z]:\//.test(filePath)) {
+                filePath = filePath.substring(1);
+            }
+
+            // Thumbnail paths can become stale after storage migration / path updates.
+            // Try resolving to current basePath thumbnails as a fallback before failing.
+            filePath = tryResolveThumbnailPathFallback(filePath);
 
             // Stat file
             const stat = fs.statSync(filePath);

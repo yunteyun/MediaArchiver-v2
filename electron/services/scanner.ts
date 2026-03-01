@@ -4,7 +4,7 @@ import pLimit from 'p-limit';
 import * as db from './database';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { generateThumbnail, getVideoDuration, generatePreviewFrames, checkIsAnimated } from './thumbnail';
+import { generateThumbnail, getVideoDuration, getMediaMetadata, generatePreviewFrames, checkIsAnimated } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
 import * as archiveHandler from './archiveHandler';
 
@@ -17,6 +17,104 @@ const VIDEO_EXTENSIONS = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.wmv'];
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
 const ARCHIVE_EXTENSIONS = ['.zip', '.cbz', '.rar', '.cbr', '.7z'];
 const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac', '.wma'];
+
+export interface ScanFileTypeCategoryFilters {
+    video: boolean;
+    image: boolean;
+    archive: boolean;
+    audio: boolean;
+}
+
+let enabledScanCategories: ScanFileTypeCategoryFilters = {
+    video: true,
+    image: true,
+    archive: true,
+    audio: true,
+};
+
+function normalizeScanFileTypeCategories(input: Partial<ScanFileTypeCategoryFilters> | undefined): ScanFileTypeCategoryFilters {
+    return {
+        video: input?.video ?? true,
+        image: input?.image ?? true,
+        archive: input?.archive ?? true,
+        audio: input?.audio ?? true,
+    };
+}
+
+function resolveEffectiveScanFileTypeCategories(rootFolderId: string): ScanFileTypeCategoryFilters {
+    const profileDefaults = getScanFileTypeCategories();
+    const folderSettings = db.getFolderScanSettings(rootFolderId);
+    const overrides = folderSettings.fileTypeOverrides || {};
+    return {
+        video: overrides.video ?? profileDefaults.video,
+        image: overrides.image ?? profileDefaults.image,
+        archive: overrides.archive ?? profileDefaults.archive,
+        audio: overrides.audio ?? profileDefaults.audio,
+    };
+}
+
+export function setScanFileTypeCategories(filters: Partial<ScanFileTypeCategoryFilters>) {
+    enabledScanCategories = normalizeScanFileTypeCategories(filters);
+}
+
+export function getScanFileTypeCategories(): ScanFileTypeCategoryFilters {
+    return { ...enabledScanCategories };
+}
+
+function getMediaTypeFromExtension(ext: string): 'video' | 'image' | 'archive' | 'audio' | null {
+    if (VIDEO_EXTENSIONS.includes(ext)) return 'video';
+    if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
+    if (ARCHIVE_EXTENSIONS.includes(ext)) return 'archive';
+    if (AUDIO_EXTENSIONS.includes(ext)) return 'audio';
+    return null;
+}
+
+function isScanTypeEnabled(
+    type: 'video' | 'image' | 'archive' | 'audio',
+    filters: ScanFileTypeCategoryFilters = enabledScanCategories
+): boolean {
+    return filters[type];
+}
+
+function isScannableMediaType(
+    ext: string,
+    filters: ScanFileTypeCategoryFilters = enabledScanCategories
+): 'video' | 'image' | 'archive' | 'audio' | null {
+    const type = getMediaTypeFromExtension(ext);
+    if (!type) return null;
+    return isScanTypeEnabled(type, filters) ? type : null;
+}
+
+const IMAGE_ANIMATION_CHECK_BACKFILL_VERSION = 1;
+
+function getImageAnimationCheckBackfillVersion(metadata?: string): number {
+    if (!metadata) return 0;
+    try {
+        const parsed = JSON.parse(metadata);
+        const version = Number(parsed?.animationCheckBackfillVersion ?? 0);
+        return Number.isFinite(version) ? version : 0;
+    } catch {
+        return 0;
+    }
+}
+
+function attachImageAnimationCheckBackfillMarker(metadata?: string): string | undefined {
+    if (!metadata) return metadata;
+    try {
+        const parsed = JSON.parse(metadata);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return metadata;
+        if ((parsed as Record<string, unknown>).animationCheckBackfillVersion === IMAGE_ANIMATION_CHECK_BACKFILL_VERSION) {
+            return metadata;
+        }
+        const next = {
+            ...(parsed as Record<string, unknown>),
+            animationCheckBackfillVersion: IMAGE_ANIMATION_CHECK_BACKFILL_VERSION
+        };
+        return JSON.stringify(next);
+    } catch {
+        return metadata;
+    }
+}
 
 export type ScanProgressCallback = (progress: {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
@@ -93,7 +191,7 @@ function commitBatch(pendingWrites: PendingWrite[]) {
 }
 
 // ファイル数をカウント (再帰)
-async function countFiles(dirPath: string): Promise<number> {
+async function countFiles(dirPath: string, scanFilters: ScanFileTypeCategoryFilters): Promise<number> {
     // パス長チェック
     if (!validatePathLength(dirPath)) {
         log.warn(`Skipping path (too long): ${dirPath.substring(0, 100)}...`);
@@ -115,10 +213,10 @@ async function countFiles(dirPath: string): Promise<number> {
                 }
 
                 if (entry.isDirectory()) {
-                    count += await countFiles(fullPath);
+                    count += await countFiles(fullPath, scanFilters);
                 } else if (entry.isFile()) {
                     const ext = path.extname(entry.name).toLowerCase();
-                    if (VIDEO_EXTENSIONS.includes(ext) || IMAGE_EXTENSIONS.includes(ext) || ARCHIVE_EXTENSIONS.includes(ext) || AUDIO_EXTENSIONS.includes(ext)) {
+                    if (isScannableMediaType(ext, scanFilters)) {
                         count++;
                     }
                 }
@@ -153,6 +251,7 @@ async function scanDirectoryInternal(
         lastProgressTime: number;
         stats: { newCount: number; updateCount: number; skipCount: number };
         pendingWrites: PendingWrite[];
+        scanFilters: ScanFileTypeCategoryFilters;
     }
 ) {
     // パス長チェック
@@ -193,12 +292,7 @@ async function scanDirectoryInternal(
                 await scanDirectoryInternal(fullPath, rootFolderId, onProgress, state);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
-                let type: 'video' | 'image' | 'archive' | 'audio' | null = null;
-
-                if (VIDEO_EXTENSIONS.includes(ext)) type = 'video';
-                else if (IMAGE_EXTENSIONS.includes(ext)) type = 'image';
-                else if (ARCHIVE_EXTENSIONS.includes(ext)) type = 'archive';
-                else if (AUDIO_EXTENSIONS.includes(ext)) type = 'audio';
+                const type = isScannableMediaType(ext, state.scanFilters);
 
                 if (type) {
                     state.current++;
@@ -242,15 +336,24 @@ async function scanDirectoryInternal(
                     // Phase 15-2: 画像はメタデータ(width/height)も必要
                     const hasMetadata = !!existing?.metadata;
                     const isComplete = type === 'video'
-                        ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0))
+                        ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0) && hasMetadata)
+                        : type === 'audio'
+                            ? (hasThumbnail && hasMetadata)
                         : type === 'image'
                             ? (hasThumbnail && hasMetadata)
                             : (!isMedia || hasThumbnail);
 
+                    const needsPngAnimationBackfillCheck = type === 'image'
+                        && ext === '.png'
+                        && !!existing
+                        && existing.is_animated === 0
+                        && getImageAnimationCheckBackfillVersion(existing.metadata) < IMAGE_ANIMATION_CHECK_BACKFILL_VERSION;
+
                     if (existing &&
                         existing.size === fileStats.size &&
                         existing.mtime_ms === Math.floor(fileStats.mtimeMs) &&
-                        isComplete
+                        isComplete &&
+                        !needsPngAnimationBackfillCheck
                     ) {
                         state.stats.skipCount++;
                         // Throttled progress update
@@ -386,6 +489,17 @@ async function scanDirectoryInternal(
                         }
                     }
 
+                    if ((type === 'video' || type === 'audio') && !metadata) {
+                        try {
+                            const mediaMeta = await getMediaMetadata(fullPath);
+                            if (mediaMeta) {
+                                metadata = JSON.stringify(mediaMeta);
+                            }
+                        } catch (e) {
+                            log.error('Media metadata extraction failed:', e);
+                        }
+                    }
+
                     // Check if image is animated (GIF/WebP)
                     let isAnimated: boolean | undefined = undefined;
                     if (type === 'image') {
@@ -399,6 +513,10 @@ async function scanDirectoryInternal(
                         } else {
                             isAnimated = existing.is_animated === 1;
                         }
+                    }
+
+                    if (type === 'image' && ext === '.png') {
+                        metadata = attachImageAnimationCheckBackfillMarker(metadata);
                     }
 
                     // Insert or Update - バッチに追加
@@ -464,13 +582,19 @@ async function scanDirectoryInternal(
 export async function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback) {
     // キャンセルフラグをリセット
     scanCancelled = false;
+    db.updateFolderLastScanStatus(rootFolderId, {
+        at: Date.now(),
+        status: 'running',
+        message: 'スキャン開始'
+    });
 
     try {
         if (onProgress) {
             onProgress({ phase: 'counting', current: 0, total: 0, message: 'ファイル数をカウント中...' });
         }
 
-        const total = await countFiles(dirPath);
+        const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(rootFolderId);
+        const total = await countFiles(dirPath, effectiveScanFilters);
 
         if (onProgress) {
             onProgress({ phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
@@ -481,7 +605,8 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             total,
             lastProgressTime: 0,
             stats: { newCount: 0, updateCount: 0, skipCount: 0 },
-            pendingWrites: [] as PendingWrite[]
+            pendingWrites: [] as PendingWrite[],
+            scanFilters: effectiveScanFilters
         };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, state);
 
@@ -495,7 +620,14 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
         const registeredFiles = db.getFiles(rootFolderId);
         let removedCount = 0;
         for (const file of registeredFiles) {
-            if (!fs.existsSync(file.path)) {
+            const isMissingOnDisk = !fs.existsSync(file.path);
+            const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
+            const disabledByProfile =
+                type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+                    ? !isScanTypeEnabled(type, state.scanFilters)
+                    : false;
+
+            if (isMissingOnDisk || disabledByProfile) {
                 db.deleteFile(file.id);
                 removedCount++;
             }
@@ -503,6 +635,11 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
 
         // キャンセルされた場合
         if (scanCancelled) {
+            db.updateFolderLastScanStatus(rootFolderId, {
+                at: Date.now(),
+                status: 'cancelled',
+                message: `キャンセル: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ`
+            });
             if (onProgress) {
                 onProgress({
                     phase: 'complete',
@@ -525,8 +662,18 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
                 stats: state.stats
             });
         }
+        db.updateFolderLastScanStatus(rootFolderId, {
+            at: Date.now(),
+            status: 'success',
+            message: `完了: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ, ${removedCount}件削除`
+        });
 
     } catch (e) {
+        db.updateFolderLastScanStatus(rootFolderId, {
+            at: Date.now(),
+            status: 'error',
+            message: String(e)
+        });
         if (onProgress) {
             onProgress({ phase: 'error', current: 0, total: 0, message: String(e) });
         }

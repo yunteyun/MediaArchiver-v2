@@ -36,6 +36,10 @@ let _basePath: string | null = null;
 let _config: StorageConfig = { mode: 'appdata' };
 const CONFIG_FILENAME = 'storage-config.json';
 
+function getRuntimeScope(): 'dev' | 'release' {
+    return process.env.VITE_DEV_SERVER_URL ? 'dev' : 'release';
+}
+
 // ─── パス解決 ─────────────────────────────────────────────────────────────────
 
 /**
@@ -44,12 +48,12 @@ const CONFIG_FILENAME = 'storage-config.json';
 function resolveBasePath(config: StorageConfig): string {
     switch (config.mode) {
         case 'appdata':
-            return app.getPath('userData');
+            return path.join(app.getPath('userData'), getRuntimeScope());
         case 'install': {
             // 開発時は exe パスが electron 本体になるため userData にフォールバック
             const exeDir = path.dirname(app.getPath('exe'));
             const isDev = process.env.VITE_DEV_SERVER_URL !== undefined;
-            return isDev ? app.getPath('userData') : path.join(exeDir, 'data');
+            return isDev ? path.join(app.getPath('userData'), 'dev') : path.join(exeDir, 'data');
         }
         case 'custom':
             return config.customPath ?? app.getPath('userData');
@@ -275,10 +279,8 @@ export function deleteOldStorageData(oldBase: string): { success: boolean; error
         if (fs.existsSync(oldThumbnails)) {
             fs.rmSync(oldThumbnails, { recursive: true, force: true });
         }
-        // DB ファイル削除（profiles.db は metaDb として常に開いているため除外）
-        const dbFiles = fs.readdirSync(oldBase).filter(f =>
-            f.endsWith('.db') && f !== 'profiles.db'
-        );
+        // DB ファイル削除
+        const dbFiles = fs.readdirSync(oldBase).filter(f => f.endsWith('.db'));
         for (const dbFile of dbFiles) {
             fs.unlinkSync(path.join(oldBase, dbFile));
         }
@@ -327,25 +329,29 @@ function updateThumbnailPathsInDbs(newBase: string, oldBase: string): void {
                 db.prepare(`
                     UPDATE files
                     SET thumbnail_path = REPLACE(thumbnail_path, ?, ?)
-                    WHERE thumbnail_path LIKE ?
-                `).run(oldNorm, newNorm, `${oldNorm}%`);
+                    WHERE instr(thumbnail_path, ?) > 0
+                `).run(oldNorm, newNorm, oldNorm);
                 // バックスラッシュ形式も対応
                 db.prepare(`
                     UPDATE files
                     SET thumbnail_path = REPLACE(thumbnail_path, ?, ?)
-                    WHERE thumbnail_path LIKE ?
-                `).run(oldBase, newBase, `${oldBase}%`);
+                    WHERE instr(thumbnail_path, ?) > 0
+                `).run(oldBase, newBase, oldBase);
                 // preview_frames も同様に更新
+                // 形式差に対応:
+                // - comma-separated absolute paths（旧/現行）
+                // - JSON array string（移行途中の互換形式）
+                // JSON配列は先頭が `[` のため先頭一致判定では取りこぼしうる。
                 db.prepare(`
                     UPDATE files
                     SET preview_frames = REPLACE(preview_frames, ?, ?)
-                    WHERE preview_frames LIKE ?
-                `).run(oldNorm, newNorm, `${oldNorm}%`);
+                    WHERE instr(preview_frames, ?) > 0
+                `).run(oldNorm, newNorm, oldNorm);
                 db.prepare(`
                     UPDATE files
                     SET preview_frames = REPLACE(preview_frames, ?, ?)
-                    WHERE preview_frames LIKE ?
-                `).run(oldBase, newBase, `${oldBase}%`);
+                    WHERE instr(preview_frames, ?) > 0
+                `).run(oldBase, newBase, oldBase);
                 db.close();
                 log.info(`thumbnail_path updated in ${dbFile}`);
             } catch (e) {

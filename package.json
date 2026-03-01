@@ -1,7 +1,7 @@
 {
     "name": "media-archiver-v2",
     "private": true,
-    "version": "1.1.3",
+  "version": "1.1.3d5",
     "main": "dist-electron/main.js",
     "scripts": {
         "dev": "vite",
@@ -59,14 +59,30 @@
         "directories": {
             "output": "release"
         },
+        "asarUnpack": [
+            "node_modules/7zip-bin/**/*",
+            "node_modules/better-sqlite3/**/*",
+            "node_modules/ffmpeg-static/**/*",
+            "node_modules/ffprobe-static/**/*",
+            "node_modules/sharp/**/*"
+        ],
+        "afterPack": "./electron/scripts/afterPack.cjs",
         "files": [
             "dist/**/*",
             "dist-electron/**/*",
             "node_modules/**/*",
             "package.json"
         ],
+        "extraFiles": [
+            {
+                "from": "update.bat",
+                "to": "update.bat"
+            }
+        ],
         "win": {
+            "icon": "build/icons/release-icon.png",
             "target": "zip"
         }
     }
 }
+

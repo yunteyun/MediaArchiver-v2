@@ -66,7 +66,7 @@ interface TagState {
     loadTags: () => Promise<void>;
     loadCategories: () => Promise<void>;
     createTag: (name: string, color?: string, categoryId?: string, icon?: string, description?: string) => Promise<Tag>;
-    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; icon?: string; description?: string }) => Promise<void>;
+    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number; icon?: string; description?: string }) => Promise<void>;
     deleteTag: (id: string) => Promise<void>;
     createCategory: (name: string, color?: string) => Promise<TagCategory>;
     updateCategory: (id: string, updates: { name?: string; color?: string; sortOrder?: number }) => Promise<void>;
@@ -138,7 +138,16 @@ export const useTagStore = create<TagState>((set, get) => ({
     loadCategories: async () => {
         try {
             const categories = await window.electronAPI.getTagCategories();
-            set({ categories });
+            set((state) => {
+                const validCategoryIds = new Set(categories.map((c) => c.id));
+                const preservedCollapsed = state.collapsedCategoryIds.filter((id) => validCategoryIds.has(id));
+                const shouldInitializeCollapse = state.categories.length === 0 && state.collapsedCategoryIds.length === 0;
+                const collapsedCategoryIds = preservedCollapsed.length > 0
+                    ? preservedCollapsed
+                    : (shouldInitializeCollapse ? categories.map((c) => c.id) : state.collapsedCategoryIds);
+
+                return { categories, collapsedCategoryIds };
+            });
         } catch (error) {
             console.error('Failed to load categories:', error);
         }

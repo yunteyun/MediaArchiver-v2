@@ -56,6 +56,7 @@ export declare function insertFile(fileData: Partial<MediaFile> & {
 }): MediaFile;
 export declare function deleteFile(id: string): void;
 export declare function updateFileLocation(id: string, newPath: string, newRootFolderId: string): void;
+export declare function updateFileNameAndPath(id: string, newName: string, newPath: string): void;
 export declare function updateFileHash(id: string, hash: string): void;
 export declare function updateFileMetadata(id: string, metadataJson: string): void;
 export declare function updateFileAllPaths(id: string, pathVal: string, thumbPath: string, previewFrames: string): void;
