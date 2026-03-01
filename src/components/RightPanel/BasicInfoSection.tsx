@@ -70,10 +70,22 @@ interface InfoRowProps {
     value: string;
 }
 
+interface InfoGroupProps {
+    title: string;
+    children: React.ReactNode;
+}
+
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
     <div className="flex gap-2 text-sm">
         <span className="text-surface-400 shrink-0 w-20">{label}</span>
         <span className="text-surface-100 break-all">{value}</span>
+    </div>
+);
+
+const InfoGroup: React.FC<InfoGroupProps> = ({ title, children }) => (
+    <div className="space-y-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-surface-500">{title}</p>
+        <div className="space-y-1.5">{children}</div>
     </div>
 );
 
@@ -142,23 +154,30 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
                 <summary className="cursor-pointer list-none px-3 py-2 text-xs text-surface-400 transition-colors group-open:text-surface-300">
                     追加情報を表示
                 </summary>
-                <div className="space-y-1.5 border-t border-surface-800 px-3 py-3">
-                    {updatedAt && <InfoRow label="更新日時" value={updatedAt} />}
-                    {!isVideo && file.duration && <InfoRow label="再生時間" value={file.duration} />}
-                    <InfoRow label="拡張子" value={extension} />
-                    <InfoRow label="ファイルパス" value={file.path} />
-                    {metadata?.format && <InfoRow label="形式" value={metadata.format} />}
-                    {metadata?.container && <InfoRow label="コンテナ" value={metadata.container} />}
-                    {(metadata?.videoCodec || metadata?.codec) && (
-                        <InfoRow label="映像コーデック" value={metadata.videoCodec ?? metadata.codec ?? ''} />
+                <div className="space-y-3 border-t border-surface-800 px-3 py-3">
+                    <InfoGroup title="詳細情報">
+                        {updatedAt && <InfoRow label="更新日時" value={updatedAt} />}
+                        {!isVideo && file.duration && <InfoRow label="再生時間" value={file.duration} />}
+                        <InfoRow label="拡張子" value={extension} />
+                        <InfoRow label="ファイルパス" value={file.path} />
+                        {metadata?.format && <InfoRow label="形式" value={metadata.format} />}
+                        {archiveImageCount != null && <InfoRow label="書庫内画像数" value={`${archiveImageCount}`} />}
+                        {file.type === 'archive' && metadata?.hasAudio && <InfoRow label="書庫内音声" value="あり" />}
+                    </InfoGroup>
+
+                    {(isVideo || metadata?.container || metadata?.videoCodec || metadata?.codec || metadata?.audioCodec || (typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps)) || bitrate) && (
+                        <InfoGroup title="技術情報">
+                            {metadata?.container && <InfoRow label="コンテナ" value={metadata.container} />}
+                            {(metadata?.videoCodec || metadata?.codec) && (
+                                <InfoRow label="映像コーデック" value={metadata.videoCodec ?? metadata.codec ?? ''} />
+                            )}
+                            {metadata?.audioCodec && <InfoRow label="音声コーデック" value={metadata.audioCodec} />}
+                            {typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps) && (
+                                <InfoRow label="FPS" value={`${metadata.fps}`} />
+                            )}
+                            {bitrate && <InfoRow label="ビットレート" value={bitrate} />}
+                        </InfoGroup>
                     )}
-                    {metadata?.audioCodec && <InfoRow label="音声コーデック" value={metadata.audioCodec} />}
-                    {typeof metadata?.fps === 'number' && Number.isFinite(metadata.fps) && (
-                        <InfoRow label="FPS" value={`${metadata.fps}`} />
-                    )}
-                    {bitrate && <InfoRow label="ビットレート" value={bitrate} />}
-                    {archiveImageCount != null && <InfoRow label="書庫内画像数" value={`${archiveImageCount}`} />}
-                    {file.type === 'archive' && metadata?.hasAudio && <InfoRow label="書庫内音声" value="あり" />}
                 </div>
             </details>
         </section>
