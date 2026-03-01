@@ -64,9 +64,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
         void saveNotes(notes);
     }, [notes, saveNotes]);
 
-    const previewText = notes.trim()
-        ? notes.trim().split(/\r?\n/, 1)[0]
-        : 'メモなし';
+    const previewText = notes.trim() || 'メモなし';
 
     return (
         <section className="px-4 py-3 border-b border-surface-700">
@@ -77,7 +75,16 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
             >
                 <div className="min-w-0 space-y-1">
                     <SectionTitle>メモ</SectionTitle>
-                    <p className="truncate text-xs text-surface-500">{previewText}</p>
+                    <p
+                        className="overflow-hidden whitespace-pre-wrap break-words text-xs leading-5 text-surface-500"
+                        style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                        }}
+                    >
+                        {previewText}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2 pt-0.5">
                     <span className="text-[11px] text-surface-500">
