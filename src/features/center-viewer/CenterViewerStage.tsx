@@ -391,7 +391,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
                         {showArchiveAudioList && (
                             <div className={`${showArchivePreviewGrid ? 'w-[560px]' : 'w-full max-w-[920px]'} min-w-0 flex-shrink-0`}>
-                                <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-500/90 bg-black/84 p-5 shadow-2xl backdrop-blur-md">
+                                <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-500/90 bg-black p-5 shadow-2xl">
                                     <div className="mb-4 flex items-center gap-3 text-lg font-medium text-surface-100">
                                         <Music size={22} />
                                         <span>音声ファイル ({archiveAudioEntries.length})</span>
