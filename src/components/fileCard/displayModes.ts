@@ -55,10 +55,10 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         infoVariant: 'detailed',
         layout: {
             aspectRatio: '25/16',
-            cardWidth: 250,
-            thumbnailHeight: 160,
+            cardWidth: 265,
+            thumbnailHeight: 170,
             infoAreaHeight: 76,
-            totalHeight: 236,
+            totalHeight: 246,
         },
     },
     compact: {
