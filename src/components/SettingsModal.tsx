@@ -54,6 +54,10 @@ export const SettingsModal = React.memo(() => {
     const setFlipbookSpeed = useSettingsStore((s) => s.setFlipbookSpeed);
     const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
     const setAnimatedImagePreviewMode = useSettingsStore((s) => s.setAnimatedImagePreviewMode);
+    const rightPanelVideoPreviewMode = useSettingsStore((s) => s.rightPanelVideoPreviewMode);
+    const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
+    const rightPanelVideoJumpInterval = useSettingsStore((s) => s.rightPanelVideoJumpInterval);
+    const setRightPanelVideoJumpInterval = useSettingsStore((s) => s.setRightPanelVideoJumpInterval);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
     const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
@@ -1143,6 +1147,41 @@ export const SettingsModal = React.memo(() => {
                                         GIF / アニメーションWebP が対象。表示中自動再生は同時2件まで。パフォーマンスモード時は無効になります。
                                     </p>
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                                        右サイドバー動画プレビュー
+                                    </label>
+                                    <select
+                                        value={rightPanelVideoPreviewMode}
+                                        onChange={(e) => setRightPanelVideoPreviewMode(e.target.value as 'loop' | 'long')}
+                                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                    >
+                                        <option value="loop">ループ再生</option>
+                                        <option value="long">固定間隔プレビュー</option>
+                                    </select>
+                                    <p className="text-xs text-surface-500 mt-1">
+                                        右パネル上部の動画プレビューの既定動作です。固定間隔は内容を順送りで確認します。
+                                    </p>
+                                </div>
+
+                                {rightPanelVideoPreviewMode === 'long' && (
+                                    <div className="ml-6 mt-2">
+                                        <label className="block text-sm font-medium text-surface-300 mb-1">
+                                            右サイドバーのジャンプ間隔
+                                        </label>
+                                        <select
+                                            value={rightPanelVideoJumpInterval}
+                                            onChange={(e) => setRightPanelVideoJumpInterval(Number(e.target.value) as 1000 | 2000 | 3000 | 5000)}
+                                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                        >
+                                            <option value={1000}>1秒（高速プレビュー）</option>
+                                            <option value={2000}>2秒（推奨）</option>
+                                            <option value={3000}>3秒</option>
+                                            <option value={5000}>5秒（じっくり確認）</option>
+                                        </select>
+                                    </div>
+                                )}
 
                                 {/* Phase 17-3: Playモード詳細設定 */}
                                 {thumbnailAction === 'play' && (

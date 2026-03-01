@@ -65,6 +65,7 @@ interface SettingsState {
     animatedImagePreviewMode: AnimatedImagePreviewMode;
     rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
+    rightPanelVideoJumpInterval: PlayModeJumpInterval;
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     videoVolume: number; // 0.0 - 1.0
@@ -119,6 +120,7 @@ interface SettingsState {
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
     setRightPanelVideoMuted: (muted: boolean) => void;
     setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
+    setRightPanelVideoJumpInterval: (interval: PlayModeJumpInterval) => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setVideoVolume: (volume: number) => void;
@@ -171,6 +173,7 @@ export const useSettingsStore = create<SettingsState>()(
             animatedImagePreviewMode: 'hover',
             rightPanelVideoMuted: true,
             rightPanelVideoPreviewMode: 'loop',
+            rightPanelVideoJumpInterval: 2000,
             sortBy: 'date',
             sortOrder: 'desc',
             videoVolume: 0.5,
@@ -223,6 +226,7 @@ export const useSettingsStore = create<SettingsState>()(
             setAnimatedImagePreviewMode: (animatedImagePreviewMode) => set({ animatedImagePreviewMode }),
             setRightPanelVideoMuted: (rightPanelVideoMuted) => set({ rightPanelVideoMuted }),
             setRightPanelVideoPreviewMode: (rightPanelVideoPreviewMode) => set({ rightPanelVideoPreviewMode }),
+            setRightPanelVideoJumpInterval: (rightPanelVideoJumpInterval) => set({ rightPanelVideoJumpInterval }),
             setSortBy: (sortBy) => set({ sortBy }),
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setVideoVolume: (volume) => set({ videoVolume: volume }),

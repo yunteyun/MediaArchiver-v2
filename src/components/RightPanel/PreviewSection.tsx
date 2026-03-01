@@ -21,6 +21,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const rightPanelVideoMuted = useSettingsStore((s) => s.rightPanelVideoMuted);
     const rightPanelVideoPreviewMode = useSettingsStore((s) => s.rightPanelVideoPreviewMode);
+    const rightPanelVideoJumpInterval = useSettingsStore((s) => s.rightPanelVideoJumpInterval);
     const setRightPanelVideoMuted = useSettingsStore((s) => s.setRightPanelVideoMuted);
     const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -99,7 +100,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                     if (!video.duration || Number.isNaN(video.duration)) return;
                     currentSegment = (currentSegment + 1) % VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS;
                     video.currentTime = getSequentialPreviewTime(video.duration, currentSegment);
-                }, 2000);
+                }, rightPanelVideoJumpInterval);
             }
         };
 
@@ -123,7 +124,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
             video.currentTime = 0;
             video.removeEventListener('loadedmetadata', handleLoadedMetadata);
         };
-    }, [file.id, isCenterViewerOpen, isVideo, rightPanelVideoPreviewMode]);
+    }, [file.id, isCenterViewerOpen, isVideo, rightPanelVideoJumpInterval, rightPanelVideoPreviewMode]);
 
     return (
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
@@ -166,9 +167,9 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                                     );
                                 }}
                                 className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
-                                title={rightPanelVideoPreviewMode === 'loop' ? '長めプレビューへ切替' : 'ループ再生へ切替'}
+                                title={rightPanelVideoPreviewMode === 'loop' ? '固定間隔プレビューへ切替' : 'ループ再生へ切替'}
                             >
-                                {rightPanelVideoPreviewMode === 'loop' ? 'ループ' : '長め'}
+                                {rightPanelVideoPreviewMode === 'loop' ? 'ループ' : '固定間隔'}
                             </button>
                         </div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
