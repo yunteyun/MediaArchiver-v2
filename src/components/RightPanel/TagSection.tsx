@@ -7,9 +7,10 @@ import type { MediaFile } from '../../types/file';
 
 interface TagSectionProps {
     file: MediaFile;
+    embedded?: boolean;
 }
 
-export const TagSection = React.memo<TagSectionProps>(({ file }) => {
+export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false }) => {
     const allTags = useTagStore((s) => s.tags);
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
@@ -37,8 +38,8 @@ export const TagSection = React.memo<TagSectionProps>(({ file }) => {
     };
 
     return (
-        <div className="px-4 py-3 space-y-2">
-            <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">タグ</h3>
+        <div className={embedded ? 'space-y-2' : 'px-4 py-3 space-y-2 border-b border-surface-700'}>
+            {!embedded && <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">タグ</h3>}
             <TagSelector
                 selectedTagIds={tagIds}
                 onAdd={handleAddTag}

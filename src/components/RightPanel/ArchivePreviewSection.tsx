@@ -8,6 +8,7 @@ import type { MediaFile } from '../../types/file';
 import { isAudioArchive } from '../../utils/fileHelpers';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { useUIStore } from '../../stores/useUIStore';
+import { SectionTitle } from './SectionTitle';
 
 interface Props {
     file: MediaFile;
@@ -37,13 +38,10 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
     if (!shouldShow) return null;
 
     return (
-        <div className="px-3 py-3 border-t border-surface-700">
-            {/* セクションヘッダー */}
-            <div className="flex items-center gap-1.5 mb-2">
+        <section className="px-4 py-3 space-y-2 border-b border-surface-700">
+            <div className="flex items-center gap-1.5">
                 <Images size={13} className="text-surface-400" />
-                <span className="text-[10px] font-semibold text-surface-400 uppercase tracking-wide">
-                    Preview Frames
-                </span>
+                <SectionTitle>プレビューフレーム</SectionTitle>
             </div>
 
             {loading ? (
@@ -93,7 +91,7 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
                 // フレームなし
                 <p className="text-xs text-surface-500">プレビューフレームなし</p>
             )}
-        </div>
+        </section>
     );
 });
 

@@ -13,9 +13,10 @@ import type { MediaFile } from '../../types/file';
 
 interface RatingSectionProps {
     file: MediaFile;
+    embedded?: boolean;
 }
 
-export const RatingSection: React.FC<RatingSectionProps> = ({ file }) => {
+export const RatingSection: React.FC<RatingSectionProps> = ({ file, embedded = false }) => {
     const axes = useRatingStore((s) => s.axes);
     const fileRatings = useRatingStore((s) => s.fileRatings);
     const loadFileRatings = useRatingStore((s) => s.loadFileRatings);
@@ -50,8 +51,8 @@ export const RatingSection: React.FC<RatingSectionProps> = ({ file }) => {
     };
 
     return (
-        <div className="px-4 py-3 space-y-2 border-t border-surface-700/50">
-            <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">評価</h3>
+        <div className={embedded ? 'space-y-2' : 'px-4 py-3 space-y-2 border-b border-surface-700'}>
+            {!embedded && <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">評価</h3>}
             <div className="space-y-2">
                 {axes.map((axis) => (
                     <div key={axis.id} className="space-y-0.5">

@@ -2,11 +2,12 @@ import React from 'react';
 import { useFileStore } from '../../stores/useFileStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { FileHeaderSection } from './FileHeaderSection';
 import { PreviewSection } from './PreviewSection';
+import { EditMetaSection } from './EditMetaSection';
+import { MemoSection } from './MemoSection';
 import { BasicInfoSection } from './BasicInfoSection';
-import { TagSection } from './TagSection';
 import { ArchivePreviewSection } from './ArchivePreviewSection';
-import { RatingSection } from './RatingSection';
 import type { MediaFolder } from '../../types/file';
 
 export const RightPanel: React.FC = () => {
@@ -18,7 +19,6 @@ export const RightPanel: React.FC = () => {
 
     // 中央カラム内ビューア表示中は、そのファイルを優先して右パネルへ表示する
     const file = lightboxFile ?? (focusedId ? fileMap.get(focusedId) : undefined);
-    const isCenterViewerOpen = Boolean(lightboxFile);
     const rootFolderPath = file?.rootFolderId ? (folderPathById.get(file.rootFolderId) ?? null) : null;
 
     React.useEffect(() => {
@@ -48,13 +48,13 @@ export const RightPanel: React.FC = () => {
         <aside className="w-[240px] shrink-0 h-full flex flex-col bg-surface-900 border-l border-surface-700 overflow-hidden">
             {file ? (
                 <>
-                    <PreviewSection file={file} />
                     <div className="flex-1 overflow-y-auto">
+                        <FileHeaderSection file={file} />
+                        <EditMetaSection file={file} />
+                        <MemoSection file={file} />
+                        <PreviewSection file={file} />
+                        <ArchivePreviewSection file={file} />
                         <BasicInfoSection file={file} rootFolderPath={rootFolderPath} />
-                        {!isCenterViewerOpen && <ArchivePreviewSection file={file} />}
-                        {/* Phase 26-C1: 評価セクション */}
-                        <RatingSection file={file} />
-                        <TagSection file={file} />
                     </div>
                 </>
             ) : (
