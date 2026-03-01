@@ -269,7 +269,7 @@ function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
 const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
 const HOVER_ZOOM_PREVIEW_SIZE = 360;
 const HOVER_ZOOM_PREVIEW_GAP = 12;
-const HOVER_ZOOM_PREVIEW_DELAY_MS = 220;
+const HOVER_ZOOM_PREVIEW_DELAY_MS = 450;
 
 const activeVisibleAnimatedPreviewIds = new Set<string>();
 const visibleAnimatedPreviewListeners = new Set<() => void>();
