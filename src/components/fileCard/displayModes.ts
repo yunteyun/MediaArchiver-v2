@@ -27,10 +27,10 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         infoVariant: 'detailed',
         layout: {
             aspectRatio: '1/1',
-            cardWidth: 250,
-            thumbnailHeight: 250,
+            cardWidth: 265,
+            thumbnailHeight: 265,
             infoAreaHeight: 80,
-            totalHeight: 330,
+            totalHeight: 345,
         },
     },
     manga: {
