@@ -29,6 +29,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
     const [archiveLoading, setArchiveLoading] = useState(false);
     const [archiveError, setArchiveError] = useState<string | null>(null);
+    const [selectedArchiveFrameIndex, setSelectedArchiveFrameIndex] = useState<number | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -43,6 +44,10 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
     useEffect(() => {
         setHasError(false);
+    }, [file.id, file.path]);
+
+    useEffect(() => {
+        setSelectedArchiveFrameIndex(null);
     }, [file.id, file.path]);
 
     useEffect(() => {
@@ -181,19 +186,76 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         }
 
         return (
-            <div className="pointer-events-auto grid max-h-full max-w-full grid-cols-2 gap-4 overflow-auto md:grid-cols-3">
-                {archiveFrames.map((framePath, index) => (
-                    <div key={`${framePath}-${index}`} className="aspect-[4/3] overflow-hidden">
-                        <img
-                            src={toMediaUrl(framePath)}
-                            alt={`Archive frame ${index + 1}`}
-                            className="h-full w-full object-cover object-center"
-                            onError={(event) => {
-                                event.currentTarget.style.visibility = 'hidden';
-                            }}
-                        />
+            <div className="pointer-events-auto flex max-h-full max-w-full flex-col gap-4">
+                {selectedArchiveFrameIndex != null ? (
+                    <>
+                        <div className="flex items-center justify-between gap-3 text-sm text-surface-200">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedArchiveFrameIndex(null)}
+                                className="rounded-md border border-surface-600 bg-black/60 px-3 py-1.5 transition hover:bg-surface-900"
+                            >
+                                グリッドへ戻る
+                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedArchiveFrameIndex((prev) => {
+                                        if (prev == null) return prev;
+                                        return Math.max(0, prev - 1);
+                                    })}
+                                    disabled={selectedArchiveFrameIndex <= 0}
+                                    className="rounded-md border border-surface-600 bg-black/60 px-3 py-1.5 transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-500"
+                                >
+                                    前へ
+                                </button>
+                                <span>{selectedArchiveFrameIndex + 1} / {archiveFrames.length}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedArchiveFrameIndex((prev) => {
+                                        if (prev == null) return prev;
+                                        return Math.min(archiveFrames.length - 1, prev + 1);
+                                    })}
+                                    disabled={selectedArchiveFrameIndex >= archiveFrames.length - 1}
+                                    className="rounded-md border border-surface-600 bg-black/60 px-3 py-1.5 transition hover:bg-surface-900 disabled:cursor-not-allowed disabled:border-surface-800 disabled:text-surface-500"
+                                >
+                                    次へ
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex max-h-full max-w-full items-center justify-center overflow-hidden">
+                            <img
+                                src={toMediaUrl(archiveFrames[selectedArchiveFrameIndex] ?? '')}
+                                alt={`Archive frame ${selectedArchiveFrameIndex + 1}`}
+                                style={mediaStyle}
+                                className="pointer-events-auto max-h-full max-w-full"
+                                onError={(event) => {
+                                    event.currentTarget.style.visibility = 'hidden';
+                                }}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <div className="grid max-h-full max-w-full grid-cols-2 gap-4 overflow-auto md:grid-cols-3">
+                        {archiveFrames.map((framePath, index) => (
+                            <button
+                                type="button"
+                                key={`${framePath}-${index}`}
+                                className="aspect-[4/3] overflow-hidden rounded-md transition hover:ring-2 hover:ring-surface-400"
+                                onClick={() => setSelectedArchiveFrameIndex(index)}
+                            >
+                                <img
+                                    src={toMediaUrl(framePath)}
+                                    alt={`Archive frame ${index + 1}`}
+                                    className="h-full w-full object-cover object-center"
+                                    onError={(event) => {
+                                        event.currentTarget.style.visibility = 'hidden';
+                                    }}
+                                />
+                            </button>
+                        ))}
                     </div>
-                ))}
+                )}
             </div>
         );
     }
