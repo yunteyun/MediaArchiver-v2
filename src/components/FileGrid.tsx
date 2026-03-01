@@ -47,6 +47,7 @@ export const FileGrid = React.memo(() => {
     // Phase 14: 表示モード取得
     const displayMode = useSettingsStore((s) => s.displayMode);
     const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
+    const shouldCenterRows = displayMode !== 'compact';
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);
@@ -631,6 +632,7 @@ export const FileGrid = React.memo(() => {
                                         height: `${virtualRow.size}px`,
                                         transform: `translateY(${virtualRow.start}px)`,
                                         display: 'flex',
+                                        justifyContent: shouldCenterRows ? 'center' : 'flex-start',
                                         gap: `${CARD_GAP}px`,
                                         padding: `${CARD_GAP / 2}px`,
                                     }}
@@ -691,6 +693,7 @@ export const FileGrid = React.memo(() => {
                                     height: `${virtualRow.size}px`,
                                     transform: `translateY(${virtualRow.start}px)`,
                                     display: 'flex',
+                                    justifyContent: shouldCenterRows ? 'center' : 'flex-start',
                                     gap: `${CARD_GAP}px`,
                                     padding: `${CARD_GAP / 2}px`,
                                 }}
