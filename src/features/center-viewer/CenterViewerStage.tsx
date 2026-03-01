@@ -267,13 +267,13 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         const renderArchiveAudioPlayer = () => {
             if (!currentArchiveAudioPath) return null;
             return (
-                <div className="mt-4 border-t border-surface-700 pt-4">
+                <div className="mt-4 border-t border-surface-500/80 pt-4">
                     <audio
                         ref={audioRef}
                         src={toMediaUrl(currentArchiveAudioPath)}
                         controls
                         autoPlay={archiveAudioIsPlaying}
-                        className="w-full"
+                        className="block w-full min-w-0"
                         onLoadedMetadata={(event) => {
                             event.currentTarget.volume = audioVolume;
                             const duration = Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0;
@@ -390,8 +390,8 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                         ) : null}
 
                         {showArchiveAudioList && (
-                            <div className={`${showArchivePreviewGrid ? 'w-[420px]' : 'w-full max-w-[780px]'} min-w-0 flex-shrink-0`}>
-                                <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-600/80 bg-black/68 p-5 shadow-2xl backdrop-blur-sm">
+                            <div className={`${showArchivePreviewGrid ? 'w-[560px]' : 'w-full max-w-[920px]'} min-w-0 flex-shrink-0`}>
+                                <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-500/90 bg-black/84 p-5 shadow-2xl backdrop-blur-md">
                                     <div className="mb-4 flex items-center gap-3 text-lg font-medium text-surface-100">
                                         <Music size={22} />
                                         <span>音声ファイル ({archiveAudioEntries.length})</span>
@@ -403,7 +403,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                                                 <button
                                                     type="button"
                                                     key={`${entry}-${index}`}
-                                                    className={`mb-1 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition ${isPlaying ? 'bg-primary-600 text-white shadow-lg' : 'text-surface-200 hover:bg-surface-700'}`}
+                                                    className={`mb-1 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition ${isPlaying ? 'bg-primary-600 text-white shadow-lg' : 'text-surface-200 hover:bg-surface-700/90'}`}
                                                     onClick={() => {
                                                         void handleSelectArchiveAudio(entry, index);
                                                     }}
