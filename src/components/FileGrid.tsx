@@ -303,9 +303,11 @@ export const FileGrid = React.memo(() => {
         const minCardWidth = config.cardWidth;
         const cols = Math.max(1, Math.floor((availableWidth + CARD_GAP) / (minCardWidth + CARD_GAP)));
 
-        // コンテナ幅を均等分配（ギャップを考慮）
+        // 列数は target 幅で決めるが、カード自体は target 幅を基本維持する。
+        // これにより右サイドバー表示などで列数が同じ場合でも、M/L の差が潰れにくくなる。
         const totalGapWidth = (cols - 1) * CARD_GAP;
-        const effectiveCardW = Math.floor((availableWidth - totalGapWidth) / cols);
+        const distributedCardW = Math.floor((availableWidth - totalGapWidth) / cols);
+        const effectiveCardW = Math.max(1, Math.min(config.cardWidth, distributedCardW));
 
         // アスペクト比を維持してサムネイル高さを再計算
         const aspectRatio = config.thumbnailHeight / config.cardWidth;

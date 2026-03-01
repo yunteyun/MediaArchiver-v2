@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - フォルダツリーにツリー内検索（名前/パス部分一致）を追加し、祖先ノードを残した絞り込み表示と検索結果件数表示を追加した。
 - フォルダツリーにドライブ/フォルダごとの配下ファイル数（再帰件数）バッジを追加し、階層ごとのボリュームを把握しやすくした。
 #### FileCard / 表示モード
+- 右サイドバー表示中に `標準（M）` と `標準（L）` のカード幅差が潰れやすい問題を調整し、列数が同じでも各モードの基準幅が維持されるようにした。
 - FileCard 表示モード定義を `src/components/fileCard/displayModes.ts` に分離し、`FileGrid` / `SortMenu` と共有する構成へ整理。
 - FileCard の情報欄を `FileCardInfoArea` / `FileCardInfoCompact` / `FileCardInfoDetailed` に分離し、モード別UI調整の保守性を改善。
 - 表示モードラベルとメニュー構成を整理（`標準（S/簡易）` / `標準（M）` / `標準（L）` / `動画（ワイド）` / `漫画`）。
