@@ -1,4 +1,4 @@
-import { ipcMain, Menu, shell, BrowserWindow, dialog, clipboard } from 'electron';
+import { ipcMain, Menu, shell, BrowserWindow, dialog, clipboard, nativeImage } from 'electron';
 import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles } from '../services/database';
 import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
@@ -38,6 +38,13 @@ function buildSuggestedRename(filePath: string): string {
     return suggestedBaseName ? `${suggestedBaseName}${parsed.ext}` : parsed.base;
 }
 
+function resolveImageSearchSourcePath(filePath: string, singleFile: ReturnType<typeof findFileById> | null): string | null {
+    if (!singleFile) return null;
+    if (singleFile.type === 'image') return filePath;
+    if (singleFile.type === 'archive' && singleFile.thumbnail_path) return singleFile.thumbnail_path;
+    return null;
+}
+
 function validateNewFileName(newName: string): string | null {
     const trimmed = newName.trim();
     if (!trimmed) return 'ファイル名を入力してください';
@@ -57,6 +64,7 @@ export function registerFileHandlers() {
 
         const ext = path.extname(filePath).toLowerCase().substring(1);
         const cachedApps = getCachedExternalApps();
+        const imageSearchSourcePath = !isMultiple ? resolveImageSearchSourcePath(filePath, singleFile) : null;
 
         // 対応する外部アプリをフィルタリング
         const compatibleApps = cachedApps.filter(app =>
@@ -196,6 +204,53 @@ export function registerFileHandlers() {
                             const query = buildFilenameSearchQuery(filePath);
                             if (!query) return;
                             clipboard.writeText(query);
+                        }
+                    },
+                ],
+            },
+            {
+                label: '画像で検索',
+                enabled: !isMultiple && Boolean(imageSearchSourcePath),
+                submenu: [
+                    {
+                        label: '画像をコピー',
+                        click: async () => {
+                            if (!imageSearchSourcePath) return;
+                            try {
+                                await access(imageSearchSourcePath, fsConstants.F_OK);
+                                const image = nativeImage.createFromPath(imageSearchSourcePath);
+                                if (image.isEmpty()) {
+                                    throw new Error('画像データを読み込めませんでした');
+                                }
+                                clipboard.writeImage(image);
+                            } catch (error) {
+                                console.error('Failed to copy image for visual search:', error);
+                                await dialog.showMessageBox({
+                                    type: 'error',
+                                    title: '画像コピーエラー',
+                                    message: '画像をクリップボードへコピーできませんでした。',
+                                    detail: error instanceof Error ? error.message : String(error),
+                                });
+                            }
+                        }
+                    },
+                    { type: 'separator' },
+                    {
+                        label: 'Google Lens を開く',
+                        click: async () => {
+                            await shell.openExternal('https://lens.google.com/');
+                        }
+                    },
+                    {
+                        label: 'Bing Visual Search を開く',
+                        click: async () => {
+                            await shell.openExternal('https://www.bing.com/visualsearch');
+                        }
+                    },
+                    {
+                        label: 'Yandex Images を開く',
+                        click: async () => {
+                            await shell.openExternal('https://yandex.com/images/');
                         }
                     },
                 ],
