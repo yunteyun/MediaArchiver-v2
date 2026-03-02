@@ -3,6 +3,7 @@ import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames,
 import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
+import sharp from 'sharp';
 import { spawn } from 'child_process';
 import { access, rename } from 'fs/promises';
 import { constants as fsConstants } from 'fs';
@@ -131,7 +132,13 @@ async function copyImageToClipboard(imagePaths: string[]): Promise<string> {
     for (const imagePath of imagePaths) {
         try {
             await access(imagePath, fsConstants.F_OK);
-            const image = nativeImage.createFromPath(imagePath);
+            let image = nativeImage.createFromPath(imagePath);
+            if (image.isEmpty()) {
+                const pngBuffer = await sharp(imagePath, { animated: true })
+                    .png()
+                    .toBuffer();
+                image = nativeImage.createFromBuffer(pngBuffer);
+            }
             if (image.isEmpty()) {
                 throw new Error('画像データを読み込めませんでした');
             }
