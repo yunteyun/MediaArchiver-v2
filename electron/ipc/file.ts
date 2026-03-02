@@ -57,11 +57,33 @@ function buildSuggestedRename(filePath: string): string {
     return suggestedBaseName ? `${suggestedBaseName}${parsed.ext}` : parsed.base;
 }
 
-function resolveImageSearchSourcePath(filePath: string, singleFile: ReturnType<typeof findFileById> | null): string | null {
-    if (!singleFile) return null;
-    if (singleFile.type === 'image') return filePath;
-    if (singleFile.type === 'archive' && singleFile.thumbnail_path) return singleFile.thumbnail_path;
-    return null;
+function resolveImageSearchSourcePaths(filePath: string, singleFile: ReturnType<typeof findFileById> | null): string[] {
+    if (!singleFile) return [];
+
+    const candidates: string[] = [];
+    const pushCandidate = (candidate?: string | null) => {
+        if (!candidate) return;
+        if (!candidates.includes(candidate)) {
+            candidates.push(candidate);
+        }
+    };
+
+    if (singleFile.type === 'image') {
+        // アニメ画像は元ファイルのデコードで失敗しやすいため、サムネイル優先で候補化する。
+        if (singleFile.is_animated === 1) {
+            pushCandidate(singleFile.thumbnail_path);
+            pushCandidate(filePath);
+        } else {
+            pushCandidate(filePath);
+            pushCandidate(singleFile.thumbnail_path);
+        }
+    }
+
+    if (singleFile.type === 'archive') {
+        pushCandidate(singleFile.thumbnail_path);
+    }
+
+    return candidates;
 }
 
 function normalizeSearchDestinations(input: unknown): SearchDestination[] {
@@ -103,13 +125,25 @@ function normalizeSearchDestinations(input: unknown): SearchDestination[] {
     return normalized.length > 0 ? normalized : DEFAULT_SEARCH_DESTINATIONS;
 }
 
-async function copyImageToClipboard(imagePath: string): Promise<void> {
-    await access(imagePath, fsConstants.F_OK);
-    const image = nativeImage.createFromPath(imagePath);
-    if (image.isEmpty()) {
-        throw new Error('画像データを読み込めませんでした');
+async function copyImageToClipboard(imagePaths: string[]): Promise<string> {
+    const errors: string[] = [];
+
+    for (const imagePath of imagePaths) {
+        try {
+            await access(imagePath, fsConstants.F_OK);
+            const image = nativeImage.createFromPath(imagePath);
+            if (image.isEmpty()) {
+                throw new Error('画像データを読み込めませんでした');
+            }
+            clipboard.writeImage(image);
+            return imagePath;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            errors.push(`${imagePath}: ${message}`);
+        }
     }
-    clipboard.writeImage(image);
+
+    throw new Error(errors.length > 0 ? errors.join('\n') : '利用可能な画像が見つかりませんでした');
 }
 
 async function openFilenameSearch(destination: SearchDestination, filePath: string): Promise<void> {
@@ -119,8 +153,8 @@ async function openFilenameSearch(destination: SearchDestination, filePath: stri
     await shell.openExternal(targetUrl);
 }
 
-async function openImageSearch(destination: SearchDestination, imagePath: string): Promise<void> {
-    await copyImageToClipboard(imagePath);
+async function openImageSearch(destination: SearchDestination, imagePaths: string[]): Promise<void> {
+    await copyImageToClipboard(imagePaths);
     await shell.openExternal(destination.url);
 }
 
@@ -143,7 +177,7 @@ export function registerFileHandlers() {
 
         const ext = path.extname(filePath).toLowerCase().substring(1);
         const cachedApps = getCachedExternalApps();
-        const imageSearchSourcePath = !isMultiple ? resolveImageSearchSourcePath(filePath, singleFile) : null;
+        const imageSearchSourcePaths = !isMultiple ? resolveImageSearchSourcePaths(filePath, singleFile) : [];
         const configuredSearchDestinations = normalizeSearchDestinations(searchDestinations);
         const filenameSearchDestinations = configuredSearchDestinations.filter((destination) => destination.type === 'filename' && destination.enabled);
         const imageSearchDestinations = configuredSearchDestinations.filter((destination) => destination.type === 'image' && destination.enabled);
@@ -274,14 +308,14 @@ export function registerFileHandlers() {
             },
             {
                 label: '画像で検索',
-                enabled: !isMultiple && Boolean(imageSearchSourcePath),
+                enabled: !isMultiple && imageSearchSourcePaths.length > 0,
                 submenu: [
                     {
                         label: '画像をコピー',
                         click: async () => {
-                            if (!imageSearchSourcePath) return;
+                            if (imageSearchSourcePaths.length === 0) return;
                             try {
-                                await copyImageToClipboard(imageSearchSourcePath);
+                                await copyImageToClipboard(imageSearchSourcePaths);
                             } catch (error) {
                                 console.error('Failed to copy image for visual search:', error);
                                 await dialog.showMessageBox({
@@ -297,9 +331,9 @@ export function registerFileHandlers() {
                     ...imageSearchDestinations.map((destination) => ({
                         label: `${destination.name} を開く（画像をコピー）`,
                         click: async () => {
-                            if (!imageSearchSourcePath) return;
+                            if (imageSearchSourcePaths.length === 0) return;
                             try {
-                                await openImageSearch(destination, imageSearchSourcePath);
+                                await openImageSearch(destination, imageSearchSourcePaths);
                             } catch (error) {
                                 console.error('Failed to open image search destination:', error);
                                 await dialog.showMessageBox({
