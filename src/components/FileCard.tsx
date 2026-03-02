@@ -439,8 +439,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const shouldShowHoverZoomPreview = useMemo(() => {
         return (
             isZoomButtonHovered &&
-            file.type === 'image' &&
-            Boolean(file.path || file.thumbnailPath)
+            (file.type === 'image' || file.type === 'archive') &&
+            Boolean(file.type === 'archive' ? file.thumbnailPath : (file.path || file.thumbnailPath))
         );
     }, [file.path, file.thumbnailPath, file.type, isZoomButtonHovered]);
 
@@ -963,11 +963,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     }, [displayImagePath, shouldAnimateImagePreview, file.path, animatedPreviewSessionKey]);
 
     const hoverZoomImageSrc = useMemo(() => {
-        const sourcePath = file.path || file.thumbnailPath;
+        const sourcePath = file.type === 'archive'
+            ? file.thumbnailPath
+            : (file.path || file.thumbnailPath);
         if (!sourcePath) return '';
         const base = toMediaUrl(sourcePath);
         return file.isAnimated ? `${base}?hoverZoom=${animatedPreviewSessionKey}` : base;
-    }, [file.isAnimated, file.path, file.thumbnailPath, animatedPreviewSessionKey]);
+    }, [file.isAnimated, file.path, file.thumbnailPath, file.type, animatedPreviewSessionKey]);
 
     const handleCardClick = (e: React.MouseEvent) => {
         // ダブルクリック時の click イベント重複発火を防ぐ
@@ -1173,7 +1175,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     )}
                 </div>
 
-                {file.type === 'image' && (
+                {(file.type === 'image' || (file.type === 'archive' && file.thumbnailPath)) && (
                     <button
                         ref={zoomButtonRef}
                         type="button"
