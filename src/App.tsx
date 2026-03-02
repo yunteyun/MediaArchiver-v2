@@ -225,6 +225,13 @@ function App() {
         return cleanup;
     }, []);
 
+    useEffect(() => {
+        const cleanup = window.electronAPI.onShowToast(({ message, type = 'info', duration }) => {
+            useToastStore.getState().addToast(message, type, duration);
+        });
+        return cleanup;
+    }, []);
+
     const handleRenameCancel = useCallback(() => {
         setRenameDialogFileId(null);
         setRenameDialogCurrentName('');

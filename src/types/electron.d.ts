@@ -186,6 +186,7 @@ declare global {
             // Phase 22-C-2: ファイル移動ダイアログ
             onOpenMoveDialog: (callback: (data: { fileIds: string[]; currentFolderId: string | null }) => void) => () => void;
             onRequestRename: (callback: (data: { fileId: string; currentName: string; currentPath?: string; suggestedName?: string }) => void) => () => void;
+            onShowToast: (callback: (data: { message: string; type?: 'success' | 'error' | 'info'; duration?: number }) => void) => () => void;
 
             // File Delete Dialog (Phase 12-17B)
             confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;

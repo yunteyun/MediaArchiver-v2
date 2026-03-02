@@ -323,6 +323,11 @@ export function registerFileHandlers() {
                             if (imageSearchSourcePaths.length === 0) return;
                             try {
                                 await copyImageToClipboard(imageSearchSourcePaths);
+                                event.sender.send('ui:showToast', {
+                                    message: '画像をコピーしました',
+                                    type: 'success',
+                                    duration: 1800,
+                                });
                             } catch (error) {
                                 console.error('Failed to copy image for visual search:', error);
                                 await dialog.showMessageBox({
@@ -341,6 +346,11 @@ export function registerFileHandlers() {
                             if (imageSearchSourcePaths.length === 0) return;
                             try {
                                 await openImageSearch(destination, imageSearchSourcePaths);
+                                event.sender.send('ui:showToast', {
+                                    message: '画像をコピーしました',
+                                    type: 'success',
+                                    duration: 1800,
+                                });
                             } catch (error) {
                                 console.error('Failed to open image search destination:', error);
                                 await dialog.showMessageBox({
