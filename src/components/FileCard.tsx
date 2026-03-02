@@ -270,7 +270,7 @@ const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
 const HOVER_ZOOM_PREVIEW_MAX_WIDTH = 460;
 const HOVER_ZOOM_PREVIEW_MAX_HEIGHT = 520;
 const HOVER_ZOOM_PREVIEW_MIN_SIZE = 240;
-const HOVER_ZOOM_PREVIEW_GAP = 14;
+const HOVER_ZOOM_PREVIEW_GAP = 2;
 const HOVER_ZOOM_PREVIEW_DELAY_MS = 600;
 
 const activeVisibleAnimatedPreviewIds = new Set<string>();
@@ -619,7 +619,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     ? fallbackLeft
                     : Math.max(margin, viewportWidth - previewWidth - margin);
 
-            const anchorTop = buttonRect.bottom - previewHeight;
+            const anchorTop = buttonRect.top - previewHeight + HOVER_ZOOM_PREVIEW_GAP;
             const top = Math.min(
                 Math.max(margin, anchorTop),
                 Math.max(margin, viewportHeight - previewHeight - margin)
