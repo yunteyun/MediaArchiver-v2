@@ -239,6 +239,7 @@ interface SettingsState {
     updateSearchDestination: (id: string, updates: Partial<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
     deleteSearchDestination: (id: string) => void;
     replaceSearchDestinations: (destinations: Array<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
+    resetSearchDestinations: () => void;
     toggleSearchDestinationEnabled: (id: string, enabled: boolean) => void;
     moveSearchDestination: (id: string, direction: 'up' | 'down') => void;
     // グループ化アクション（Phase 12-10）
@@ -447,6 +448,15 @@ export const useSettingsStore = create<SettingsState>()(
                         icon: destination.icon ?? getDefaultSearchDestinationIcon(destination.type),
                         enabled: destination.enabled !== false,
                         createdAt: Date.now() + index,
+                    }))
+                });
+            },
+            resetSearchDestinations: () => {
+                set({
+                    searchDestinations: DEFAULT_SEARCH_DESTINATIONS.map((destination) => ({
+                        ...destination,
+                        id: crypto.randomUUID(),
+                        createdAt: Date.now(),
                     }))
                 });
             },

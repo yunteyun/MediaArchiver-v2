@@ -54,6 +54,7 @@ export const ExternalAppsTab = React.memo(() => {
     const updateSearchDestination = useSettingsStore((s) => s.updateSearchDestination);
     const deleteSearchDestination = useSettingsStore((s) => s.deleteSearchDestination);
     const replaceSearchDestinations = useSettingsStore((s) => s.replaceSearchDestinations);
+    const resetSearchDestinations = useSettingsStore((s) => s.resetSearchDestinations);
     const toggleSearchDestinationEnabled = useSettingsStore((s) => s.toggleSearchDestinationEnabled);
     const moveSearchDestination = useSettingsStore((s) => s.moveSearchDestination);
     const toastSuccess = useToastStore((s) => s.success);
@@ -398,6 +399,14 @@ export const ExternalAppsTab = React.memo(() => {
         }
     }, [addSearchDestination, parseImportedSearchDestinations, replaceSearchDestinations, searchDestinations, toastError, toastSuccess, toggleSearchDestinationEnabled]);
 
+    const handleResetSearchDestinations = useCallback(() => {
+        const confirmed = window.confirm('検索先を初期プリセットへ戻します。現在の検索先は上書きされます。続行しますか？');
+        if (!confirmed) return;
+
+        resetSearchDestinations();
+        toastSuccess('検索先を初期プリセットへ戻しました');
+    }, [resetSearchDestinations, toastSuccess]);
+
     const renderSearchDestinationTypeLabel = (type: SearchDestinationType) => {
         return type === 'filename' ? 'ファイル名検索' : '画像検索';
     };
@@ -617,6 +626,13 @@ export const ExternalAppsTab = React.memo(() => {
                         >
                             <Upload size={14} />
                             置換インポート
+                        </button>
+                        <button
+                            onClick={handleResetSearchDestinations}
+                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                        >
+                            <Sparkles size={14} />
+                            既定へ戻す
                         </button>
                     </div>
                 </div>
