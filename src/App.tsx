@@ -28,6 +28,7 @@ function App() {
     const [refreshKey, setRefreshKey] = useState(0);
     const [renameDialogFileId, setRenameDialogFileId] = useState<string | null>(null);
     const [renameDialogCurrentName, setRenameDialogCurrentName] = useState('');
+    const [renameDialogSuggestedName, setRenameDialogSuggestedName] = useState('');
     const loadProfiles = useProfileStore((s) => s.loadProfiles);
     const profiles = useProfileStore((s) => s.profiles);
     const activeProfileId = useProfileStore((s) => s.activeProfileId);
@@ -214,9 +215,10 @@ function App() {
     }, []);
 
     useEffect(() => {
-        const cleanup = window.electronAPI.onRequestRename(({ fileId, currentName }) => {
+        const cleanup = window.electronAPI.onRequestRename(({ fileId, currentName, suggestedName }) => {
             setRenameDialogFileId(fileId);
             setRenameDialogCurrentName(currentName);
+            setRenameDialogSuggestedName(suggestedName ?? currentName);
         });
         return cleanup;
     }, []);
@@ -224,6 +226,7 @@ function App() {
     const handleRenameCancel = useCallback(() => {
         setRenameDialogFileId(null);
         setRenameDialogCurrentName('');
+        setRenameDialogSuggestedName('');
     }, []);
 
     const handleRenameConfirm = useCallback(async (nextName: string) => {
@@ -369,6 +372,7 @@ function App() {
             <RenameFileDialog
                 isOpen={renameDialogFileId !== null}
                 currentName={renameDialogCurrentName}
+                suggestedName={renameDialogSuggestedName}
                 onConfirm={handleRenameConfirm}
                 onCancel={handleRenameCancel}
             />

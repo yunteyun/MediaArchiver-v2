@@ -32,6 +32,12 @@ function buildFilenameSearchQuery(filePath: string): string {
     return normalized || parsed.name.trim();
 }
 
+function buildSuggestedRename(filePath: string): string {
+    const parsed = path.parse(filePath);
+    const suggestedBaseName = buildFilenameSearchQuery(filePath);
+    return suggestedBaseName ? `${suggestedBaseName}${parsed.ext}` : parsed.base;
+}
+
 function validateNewFileName(newName: string): string | null {
     const trimmed = newName.trim();
     if (!trimmed) return 'ファイル名を入力してください';
@@ -172,6 +178,7 @@ export function registerFileHandlers() {
                     event.sender.send('file:requestRename', {
                         fileId,
                         currentName: singleFile.name,
+                        suggestedName: buildSuggestedRename(singleFile.path),
                     });
                 }
             },

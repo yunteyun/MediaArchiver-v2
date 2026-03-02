@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 interface RenameFileDialogProps {
     isOpen: boolean;
     currentName: string;
+    suggestedName: string;
     onConfirm: (nextName: string) => void;
     onCancel: () => void;
 }
@@ -10,6 +11,7 @@ interface RenameFileDialogProps {
 export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
     isOpen,
     currentName,
+    suggestedName,
     onConfirm,
     onCancel,
 }) => {
@@ -18,8 +20,8 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
 
     useEffect(() => {
         if (!isOpen) return;
-        setNextName(currentName);
-    }, [currentName, isOpen]);
+        setNextName(suggestedName || currentName);
+    }, [currentName, isOpen, suggestedName]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -50,6 +52,15 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
         <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
             <div className="mx-4 w-full max-w-md rounded-lg border border-surface-700 bg-surface-800 p-6 shadow-xl">
                 <h2 className="mb-4 text-lg font-semibold text-surface-100">ファイル名を変更</h2>
+                {suggestedName && suggestedName !== currentName && (
+                    <button
+                        type="button"
+                        onClick={() => setNextName(suggestedName)}
+                        className="mb-3 rounded border border-surface-600 bg-surface-900 px-3 py-2 text-left text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100"
+                    >
+                        候補を使う: {suggestedName}
+                    </button>
+                )}
                 <input
                     ref={inputRef}
                     type="text"
@@ -57,6 +68,7 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
                     onChange={(e) => setNextName(e.target.value)}
                     className="w-full rounded border border-surface-600 bg-surface-900 px-3 py-2 text-surface-100 outline-none transition focus:border-primary-500"
                 />
+                <p className="mt-2 text-xs text-surface-500">現在の名前: {currentName}</p>
                 <div className="mt-5 flex justify-end gap-2">
                     <button
                         onClick={onCancel}
