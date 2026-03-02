@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
+### Changed
+- リリース版アプリのアイコンを簡易な仮表示から正式なデザインへ差し替え、タスクバーや実行ファイル一覧で識別しやすくした。
+
 ### Fixed
 - `update.bat` 経由の更新後再起動で Electron の起動用環境変数を引き継がないようにし、リリース版の UI が表示されず終了してしまうケースを修正。
 
