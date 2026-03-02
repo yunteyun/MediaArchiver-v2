@@ -11,6 +11,14 @@ import { getCachedExternalApps } from './app';
 const INVALID_WINDOWS_FILENAME_RE = /[<>:"/\\|?*\u0000-\u001f]/;
 const RESERVED_WINDOWS_NAME_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 
+function buildFilenameSearchQuery(filePath: string): string {
+    const parsed = path.parse(filePath);
+    return parsed.name
+        .replace(/[_\.]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function validateNewFileName(newName: string): string | null {
     const trimmed = newName.trim();
     if (!trimmed) return 'ファイル名を入力してください';
@@ -132,6 +140,26 @@ export function registerFileHandlers() {
                 enabled: !isMultiple, // 複数選択時は無効
                 click: async () => {
                     shell.showItemInFolder(filePath);
+                }
+            },
+            {
+                label: 'ファイル名で検索',
+                enabled: !isMultiple,
+                click: async () => {
+                    const query = buildFilenameSearchQuery(filePath);
+                    if (!query) return;
+                    await shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
+                }
+            },
+            {
+                label: '名前を変更',
+                enabled: !isMultiple,
+                click: async () => {
+                    if (!singleFile) return;
+                    event.sender.send('file:requestRename', {
+                        fileId,
+                        currentName: singleFile.name,
+                    });
                 }
             },
             { type: 'separator' },

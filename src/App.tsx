@@ -210,6 +210,28 @@ function App() {
         return cleanup;
     }, []);
 
+    useEffect(() => {
+        const cleanup = window.electronAPI.onRequestRename(async ({ fileId, currentName }) => {
+            const nextName = window.prompt('新しいファイル名を入力してください', currentName);
+            if (nextName === null) return;
+
+            try {
+                const result = await window.electronAPI.renameFile(fileId, nextName);
+                if (!result.success) {
+                    useToastStore.getState().error(result.error || 'ファイル名の変更に失敗しました');
+                    return;
+                }
+
+                await useFileStore.getState().refreshFile(fileId);
+                useToastStore.getState().success('ファイル名を変更しました');
+            } catch (error) {
+                console.error('Rename file error:', error);
+                useToastStore.getState().error('ファイル名の変更に失敗しました');
+            }
+        });
+        return cleanup;
+    }, []);
+
     // 別モードで開く（コンテキストメニュー）
     useEffect(() => {
         const cleanup = window.electronAPI.onOpenFileAsMode(async (data) => {

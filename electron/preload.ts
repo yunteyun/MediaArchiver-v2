@@ -137,6 +137,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('file:openMoveDialog', handler);
         return () => ipcRenderer.removeListener('file:openMoveDialog', handler);
     },
+    onRequestRename: (callback: (data: { fileId: string; currentName: string }) => void) => {
+        const handler = (_event: any, data: any) => callback(data);
+        ipcRenderer.on('file:requestRename', handler);
+        return () => ipcRenderer.removeListener('file:requestRename', handler);
+    },
 
     // === File Delete Dialog (Phase 12-17B) ===
     confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) =>
