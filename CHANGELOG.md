@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
+
+---
+
+## [1.5.0] - 2026-03-02
 ### Changed
 #### Lightbox / 書庫プレビュー
 - 中央カラム内ビューアの操作導線を画像/動画/書庫で揃え、同じナビゲーション感覚で内容確認できるよう整理した。
