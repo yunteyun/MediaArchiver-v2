@@ -19,12 +19,15 @@ import { useToastStore } from './stores/useToastStore';
 import { useRatingStore } from './stores/useRatingStore';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
 import { MoveFolderDialog } from './components/MoveFolderDialog';
+import { RenameFileDialog } from './components/RenameFileDialog';
 import { useDuplicateStore } from './stores/useDuplicateStore';
 import { CenterViewerRoot } from './features/center-viewer/CenterViewerRoot';
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
+    const [renameDialogFileId, setRenameDialogFileId] = useState<string | null>(null);
+    const [renameDialogCurrentName, setRenameDialogCurrentName] = useState('');
     const loadProfiles = useProfileStore((s) => s.loadProfiles);
     const profiles = useProfileStore((s) => s.profiles);
     const activeProfileId = useProfileStore((s) => s.activeProfileId);
@@ -211,26 +214,36 @@ function App() {
     }, []);
 
     useEffect(() => {
-        const cleanup = window.electronAPI.onRequestRename(async ({ fileId, currentName }) => {
-            const nextName = window.prompt('新しいファイル名を入力してください', currentName);
-            if (nextName === null) return;
-
-            try {
-                const result = await window.electronAPI.renameFile(fileId, nextName);
-                if (!result.success) {
-                    useToastStore.getState().error(result.error || 'ファイル名の変更に失敗しました');
-                    return;
-                }
-
-                await useFileStore.getState().refreshFile(fileId);
-                useToastStore.getState().success('ファイル名を変更しました');
-            } catch (error) {
-                console.error('Rename file error:', error);
-                useToastStore.getState().error('ファイル名の変更に失敗しました');
-            }
+        const cleanup = window.electronAPI.onRequestRename(({ fileId, currentName }) => {
+            setRenameDialogFileId(fileId);
+            setRenameDialogCurrentName(currentName);
         });
         return cleanup;
     }, []);
+
+    const handleRenameCancel = useCallback(() => {
+        setRenameDialogFileId(null);
+        setRenameDialogCurrentName('');
+    }, []);
+
+    const handleRenameConfirm = useCallback(async (nextName: string) => {
+        if (!renameDialogFileId) return;
+
+        try {
+            const result = await window.electronAPI.renameFile(renameDialogFileId, nextName);
+            if (!result.success) {
+                useToastStore.getState().error(result.error || 'ファイル名の変更に失敗しました');
+                return;
+            }
+
+            await useFileStore.getState().refreshFile(renameDialogFileId);
+            handleRenameCancel();
+            useToastStore.getState().success('ファイル名を変更しました');
+        } catch (error) {
+            console.error('Rename file error:', error);
+            useToastStore.getState().error('ファイル名の変更に失敗しました');
+        }
+    }, [handleRenameCancel, renameDialogFileId]);
 
     // 別モードで開く（コンテキストメニュー）
     useEffect(() => {
@@ -352,6 +365,12 @@ function App() {
                 filePath={deleteDialogFilePath || ''}
                 onConfirm={handleDeleteConfirm}
                 onCancel={closeDeleteDialog}
+            />
+            <RenameFileDialog
+                isOpen={renameDialogFileId !== null}
+                currentName={renameDialogCurrentName}
+                onConfirm={handleRenameConfirm}
+                onCancel={handleRenameCancel}
             />
             {/* Phase 22-C-2: ファイル移動ダイアログ */}
             <MoveFolderDialog
