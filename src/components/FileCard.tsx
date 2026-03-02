@@ -1034,11 +1034,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         await syncExternalOpenCount();
     };
 
-    const handleThumbnailDoubleClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        openLightbox(file);
-    };
-
     const handleContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
 
@@ -1079,7 +1074,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             {/* Thumbnail Area - Phase 14: 固定高さ */}
             <div
                 ref={thumbnailAreaRef}
-                onDoubleClick={handleThumbnailDoubleClick}
                 className="relative bg-surface-900 flex items-center justify-center overflow-hidden group w-full flex-shrink-0"
                 style={{
                     aspectRatio: config.aspectRatio
@@ -1176,37 +1170,35 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     )}
                 </div>
 
-                {(file.type === 'image' || (file.type === 'archive' && file.thumbnailPath)) && (
-                    <button
-                        ref={zoomButtonRef}
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            openLightbox(file);
-                        }}
-                        onMouseEnter={() => {
-                            if (hoverZoomDelayRef.current) {
-                                clearTimeout(hoverZoomDelayRef.current);
-                            }
-                            hoverZoomDelayRef.current = window.setTimeout(() => {
-                                setIsZoomButtonHovered(true);
-                                hoverZoomDelayRef.current = null;
-                            }, HOVER_ZOOM_PREVIEW_DELAY_MS);
-                        }}
-                        onMouseLeave={() => {
-                            if (hoverZoomDelayRef.current) {
-                                clearTimeout(hoverZoomDelayRef.current);
-                                hoverZoomDelayRef.current = null;
-                            }
-                            setIsZoomButtonHovered(false);
-                        }}
-                        className={`absolute bottom-2 left-2 z-10 rounded-md border border-surface-500/80 bg-black/65 p-2 text-surface-100 shadow-lg transition-all ${isHovered ? 'opacity-100' : 'pointer-events-none opacity-0'} hover:scale-105 hover:bg-black/85 hover:text-white`}
-                        title="中央ビューアで拡大表示"
-                        aria-label="中央ビューアで拡大表示"
-                    >
-                        <Maximize2 size={18} />
-                    </button>
-                )}
+                <button
+                    ref={zoomButtonRef}
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        openLightbox(file);
+                    }}
+                    onMouseEnter={() => {
+                        if (hoverZoomDelayRef.current) {
+                            clearTimeout(hoverZoomDelayRef.current);
+                        }
+                        hoverZoomDelayRef.current = window.setTimeout(() => {
+                            setIsZoomButtonHovered(true);
+                            hoverZoomDelayRef.current = null;
+                        }, HOVER_ZOOM_PREVIEW_DELAY_MS);
+                    }}
+                    onMouseLeave={() => {
+                        if (hoverZoomDelayRef.current) {
+                            clearTimeout(hoverZoomDelayRef.current);
+                            hoverZoomDelayRef.current = null;
+                        }
+                        setIsZoomButtonHovered(false);
+                    }}
+                    className={`absolute bottom-2 left-2 z-10 rounded-md border border-surface-500/80 bg-black/65 p-2 text-surface-100 shadow-lg transition-all ${isHovered ? 'opacity-100' : 'pointer-events-none opacity-0'} hover:scale-105 hover:bg-black/85 hover:text-white`}
+                    title="中央ビューアで開く"
+                    aria-label="中央ビューアで開く"
+                >
+                    <Maximize2 size={18} />
+                </button>
 
 
             </div>
