@@ -984,11 +984,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }
     };
 
-    const handleThumbnailClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        openLightbox(file);
-    };
-
     const handleDoubleClick = async () => {
         const syncExternalOpenCount = async () => {
             const result = await window.electronAPI.incrementExternalOpenCount(file.id);
@@ -1078,7 +1073,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             {/* Thumbnail Area - Phase 14: 固定高さ */}
             <div
                 ref={thumbnailAreaRef}
-                onClick={handleThumbnailClick}
                 className="relative bg-surface-900 flex items-center justify-center overflow-hidden group w-full flex-shrink-0"
                 style={{
                     aspectRatio: config.aspectRatio
