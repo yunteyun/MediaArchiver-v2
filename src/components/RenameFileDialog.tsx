@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 interface RenameFileDialogProps {
     isOpen: boolean;
     currentName: string;
+    currentPath: string;
     suggestedName: string;
     onConfirm: (nextName: string) => void;
     onCancel: () => void;
@@ -11,6 +12,7 @@ interface RenameFileDialogProps {
 export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
     isOpen,
     currentName,
+    currentPath,
     suggestedName,
     onConfirm,
     onCancel,
@@ -20,14 +22,21 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
 
     useEffect(() => {
         if (!isOpen) return;
-        setNextName(suggestedName || currentName);
-    }, [currentName, isOpen, suggestedName]);
+        setNextName(currentName);
+    }, [currentName, isOpen]);
 
     useEffect(() => {
         if (!isOpen) return;
         inputRef.current?.focus();
         inputRef.current?.select();
     }, [isOpen]);
+
+    const normalizedCurrentPath = currentPath.replace(/\\/g, '/');
+    const parentPath = normalizedCurrentPath.includes('/')
+        ? normalizedCurrentPath.slice(0, normalizedCurrentPath.lastIndexOf('/'))
+        : '';
+    const currentExt = currentName.includes('.') ? currentName.slice(currentName.lastIndexOf('.')) : '';
+    const nextPathPreview = parentPath ? `${parentPath}/${nextName}` : nextName;
 
     useEffect(() => {
         if (!isOpen) return;
@@ -68,7 +77,11 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
                     onChange={(e) => setNextName(e.target.value)}
                     className="w-full rounded border border-surface-600 bg-surface-900 px-3 py-2 text-surface-100 outline-none transition focus:border-primary-500"
                 />
-                <p className="mt-2 text-xs text-surface-500">現在の名前: {currentName}</p>
+                <div className="mt-3 space-y-1 rounded border border-surface-700 bg-surface-900/60 p-3 text-xs text-surface-400">
+                    <p>現在の名前: {currentName}</p>
+                    <p>拡張子: {currentExt || 'なし'}</p>
+                    <p className="break-all">変更後パス: {nextPathPreview}</p>
+                </div>
                 <div className="mt-5 flex justify-end gap-2">
                     <button
                         onClick={onCancel}

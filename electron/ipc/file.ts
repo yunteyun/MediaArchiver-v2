@@ -178,6 +178,7 @@ export function registerFileHandlers() {
                     event.sender.send('file:requestRename', {
                         fileId,
                         currentName: singleFile.name,
+                        currentPath: singleFile.path,
                         suggestedName: buildSuggestedRename(singleFile.path),
                     });
                 }
