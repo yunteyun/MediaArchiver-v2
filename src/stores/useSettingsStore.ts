@@ -58,6 +58,68 @@ export interface ExternalApp {
     createdAt: number;
 }
 
+export type SearchDestinationType = 'filename' | 'image';
+
+export interface SearchDestination {
+    id: string;
+    name: string;
+    type: SearchDestinationType;
+    url: string;
+    enabled: boolean;
+    createdAt: number;
+}
+
+const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
+    {
+        id: 'filename-google',
+        name: 'Google',
+        type: 'filename',
+        url: 'https://www.google.com/search?q={query}',
+        enabled: true,
+        createdAt: 1,
+    },
+    {
+        id: 'filename-duckduckgo',
+        name: 'DuckDuckGo',
+        type: 'filename',
+        url: 'https://duckduckgo.com/?q={query}',
+        enabled: true,
+        createdAt: 2,
+    },
+    {
+        id: 'filename-bing',
+        name: 'Bing',
+        type: 'filename',
+        url: 'https://www.bing.com/search?q={query}',
+        enabled: true,
+        createdAt: 3,
+    },
+    {
+        id: 'image-google-lens',
+        name: 'Google Lens',
+        type: 'image',
+        url: 'https://lens.google.com/',
+        enabled: true,
+        createdAt: 4,
+    },
+    {
+        id: 'image-bing-visual-search',
+        name: 'Bing Visual Search',
+        type: 'image',
+        url: 'https://www.bing.com/visualsearch',
+        enabled: true,
+        createdAt: 5,
+    },
+    {
+        id: 'image-yandex-images',
+        name: 'Yandex Images',
+        type: 'image',
+        url: 'https://yandex.com/images/',
+        enabled: true,
+        createdAt: 6,
+    },
+];
+
 interface SettingsState {
     activeProfileId: string;
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
@@ -96,6 +158,8 @@ interface SettingsState {
 
     // Phase 18-B: デフォルト外部アプリ設定
     defaultExternalApps: Record<string, string>; // 拡張子(正規化済み) → アプリID
+
+    searchDestinations: SearchDestination[];
 
     // グループ化設定（Phase 12-10）
     groupBy: GroupBy;
@@ -152,6 +216,10 @@ interface SettingsState {
     deleteExternalApp: (id: string) => void;
     // Phase 18-B: デフォルト外部アプリアクション
     setDefaultExternalApp: (extension: string, appId: string | null) => void;
+    addSearchDestination: (type: SearchDestinationType, name: string, url: string) => void;
+    updateSearchDestination: (id: string, updates: Partial<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
+    deleteSearchDestination: (id: string) => void;
+    toggleSearchDestinationEnabled: (id: string, enabled: boolean) => void;
     // グループ化アクション（Phase 12-10）
     setGroupBy: (groupBy: GroupBy) => void;
     // タグポップオーバーアクション（Phase 14-8）
@@ -204,6 +272,8 @@ export const useSettingsStore = create<SettingsState>()(
 
             // Phase 18-B: デフォルト外部アプリ設定
             defaultExternalApps: {},
+
+            searchDestinations: DEFAULT_SEARCH_DESTINATIONS,
 
             // グループ化設定（Phase 12-10）
             groupBy: 'none',
@@ -308,6 +378,50 @@ export const useSettingsStore = create<SettingsState>()(
                     }
                     return { defaultExternalApps: newDefaults };
                 });
+            },
+            addSearchDestination: (type, name, url) => {
+                const normalizedUrl = url.trim();
+                const normalizedName = name.trim();
+                if (!normalizedName || !normalizedUrl) return;
+                const newDestination: SearchDestination = {
+                    id: crypto.randomUUID(),
+                    type,
+                    name: normalizedName,
+                    url: normalizedUrl,
+                    enabled: true,
+                    createdAt: Date.now(),
+                };
+                set((state) => ({
+                    searchDestinations: [...state.searchDestinations, newDestination]
+                }));
+            },
+            updateSearchDestination: (id, updates) => {
+                set((state) => ({
+                    searchDestinations: state.searchDestinations.map((destination) =>
+                        destination.id === id
+                            ? {
+                                ...destination,
+                                ...updates,
+                                name: typeof updates.name === 'string' ? updates.name.trim() : destination.name,
+                                url: typeof updates.url === 'string' ? updates.url.trim() : destination.url,
+                            }
+                            : destination
+                    )
+                }));
+            },
+            deleteSearchDestination: (id) => {
+                set((state) => ({
+                    searchDestinations: state.searchDestinations.filter((destination) => destination.id !== id)
+                }));
+            },
+            toggleSearchDestinationEnabled: (id, enabled) => {
+                set((state) => ({
+                    searchDestinations: state.searchDestinations.map((destination) =>
+                        destination.id === id
+                            ? { ...destination, enabled }
+                            : destination
+                    )
+                }));
             },
             // グループ化アクション（Phase 12-10）
             setGroupBy: (groupBy) => set({ groupBy }),

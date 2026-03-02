@@ -105,8 +105,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     // === File Context Menu ===
-    showFileContextMenu: (fileId: string, path: string, selectedFileIds?: string[]) =>
-        ipcRenderer.invoke('file:showContextMenu', { fileId, filePath: path, selectedFileIds }),
+    showFileContextMenu: (fileId: string, path: string, selectedFileIds?: string[], searchDestinations?: any[]) =>
+        ipcRenderer.invoke('file:showContextMenu', { fileId, filePath: path, selectedFileIds, searchDestinations }),
 
     onFileDeleted: (callback: (fileId: string) => void) => {
         const handler = (_event: any, fileId: string) => callback(fileId);

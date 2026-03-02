@@ -81,6 +81,14 @@ interface SearchResult {
     thumbnailPath: string | null;
 }
 
+interface ContextMenuSearchDestination {
+    id: string;
+    name: string;
+    type: 'filename' | 'image';
+    url: string;
+    enabled: boolean;
+}
+
 declare global {
     interface Window {
         electronAPI: {
@@ -164,7 +172,12 @@ declare global {
             onFolderRescanComplete: (callback: (folderId: string) => void) => () => void;
 
             // File Context Menu
-            showFileContextMenu: (fileId: string, path: string, selectedFileIds?: string[]) => Promise<void>;
+            showFileContextMenu: (
+                fileId: string,
+                path: string,
+                selectedFileIds?: string[],
+                searchDestinations?: ContextMenuSearchDestination[]
+            ) => Promise<void>;
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
             onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => () => void;

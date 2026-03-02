@@ -328,6 +328,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
+    const searchDestinations = useSettingsStore((s) => s.searchDestinations);
     // カード表示設定（Phase 12-3）
     const showFileName = useSettingsStore((s) => s.showFileName);
     const showDuration = useSettingsStore((s) => s.showDuration);
@@ -1042,7 +1043,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         // 右クリック対象が選択中に含まれているかを判定
         const effectiveIds = selectedIdsArray.includes(file.id) ? selectedIdsArray : [file.id];
 
-        window.electronAPI.showFileContextMenu(file.id, file.path, effectiveIds);
+        window.electronAPI.showFileContextMenu(file.id, file.path, effectiveIds, searchDestinations);
     };
 
     return (

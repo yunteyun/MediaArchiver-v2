@@ -11,6 +11,25 @@ import { getCachedExternalApps } from './app';
 const INVALID_WINDOWS_FILENAME_RE = /[<>:"/\\|?*\u0000-\u001f]/;
 const RESERVED_WINDOWS_NAME_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 
+type SearchDestinationType = 'filename' | 'image';
+
+interface SearchDestination {
+    id: string;
+    name: string;
+    type: SearchDestinationType;
+    url: string;
+    enabled: boolean;
+}
+
+const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
+    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', enabled: true },
+    { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', enabled: true },
+    { id: 'filename-bing', name: 'Bing', type: 'filename', url: 'https://www.bing.com/search?q={query}', enabled: true },
+    { id: 'image-google-lens', name: 'Google Lens', type: 'image', url: 'https://lens.google.com/', enabled: true },
+    { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', enabled: true },
+    { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', enabled: true },
+];
+
 function buildFilenameSearchQuery(filePath: string): string {
     const parsed = path.parse(filePath);
     const normalized = parsed.name
@@ -45,6 +64,66 @@ function resolveImageSearchSourcePath(filePath: string, singleFile: ReturnType<t
     return null;
 }
 
+function normalizeSearchDestinations(input: unknown): SearchDestination[] {
+    if (!Array.isArray(input) || input.length === 0) {
+        return DEFAULT_SEARCH_DESTINATIONS;
+    }
+
+    const normalized = input
+        .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const candidate = item as Partial<SearchDestination>;
+            if (
+                (candidate.type !== 'filename' && candidate.type !== 'image') ||
+                typeof candidate.name !== 'string' ||
+                typeof candidate.url !== 'string'
+            ) {
+                return null;
+            }
+
+            const trimmedName = candidate.name.trim();
+            const trimmedUrl = candidate.url.trim();
+            if (!trimmedName || !trimmedUrl || !/^https?:\/\//i.test(trimmedUrl)) {
+                return null;
+            }
+            if (candidate.type === 'filename' && !trimmedUrl.includes('{query}')) {
+                return null;
+            }
+
+            return {
+                id: typeof candidate.id === 'string' ? candidate.id : crypto.randomUUID(),
+                name: trimmedName,
+                type: candidate.type,
+                url: trimmedUrl,
+                enabled: candidate.enabled !== false,
+            } satisfies SearchDestination;
+        })
+        .filter((destination): destination is SearchDestination => destination !== null);
+
+    return normalized.length > 0 ? normalized : DEFAULT_SEARCH_DESTINATIONS;
+}
+
+async function copyImageToClipboard(imagePath: string): Promise<void> {
+    await access(imagePath, fsConstants.F_OK);
+    const image = nativeImage.createFromPath(imagePath);
+    if (image.isEmpty()) {
+        throw new Error('画像データを読み込めませんでした');
+    }
+    clipboard.writeImage(image);
+}
+
+async function openFilenameSearch(destination: SearchDestination, filePath: string): Promise<void> {
+    const query = buildFilenameSearchQuery(filePath);
+    if (!query) return;
+    const targetUrl = destination.url.replace(/\{query\}/g, encodeURIComponent(query));
+    await shell.openExternal(targetUrl);
+}
+
+async function openImageSearch(destination: SearchDestination, imagePath: string): Promise<void> {
+    await copyImageToClipboard(imagePath);
+    await shell.openExternal(destination.url);
+}
+
 function validateNewFileName(newName: string): string | null {
     const trimmed = newName.trim();
     if (!trimmed) return 'ファイル名を入力してください';
@@ -56,7 +135,7 @@ function validateNewFileName(newName: string): string | null {
 }
 
 export function registerFileHandlers() {
-    ipcMain.handle('file:showContextMenu', async (event, { fileId, filePath, selectedFileIds }) => {
+    ipcMain.handle('file:showContextMenu', async (event, { fileId, filePath, selectedFileIds, searchDestinations }) => {
         // Bug 2修正: 複数選択対応
         const effectiveFileIds = selectedFileIds && selectedFileIds.length > 0 ? selectedFileIds : [fileId];
         const isMultiple = effectiveFileIds.length > 1;
@@ -65,6 +144,9 @@ export function registerFileHandlers() {
         const ext = path.extname(filePath).toLowerCase().substring(1);
         const cachedApps = getCachedExternalApps();
         const imageSearchSourcePath = !isMultiple ? resolveImageSearchSourcePath(filePath, singleFile) : null;
+        const configuredSearchDestinations = normalizeSearchDestinations(searchDestinations);
+        const filenameSearchDestinations = configuredSearchDestinations.filter((destination) => destination.type === 'filename' && destination.enabled);
+        const imageSearchDestinations = configuredSearchDestinations.filter((destination) => destination.type === 'image' && destination.enabled);
 
         // 対応する外部アプリをフィルタリング
         const compatibleApps = cachedApps.filter(app =>
@@ -173,31 +255,13 @@ export function registerFileHandlers() {
                 label: 'ファイル名で検索',
                 enabled: !isMultiple,
                 submenu: [
-                    {
-                        label: 'Google で検索',
+                    ...filenameSearchDestinations.map((destination) => ({
+                        label: `${destination.name} で検索`,
                         click: async () => {
-                            const query = buildFilenameSearchQuery(filePath);
-                            if (!query) return;
-                            await shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
+                            await openFilenameSearch(destination, filePath);
                         }
-                    },
-                    {
-                        label: 'DuckDuckGo で検索',
-                        click: async () => {
-                            const query = buildFilenameSearchQuery(filePath);
-                            if (!query) return;
-                            await shell.openExternal(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`);
-                        }
-                    },
-                    {
-                        label: 'Bing で検索',
-                        click: async () => {
-                            const query = buildFilenameSearchQuery(filePath);
-                            if (!query) return;
-                            await shell.openExternal(`https://www.bing.com/search?q=${encodeURIComponent(query)}`);
-                        }
-                    },
-                    { type: 'separator' },
+                    })),
+                    ...(filenameSearchDestinations.length > 0 ? [{ type: 'separator' as const }] : []),
                     {
                         label: '検索語をコピー',
                         click: () => {
@@ -217,12 +281,7 @@ export function registerFileHandlers() {
                         click: async () => {
                             if (!imageSearchSourcePath) return;
                             try {
-                                await access(imageSearchSourcePath, fsConstants.F_OK);
-                                const image = nativeImage.createFromPath(imageSearchSourcePath);
-                                if (image.isEmpty()) {
-                                    throw new Error('画像データを読み込めませんでした');
-                                }
-                                clipboard.writeImage(image);
+                                await copyImageToClipboard(imageSearchSourcePath);
                             } catch (error) {
                                 console.error('Failed to copy image for visual search:', error);
                                 await dialog.showMessageBox({
@@ -234,25 +293,24 @@ export function registerFileHandlers() {
                             }
                         }
                     },
-                    { type: 'separator' },
-                    {
-                        label: 'Google Lens を開く',
+                    ...(imageSearchDestinations.length > 0 ? [{ type: 'separator' as const }] : []),
+                    ...imageSearchDestinations.map((destination) => ({
+                        label: `${destination.name} を開く（画像をコピー）`,
                         click: async () => {
-                            await shell.openExternal('https://lens.google.com/');
+                            if (!imageSearchSourcePath) return;
+                            try {
+                                await openImageSearch(destination, imageSearchSourcePath);
+                            } catch (error) {
+                                console.error('Failed to open image search destination:', error);
+                                await dialog.showMessageBox({
+                                    type: 'error',
+                                    title: '画像検索エラー',
+                                    message: '画像検索を開始できませんでした。',
+                                    detail: error instanceof Error ? error.message : String(error),
+                                });
+                            }
                         }
-                    },
-                    {
-                        label: 'Bing Visual Search を開く',
-                        click: async () => {
-                            await shell.openExternal('https://www.bing.com/visualsearch');
-                        }
-                    },
-                    {
-                        label: 'Yandex Images を開く',
-                        click: async () => {
-                            await shell.openExternal('https://yandex.com/images/');
-                        }
-                    },
+                    })),
                 ],
             },
             {
