@@ -13,10 +13,23 @@ const RESERVED_WINDOWS_NAME_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i
 
 function buildFilenameSearchQuery(filePath: string): string {
     const parsed = path.parse(filePath);
-    return parsed.name
+    const normalized = parsed.name
+        .normalize('NFKC')
+        .replace(/[\u3000]/g, ' ')
         .replace(/[_\.]+/g, ' ')
+        .replace(/[()\[\]{}]+/g, ' ')
+        .replace(/(?<=\s|^)(?:img|image|scan|sample|copy|cropped?|edited?)(?=\s|$)/gi, ' ')
+        .replace(/(?<=\s|^)\d{2,4}x\d{2,4}(?=\s|$)/gi, ' ')
+        .replace(/(?<=\s|^)(?:\d{1,4}p|4k|8k|uhd|fhd|qhd|hd)(?=\s|$)/gi, ' ')
+        .replace(/(?<=\s|^)(?:vol|chapter|ch|page|p)\s*\d{1,4}(?=\s|$)/gi, ' ')
+        .replace(/(?<=\s|^)(?:v|ver)\s*\d+(?:\.\d+)?(?=\s|$)/gi, ' ')
+        .replace(/(?<=\s|^)\d{1,4}(?:枚|pages?|p)(?=\s|$)/gi, ' ')
+        .replace(/(?<=\s|^)\d{5,}(?=\s|$)/g, ' ')
+        .replace(/\b(?:jpg|jpeg|png|gif|webp|avif|bmp|zip|rar|7z|cbz|cbr|mp4|mkv|webm)\b/gi, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+
+    return normalized || parsed.name.trim();
 }
 
 function validateNewFileName(newName: string): string | null {
