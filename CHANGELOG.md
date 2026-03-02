@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
+### Fixed
+- `update.bat` 経由の更新後再起動で Electron の起動用環境変数を引き継がないようにし、リリース版の UI が表示されず終了してしまうケースを修正。
 
 ---
 

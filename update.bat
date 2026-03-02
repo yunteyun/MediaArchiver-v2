@@ -83,5 +83,9 @@ if %RC% GEQ 8 (
 rmdir /s /q "%TEMP_DIR%" >nul 2>&1
 
 echo [INFO] Update complete. Launching app...
+set "ELECTRON_RUN_AS_NODE="
+set "ELECTRON_ENABLE_LOGGING="
+set "ELECTRON_ENABLE_STACK_DUMPING="
+set "NODE_OPTIONS="
 start "" "%APP_DIR%%APP_EXE%"
 exit /b 0
