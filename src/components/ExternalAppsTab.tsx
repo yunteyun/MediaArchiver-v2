@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Plus, Edit2, Trash2, FolderOpen, Check, X, Search, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, FolderOpen, Check, X, Search, Image as ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
 import { useSettingsStore, ExternalApp, type SearchDestination, type SearchDestinationType } from '../stores/useSettingsStore';
 import { useToastStore } from '../stores/useToastStore';
 
@@ -21,6 +21,7 @@ export const ExternalAppsTab = React.memo(() => {
     const updateSearchDestination = useSettingsStore((s) => s.updateSearchDestination);
     const deleteSearchDestination = useSettingsStore((s) => s.deleteSearchDestination);
     const toggleSearchDestinationEnabled = useSettingsStore((s) => s.toggleSearchDestinationEnabled);
+    const moveSearchDestination = useSettingsStore((s) => s.moveSearchDestination);
     const toastSuccess = useToastStore((s) => s.success);
     const toastError = useToastStore((s) => s.error);
 
@@ -428,13 +429,16 @@ export const ExternalAppsTab = React.memo(() => {
                 <div className="space-y-4">
                     {[['ファイル名検索', filenameDestinations], ['画像検索', imageDestinations] as const].map(([title, destinations]) => (
                         <div key={title} className="space-y-2">
-                            <div className="text-xs font-medium text-surface-400">{title}</div>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="text-xs font-medium text-surface-400">{title}</div>
+                                <div className="text-[10px] text-surface-500">上から順に右クリックメニューへ表示</div>
+                            </div>
                             {destinations.length === 0 ? (
                                 <div className="rounded border border-dashed border-surface-700 px-3 py-4 text-sm text-surface-500">
                                     未登録
                                 </div>
                             ) : (
-                                destinations.map((destination) => (
+                                destinations.map((destination, index) => (
                                     <div key={destination.id} className="rounded bg-surface-800 p-3">
                                         {editingSearchDestinationId === destination.id ? (
                                             <div className="space-y-2">
@@ -486,6 +490,22 @@ export const ExternalAppsTab = React.memo(() => {
                                                     <div className="mt-1 break-all text-xs text-surface-400">{destination.url}</div>
                                                 </div>
                                                 <div className="flex items-center gap-1">
+                                                    <button
+                                                        onClick={() => moveSearchDestination(destination.id, 'up')}
+                                                        className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
+                                                        title="上へ"
+                                                        disabled={index === 0}
+                                                    >
+                                                        <ArrowUp size={14} className="text-surface-400" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => moveSearchDestination(destination.id, 'down')}
+                                                        className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
+                                                        title="下へ"
+                                                        disabled={index === destinations.length - 1}
+                                                    >
+                                                        <ArrowDown size={14} className="text-surface-400" />
+                                                    </button>
                                                     <label className="flex items-center gap-1 text-xs text-surface-400">
                                                         <input
                                                             type="checkbox"

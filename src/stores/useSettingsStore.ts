@@ -220,6 +220,7 @@ interface SettingsState {
     updateSearchDestination: (id: string, updates: Partial<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
     deleteSearchDestination: (id: string) => void;
     toggleSearchDestinationEnabled: (id: string, enabled: boolean) => void;
+    moveSearchDestination: (id: string, direction: 'up' | 'down') => void;
     // グループ化アクション（Phase 12-10）
     setGroupBy: (groupBy: GroupBy) => void;
     // タグポップオーバーアクション（Phase 14-8）
@@ -422,6 +423,45 @@ export const useSettingsStore = create<SettingsState>()(
                             : destination
                     )
                 }));
+            },
+            moveSearchDestination: (id, direction) => {
+                set((state) => {
+                    const currentIndex = state.searchDestinations.findIndex((destination) => destination.id === id);
+                    if (currentIndex < 0) {
+                        return state;
+                    }
+
+                    const current = state.searchDestinations[currentIndex];
+                    if (!current) {
+                        return state;
+                    }
+
+                    const siblingIndexes = state.searchDestinations
+                        .map((destination, index) => ({ destination, index }))
+                        .filter(({ destination }) => destination.type === current.type)
+                        .map(({ index }) => index);
+
+                    const siblingPosition = siblingIndexes.indexOf(currentIndex);
+                    if (siblingPosition < 0) {
+                        return state;
+                    }
+
+                    const targetSiblingPosition = direction === 'up'
+                        ? siblingPosition - 1
+                        : siblingPosition + 1;
+
+                    const targetIndex = siblingIndexes[targetSiblingPosition];
+                    if (targetIndex === undefined) {
+                        return state;
+                    }
+
+                    const nextDestinations = [...state.searchDestinations];
+                    const temp = nextDestinations[currentIndex];
+                    nextDestinations[currentIndex] = nextDestinations[targetIndex]!;
+                    nextDestinations[targetIndex] = temp!;
+
+                    return { searchDestinations: nextDestinations };
+                });
             },
             // グループ化アクション（Phase 12-10）
             setGroupBy: (groupBy) => set({ groupBy }),
