@@ -267,8 +267,10 @@ function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
 }
 
 const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
-const HOVER_ZOOM_PREVIEW_SIZE = 360;
-const HOVER_ZOOM_PREVIEW_GAP = 12;
+const HOVER_ZOOM_PREVIEW_MAX_WIDTH = 460;
+const HOVER_ZOOM_PREVIEW_MAX_HEIGHT = 520;
+const HOVER_ZOOM_PREVIEW_MIN_SIZE = 240;
+const HOVER_ZOOM_PREVIEW_GAP = 14;
 const HOVER_ZOOM_PREVIEW_DELAY_MS = 600;
 
 const activeVisibleAnimatedPreviewIds = new Set<string>();
@@ -405,9 +407,10 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const [isThumbnailVisible, setIsThumbnailVisible] = useState(false);
     const [visibleAnimatedPreviewVersion, setVisibleAnimatedPreviewVersion] = useState(0);
     const [isVisibleAnimatedPreviewActive, setIsVisibleAnimatedPreviewActive] = useState(false);
-    const [hoverZoomPosition, setHoverZoomPosition] = useState<{ top: number; left: number } | null>(null);
+    const [hoverZoomLayout, setHoverZoomLayout] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const [isZoomButtonHovered, setIsZoomButtonHovered] = useState(false);
     const hoverZoomDelayRef = useRef<number | null>(null);
+    const zoomButtonRef = useRef<HTMLButtonElement>(null);
 
     // Play mode state
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -452,6 +455,20 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             )
         );
     }, [isAnimatedImage, isHovered, animatedImagePreviewMode, isVisibleAnimatedPreviewActive, performanceMode]);
+
+    const imageDimensions = useMemo(() => {
+        try {
+            const meta = file.metadata ? JSON.parse(file.metadata) : null;
+            const width = Number(meta?.width);
+            const height = Number(meta?.height);
+            if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+                return { width, height };
+            }
+        } catch {
+            // ignore malformed metadata
+        }
+        return null;
+    }, [file.metadata]);
 
     // Phase 17-3: interval クリーンアップヘルパー
     const clearJumpInterval = useCallback(() => {
@@ -562,33 +579,62 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     }, []);
 
     useEffect(() => {
-        if (!shouldShowHoverZoomPreview || !cardRootRef.current) {
-            setHoverZoomPosition(null);
+        if (!shouldShowHoverZoomPreview || !cardRootRef.current || !thumbnailAreaRef.current) {
+            setHoverZoomLayout(null);
             return;
         }
 
         const updatePosition = () => {
-            const rect = cardRootRef.current?.getBoundingClientRect();
-            if (!rect) return;
+            const cardRect = cardRootRef.current?.getBoundingClientRect();
+            const thumbnailRect = thumbnailAreaRef.current?.getBoundingClientRect();
+            const buttonRect = zoomButtonRef.current?.getBoundingClientRect();
+            if (!cardRect || !thumbnailRect) return;
 
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            const previewSize = HOVER_ZOOM_PREVIEW_SIZE;
             const gap = HOVER_ZOOM_PREVIEW_GAP;
-
-            const preferredLeft = rect.right + gap;
-            const fallbackLeft = rect.left - previewSize - gap;
-            const left = preferredLeft + previewSize <= viewportWidth - 12
-                ? preferredLeft
-                : Math.max(12, fallbackLeft);
-
-            const preferredTop = rect.top;
-            const top = Math.min(
-                Math.max(12, preferredTop),
-                Math.max(12, viewportHeight - previewSize - 12)
+            const margin = 12;
+            const aspectRatio = imageDimensions ? (imageDimensions.width / imageDimensions.height) : 1;
+            const maxWidth = Math.max(
+                HOVER_ZOOM_PREVIEW_MIN_SIZE,
+                Math.min(HOVER_ZOOM_PREVIEW_MAX_WIDTH, Math.floor(viewportWidth * 0.3))
+            );
+            const maxHeight = Math.max(
+                HOVER_ZOOM_PREVIEW_MIN_SIZE,
+                Math.min(HOVER_ZOOM_PREVIEW_MAX_HEIGHT, Math.floor(viewportHeight * 0.62))
             );
 
-            setHoverZoomPosition({ top, left });
+            let previewWidth = maxWidth;
+            let previewHeight = previewWidth / aspectRatio;
+            if (previewHeight > maxHeight) {
+                previewHeight = maxHeight;
+                previewWidth = previewHeight * aspectRatio;
+            }
+
+            previewWidth = Math.round(previewWidth);
+            previewHeight = Math.round(previewHeight);
+
+            const preferredLeft = cardRect.right + gap;
+            const fallbackLeft = cardRect.left - previewWidth - gap;
+            const centeredLeft = cardRect.left + ((cardRect.width - previewWidth) / 2);
+            const left = preferredLeft + previewWidth <= viewportWidth - margin
+                ? preferredLeft
+                : fallbackLeft >= margin
+                    ? fallbackLeft
+                    : Math.min(
+                        Math.max(margin, centeredLeft),
+                        Math.max(margin, viewportWidth - previewWidth - margin)
+                    );
+
+            const anchorTop = buttonRect
+                ? buttonRect.top - ((previewHeight - buttonRect.height) / 2)
+                : thumbnailRect.top + Math.min(24, thumbnailRect.height * 0.08);
+            const top = Math.min(
+                Math.max(margin, anchorTop),
+                Math.max(margin, viewportHeight - previewHeight - margin)
+            );
+
+            setHoverZoomLayout({ top, left, width: previewWidth, height: previewHeight });
         };
 
         updatePosition();
@@ -599,7 +645,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             window.removeEventListener('scroll', updatePosition, true);
             window.removeEventListener('resize', updatePosition);
         };
-    }, [shouldShowHoverZoomPreview]);
+    }, [imageDimensions, shouldShowHoverZoomPreview]);
 
     useEffect(() => {
         if (!isAnimatedImage || !thumbnailAreaRef.current) {
@@ -1131,6 +1177,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
                 {file.type === 'image' && !file.isAnimated && (
                     <button
+                        ref={zoomButtonRef}
                         type="button"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -1231,21 +1278,21 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 document.body
             )}
 
-            {shouldShowHoverZoomPreview && hoverZoomPosition && displayImageSrc && createPortal(
+            {shouldShowHoverZoomPreview && hoverZoomLayout && displayImageSrc && createPortal(
                 <div
-                    className="pointer-events-none fixed overflow-hidden rounded-lg border border-surface-600 bg-surface-800/95 shadow-2xl shadow-black/50 backdrop-blur-sm"
+                    className="pointer-events-none fixed overflow-hidden rounded-xl border border-surface-500/80 bg-surface-800/95 shadow-2xl shadow-black/50 backdrop-blur-sm"
                     style={{
-                        top: hoverZoomPosition.top,
-                        left: hoverZoomPosition.left,
-                        width: HOVER_ZOOM_PREVIEW_SIZE,
-                        height: HOVER_ZOOM_PREVIEW_SIZE,
+                        top: hoverZoomLayout.top,
+                        left: hoverZoomLayout.left,
+                        width: hoverZoomLayout.width,
+                        height: hoverZoomLayout.height,
                         zIndex: 9998,
                     }}
                 >
                     <img
                         src={displayImageSrc}
                         alt={`${file.name} enlarged preview`}
-                        className="h-full w-full object-contain bg-surface-900/80"
+                        className="h-full w-full object-contain bg-surface-900/90"
                     />
                 </div>,
                 document.body
