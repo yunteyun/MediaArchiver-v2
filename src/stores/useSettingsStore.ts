@@ -238,6 +238,7 @@ interface SettingsState {
     addSearchDestination: (type: SearchDestinationType, name: string, url: string, icon?: SearchDestinationIcon) => void;
     updateSearchDestination: (id: string, updates: Partial<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
     deleteSearchDestination: (id: string) => void;
+    replaceSearchDestinations: (destinations: Array<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
     toggleSearchDestinationEnabled: (id: string, enabled: boolean) => void;
     moveSearchDestination: (id: string, direction: 'up' | 'down') => void;
     // グループ化アクション（Phase 12-10）
@@ -435,6 +436,19 @@ export const useSettingsStore = create<SettingsState>()(
                 set((state) => ({
                     searchDestinations: state.searchDestinations.filter((destination) => destination.id !== id)
                 }));
+            },
+            replaceSearchDestinations: (destinations) => {
+                set({
+                    searchDestinations: destinations.map((destination, index) => ({
+                        id: crypto.randomUUID(),
+                        type: destination.type,
+                        name: destination.name.trim(),
+                        url: destination.url.trim(),
+                        icon: destination.icon ?? getDefaultSearchDestinationIcon(destination.type),
+                        enabled: destination.enabled !== false,
+                        createdAt: Date.now() + index,
+                    }))
+                });
             },
             toggleSearchDestinationEnabled: (id, enabled) => {
                 set((state) => ({

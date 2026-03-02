@@ -53,6 +53,7 @@ export const ExternalAppsTab = React.memo(() => {
     const addSearchDestination = useSettingsStore((s) => s.addSearchDestination);
     const updateSearchDestination = useSettingsStore((s) => s.updateSearchDestination);
     const deleteSearchDestination = useSettingsStore((s) => s.deleteSearchDestination);
+    const replaceSearchDestinations = useSettingsStore((s) => s.replaceSearchDestinations);
     const toggleSearchDestinationEnabled = useSettingsStore((s) => s.toggleSearchDestinationEnabled);
     const moveSearchDestination = useSettingsStore((s) => s.moveSearchDestination);
     const toastSuccess = useToastStore((s) => s.success);
@@ -326,7 +327,7 @@ export const ExternalAppsTab = React.memo(() => {
         }
     }, [searchDestinations, toastSuccess]);
 
-    const handleImportSearchDestinations = useCallback(async () => {
+    const handleImportSearchDestinations = useCallback(async (mode: 'merge' | 'replace') => {
         const result = await window.electronAPI.openTextFile({
             title: '検索先をインポート',
             filters: [
@@ -341,6 +342,23 @@ export const ExternalAppsTab = React.memo(() => {
             const imported = parseImportedSearchDestinations(result.content);
             if (imported.length === 0) {
                 toastError('インポートできる検索先が見つかりませんでした');
+                return;
+            }
+
+            if (mode === 'replace') {
+                const confirmed = window.confirm(
+                    `現在の検索先 ${searchDestinations.length} 件を置き換えて、インポート内容 ${imported.length} 件へ切り替えます。続行しますか？`
+                );
+                if (!confirmed) return;
+
+                replaceSearchDestinations(imported.map((destination) => ({
+                    type: destination.type,
+                    name: destination.name,
+                    url: destination.url,
+                    icon: destination.icon,
+                    enabled: destination.enabled !== false,
+                })));
+                toastSuccess(`検索先を ${imported.length} 件で置き換えました`);
                 return;
             }
 
@@ -378,7 +396,7 @@ export const ExternalAppsTab = React.memo(() => {
         } catch (error) {
             toastError(`インポートに失敗しました: ${(error as Error).message}`);
         }
-    }, [addSearchDestination, parseImportedSearchDestinations, searchDestinations, toastError, toastSuccess, toggleSearchDestinationEnabled]);
+    }, [addSearchDestination, parseImportedSearchDestinations, replaceSearchDestinations, searchDestinations, toastError, toastSuccess, toggleSearchDestinationEnabled]);
 
     const renderSearchDestinationTypeLabel = (type: SearchDestinationType) => {
         return type === 'filename' ? 'ファイル名検索' : '画像検索';
@@ -587,11 +605,18 @@ export const ExternalAppsTab = React.memo(() => {
                             エクスポート
                         </button>
                         <button
-                            onClick={() => { void handleImportSearchDestinations(); }}
+                            onClick={() => { void handleImportSearchDestinations('merge'); }}
                             className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
                         >
                             <Upload size={14} />
-                            インポート
+                            追記インポート
+                        </button>
+                        <button
+                            onClick={() => { void handleImportSearchDestinations('replace'); }}
+                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                        >
+                            <Upload size={14} />
+                            置換インポート
                         </button>
                     </div>
                 </div>
