@@ -1,4 +1,4 @@
-import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
+import { ipcMain, Menu, shell, BrowserWindow, dialog, clipboard } from 'electron';
 import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles } from '../services/database';
 import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
@@ -164,11 +164,41 @@ export function registerFileHandlers() {
             {
                 label: 'ファイル名で検索',
                 enabled: !isMultiple,
-                click: async () => {
-                    const query = buildFilenameSearchQuery(filePath);
-                    if (!query) return;
-                    await shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
-                }
+                submenu: [
+                    {
+                        label: 'Google で検索',
+                        click: async () => {
+                            const query = buildFilenameSearchQuery(filePath);
+                            if (!query) return;
+                            await shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
+                        }
+                    },
+                    {
+                        label: 'DuckDuckGo で検索',
+                        click: async () => {
+                            const query = buildFilenameSearchQuery(filePath);
+                            if (!query) return;
+                            await shell.openExternal(`https://duckduckgo.com/?q=${encodeURIComponent(query)}`);
+                        }
+                    },
+                    {
+                        label: 'Bing で検索',
+                        click: async () => {
+                            const query = buildFilenameSearchQuery(filePath);
+                            if (!query) return;
+                            await shell.openExternal(`https://www.bing.com/search?q=${encodeURIComponent(query)}`);
+                        }
+                    },
+                    { type: 'separator' },
+                    {
+                        label: '検索語をコピー',
+                        click: () => {
+                            const query = buildFilenameSearchQuery(filePath);
+                            if (!query) return;
+                            clipboard.writeText(query);
+                        }
+                    },
+                ],
             },
             {
                 label: '名前を変更',
