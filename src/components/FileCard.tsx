@@ -440,10 +440,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return (
             isZoomButtonHovered &&
             file.type === 'image' &&
-            !file.isAnimated &&
-            Boolean(file.thumbnailPath || file.path)
+            Boolean(file.path || file.thumbnailPath)
         );
-    }, [file.isAnimated, file.path, file.thumbnailPath, file.type, isZoomButtonHovered]);
+    }, [file.path, file.thumbnailPath, file.type, isZoomButtonHovered]);
 
     const shouldAnimateImagePreview = useMemo(() => {
         return (
@@ -579,16 +578,14 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     }, []);
 
     useEffect(() => {
-        if (!shouldShowHoverZoomPreview || !cardRootRef.current || !thumbnailAreaRef.current) {
+        if (!shouldShowHoverZoomPreview || !zoomButtonRef.current) {
             setHoverZoomLayout(null);
             return;
         }
 
         const updatePosition = () => {
-            const cardRect = cardRootRef.current?.getBoundingClientRect();
-            const thumbnailRect = thumbnailAreaRef.current?.getBoundingClientRect();
             const buttonRect = zoomButtonRef.current?.getBoundingClientRect();
-            if (!cardRect || !thumbnailRect) return;
+            if (!buttonRect) return;
 
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
@@ -614,21 +611,15 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             previewWidth = Math.round(previewWidth);
             previewHeight = Math.round(previewHeight);
 
-            const preferredLeft = cardRect.right + gap;
-            const fallbackLeft = cardRect.left - previewWidth - gap;
-            const centeredLeft = cardRect.left + ((cardRect.width - previewWidth) / 2);
+            const preferredLeft = buttonRect.right + gap;
+            const fallbackLeft = buttonRect.left - previewWidth - gap;
             const left = preferredLeft + previewWidth <= viewportWidth - margin
                 ? preferredLeft
                 : fallbackLeft >= margin
                     ? fallbackLeft
-                    : Math.min(
-                        Math.max(margin, centeredLeft),
-                        Math.max(margin, viewportWidth - previewWidth - margin)
-                    );
+                    : Math.max(margin, viewportWidth - previewWidth - margin);
 
-            const anchorTop = buttonRect
-                ? buttonRect.top - ((previewHeight - buttonRect.height) / 2)
-                : thumbnailRect.top + Math.min(24, thumbnailRect.height * 0.08);
+            const anchorTop = buttonRect.bottom - previewHeight;
             const top = Math.min(
                 Math.max(margin, anchorTop),
                 Math.max(margin, viewportHeight - previewHeight - margin)
@@ -971,6 +962,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return base;
     }, [displayImagePath, shouldAnimateImagePreview, file.path, animatedPreviewSessionKey]);
 
+    const hoverZoomImageSrc = useMemo(() => {
+        const sourcePath = file.path || file.thumbnailPath;
+        if (!sourcePath) return '';
+        const base = toMediaUrl(sourcePath);
+        return file.isAnimated ? `${base}?hoverZoom=${animatedPreviewSessionKey}` : base;
+    }, [file.isAnimated, file.path, file.thumbnailPath, animatedPreviewSessionKey]);
+
     const handleCardClick = (e: React.MouseEvent) => {
         // ダブルクリック時の click イベント重複発火を防ぐ
         if (e.detail === 2) return;
@@ -1175,7 +1173,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     )}
                 </div>
 
-                {file.type === 'image' && !file.isAnimated && (
+                {file.type === 'image' && (
                     <button
                         ref={zoomButtonRef}
                         type="button"
@@ -1278,7 +1276,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 document.body
             )}
 
-            {shouldShowHoverZoomPreview && hoverZoomLayout && displayImageSrc && createPortal(
+            {shouldShowHoverZoomPreview && hoverZoomLayout && hoverZoomImageSrc && createPortal(
                 <div
                     className="pointer-events-none fixed overflow-hidden rounded-xl border border-surface-500/80 bg-surface-800/95 shadow-2xl shadow-black/50 backdrop-blur-sm"
                     style={{
@@ -1290,7 +1288,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     }}
                 >
                     <img
-                        src={displayImageSrc}
+                        src={hoverZoomImageSrc}
                         alt={`${file.name} enlarged preview`}
                         className="h-full w-full object-contain bg-surface-900/90"
                     />
