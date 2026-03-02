@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
+
+---
+
+## [1.5.0d2] - 2026-03-03
 ### Changed
 - リリース版アプリのアイコンをフラット寄りの正式デザインへ調整し、タスクバーや実行ファイル一覧の小さい表示でも識別しやすくした。
 
