@@ -13,23 +13,46 @@ const INVALID_WINDOWS_FILENAME_RE = /[<>:"/\\|?*\u0000-\u001f]/;
 const RESERVED_WINDOWS_NAME_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 
 type SearchDestinationType = 'filename' | 'image';
+type SearchDestinationIcon = 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
 
 interface SearchDestination {
     id: string;
     name: string;
     type: SearchDestinationType;
     url: string;
+    icon: SearchDestinationIcon;
     enabled: boolean;
 }
 
 const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
-    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', enabled: true },
-    { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', enabled: true },
-    { id: 'filename-bing', name: 'Bing', type: 'filename', url: 'https://www.bing.com/search?q={query}', enabled: true },
-    { id: 'image-google-lens', name: 'Google Lens', type: 'image', url: 'https://lens.google.com/', enabled: true },
-    { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', enabled: true },
-    { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', enabled: true },
+    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true },
+    { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true },
+    { id: 'filename-bing', name: 'Bing', type: 'filename', url: 'https://www.bing.com/search?q={query}', icon: 'globe', enabled: true },
+    { id: 'image-google-lens', name: 'Google Lens', type: 'image', url: 'https://lens.google.com/', icon: 'camera', enabled: true },
+    { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true },
+    { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true },
 ];
+
+function getDefaultSearchDestinationIcon(type: SearchDestinationType): SearchDestinationIcon {
+    return type === 'filename' ? 'search' : 'image';
+}
+
+function getSearchDestinationIconPrefix(icon: SearchDestinationIcon): string {
+    if (icon === 'search') return '🔎';
+    if (icon === 'globe') return '🌐';
+    if (icon === 'image') return '🖼';
+    if (icon === 'camera') return '📷';
+    if (icon === 'book') return '📚';
+    if (icon === 'sparkles') return '✨';
+    return '🔗';
+}
+
+function normalizeSearchDestinationIcon(icon: unknown, type: SearchDestinationType): SearchDestinationIcon {
+    const allowedIcons: SearchDestinationIcon[] = ['search', 'globe', 'image', 'camera', 'book', 'sparkles', 'link'];
+    return typeof icon === 'string' && allowedIcons.includes(icon as SearchDestinationIcon)
+        ? icon as SearchDestinationIcon
+        : getDefaultSearchDestinationIcon(type);
+}
 
 function buildFilenameSearchQuery(filePath: string): string {
     const parsed = path.parse(filePath);
@@ -118,6 +141,7 @@ function normalizeSearchDestinations(input: unknown): SearchDestination[] {
                 name: trimmedName,
                 type: candidate.type,
                 url: trimmedUrl,
+                icon: normalizeSearchDestinationIcon(candidate.icon, candidate.type),
                 enabled: candidate.enabled !== false,
             } satisfies SearchDestination;
         })
@@ -297,7 +321,7 @@ export function registerFileHandlers() {
                 enabled: !isMultiple,
                 submenu: [
                     ...filenameSearchDestinations.map((destination) => ({
-                        label: `${destination.name} で検索`,
+                        label: `${getSearchDestinationIconPrefix(destination.icon)} ${destination.name} で検索`,
                         click: async () => {
                             await openFilenameSearch(destination, filePath);
                         }
@@ -341,7 +365,7 @@ export function registerFileHandlers() {
                     },
                     ...(imageSearchDestinations.length > 0 ? [{ type: 'separator' as const }] : []),
                     ...imageSearchDestinations.map((destination) => ({
-                        label: `${destination.name} を開く（画像をコピー）`,
+                        label: `${getSearchDestinationIconPrefix(destination.icon)} ${destination.name} を開く（画像をコピー）`,
                         click: async () => {
                             if (imageSearchSourcePaths.length === 0) return;
                             try {

@@ -59,14 +59,27 @@ export interface ExternalApp {
 }
 
 export type SearchDestinationType = 'filename' | 'image';
+export type SearchDestinationIcon = 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
 
 export interface SearchDestination {
     id: string;
     name: string;
     type: SearchDestinationType;
     url: string;
+    icon: SearchDestinationIcon;
     enabled: boolean;
     createdAt: number;
+}
+
+function getDefaultSearchDestinationIcon(type: SearchDestinationType): SearchDestinationIcon {
+    return type === 'filename' ? 'search' : 'image';
+}
+
+function normalizeSearchDestination(destination: SearchDestination): SearchDestination {
+    return {
+        ...destination,
+        icon: destination.icon ?? getDefaultSearchDestinationIcon(destination.type),
+    };
 }
 
 const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
@@ -75,6 +88,7 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
         name: 'Google',
         type: 'filename',
         url: 'https://www.google.com/search?q={query}',
+        icon: 'search',
         enabled: true,
         createdAt: 1,
     },
@@ -83,6 +97,7 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
         name: 'DuckDuckGo',
         type: 'filename',
         url: 'https://duckduckgo.com/?q={query}',
+        icon: 'globe',
         enabled: true,
         createdAt: 2,
     },
@@ -91,6 +106,7 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
         name: 'Bing',
         type: 'filename',
         url: 'https://www.bing.com/search?q={query}',
+        icon: 'globe',
         enabled: true,
         createdAt: 3,
     },
@@ -99,6 +115,7 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
         name: 'Google Lens',
         type: 'image',
         url: 'https://lens.google.com/',
+        icon: 'camera',
         enabled: true,
         createdAt: 4,
     },
@@ -107,6 +124,7 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
         name: 'Bing Visual Search',
         type: 'image',
         url: 'https://www.bing.com/visualsearch',
+        icon: 'image',
         enabled: true,
         createdAt: 5,
     },
@@ -115,6 +133,7 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
         name: 'Yandex Images',
         type: 'image',
         url: 'https://yandex.com/images/',
+        icon: 'image',
         enabled: true,
         createdAt: 6,
     },
@@ -216,7 +235,7 @@ interface SettingsState {
     deleteExternalApp: (id: string) => void;
     // Phase 18-B: デフォルト外部アプリアクション
     setDefaultExternalApp: (extension: string, appId: string | null) => void;
-    addSearchDestination: (type: SearchDestinationType, name: string, url: string) => void;
+    addSearchDestination: (type: SearchDestinationType, name: string, url: string, icon?: SearchDestinationIcon) => void;
     updateSearchDestination: (id: string, updates: Partial<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
     deleteSearchDestination: (id: string) => void;
     toggleSearchDestinationEnabled: (id: string, enabled: boolean) => void;
@@ -380,7 +399,7 @@ export const useSettingsStore = create<SettingsState>()(
                     return { defaultExternalApps: newDefaults };
                 });
             },
-            addSearchDestination: (type, name, url) => {
+            addSearchDestination: (type, name, url, icon) => {
                 const normalizedUrl = url.trim();
                 const normalizedName = name.trim();
                 if (!normalizedName || !normalizedUrl) return;
@@ -389,6 +408,7 @@ export const useSettingsStore = create<SettingsState>()(
                     type,
                     name: normalizedName,
                     url: normalizedUrl,
+                    icon: icon ?? getDefaultSearchDestinationIcon(type),
                     enabled: true,
                     createdAt: Date.now(),
                 };
@@ -405,6 +425,7 @@ export const useSettingsStore = create<SettingsState>()(
                                 ...updates,
                                 name: typeof updates.name === 'string' ? updates.name.trim() : destination.name,
                                 url: typeof updates.url === 'string' ? updates.url.trim() : destination.url,
+                                icon: updates.icon ?? destination.icon,
                             }
                             : destination
                     )
@@ -480,6 +501,20 @@ export const useSettingsStore = create<SettingsState>()(
         }),
         {
             name: 'settings-storage',
+            merge: (persistedState, currentState) => {
+                const typedPersisted = persistedState as Partial<SettingsState> | undefined;
+                const persistedDestinations = Array.isArray(typedPersisted?.searchDestinations)
+                    ? typedPersisted.searchDestinations.map((destination) =>
+                        normalizeSearchDestination(destination as SearchDestination)
+                    )
+                    : currentState.searchDestinations;
+
+                return {
+                    ...currentState,
+                    ...typedPersisted,
+                    searchDestinations: persistedDestinations,
+                };
+            },
         }
     )
 );

@@ -4,9 +4,42 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Plus, Edit2, Trash2, FolderOpen, Check, X, Search, Image as ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
-import { useSettingsStore, ExternalApp, type SearchDestination, type SearchDestinationType } from '../stores/useSettingsStore';
+import { Plus, Edit2, Trash2, FolderOpen, Check, X, Search, Image as ImageIcon, ArrowUp, ArrowDown, Globe, Camera, BookImage, Sparkles, Link2, Download, Upload } from 'lucide-react';
+import { useSettingsStore, ExternalApp, type SearchDestination, type SearchDestinationType, type SearchDestinationIcon } from '../stores/useSettingsStore';
 import { useToastStore } from '../stores/useToastStore';
+
+type SearchDestinationExportV1 = {
+    version: 1;
+    destinations: Array<{
+        type: SearchDestinationType;
+        name: string;
+        url: string;
+        icon?: SearchDestinationIcon;
+        enabled?: boolean;
+    }>;
+};
+
+const SEARCH_DESTINATION_ICON_OPTIONS: Array<{ value: SearchDestinationIcon; label: string }> = [
+    { value: 'search', label: '検索' },
+    { value: 'globe', label: '地球' },
+    { value: 'image', label: '画像' },
+    { value: 'camera', label: 'カメラ' },
+    { value: 'book', label: 'ブック' },
+    { value: 'sparkles', label: 'きらめき' },
+    { value: 'link', label: 'リンク' },
+];
+
+function SearchDestinationIconPreview({ icon }: { icon: SearchDestinationIcon }) {
+    const className = 'text-surface-300';
+
+    if (icon === 'search') return <Search size={14} className={className} />;
+    if (icon === 'globe') return <Globe size={14} className={className} />;
+    if (icon === 'image') return <ImageIcon size={14} className={className} />;
+    if (icon === 'camera') return <Camera size={14} className={className} />;
+    if (icon === 'book') return <BookImage size={14} className={className} />;
+    if (icon === 'sparkles') return <Sparkles size={14} className={className} />;
+    return <Link2 size={14} className={className} />;
+}
 
 export const ExternalAppsTab = React.memo(() => {
     const externalApps = useSettingsStore((s) => s.externalApps);
@@ -34,13 +67,15 @@ export const ExternalAppsTab = React.memo(() => {
     const [editingAppId, setEditingAppId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ name: '', path: '', extensions: '' });
     const [newSearchDestinationType, setNewSearchDestinationType] = useState<SearchDestinationType>('filename');
+    const [newSearchDestinationIcon, setNewSearchDestinationIcon] = useState<SearchDestinationIcon>('search');
     const [newSearchDestinationName, setNewSearchDestinationName] = useState('');
     const [newSearchDestinationUrl, setNewSearchDestinationUrl] = useState('');
     const [editingSearchDestinationId, setEditingSearchDestinationId] = useState<string | null>(null);
-    const [editSearchForm, setEditSearchForm] = useState<{ type: SearchDestinationType; name: string; url: string }>({
+    const [editSearchForm, setEditSearchForm] = useState<{ type: SearchDestinationType; name: string; url: string; icon: SearchDestinationIcon }>({
         type: 'filename',
         name: '',
         url: '',
+        icon: 'search',
     });
 
     // 拡張子パース
@@ -174,12 +209,14 @@ export const ExternalAppsTab = React.memo(() => {
             return;
         }
 
-        addSearchDestination(newSearchDestinationType, newSearchDestinationName, newSearchDestinationUrl);
+        addSearchDestination(newSearchDestinationType, newSearchDestinationName, newSearchDestinationUrl, newSearchDestinationIcon);
+        setNewSearchDestinationIcon(newSearchDestinationType === 'filename' ? 'search' : 'image');
         setNewSearchDestinationName('');
         setNewSearchDestinationUrl('');
         toastSuccess('検索先を追加しました');
     }, [
         addSearchDestination,
+        newSearchDestinationIcon,
         newSearchDestinationName,
         newSearchDestinationType,
         newSearchDestinationUrl,
@@ -194,6 +231,7 @@ export const ExternalAppsTab = React.memo(() => {
             type: destination.type,
             name: destination.name,
             url: destination.url,
+            icon: destination.icon,
         });
     }, []);
 
@@ -214,6 +252,7 @@ export const ExternalAppsTab = React.memo(() => {
             type: editSearchForm.type,
             name: editSearchForm.name,
             url: editSearchForm.url,
+            icon: editSearchForm.icon,
         });
         setEditingSearchDestinationId(null);
         toastSuccess('検索先を更新しました');
@@ -227,6 +266,119 @@ export const ExternalAppsTab = React.memo(() => {
         deleteSearchDestination(id);
         toastSuccess('検索先を削除しました');
     }, [deleteSearchDestination, toastSuccess]);
+
+    const parseImportedSearchDestinations = useCallback((content: string): SearchDestinationExportV1['destinations'] => {
+        const parsed = JSON.parse(content) as Partial<SearchDestinationExportV1>;
+        if (parsed.version !== 1 || !Array.isArray(parsed.destinations)) {
+            throw new Error('対応していない検索先ファイルです');
+        }
+
+        return parsed.destinations.flatMap((entry) => {
+            if (!entry || typeof entry !== 'object') return [];
+            const type = entry.type;
+            const name = typeof entry.name === 'string' ? entry.name.trim() : '';
+            const url = typeof entry.url === 'string' ? entry.url.trim() : '';
+            const icon = entry.icon;
+
+            if ((type !== 'filename' && type !== 'image') || !name || !url) return [];
+            if (type === 'filename' && !url.includes('{query}')) return [];
+
+            const normalizedIcon: SearchDestinationIcon =
+                icon && SEARCH_DESTINATION_ICON_OPTIONS.some((option) => option.value === icon)
+                    ? icon
+                    : (type === 'filename' ? 'search' : 'image');
+
+            return [{
+                type,
+                name,
+                url,
+                icon: normalizedIcon,
+                enabled: entry.enabled !== false,
+            }];
+        });
+    }, []);
+
+    const handleExportSearchDestinations = useCallback(async () => {
+        const payload: SearchDestinationExportV1 = {
+            version: 1,
+            destinations: searchDestinations.map((destination) => ({
+                type: destination.type,
+                name: destination.name,
+                url: destination.url,
+                icon: destination.icon,
+                enabled: destination.enabled,
+            })),
+        };
+
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const result = await window.electronAPI.saveTextFile({
+            title: '検索先をエクスポート',
+            defaultPath: `mediaarchiver-search-destinations-${timestamp}.json`,
+            filters: [
+                { name: 'JSON Files', extensions: ['json'] },
+                { name: 'All Files', extensions: ['*'] },
+            ],
+            content: JSON.stringify(payload, null, 2),
+        });
+
+        if (!result.canceled) {
+            toastSuccess('検索先をエクスポートしました');
+        }
+    }, [searchDestinations, toastSuccess]);
+
+    const handleImportSearchDestinations = useCallback(async () => {
+        const result = await window.electronAPI.openTextFile({
+            title: '検索先をインポート',
+            filters: [
+                { name: 'JSON Files', extensions: ['json'] },
+                { name: 'All Files', extensions: ['*'] },
+            ],
+        });
+
+        if (result.canceled || !result.content) return;
+
+        try {
+            const imported = parseImportedSearchDestinations(result.content);
+            if (imported.length === 0) {
+                toastError('インポートできる検索先が見つかりませんでした');
+                return;
+            }
+
+            const existingKeys = new Set(
+                searchDestinations.map((destination) => `${destination.type}::${destination.name}::${destination.url}`)
+            );
+
+            let importedCount = 0;
+            let skippedCount = 0;
+
+            for (const destination of imported) {
+                const key = `${destination.type}::${destination.name}::${destination.url}`;
+                if (existingKeys.has(key)) {
+                    skippedCount += 1;
+                    continue;
+                }
+
+                addSearchDestination(destination.type, destination.name, destination.url, destination.icon);
+                if (destination.enabled === false) {
+                    const latest = useSettingsStore.getState().searchDestinations.at(-1);
+                    if (latest) {
+                        toggleSearchDestinationEnabled(latest.id, false);
+                    }
+                }
+                existingKeys.add(key);
+                importedCount += 1;
+            }
+
+            if (importedCount === 0) {
+                toastError('新しく追加できる検索先はありませんでした');
+                return;
+            }
+
+            toastSuccess(`検索先を ${importedCount} 件取り込みました${skippedCount > 0 ? `（重複 ${skippedCount} 件を除外）` : ''}`);
+        } catch (error) {
+            toastError(`インポートに失敗しました: ${(error as Error).message}`);
+        }
+    }, [addSearchDestination, parseImportedSearchDestinations, searchDestinations, toastError, toastSuccess, toggleSearchDestinationEnabled]);
 
     const renderSearchDestinationTypeLabel = (type: SearchDestinationType) => {
         return type === 'filename' ? 'ファイル名検索' : '画像検索';
@@ -419,11 +571,29 @@ export const ExternalAppsTab = React.memo(() => {
             </div>
 
             <div className="border-t border-surface-700 pt-4 space-y-4">
-                <div>
-                    <h4 className="text-sm font-medium text-surface-300 mb-1">検索先</h4>
-                    <p className="text-xs text-surface-500">
-                        ファイル名検索は URL に <code>{'{query}'}</code> を含めてください。画像検索は検索ページを開く前に画像を自動でコピーします。
-                    </p>
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <h4 className="text-sm font-medium text-surface-300 mb-1">検索先</h4>
+                        <p className="text-xs text-surface-500">
+                            ファイル名検索は URL に <code>{'{query}'}</code> を含めてください。画像検索は検索ページを開く前に画像を自動でコピーします。
+                        </p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => { void handleExportSearchDestinations(); }}
+                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                        >
+                            <Download size={14} />
+                            エクスポート
+                        </button>
+                        <button
+                            onClick={() => { void handleImportSearchDestinations(); }}
+                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                        >
+                            <Upload size={14} />
+                            インポート
+                        </button>
+                    </div>
                 </div>
 
                 <div className="space-y-4">
@@ -444,11 +614,28 @@ export const ExternalAppsTab = React.memo(() => {
                                             <div className="space-y-2">
                                                 <select
                                                     value={editSearchForm.type}
-                                                    onChange={(e) => setEditSearchForm((prev) => ({ ...prev, type: e.target.value as SearchDestinationType }))}
+                                                    onChange={(e) => setEditSearchForm((prev) => ({
+                                                        ...prev,
+                                                        type: e.target.value as SearchDestinationType,
+                                                        icon: prev.type === 'filename' && e.target.value === 'image'
+                                                            ? 'image'
+                                                            : prev.type === 'image' && e.target.value === 'filename'
+                                                                ? 'search'
+                                                                : prev.icon
+                                                    }))}
                                                     className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
                                                 >
                                                     <option value="filename">ファイル名検索</option>
                                                     <option value="image">画像検索</option>
+                                                </select>
+                                                <select
+                                                    value={editSearchForm.icon}
+                                                    onChange={(e) => setEditSearchForm((prev) => ({ ...prev, icon: e.target.value as SearchDestinationIcon }))}
+                                                    className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
+                                                >
+                                                    {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
+                                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                                    ))}
                                                 </select>
                                                 <input
                                                     type="text"
@@ -477,6 +664,9 @@ export const ExternalAppsTab = React.memo(() => {
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center gap-2">
+                                                        <span className="inline-flex h-7 w-7 items-center justify-center rounded bg-surface-700">
+                                                            <SearchDestinationIconPreview icon={destination.icon} />
+                                                        </span>
                                                         <span className="font-medium text-white">{destination.name}</span>
                                                         <span className="rounded bg-surface-700 px-2 py-0.5 text-[10px] text-surface-300">
                                                             {renderSearchDestinationTypeLabel(destination.type)}
@@ -544,11 +734,24 @@ export const ExternalAppsTab = React.memo(() => {
                     <div className="space-y-2">
                         <select
                             value={newSearchDestinationType}
-                            onChange={(e) => setNewSearchDestinationType(e.target.value as SearchDestinationType)}
+                            onChange={(e) => {
+                                const nextType = e.target.value as SearchDestinationType;
+                                setNewSearchDestinationType(nextType);
+                                setNewSearchDestinationIcon(nextType === 'filename' ? 'search' : 'image');
+                            }}
                             className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
                         >
                             <option value="filename">ファイル名検索</option>
                             <option value="image">画像検索</option>
+                        </select>
+                        <select
+                            value={newSearchDestinationIcon}
+                            onChange={(e) => setNewSearchDestinationIcon(e.target.value as SearchDestinationIcon)}
+                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
+                        >
+                            {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
                         </select>
                         <input
                             type="text"

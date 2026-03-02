@@ -86,6 +86,7 @@ interface ContextMenuSearchDestination {
     name: string;
     type: 'filename' | 'image';
     url: string;
+    icon?: 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
     enabled: boolean;
 }
 
