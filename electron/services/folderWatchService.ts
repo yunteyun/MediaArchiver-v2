@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { logger } from './logger';
-import { getWatchNewFilesFolders, type MediaFolder } from './database';
+import { getFileCountByRootFolderId, getWatchNewFilesFolders, type MediaFolder } from './database';
 import { scanDirectory } from './scanner';
 
 const log = logger.scope('FolderWatch');
@@ -47,7 +47,10 @@ async function runFolderScan(folder: MediaFolder, reason: string) {
     state.scanRunning = true;
     try {
         log.info(`Detected file change, rescanning: ${folder.path} (reason=${reason})`);
-        await scanDirectory(folder.path, folder.id);
+        await scanDirectory(folder.path, folder.id, undefined, undefined, {
+            skipInitialCount: true,
+            initialEstimatedTotal: getFileCountByRootFolderId(folder.id),
+        });
     } catch (error) {
         log.warn(`Live rescan failed: ${folder.path}`, error);
     } finally {

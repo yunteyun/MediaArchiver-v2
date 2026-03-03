@@ -45,6 +45,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
     const isComplete = phase === 'complete';
     const isError = phase === 'error';
     const isCounting = phase === 'counting';
+    const isIndeterminateScanning = phase === 'scanning' && total <= 0;
 
     const handleMinimize = () => {
         setVisible(false);
@@ -117,7 +118,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
                         className={`h-full transition-all duration-300 ease-out relative overflow-hidden ${isError ? 'bg-red-500' :
                             isComplete ? 'bg-green-500' : 'bg-blue-500'
                             }`}
-                        style={{ width: `${percentage}%` }}
+                        style={{ width: isIndeterminateScanning ? '100%' : `${percentage}%` }}
                     >
                         {/* 視覚効果専用。進捗ロジックとは独立 */}
                         {!isComplete && !isError && (
@@ -131,6 +132,8 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
                     <span className="font-mono">
                         {isCounting ? (
                             'Scanning...'
+                        ) : isIndeterminateScanning ? (
+                            `${current.toLocaleString()}件処理`
                         ) : (
                             `${current.toLocaleString()} / ${total.toLocaleString()} (${percentage}%)`
                         )}

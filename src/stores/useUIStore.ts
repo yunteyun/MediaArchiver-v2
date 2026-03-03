@@ -130,7 +130,11 @@ export const useUIStore = create<UIState>((set) => ({
         // NOTE:
         // スキャン開始時のみ UX 向上のため自動表示する。
         // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
-        isScanProgressVisible: progress?.phase === 'counting' ? true : state.isScanProgressVisible
+        isScanProgressVisible:
+            progress?.phase === 'counting' ||
+                (progress?.phase === 'scanning' && state.scanProgress === null)
+                ? true
+                : state.isScanProgressVisible
     })),
     clearScanProgress: () => set({ scanProgress: null, isScanProgressVisible: false, scanProgressAutoDismissPending: false }),
     acknowledgeScanProgress: () => set({ scanProgressAutoDismissPending: false }),

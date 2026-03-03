@@ -141,6 +141,11 @@ export interface ScanBatchCommittedPayload {
 
 export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) => void;
 
+export interface ScanDirectoryOptions {
+    skipInitialCount?: boolean;
+    initialEstimatedTotal?: number;
+}
+
 // スキャンキャンセル用フラグ
 let scanCancelled = false;
 export function cancelScan() {
@@ -375,10 +380,11 @@ async function scanDirectoryInternal(
                         const now = Date.now();
                         if (onProgress && (now - state.lastProgressTime > PROGRESS_THROTTLE_MS || state.current === state.total)) {
                             state.lastProgressTime = now;
+                            const progressTotal = state.total > 0 ? Math.max(state.total, state.current) : 0;
                             onProgress({
                                 phase: 'scanning',
                                 current: state.current,
-                                total: state.total,
+                                total: progressTotal,
                                 currentFile: entry.name,
                                 stats: state.stats
                             });
@@ -581,10 +587,11 @@ async function scanDirectoryInternal(
                     const nowAfter = Date.now();
                     if (onProgress && (nowAfter - state.lastProgressTime > PROGRESS_THROTTLE_MS || state.current === state.total)) {
                         state.lastProgressTime = nowAfter;
+                        const progressTotal = state.total > 0 ? Math.max(state.total, state.current) : 0;
                         onProgress({
                             phase: 'scanning',
                             current: state.current,
-                            total: state.total,
+                            total: progressTotal,
                             currentFile: entry.name,
                             message: isNew ? '新規登録' : '更新',
                             stats: state.stats
@@ -607,7 +614,8 @@ export async function scanDirectory(
     dirPath: string,
     rootFolderId: string,
     onProgress?: ScanProgressCallback,
-    onBatchCommitted?: ScanBatchCommittedCallback
+    onBatchCommitted?: ScanBatchCommittedCallback,
+    options?: ScanDirectoryOptions
 ) {
     const perfStartedAt = startPerfTimer();
     // キャンセルフラグをリセット
@@ -619,17 +627,21 @@ export async function scanDirectory(
     });
 
     try {
-        if (onProgress) {
-            onProgress({ phase: 'counting', current: 0, total: 0, message: 'ファイル数をカウント中...' });
-        }
-
         const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(rootFolderId);
-        const countStartedAt = startPerfTimer();
-        const total = await countFiles(dirPath, effectiveScanFilters);
-        logPerf('scanner.countFiles', countStartedAt, {
-            folder: path.basename(dirPath) || dirPath,
-            total
-        });
+        let total = options?.skipInitialCount ? Math.max(0, options.initialEstimatedTotal ?? 0) : 0;
+
+        if (!options?.skipInitialCount) {
+            if (onProgress) {
+                onProgress({ phase: 'counting', current: 0, total: 0, message: 'ファイル数をカウント中...' });
+            }
+
+            const countStartedAt = startPerfTimer();
+            total = await countFiles(dirPath, effectiveScanFilters);
+            logPerf('scanner.countFiles', countStartedAt, {
+                folder: path.basename(dirPath) || dirPath,
+                total
+            });
+        }
 
         if (onProgress) {
             onProgress({ phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
@@ -680,6 +692,7 @@ export async function scanDirectory(
 
         // キャンセルされた場合
         if (scanCancelled) {
+            const finalTotal = state.total > 0 ? Math.max(state.total, state.current) : state.current;
             onBatchCommitted?.({
                 rootFolderId,
                 scanPath: dirPath,
@@ -690,7 +703,8 @@ export async function scanDirectory(
             });
             logPerf('scanner.scanDirectory', perfStartedAt, {
                 folder: path.basename(dirPath) || dirPath,
-                total,
+                total: finalTotal,
+                countMode: options?.skipInitialCount ? 'skipped' : 'full',
                 phase: 'cancelled',
                 newCount: state.stats.newCount,
                 updateCount: state.stats.updateCount,
@@ -706,7 +720,7 @@ export async function scanDirectory(
                 onProgress({
                     phase: 'complete',
                     current: state.current,
-                    total,
+                    total: finalTotal,
                     message: `キャンセル: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ`,
                     stats: state.stats
                 });
@@ -714,12 +728,13 @@ export async function scanDirectory(
             return;
         }
 
+        const finalTotal = state.total > 0 ? Math.max(state.total, state.current) : state.current;
         if (onProgress) {
-            console.log(`Scan completed. Total: ${total}, New: ${state.stats.newCount}, Update: ${state.stats.updateCount}, Skip: ${state.stats.skipCount}, Removed: ${removedCount}`);
+            console.log(`Scan completed. Total: ${finalTotal}, New: ${state.stats.newCount}, Update: ${state.stats.updateCount}, Skip: ${state.stats.skipCount}, Removed: ${removedCount}`);
             onProgress({
                 phase: 'complete',
-                current: total,
-                total,
+                current: finalTotal,
+                total: finalTotal,
                 message: `完了: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ, ${removedCount}件削除`,
                 stats: state.stats
             });
@@ -739,7 +754,8 @@ export async function scanDirectory(
         });
         logPerf('scanner.scanDirectory', perfStartedAt, {
             folder: path.basename(dirPath) || dirPath,
-            total,
+            total: finalTotal,
+            countMode: options?.skipInitialCount ? 'skipped' : 'full',
             phase: 'complete',
             newCount: state.stats.newCount,
             updateCount: state.stats.updateCount,
@@ -750,6 +766,7 @@ export async function scanDirectory(
     } catch (e) {
         logPerf('scanner.scanDirectory', perfStartedAt, {
             folder: path.basename(dirPath) || dirPath,
+            countMode: options?.skipInitialCount ? 'skipped' : 'full',
             phase: 'error',
             error: e instanceof Error ? e.message : String(e)
         });
