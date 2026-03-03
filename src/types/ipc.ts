@@ -22,17 +22,6 @@ export interface IpcChannels {
             message?: string;
         };
     };
-    'scanner:batchCommitted': {
-        request: void;
-        response: {
-            rootFolderId: string;
-            scanPath: string;
-            committedCount: number;
-            totalCommitted: number;
-            removedCount: number;
-            stage: 'batch' | 'complete' | 'cancelled';
-        };
-    };
 
     // Folder
     'folder:add': {

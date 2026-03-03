@@ -6,13 +6,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { isArchive, getArchiveThumbnail } from './archiveHandler';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { isPreviewFrameJobCancelledError, runPreviewFrameJob } from './previewFrameWorkerService';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
-import type { PreviewFrameJobRequest, PreviewFrameJobSource } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('Thumbnail');
-const PREVIEW_FRAME_WIDTH = 256;
 
 // Phase 25: basePath から動的取得（モジュールロード時に確定させない）
 function getCurrentProfileIdForThumbnails(): string | null {
@@ -203,51 +200,20 @@ function generateAudioThumbnail(audioPath: string): Promise<string | null> {
  * @param frameCount 生成するフレーム数（デフォルト: 6）
  * @returns カンマ区切りのフレームパス文字列
  */
-function buildPreviewTimemarks(frameCount: number): string[] {
-    if (frameCount <= 0) return [];
-    if (frameCount === 1) return ['50.0%'];
-
-    const timemarks: string[] = [];
-    for (let i = 0; i < frameCount; i++) {
-        const percentage = 5 + (i * 90 / (frameCount - 1));
-        timemarks.push(`${percentage.toFixed(1)}%`);
-    }
-    return timemarks;
-}
-
-function collectPreviewFramePaths(frameDir: string, frameCount: number): string[] {
-    const framePaths: string[] = [];
-
-    for (let i = 1; i <= frameCount; i++) {
-        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.webp`);
-        if (fs.existsSync(framePath)) {
-            framePaths.push(framePath);
-        }
-    }
-
-    if (framePaths.length > 0) {
-        return framePaths;
-    }
-
-    return fs.readdirSync(frameDir)
-        .filter((fileName) => fileName.endsWith('.webp'))
-        .sort()
-        .map((fileName) => path.join(frameDir, fileName));
-}
-
-async function generatePreviewFramesInline(videoPath: string, frameCount: number, frameDir: string): Promise<string | null> {
-    if (frameCount <= 0) {
-        return null;
-    }
+export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
+    const videoId = uuidv4();
+    const frameDir = createPreviewFramesDir(videoId, getCurrentProfileIdForThumbnails());
 
     try {
+        // フレームディレクトリ作成
         if (!fs.existsSync(frameDir)) {
             fs.mkdirSync(frameDir, { recursive: true });
         }
 
+        // 動画の長さを取得
         const durationSec = await new Promise<number>((resolve) => {
             ffmpeg.ffprobe(videoPath, (err, metadata) => {
-                if (err || !metadata?.format?.duration) {
+                if (err || !metadata.format.duration) {
                     resolve(0);
                 } else {
                     resolve(metadata.format.duration);
@@ -259,12 +225,17 @@ async function generatePreviewFramesInline(videoPath: string, frameCount: number
             return null;
         }
 
-        const timemarks = buildPreviewTimemarks(frameCount);
+        // タイムマークを生成（5%〜95%の範囲で均等に）
+        const timemarks: string[] = [];
+        for (let i = 0; i < frameCount; i++) {
+            const percentage = 5 + (i * 90 / (frameCount - 1));
+            timemarks.push(`${percentage.toFixed(1)}%`);
+        }
 
         return new Promise((resolve) => {
             ffmpeg(videoPath)
                 .outputOptions([
-                    '-threads', '1',
+                    '-threads', '1',  // コイル鳴き軽減
                     '-vcodec', 'libwebp',
                     '-quality', String(THUMBNAIL_WEBP_QUALITY.previewFrame),
                 ])
@@ -272,12 +243,32 @@ async function generatePreviewFramesInline(videoPath: string, frameCount: number
                     count: frameCount,
                     folder: frameDir,
                     filename: 'frame_%02d.webp',
-                    size: `${PREVIEW_FRAME_WIDTH}x?`,
-                    timemarks,
+                    size: '256x?',  // Phase 24: 320→256px
+                    timemarks: timemarks
                 })
                 .on('end', () => {
-                    const framePaths = collectPreviewFramePaths(frameDir, frameCount);
-                    resolve(framePaths.length > 0 ? framePaths.join(',') : null);
+                    // ディレクトリの内容を確認
+                    const filesInDir = fs.readdirSync(frameDir);
+
+                    // 生成されたフレームのパスを収集（想定形式: frame_01.webp）
+                    const framePaths: string[] = [];
+                    for (let i = 1; i <= frameCount; i++) {
+                        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.webp`);
+                        if (fs.existsSync(framePath)) {
+                            framePaths.push(framePath);
+                        }
+                    }
+
+                    if (framePaths.length > 0) {
+                        resolve(framePaths.join(','));
+                    } else {
+                        // フォールバック: ディレクトリ内の全WebPを使用
+                        const allWebps = filesInDir
+                            .filter(f => f.endsWith('.webp'))
+                            .sort()
+                            .map(f => path.join(frameDir, f));
+                        resolve(allWebps.length > 0 ? allWebps.join(',') : null);
+                    }
                 })
                 .on('error', (err) => {
                     log.error('Preview frames generation error:', err);
@@ -287,46 +278,6 @@ async function generatePreviewFramesInline(videoPath: string, frameCount: number
     } catch (e) {
         log.error('PreviewFrames exception:', e);
         return null;
-    }
-}
-
-interface GeneratePreviewFramesOptions {
-    jobSource?: PreviewFrameJobSource;
-}
-
-export async function generatePreviewFrames(
-    videoPath: string,
-    frameCount: number = 6,
-    options: GeneratePreviewFramesOptions = {}
-): Promise<string | null> {
-    if (frameCount <= 0) {
-        return null;
-    }
-
-    const requestId = uuidv4();
-    const frameDir = createPreviewFramesDir(requestId, getCurrentProfileIdForThumbnails());
-    const request: PreviewFrameJobRequest = {
-        type: 'worker:run-preview-job',
-        requestId,
-        videoPath,
-        frameDir,
-        frameCount,
-        frameWidth: PREVIEW_FRAME_WIDTH,
-        quality: THUMBNAIL_WEBP_QUALITY.previewFrame,
-        jobSource: options.jobSource ?? 'interactive',
-    };
-
-    try {
-        const framePaths = await runPreviewFrameJob(request);
-        return framePaths?.join(',') ?? null;
-    } catch (error) {
-        if (isPreviewFrameJobCancelledError(error)) {
-            log.info(`Preview frame job cancelled for ${videoPath}.`);
-            return null;
-        }
-
-        log.warn(`Preview frame worker failed for ${videoPath}. Falling back to inline generation.`, error);
-        return generatePreviewFramesInline(videoPath, frameCount, frameDir);
     }
 }
 

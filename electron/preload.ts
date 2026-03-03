@@ -80,13 +80,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener('scanner:progress', subscription);
         };
     },
-    onScanBatchCommitted: (callback: (payload: any) => void) => {
-        const subscription = (_event: any, payload: any) => callback(payload);
-        ipcRenderer.on('scanner:batchCommitted', subscription);
-        return () => {
-            ipcRenderer.removeListener('scanner:batchCommitted', subscription);
-        };
-    },
     cancelScan: () => ipcRenderer.invoke('scanner:cancel'),
     setPreviewFrameCount: (count: number) => ipcRenderer.invoke('scanner:setPreviewFrameCount', count),
     setScanThrottleMs: (ms: number) => ipcRenderer.invoke('scanner:setScanThrottleMs', ms),
