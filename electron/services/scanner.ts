@@ -190,6 +190,7 @@ const TRANSACTION_BATCH_SIZE = 100;
 // 保留中のDB書き込み操作
 interface PendingWrite {
     fileData: Parameters<typeof db.insertFile>[0];
+    existingId?: string;
 }
 
 // バッチコミット関数
@@ -197,9 +198,9 @@ function commitBatch(pendingWrites: PendingWrite[]): number {
     if (pendingWrites.length === 0) return 0;
 
     const database = dbManager.getDb();
-    const transaction = database.transaction(() => {
+        const transaction = database.transaction(() => {
         pendingWrites.forEach(pw => {
-            db.insertFile(pw.fileData);
+            db.upsertFileRecord(pw.fileData, pw.existingId);
         });
     });
 
@@ -329,7 +330,7 @@ async function scanDirectoryInternal(
                         continue;
                     }
 
-                    const existing = db.findFileByPath(fullPath);
+                    const existing = db.findFileScanRecordByPath(fullPath);
                     // Skip if size and mtime match AND thumbnail exists (if applicable)
                     // For videos, also require preview_frames to exist
 
@@ -549,7 +550,7 @@ async function scanDirectoryInternal(
                         created_at: fileStats.birthtimeMs,
                         mtime_ms: Math.floor(fileStats.mtimeMs),
                         root_folder_id: rootFolderId,
-                        tags: existing?.tags || [],
+                        tags: existing ? db.getTagIdsByFileId(existing.id) : [],
                         duration: duration,
                         thumbnail_path: thumbnailPath,
                         preview_frames: previewFrames,
@@ -558,7 +559,7 @@ async function scanDirectoryInternal(
                         is_animated: isAnimated ? 1 : 0  // SQLiteはbooleanをINTEGERとして保存
                     };
 
-                    state.pendingWrites.push({ fileData });
+                    state.pendingWrites.push({ fileData, existingId: existing?.id });
 
                     // バッチサイズに達したらコミット
                     if (state.pendingWrites.length >= TRANSACTION_BATCH_SIZE) {
@@ -673,7 +674,7 @@ export async function scanDirectory(
         }
 
         // Orphan check (simplified)
-        const registeredFiles = db.getFiles(rootFolderId);
+        const registeredFiles = db.getFileCleanupCandidatesByRootFolderId(rootFolderId);
         let removedCount = 0;
         for (const file of registeredFiles) {
             const isMissingOnDisk = !fs.existsSync(file.path);

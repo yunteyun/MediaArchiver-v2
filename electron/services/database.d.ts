@@ -33,6 +33,20 @@ export interface MediaFile {
     externalOpenCount?: number;
     lastExternalOpenedAt?: number | null;
 }
+export interface ScannerFileRecord {
+    id: string;
+    path: string;
+    size: number;
+    type: 'video' | 'image' | 'archive' | 'audio';
+    duration?: string;
+    thumbnail_path?: string;
+    preview_frames?: string;
+    root_folder_id?: string;
+    content_hash?: string;
+    metadata?: string;
+    mtime_ms?: number;
+    is_animated?: number;
+}
 export interface MediaFolder {
     id: string;
     name: string;
@@ -48,12 +62,18 @@ export declare function incrementExternalOpenCount(id: string): {
 };
 export declare function getFiles(rootFolderId?: string): MediaFile[];
 export declare function findFileByPath(filePath: string): MediaFile | undefined;
+export declare function findFileScanRecordByPath(filePath: string): ScannerFileRecord | undefined;
 export declare function findFileByHash(hash: string): MediaFile | undefined;
 export declare function insertFile(fileData: Partial<MediaFile> & {
     name: string;
     path: string;
     root_folder_id: string;
 }): MediaFile;
+export declare function upsertFileRecord(fileData: Partial<MediaFile> & {
+    name: string;
+    path: string;
+    root_folder_id: string;
+}, existingId?: string): void;
 export declare function deleteFile(id: string): void;
 export declare function updateFileLocation(id: string, newPath: string, newRootFolderId: string): void;
 export declare function updateFileNameAndPath(id: string, newName: string, newPath: string): void;
@@ -68,8 +88,14 @@ export declare function incrementAccessCount(id: string): {
     accessCount: number;
     lastAccessedAt: number;
 };
+export declare function getTagIdsByFileId(fileId: string): string[];
 export declare function getFolders(): MediaFolder[];
 export declare function getFolderByPath(folderPath: string): MediaFolder | undefined;
+export declare function getFileCleanupCandidatesByRootFolderId(rootFolderId: string): Array<{
+    id: string;
+    path: string;
+    type: 'video' | 'image' | 'archive' | 'audio';
+}>;
 export declare function addFolder(folderPath: string, name?: string): MediaFolder;
 export declare function deleteFolder(id: string): void;
 /**

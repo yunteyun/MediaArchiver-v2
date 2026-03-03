@@ -47,6 +47,21 @@ export interface MediaFile {
     lastExternalOpenedAt?: number | null;
 }
 
+export interface ScannerFileRecord {
+    id: string;
+    path: string;
+    size: number;
+    type: 'video' | 'image' | 'archive' | 'audio';
+    duration?: string;
+    thumbnail_path?: string;
+    preview_frames?: string;
+    root_folder_id?: string;
+    content_hash?: string;
+    metadata?: string;
+    mtime_ms?: number;
+    is_animated?: number;
+}
+
 export interface MediaFolder {
     id: string;
     name: string;
@@ -272,6 +287,30 @@ export function findFileByPath(filePath: string): MediaFile | undefined {
     return undefined;
 }
 
+export function findFileScanRecordByPath(filePath: string): ScannerFileRecord | undefined {
+    const db = getDb();
+    const row = db.prepare(`
+        SELECT id, path, size, type, duration, thumbnail_path, preview_frames, root_folder_id, content_hash, metadata, mtime_ms, is_animated
+        FROM files
+        WHERE path = ?
+    `).get(filePath) as any;
+    if (!row) return undefined;
+    return {
+        id: row.id,
+        path: row.path,
+        size: row.size,
+        type: row.type,
+        duration: row.duration,
+        thumbnail_path: row.thumbnail_path,
+        preview_frames: row.preview_frames,
+        root_folder_id: row.root_folder_id,
+        content_hash: row.content_hash,
+        metadata: row.metadata,
+        mtime_ms: row.mtime_ms,
+        is_animated: row.is_animated,
+    };
+}
+
 export function findFileByHash(hash: string): MediaFile | undefined {
     const db = getDb();
     const file = db.prepare('SELECT * FROM files WHERE content_hash = ?').get(hash) as any;
@@ -408,6 +447,65 @@ export function updateFileLocation(id: string, newPath: string, newRootFolderId:
         .run(newPath, newRootFolderId, id);
 }
 
+export function upsertFileRecord(
+    fileData: Partial<MediaFile> & { name: string; path: string; root_folder_id: string },
+    existingId?: string
+): void {
+    const db = getDb();
+    const now = Date.now();
+
+    if (existingId) {
+        db.prepare(`
+            UPDATE files SET
+                size = COALESCE(?, size),
+                mtime_ms = COALESCE(?, mtime_ms),
+                content_hash = COALESCE(?, content_hash),
+                duration = COALESCE(?, duration),
+                thumbnail_path = COALESCE(?, thumbnail_path),
+                preview_frames = COALESCE(?, preview_frames),
+                metadata = COALESCE(?, metadata),
+                type = COALESCE(?, type),
+                is_animated = COALESCE(?, is_animated)
+            WHERE id = ?
+        `).run(
+            fileData.size,
+            fileData.mtime_ms,
+            fileData.content_hash,
+            fileData.duration,
+            fileData.thumbnail_path,
+            fileData.preview_frames,
+            fileData.metadata,
+            fileData.type,
+            fileData.is_animated,
+            existingId
+        );
+        return;
+    }
+
+    db.prepare(`
+        INSERT INTO files (
+            id, name, path, size, type, created_at,
+            duration, thumbnail_path, preview_frames,
+            root_folder_id, content_hash, metadata, mtime_ms, is_animated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        uuidv4(),
+        fileData.name,
+        fileData.path,
+        fileData.size,
+        fileData.type,
+        fileData.created_at || now,
+        fileData.duration,
+        fileData.thumbnail_path,
+        fileData.preview_frames,
+        fileData.root_folder_id,
+        fileData.content_hash,
+        fileData.metadata,
+        fileData.mtime_ms,
+        fileData.is_animated
+    );
+}
+
 export function updateFileNameAndPath(id: string, newName: string, newPath: string) {
     const db = getDb();
     db.prepare('UPDATE files SET name = ?, path = ? WHERE id = ?')
@@ -486,6 +584,10 @@ function getTags(fileId: string): string[] {
     return rows.map(r => r.tag);
 }
 
+export function getTagIdsByFileId(fileId: string): string[] {
+    return getTags(fileId);
+}
+
 // --- Folder Operations ---
 
 export function getFolders(): MediaFolder[] {
@@ -544,6 +646,23 @@ export function getFolderByPath(folderPath: string): MediaFolder | undefined {
 export function getFolderById(folderId: string): MediaFolder | undefined {
     const db = getDb();
     return db.prepare('SELECT * FROM folders WHERE id = ?').get(folderId) as MediaFolder | undefined;
+}
+
+export function getFileCleanupCandidatesByRootFolderId(rootFolderId: string): Array<{
+    id: string;
+    path: string;
+    type: 'video' | 'image' | 'archive' | 'audio';
+}> {
+    const db = getDb();
+    return db.prepare(`
+        SELECT id, path, type
+        FROM files
+        WHERE root_folder_id = ?
+    `).all(rootFolderId) as Array<{
+        id: string;
+        path: string;
+        type: 'video' | 'image' | 'archive' | 'audio';
+    }>;
 }
 
 export function getFolderScanSettings(folderId: string): FolderScanSettings {
