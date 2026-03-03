@@ -6,10 +6,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { isArchive, getArchiveThumbnail } from './archiveHandler';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { runPreviewFrameJob } from './previewFrameWorkerService';
+import { isPreviewFrameJobCancelledError, runPreviewFrameJob } from './previewFrameWorkerService';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
-import type { PreviewFrameJobRequest } from '../utility/previewFrameWorkerTypes';
+import type { PreviewFrameJobRequest, PreviewFrameJobSource } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('Thumbnail');
 const PREVIEW_FRAME_WIDTH = 256;
@@ -290,7 +290,15 @@ async function generatePreviewFramesInline(videoPath: string, frameCount: number
     }
 }
 
-export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
+interface GeneratePreviewFramesOptions {
+    jobSource?: PreviewFrameJobSource;
+}
+
+export async function generatePreviewFrames(
+    videoPath: string,
+    frameCount: number = 6,
+    options: GeneratePreviewFramesOptions = {}
+): Promise<string | null> {
     if (frameCount <= 0) {
         return null;
     }
@@ -305,12 +313,18 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
         frameCount,
         frameWidth: PREVIEW_FRAME_WIDTH,
         quality: THUMBNAIL_WEBP_QUALITY.previewFrame,
+        jobSource: options.jobSource ?? 'interactive',
     };
 
     try {
         const framePaths = await runPreviewFrameJob(request);
         return framePaths?.join(',') ?? null;
     } catch (error) {
+        if (isPreviewFrameJobCancelledError(error)) {
+            log.info(`Preview frame job cancelled for ${videoPath}.`);
+            return null;
+        }
+
         log.warn(`Preview frame worker failed for ${videoPath}. Falling back to inline generation.`, error);
         return generatePreviewFramesInline(videoPath, frameCount, frameDir);
     }
