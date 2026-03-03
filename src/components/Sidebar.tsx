@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Folder, Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -58,15 +58,6 @@ export const Sidebar = React.memo(() => {
     const [pendingAddFolderPath, setPendingAddFolderPath] = useState<string | null>(null);
     const [folderTreeSearch, setFolderTreeSearch] = useState('');
     const [folderTreeRecursiveCountsByPath, setFolderTreeRecursiveCountsByPath] = useState<Record<string, number>>({});
-    const progressiveRefreshStateRef = useRef<{
-        timer: ReturnType<typeof setTimeout> | null;
-        inFlight: boolean;
-        rerun: boolean;
-    }>({
-        timer: null,
-        inFlight: false,
-        rerun: false,
-    });
 
     const loadFolders = useCallback(async () => {
         try {
@@ -283,46 +274,17 @@ export const Sidebar = React.memo(() => {
         return payload.rootFolderId === currentFolderId;
     }, [currentFolderId, duplicateViewOpen, mainView, registeredFolderMap]);
 
-    const scheduleProgressiveRefresh = useCallback(() => {
-        const refreshState = progressiveRefreshStateRef.current;
+    const refreshCurrentSelection = useCallback(async () => {
+        const activeFolderId = currentFolderId ?? ALL_FILES_ID;
+        await loadFilesForSelection(activeFolderId);
 
-        if (refreshState.timer) {
-            clearTimeout(refreshState.timer);
+        if (activeFolderId === ALL_FILES_ID) {
+            const metadata = await window.electronAPI.getFolderMetadata();
+            setFolderMetadata(metadata);
         }
-
-        refreshState.timer = setTimeout(async () => {
-            refreshState.timer = null;
-
-            if (refreshState.inFlight) {
-                refreshState.rerun = true;
-                return;
-            }
-
-            refreshState.inFlight = true;
-
-            try {
-                const activeFolderId = currentFolderId ?? ALL_FILES_ID;
-                await loadFilesForSelection(activeFolderId, { reloadTagCache: false });
-
-                if (activeFolderId === ALL_FILES_ID) {
-                    const metadata = await window.electronAPI.getFolderMetadata();
-                    setFolderMetadata(metadata);
-                }
-            } catch (error) {
-                console.error('Failed to progressively refresh scanned files:', error);
-            } finally {
-                refreshState.inFlight = false;
-                if (refreshState.rerun) {
-                    refreshState.rerun = false;
-                    scheduleProgressiveRefresh();
-                }
-            }
-        }, 350);
     }, [currentFolderId, loadFilesForSelection, setFolderMetadata]);
 
     useEffect(() => {
-        const refreshState = progressiveRefreshStateRef.current;
-
         loadFolders();
 
         // 起動直後/プロファイル切替直後:
@@ -349,22 +311,21 @@ export const Sidebar = React.memo(() => {
         });
 
         const cleanupScanBatchCommitted = window.electronAPI.onScanBatchCommitted((payload) => {
-            if (payload.stage === 'complete' || payload.stage === 'cancelled') {
-                void loadFolders();
+            if (payload.stage !== 'complete' && payload.stage !== 'cancelled') {
+                return;
             }
 
+            void loadFolders();
             if (!isCurrentViewAffectedByScanBatch(payload)) {
                 return;
             }
 
-            scheduleProgressiveRefresh();
+            void refreshCurrentSelection().catch((error) => {
+                console.error('Failed to refresh files after scan completion:', error);
+            });
         });
 
         return () => {
-            if (refreshState.timer) {
-                clearTimeout(refreshState.timer);
-                refreshState.timer = null;
-            }
             cleanupDelete();
             cleanupRescan();
             cleanupScanBatchCommitted();
@@ -377,7 +338,7 @@ export const Sidebar = React.memo(() => {
         setFiles,
         handleSelectFolder,
         isCurrentViewAffectedByScanBatch,
-        scheduleProgressiveRefresh,
+        refreshCurrentSelection,
     ]);
 
     const hiddenScanIndicator = useMemo(() => {
