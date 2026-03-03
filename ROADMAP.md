@@ -1,10 +1,10 @@
 ﻿# ROADMAP
 
 ## 進行中 (In Progress)
-- ffmpeg Utility Process 再検証 Step 2（動画サムネイル生成だけを最小構成で再導入し退行有無を切り分ける）
 
 ## 予定 (Planned)
 ### 直近
+- ffmpeg Utility Process 再検証 Step 3（動画の duration / metadata 取得だけを最小構成で再導入し退行有無を切り分ける）
 
 ### 将来候補
 - スキャン性能改善（バックグラウンド/プログレッシブスキャン）（コスト: 高、リスク: 高）

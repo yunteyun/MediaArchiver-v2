@@ -16,14 +16,22 @@
   - Main: `thumbnail.generateVideoThumbnail`, `thumbnail.generatePreviewFrames`, `scanner.scanDirectory`
 
 ## ベースライン記録
-- 状態: 未計測
-- 備考: Step 1 では `thumbnail.generateVideoThumbnail` が inline で `102.8ms - 114.8ms` 程度だった。Step 2 では `mode=worker` に切り替わるかを確認する。
+- 状態: 確認済み
+- 備考: Step 1 では `thumbnail.generateVideoThumbnail` が inline で `102.8ms - 114.8ms` 程度だった。Step 2 では Worker 経由で安定動作を確認した。
 
-## 記録テンプレート
-- 日時:
-- 対象フォルダ:
-- 動画ファイル:
-- `previewFrameCount`:
+## 確認記録
+- 日時: 2026-03-03
+- 対象フォルダ: `C:\Users\ut\Downloads\aimg`
+- 動画ファイル: `1771772974.8216f671b8be.mp4`
+- `previewFrameCount`: `5`
 - Renderer ログ:
+  - 体感上の問題なし
 - Main ログ:
+  - `thumbnail.generateVideoThumbnail`: `247.8ms`, `resolution=320`, `ok=true`, `mode=worker`
+  - `thumbnail.generatePreviewFrames`: `499.3ms`, `frameCount=5`, `generated=5`, `ok=true`, `mode=worker`
 - 体感メモ:
+  - 手動サムネイル再生成で Worker 経由の動画サムネイル生成とプレビューフレーム生成の両方が成功
+  - 動作に問題は感じないとの報告あり
+
+## 次段候補
+- `duration / metadata` の Worker 化比較へ進む
