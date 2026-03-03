@@ -9,6 +9,7 @@ import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { AddFolderScanSettingsDialog, type AddFolderScanSettingsSubmit } from './AddFolderScanSettingsDialog';
 import type { MediaFolder } from '../types/file';
+import { startPerfMeasure } from '../utils/perfDebug';
 
 // 特殊なフォルダID
 const ALL_FILES_ID = '__all__';
@@ -43,6 +44,7 @@ export const Sidebar = React.memo(() => {
     const [folderTreeRecursiveCountsByPath, setFolderTreeRecursiveCountsByPath] = useState<Record<string, number>>({});
 
     const loadFolders = useCallback(async () => {
+        const finishPerf = startPerfMeasure('Sidebar.loadFolders');
         try {
             const [registered, treeStats] = await Promise.all([
                 window.electronAPI.getFolders(),
@@ -70,7 +72,15 @@ export const Sidebar = React.memo(() => {
                 });
 
             setFolders([...(registered as MediaFolder[]), ...virtualFolders]);
+            finishPerf({
+                registeredCount: registered.length,
+                virtualFolderCount: virtualFolders.length,
+            });
         } catch (e) {
+            finishPerf({
+                status: 'error',
+                error: e instanceof Error ? e.message : String(e),
+            });
             console.error('Failed to load folders:', e);
         }
     }, []);
@@ -119,6 +129,9 @@ export const Sidebar = React.memo(() => {
     }, [pendingAddFolderPath, loadFolders]);
 
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
+        const finishPerf = startPerfMeasure('Sidebar.handleSelectFolder', {
+            folderId: folderId ?? ALL_FILES_ID,
+        });
         setCurrentFolderId(folderId);
         useUIStore.getState().closeDuplicateView(); // 重複ビューを閉じる
         useUIStore.getState().setMainView('grid');  // 統計ビューを閉じる
@@ -153,7 +166,14 @@ export const Sidebar = React.memo(() => {
             }
 
             setFiles(files);
+            finishPerf({
+                fileCount: files.length,
+            });
         } catch (e) {
+            finishPerf({
+                status: 'error',
+                error: e instanceof Error ? e.message : String(e),
+            });
             console.error('Error loading files:', e);
         }
     }, [setCurrentFolderId, setFiles]);

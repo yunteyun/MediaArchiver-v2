@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
+### Changed
+- 描画・一覧再読込・右クリック応答の開発向け計測ログを追加し、もたつきの切り分けをしやすくした（表示への変更なし）。
 
 ---
 

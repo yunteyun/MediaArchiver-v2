@@ -13,6 +13,7 @@ import { Header } from './SortMenu';
 import { GroupHeader } from './GroupHeader';
 import type { GridItem } from '../types/grid';
 import { groupFiles } from '../utils/groupFiles';
+import { isPerfDebugEnabled, logPerfEvent, startPerfMeasure } from '../utils/perfDebug';
 
 const CARD_GAP = 8;
 const GROUP_HEADER_HEIGHT = 40;
@@ -31,7 +32,10 @@ type GroupVirtualRow =
 
 export const FileGrid = React.memo(() => {
     const isDev = import.meta.env.DEV;
-    const groupPerfDebugEnabled = isDev && (globalThis as { __MA_DEBUG_GROUP_PERF?: boolean }).__MA_DEBUG_GROUP_PERF === true;
+    const perfDebugEnabled = isPerfDebugEnabled();
+    const groupPerfDebugEnabled =
+        perfDebugEnabled ||
+        (isDev && (globalThis as { __MA_DEBUG_GROUP_PERF?: boolean }).__MA_DEBUG_GROUP_PERF === true);
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const focusedId = useFileStore((s) => s.focusedId);
@@ -70,6 +74,7 @@ export const FileGrid = React.memo(() => {
     // Load folders and folder metadata (Phase 12-4)
     useEffect(() => {
         const loadFoldersAndMetadata = async () => {
+            const finishPerf = startPerfMeasure('FileGrid.loadFoldersAndMetadata');
             try {
                 const [folderList, metadata] = await Promise.all([
                     window.electronAPI.getFolders(),
@@ -77,7 +82,15 @@ export const FileGrid = React.memo(() => {
                 ]);
                 setFolders(folderList);
                 setFolderMetadata(metadata);
+                finishPerf({
+                    folderCount: folderList.length,
+                    metadataCount: Object.keys(metadata.fileCounts || {}).length,
+                });
             } catch (e) {
+                finishPerf({
+                    status: 'error',
+                    error: e instanceof Error ? e.message : String(e),
+                });
                 console.error('Failed to load folders/metadata:', e);
             }
         };
@@ -90,6 +103,12 @@ export const FileGrid = React.memo(() => {
 
     // Sort and filter files in component using useMemo
     const files = useMemo(() => {
+        const finishPerf = startPerfMeasure('FileGrid.sortAndFilter', {
+            rawFileCount: rawFiles.length,
+            selectedTagCount: selectedTagIds.length,
+            searchActive: searchQuery.trim().length > 0,
+        });
+
         // First sort
         const sorted = [...rawFiles].sort((a, b) => {
             let comparison = 0;
@@ -167,6 +186,12 @@ export const FileGrid = React.memo(() => {
             );
         }
 
+        finishPerf({
+            resultCount: filtered.length,
+            activeRatingAxisCount: activeRatingAxes.length,
+            sortBy,
+            sortOrder,
+        });
         return filtered;
     }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, ratingFilter, allFileRatings]);
 
@@ -254,6 +279,33 @@ export const FileGrid = React.memo(() => {
         resizeObserver.observe(observedElement);
         return () => resizeObserver.disconnect();
     }, [observedElement]);
+
+    useEffect(() => {
+        if (!perfDebugEnabled) {
+            return;
+        }
+
+        logPerfEvent('FileGrid.layout', {
+            containerWidth: Math.round(containerWidth),
+            columns,
+            cardHeight,
+            effectiveCardWidth,
+            effectiveThumbnailHeight,
+            rows,
+            gridItemCount: gridItems.length,
+            groupBy,
+        });
+    }, [
+        perfDebugEnabled,
+        containerWidth,
+        columns,
+        cardHeight,
+        effectiveCardWidth,
+        effectiveThumbnailHeight,
+        rows,
+        gridItems.length,
+        groupBy,
+    ]);
 
     // サムネイル再作成イベントをリッスン
     useEffect(() => {
