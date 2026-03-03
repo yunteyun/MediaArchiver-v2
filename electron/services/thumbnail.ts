@@ -9,8 +9,14 @@ import { logger } from './logger';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 import { logPerf, startPerfTimer } from './perfDebug';
-import { runPreviewFrameJob, runVideoThumbnailJob } from './previewFrameWorkerService';
-import type { PreviewFrameJobRequest, VideoThumbnailJobRequest } from '../utility/previewFrameWorkerTypes';
+import { runMediaMetadataJob, runPreviewFrameJob, runVideoDurationJob, runVideoThumbnailJob } from './previewFrameWorkerService';
+import type {
+    ExtractedMediaMetadata,
+    MediaMetadataJobRequest,
+    PreviewFrameJobRequest,
+    VideoDurationJobRequest,
+    VideoThumbnailJobRequest
+} from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('Thumbnail');
 
@@ -30,18 +36,6 @@ if (ffprobePath) {
     ffmpeg.setFfprobePath(ffprobePath.replace('app.asar', 'app.asar.unpacked'));
 }
 
-interface ExtractedMediaMetadata {
-    width?: number;
-    height?: number;
-    format?: string;
-    container?: string;
-    codec?: string;
-    videoCodec?: string;
-    audioCodec?: string;
-    fps?: number;
-    bitrate?: number;
-}
-
 function parseFps(value?: string): number | undefined {
     if (!value || value === '0/0') return undefined;
     const [num, den] = value.split('/').map(Number);
@@ -52,12 +46,42 @@ function parseFps(value?: string): number | undefined {
 
 export async function getMediaMetadata(filePath: string): Promise<ExtractedMediaMetadata | null> {
     const perfStartedAt = startPerfTimer();
+    const request: MediaMetadataJobRequest = {
+        type: 'worker:read-media-metadata-job',
+        requestId: uuidv4(),
+        filePath,
+    };
+
+    try {
+        const metadata = await runMediaMetadataJob(request);
+        logPerf('thumbnail.getMediaMetadata', perfStartedAt, {
+            file: path.basename(filePath),
+            ok: !!metadata,
+            mode: 'worker'
+        });
+        return metadata;
+    } catch (error) {
+        const fallbackError = error instanceof Error ? error.message : String(error);
+        log.warn(`Media metadata worker failed for ${path.basename(filePath)}. Falling back to inline read. ${fallbackError}`);
+        logPerf('thumbnail.getMediaMetadata', perfStartedAt, {
+            file: path.basename(filePath),
+            ok: false,
+            mode: 'worker-fallback',
+            error: fallbackError
+        });
+        return getMediaMetadataInline(filePath);
+    }
+}
+
+async function getMediaMetadataInline(filePath: string): Promise<ExtractedMediaMetadata | null> {
+    const perfStartedAt = startPerfTimer();
     return new Promise((resolve) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
             if (err || !metadata) {
                 logPerf('thumbnail.getMediaMetadata', perfStartedAt, {
                     file: path.basename(filePath),
-                    ok: false
+                    ok: false,
+                    mode: 'inline'
                 });
                 resolve(null);
                 return;
@@ -105,7 +129,8 @@ export async function getMediaMetadata(filePath: string): Promise<ExtractedMedia
                 file: path.basename(filePath),
                 ok: !!result,
                 hasVideo: !!videoStream,
-                hasAudio: !!audioStream
+                hasAudio: !!audioStream,
+                mode: 'inline'
             });
             resolve(result);
         });
@@ -451,12 +476,45 @@ async function generateImageThumbnail(imagePath: string, resolution: number = 32
 
 export async function getVideoDuration(videoPath: string): Promise<string> {
     const perfStartedAt = startPerfTimer();
+    const request: VideoDurationJobRequest = {
+        type: 'worker:read-video-duration-job',
+        requestId: uuidv4(),
+        filePath: videoPath,
+    };
+
+    try {
+        const durationSec = await runVideoDurationJob(request);
+        logPerf('thumbnail.getVideoDuration', perfStartedAt, {
+            file: path.basename(videoPath),
+            ok: durationSec > 0,
+            durationSec: Number(durationSec.toFixed(1)),
+            mode: 'worker'
+        });
+        const minutes = Math.floor(durationSec / 60);
+        const seconds = Math.floor(durationSec % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    } catch (error) {
+        const fallbackError = error instanceof Error ? error.message : String(error);
+        log.warn(`Video duration worker failed for ${path.basename(videoPath)}. Falling back to inline read. ${fallbackError}`);
+        logPerf('thumbnail.getVideoDuration', perfStartedAt, {
+            file: path.basename(videoPath),
+            ok: false,
+            mode: 'worker-fallback',
+            error: fallbackError
+        });
+        return getVideoDurationInline(videoPath);
+    }
+}
+
+async function getVideoDurationInline(videoPath: string): Promise<string> {
+    const perfStartedAt = startPerfTimer();
     return new Promise((resolve) => {
         ffmpeg.ffprobe(videoPath, (err, metadata) => {
             if (err) {
                 logPerf('thumbnail.getVideoDuration', perfStartedAt, {
                     file: path.basename(videoPath),
-                    ok: false
+                    ok: false,
+                    mode: 'inline'
                 });
                 resolve("");
                 return;
@@ -467,7 +525,8 @@ export async function getVideoDuration(videoPath: string): Promise<string> {
             logPerf('thumbnail.getVideoDuration', perfStartedAt, {
                 file: path.basename(videoPath),
                 ok: true,
-                durationSec: Number(durationSec.toFixed(1))
+                durationSec: Number(durationSec.toFixed(1)),
+                mode: 'inline'
             });
             resolve(`${minutes}:${seconds.toString().padStart(2, '0')}`);
         });

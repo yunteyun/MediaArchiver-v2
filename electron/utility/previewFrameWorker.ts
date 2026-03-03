@@ -3,9 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import type {
+    ExtractedMediaMetadata,
+    MediaMetadataJobRequest,
+    MediaMetadataJobSuccess,
     PreviewFrameJobRequest,
     PreviewFrameJobSuccess,
     PreviewFrameWorkerReady,
+    VideoDurationJobRequest,
+    VideoDurationJobSuccess,
     VideoThumbnailJobRequest,
     VideoThumbnailJobSuccess,
     WorkerJobFailure,
@@ -41,6 +46,24 @@ function postVideoThumbnailSuccess(requestId: string, thumbnailPath: string | nu
         type: 'worker:video-thumbnail-job-success',
         requestId,
         thumbnailPath,
+    };
+    process.parentPort?.postMessage(successMessage);
+}
+
+function postVideoDurationSuccess(requestId: string, durationSeconds: number): void {
+    const successMessage: VideoDurationJobSuccess = {
+        type: 'worker:video-duration-job-success',
+        requestId,
+        durationSeconds,
+    };
+    process.parentPort?.postMessage(successMessage);
+}
+
+function postMediaMetadataSuccess(requestId: string, metadata: ExtractedMediaMetadata | null): void {
+    const successMessage: MediaMetadataJobSuccess = {
+        type: 'worker:media-metadata-job-success',
+        requestId,
+        metadata,
     };
     process.parentPort?.postMessage(successMessage);
 }
@@ -97,6 +120,14 @@ async function getVideoDurationSeconds(videoPath: string): Promise<number> {
             resolve(duration);
         });
     });
+}
+
+function parseFps(value?: string): number | undefined {
+    if (!value || value === '0/0') return undefined;
+    const [num, den] = value.split('/').map(Number);
+    if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return undefined;
+    const fps = num / den;
+    return Number.isFinite(fps) ? Number(fps.toFixed(3)) : undefined;
 }
 
 async function runPreviewJob(request: PreviewFrameJobRequest): Promise<string[] | null> {
@@ -169,12 +200,66 @@ async function runVideoThumbnailJob(request: VideoThumbnailJobRequest): Promise<
     });
 }
 
+async function runVideoDurationJob(request: VideoDurationJobRequest): Promise<number> {
+    return getVideoDurationSeconds(request.filePath);
+}
+
+async function runMediaMetadataJob(request: MediaMetadataJobRequest): Promise<ExtractedMediaMetadata | null> {
+    return new Promise((resolve) => {
+        ffmpeg.ffprobe(request.filePath, (err, metadata) => {
+            if (err || !metadata) {
+                resolve(null);
+                return;
+            }
+
+            const videoStream = metadata.streams?.find((stream) => stream.codec_type === 'video');
+            const audioStream = metadata.streams?.find((stream) => stream.codec_type === 'audio');
+            const format = metadata.format;
+
+            const extracted: ExtractedMediaMetadata = {};
+
+            if (typeof videoStream?.width === 'number') extracted.width = videoStream.width;
+            if (typeof videoStream?.height === 'number') extracted.height = videoStream.height;
+
+            if (typeof format?.format_name === 'string' && format.format_name) {
+                extracted.format = format.format_name;
+                extracted.container = format.format_name;
+            }
+
+            if (typeof videoStream?.codec_name === 'string' && videoStream.codec_name) {
+                extracted.videoCodec = videoStream.codec_name;
+                extracted.codec = videoStream.codec_name;
+            }
+
+            if (typeof audioStream?.codec_name === 'string' && audioStream.codec_name) {
+                extracted.audioCodec = audioStream.codec_name;
+            }
+
+            const fps = parseFps(
+                typeof videoStream?.avg_frame_rate === 'string' && videoStream.avg_frame_rate !== '0/0'
+                    ? videoStream.avg_frame_rate
+                    : typeof videoStream?.r_frame_rate === 'string'
+                        ? videoStream.r_frame_rate
+                        : undefined
+            );
+            if (fps !== undefined) extracted.fps = fps;
+
+            const bitrate = Number(format?.bit_rate);
+            if (Number.isFinite(bitrate) && bitrate > 0) {
+                extracted.bitrate = bitrate;
+            }
+
+            resolve(Object.keys(extracted).length > 0 ? extracted : null);
+        });
+    });
+}
+
 if (!process.parentPort) {
     throw new Error('Preview frame worker requires process.parentPort.');
 }
 
 process.parentPort.on('message', async (event) => {
-    const message = event.data as PreviewFrameJobRequest | VideoThumbnailJobRequest;
+    const message = event.data as PreviewFrameJobRequest | VideoThumbnailJobRequest | VideoDurationJobRequest | MediaMetadataJobRequest;
     if (!message) {
         return;
     }
@@ -189,6 +274,16 @@ process.parentPort.on('message', async (event) => {
         case 'worker:run-video-thumbnail-job': {
             const thumbnailPath = await runVideoThumbnailJob(message);
             postVideoThumbnailSuccess(message.requestId, thumbnailPath);
+            break;
+        }
+        case 'worker:read-video-duration-job': {
+            const durationSeconds = await runVideoDurationJob(message);
+            postVideoDurationSuccess(message.requestId, durationSeconds);
+            break;
+        }
+        case 'worker:read-media-metadata-job': {
+            const metadata = await runMediaMetadataJob(message);
+            postMediaMetadataSuccess(message.requestId, metadata);
             break;
         }
         default:

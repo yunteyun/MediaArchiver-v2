@@ -3,12 +3,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from './logger';
 import type {
+    MediaMetadataJobRequest,
+    MediaMetadataJobSuccess,
     PreviewFrameJobRequest,
     PreviewFrameJobSuccess,
     PreviewFrameWorkerMessage,
+    VideoDurationJobRequest,
+    VideoDurationJobSuccess,
     VideoThumbnailJobRequest,
     VideoThumbnailJobSuccess,
     WorkerJobFailure,
+    ExtractedMediaMetadata,
 } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('PreviewFrameWorkerService');
@@ -16,8 +21,8 @@ const workerScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)),
 const PREVIEW_FRAME_JOB_TIMEOUT_MS = 90_000;
 
 interface QueuedPreviewFrameJob {
-    request: PreviewFrameJobRequest | VideoThumbnailJobRequest;
-    resolve: (result: string[] | string | null) => void;
+    request: PreviewFrameJobRequest | VideoThumbnailJobRequest | VideoDurationJobRequest | MediaMetadataJobRequest;
+    resolve: (result: string[] | string | number | ExtractedMediaMetadata | null) => void;
     reject: (error: Error) => void;
 }
 
@@ -115,7 +120,7 @@ function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
     }
 
     if (!activeJob || message.requestId !== activeJob.request.requestId) {
-        log.warn(`Received unexpected worker message for request: ${(message as PreviewFrameJobSuccess | VideoThumbnailJobSuccess | WorkerJobFailure).requestId ?? 'unknown'}`);
+        log.warn(`Received unexpected worker message for request: ${(message as PreviewFrameJobSuccess | VideoThumbnailJobSuccess | VideoDurationJobSuccess | MediaMetadataJobSuccess | WorkerJobFailure).requestId ?? 'unknown'}`);
         return;
     }
 
@@ -128,6 +133,10 @@ function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
         completedJob.resolve(message.framePaths);
     } else if (message.type === 'worker:video-thumbnail-job-success') {
         completedJob.resolve(message.thumbnailPath);
+    } else if (message.type === 'worker:video-duration-job-success') {
+        completedJob.resolve(message.durationSeconds);
+    } else if (message.type === 'worker:media-metadata-job-success') {
+        completedJob.resolve(message.metadata);
     } else if (message.type === 'worker:job-failure') {
         completedJob.reject(new Error(message.error));
     }
@@ -237,6 +246,46 @@ export async function runVideoThumbnailJob(request: VideoThumbnailJobRequest): P
         queuedJobs.push({
             request,
             resolve: (result) => resolve((result as string | null) ?? null),
+            reject,
+        });
+
+        void ensureWorkerReady()
+            .then(() => {
+                dispatchNextJob();
+            })
+            .catch((error) => {
+                const startupError = toError(error);
+                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
+                rejectAllJobs(startupError);
+            });
+    });
+}
+
+export async function runVideoDurationJob(request: VideoDurationJobRequest): Promise<number> {
+    return new Promise((resolve, reject) => {
+        queuedJobs.push({
+            request,
+            resolve: (result) => resolve((result as number | null) ?? 0),
+            reject,
+        });
+
+        void ensureWorkerReady()
+            .then(() => {
+                dispatchNextJob();
+            })
+            .catch((error) => {
+                const startupError = toError(error);
+                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
+                rejectAllJobs(startupError);
+            });
+    });
+}
+
+export async function runMediaMetadataJob(request: MediaMetadataJobRequest): Promise<ExtractedMediaMetadata | null> {
+    return new Promise((resolve, reject) => {
+        queuedJobs.push({
+            request,
+            resolve: (result) => resolve((result as ExtractedMediaMetadata | null) ?? null),
             reject,
         });
 

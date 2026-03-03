@@ -1,3 +1,15 @@
+export interface ExtractedMediaMetadata {
+    width?: number;
+    height?: number;
+    format?: string;
+    container?: string;
+    codec?: string;
+    videoCodec?: string;
+    audioCodec?: string;
+    fps?: number;
+    bitrate?: number;
+}
+
 export interface PreviewFrameJobRequest {
     type: 'worker:run-preview-job';
     requestId: string;
@@ -17,6 +29,18 @@ export interface VideoThumbnailJobRequest {
     quality: number;
 }
 
+export interface VideoDurationJobRequest {
+    type: 'worker:read-video-duration-job';
+    requestId: string;
+    filePath: string;
+}
+
+export interface MediaMetadataJobRequest {
+    type: 'worker:read-media-metadata-job';
+    requestId: string;
+    filePath: string;
+}
+
 export interface PreviewFrameJobSuccess {
     type: 'worker:preview-job-success';
     requestId: string;
@@ -27,6 +51,18 @@ export interface VideoThumbnailJobSuccess {
     type: 'worker:video-thumbnail-job-success';
     requestId: string;
     thumbnailPath: string | null;
+}
+
+export interface VideoDurationJobSuccess {
+    type: 'worker:video-duration-job-success';
+    requestId: string;
+    durationSeconds: number;
+}
+
+export interface MediaMetadataJobSuccess {
+    type: 'worker:media-metadata-job-success';
+    requestId: string;
+    metadata: ExtractedMediaMetadata | null;
 }
 
 export interface WorkerJobFailure {
@@ -42,7 +78,11 @@ export interface PreviewFrameWorkerReady {
 export type PreviewFrameWorkerMessage =
     | PreviewFrameJobRequest
     | VideoThumbnailJobRequest
+    | VideoDurationJobRequest
+    | MediaMetadataJobRequest
     | PreviewFrameJobSuccess
     | VideoThumbnailJobSuccess
+    | VideoDurationJobSuccess
+    | MediaMetadataJobSuccess
     | WorkerJobFailure
     | PreviewFrameWorkerReady;
