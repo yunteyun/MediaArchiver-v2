@@ -19,7 +19,6 @@ import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import { getDisplayModeDefinition } from './fileCard/displayModes';
 import type { DisplayMode, FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
 import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
-import { startPerfMeasure } from '../utils/perfDebug';
 
 // 明るい背景色のタグで暗い文字色を使うためのヘルパー
 function getTagTextColor(bgColor: string): string {
@@ -1035,7 +1034,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         await syncExternalOpenCount();
     };
 
-    const handleContextMenu = async (e: React.MouseEvent) => {
+    const handleContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
 
         // Bug 2修正: 複数選択対応
@@ -1044,21 +1043,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         // 右クリック対象が選択中に含まれているかを判定
         const effectiveIds = selectedIdsArray.includes(file.id) ? selectedIdsArray : [file.id];
 
-        const finishPerf = startPerfMeasure('FileCard.contextMenu', {
-            fileId: file.id,
-            selectedCount: effectiveIds.length,
-        });
-
-        try {
-            await window.electronAPI.showFileContextMenu(file.id, file.path, effectiveIds, searchDestinations);
-            finishPerf({ status: 'resolved' });
-        } catch (error) {
-            finishPerf({
-                status: 'error',
-                error: error instanceof Error ? error.message : String(error),
-            });
-            console.error('Failed to show file context menu:', error);
-        }
+        window.electronAPI.showFileContextMenu(file.id, file.path, effectiveIds, searchDestinations);
     };
 
     return (
