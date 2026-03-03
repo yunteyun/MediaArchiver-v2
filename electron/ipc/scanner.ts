@@ -1,11 +1,7 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
 import { addFolder, deleteFolder, getAutoScanFolders, getFolders } from '../services/database';
-import { scanDirectory, cancelScan, type ScanBatchCommittedPayload } from '../services/scanner';
+import { scanDirectory, cancelScan } from '../services/scanner';
 import { syncFolderWatchers } from '../services/folderWatchService';
-
-function sendScanBatchCommitted(event: IpcMainInvokeEvent, payload: ScanBatchCommittedPayload) {
-    event.sender.send('scanner:batchCommitted', payload);
-}
 
 export function registerScannerHandlers() {
     // === Folder Operations ===
@@ -49,16 +45,9 @@ export function registerScannerHandlers() {
            We should probably just start it and return, triggering events.
         */
 
-        scanDirectory(
-            folderPath,
-            rootFolderId,
-            (progress) => {
-                event.sender.send('scanner:progress', progress);
-            },
-            (payload) => {
-                sendScanBatchCommitted(event, payload);
-            }
-        ).catch(err => {
+        scanDirectory(folderPath, rootFolderId, (progress) => {
+            event.sender.send('scanner:progress', progress);
+        }).catch(err => {
             console.error("Scan error:", err);
             event.sender.send('scanner:progress', { phase: 'error', message: String(err) });
         });
@@ -107,19 +96,12 @@ export function registerScannerHandlers() {
 
         for (const folder of folders) {
             // 起動時自動スキャンはフォルダごとに順次実行（グローバル状態競合を避ける）
-            await scanDirectory(
-                folder.path,
-                folder.id,
-                (progress) => {
-                    event.sender.send('scanner:progress', {
-                        ...progress,
-                        folderName: folder.name || folder.path.split(/[\\/]/).pop()
-                    });
-                },
-                (payload) => {
-                    sendScanBatchCommitted(event, payload);
-                }
-            ).catch(err => {
+            await scanDirectory(folder.path, folder.id, (progress) => {
+                event.sender.send('scanner:progress', {
+                    ...progress,
+                    folderName: folder.name || folder.path.split(/[\\/]/).pop()
+                });
+            }).catch(err => {
                 console.error(`Auto scan error for ${folder.path}:`, err);
             });
         }

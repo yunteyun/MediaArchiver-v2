@@ -6,7 +6,6 @@ import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { generateThumbnail, getVideoDuration, getMediaMetadata, generatePreviewFrames, checkIsAnimated } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
-import { cancelFfmpegJobsBySource } from './previewFrameWorkerService';
 import * as archiveHandler from './archiveHandler';
 
 const log = logger.scope('Scanner');
@@ -130,22 +129,10 @@ export type ScanProgressCallback = (progress: {
     };
 }) => void;
 
-export interface ScanBatchCommittedPayload {
-    rootFolderId: string;
-    scanPath: string;
-    committedCount: number;
-    totalCommitted: number;
-    removedCount: number;
-    stage: 'batch' | 'complete' | 'cancelled';
-}
-
-export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) => void;
-
 // スキャンキャンセル用フラグ
 let scanCancelled = false;
 export function cancelScan() {
     scanCancelled = true;
-    cancelFfmpegJobsBySource('scan');
 }
 export function isScanCancelled() {
     return scanCancelled;
@@ -169,17 +156,6 @@ export function getScanThrottleMs() {
     return scanThrottleMsSetting;
 }
 
-async function waitForScanThrottle(ms: number): Promise<void> {
-    if (ms <= 0) return;
-
-    let remaining = ms;
-    while (remaining > 0 && !scanCancelled) {
-        const delay = Math.min(remaining, 50);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        remaining -= delay;
-    }
-}
-
 // サムネイル生成解像度（幅px、デフォルト: 320）
 let thumbnailResolutionSetting = 320;
 export function setThumbnailResolution(resolution: number) {
@@ -201,8 +177,8 @@ interface PendingWrite {
 }
 
 // バッチコミット関数
-function commitBatch(pendingWrites: PendingWrite[]): number {
-    if (pendingWrites.length === 0) return 0;
+function commitBatch(pendingWrites: PendingWrite[]) {
+    if (pendingWrites.length === 0) return;
 
     const database = dbManager.getDb();
     const transaction = database.transaction(() => {
@@ -212,7 +188,6 @@ function commitBatch(pendingWrites: PendingWrite[]): number {
     });
 
     transaction();
-    return pendingWrites.length;
 }
 
 // ファイル数をカウント (再帰)
@@ -277,9 +252,6 @@ async function scanDirectoryInternal(
         stats: { newCount: number; updateCount: number; skipCount: number };
         pendingWrites: PendingWrite[];
         scanFilters: ScanFileTypeCategoryFilters;
-        scanPath: string;
-        committedCount: number;
-        onBatchCommitted?: ScanBatchCommittedCallback;
     }
 ) {
     // パス長チェック
@@ -413,11 +385,7 @@ async function scanDirectoryInternal(
                                 });
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
-                            const generated = await thumbnailLimit(() => generateThumbnail(
-                                fullPath,
-                                thumbnailResolutionSetting,
-                                { jobSource: 'scan' }
-                            ));
+                            const generated = await thumbnailLimit(() => generateThumbnail(fullPath, thumbnailResolutionSetting));
                             if (scanCancelled) return;
                             if (generated) thumbnailPath = generated;
                         } catch (e) {
@@ -429,8 +397,7 @@ async function scanDirectoryInternal(
                     let duration = existing?.duration;
                     if ((type === 'video' || type === 'audio') && !duration) {
                         try {
-                            duration = await getVideoDuration(fullPath, { jobSource: 'scan' });
-                            if (scanCancelled) return;
+                            duration = await getVideoDuration(fullPath);
                         } catch (e) {
                             log.error('Duration extraction failed:', e);
                         }
@@ -472,15 +439,11 @@ async function scanDirectoryInternal(
                                 });
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
-                            previewFrames = await thumbnailLimit(() => generatePreviewFrames(
-                                fullPath,
-                                previewFrameCountSetting,
-                                { jobSource: 'scan' }
-                            )) || undefined;
+                            previewFrames = await thumbnailLimit(() => generatePreviewFrames(fullPath, previewFrameCountSetting)) || undefined;
 
                             // スキャン速度抑制（コイル鳴き対策）
                             if (scanThrottleMsSetting > 0) {
-                                await waitForScanThrottle(scanThrottleMsSetting);
+                                await new Promise(resolve => setTimeout(resolve, scanThrottleMsSetting));
                             }
 
                             if (scanCancelled) return;
@@ -504,7 +467,6 @@ async function scanDirectoryInternal(
                             }
                             const meta = await archiveHandler.getArchiveMetadata(fullPath);
                             metadata = JSON.stringify(meta);
-                            if (scanCancelled) return;
                         } catch (e) {
                             log.error('Archive metadata extraction failed:', e);
                         }
@@ -515,7 +477,6 @@ async function scanDirectoryInternal(
                         try {
                             const sharp = (await import('sharp')).default;
                             const imgMeta = await sharp(fullPath).metadata();
-                            if (scanCancelled) return;
                             if (imgMeta.width && imgMeta.height) {
                                 metadata = JSON.stringify({
                                     width: imgMeta.width,
@@ -530,8 +491,7 @@ async function scanDirectoryInternal(
 
                     if ((type === 'video' || type === 'audio') && !metadata) {
                         try {
-                            const mediaMeta = await getMediaMetadata(fullPath, { jobSource: 'scan' });
-                            if (scanCancelled) return;
+                            const mediaMeta = await getMediaMetadata(fullPath);
                             if (mediaMeta) {
                                 metadata = JSON.stringify(mediaMeta);
                             }
@@ -547,7 +507,6 @@ async function scanDirectoryInternal(
                         if (!existing || existing.is_animated === undefined || existing.is_animated === 0) {
                             try {
                                 isAnimated = await checkIsAnimated(fullPath);
-                                if (scanCancelled) return;
                             } catch (e) {
                                 log.error('Animation check failed:', e);
                             }
@@ -583,17 +542,8 @@ async function scanDirectoryInternal(
 
                     // バッチサイズに達したらコミット
                     if (state.pendingWrites.length >= TRANSACTION_BATCH_SIZE) {
-                        const committedCount = commitBatch(state.pendingWrites);
+                        commitBatch(state.pendingWrites);
                         state.pendingWrites = [];
-                        state.committedCount += committedCount;
-                        state.onBatchCommitted?.({
-                            rootFolderId,
-                            scanPath: state.scanPath,
-                            committedCount,
-                            totalCommitted: state.committedCount,
-                            removedCount: 0,
-                            stage: 'batch'
-                        });
                     }
 
                     // Update stats
@@ -629,12 +579,7 @@ async function scanDirectoryInternal(
     }
 }
 
-export async function scanDirectory(
-    dirPath: string,
-    rootFolderId: string,
-    onProgress?: ScanProgressCallback,
-    onBatchCommitted?: ScanBatchCommittedCallback
-) {
+export async function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback) {
     // キャンセルフラグをリセット
     scanCancelled = false;
     db.updateFolderLastScanStatus(rootFolderId, {
@@ -651,32 +596,6 @@ export async function scanDirectory(
         const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(rootFolderId);
         const total = await countFiles(dirPath, effectiveScanFilters);
 
-        if (scanCancelled) {
-            onBatchCommitted?.({
-                rootFolderId,
-                scanPath: dirPath,
-                committedCount: 0,
-                totalCommitted: 0,
-                removedCount: 0,
-                stage: 'cancelled'
-            });
-            db.updateFolderLastScanStatus(rootFolderId, {
-                at: Date.now(),
-                status: 'cancelled',
-                message: 'キャンセル: 0件新規, 0件更新, 0件スキップ'
-            });
-            if (onProgress) {
-                onProgress({
-                    phase: 'complete',
-                    current: 0,
-                    total,
-                    message: 'キャンセル: 0件新規, 0件更新, 0件スキップ',
-                    stats: { newCount: 0, updateCount: 0, skipCount: 0 }
-                });
-            }
-            return;
-        }
-
         if (onProgress) {
             onProgress({ phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
         }
@@ -687,40 +606,35 @@ export async function scanDirectory(
             lastProgressTime: 0,
             stats: { newCount: 0, updateCount: 0, skipCount: 0 },
             pendingWrites: [] as PendingWrite[],
-            scanFilters: effectiveScanFilters,
-            scanPath: dirPath,
-            committedCount: 0,
-            onBatchCommitted,
+            scanFilters: effectiveScanFilters
         };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, state);
 
         // 残りのバッチをコミット
         if (state.pendingWrites.length > 0) {
-            const committedCount = commitBatch(state.pendingWrites);
+            commitBatch(state.pendingWrites);
             state.pendingWrites = [];
-            state.committedCount += committedCount;
-            state.onBatchCommitted?.({
-                rootFolderId,
-                scanPath: dirPath,
-                committedCount,
-                totalCommitted: state.committedCount,
-                removedCount: 0,
-                stage: 'batch'
-            });
         }
 
+        // Orphan check (simplified)
+        const registeredFiles = db.getFiles(rootFolderId);
         let removedCount = 0;
+        for (const file of registeredFiles) {
+            const isMissingOnDisk = !fs.existsSync(file.path);
+            const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
+            const disabledByProfile =
+                type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+                    ? !isScanTypeEnabled(type, state.scanFilters)
+                    : false;
+
+            if (isMissingOnDisk || disabledByProfile) {
+                db.deleteFile(file.id);
+                removedCount++;
+            }
+        }
 
         // キャンセルされた場合
         if (scanCancelled) {
-            state.onBatchCommitted?.({
-                rootFolderId,
-                scanPath: dirPath,
-                committedCount: 0,
-                totalCommitted: state.committedCount,
-                removedCount,
-                stage: 'cancelled'
-            });
             db.updateFolderLastScanStatus(rootFolderId, {
                 at: Date.now(),
                 status: 'cancelled',
@@ -737,31 +651,6 @@ export async function scanDirectory(
             }
             return;
         }
-
-        // Orphan check (simplified)
-        const registeredFiles = db.getFiles(rootFolderId);
-        for (const file of registeredFiles) {
-            const isMissingOnDisk = !fs.existsSync(file.path);
-            const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
-            const disabledByProfile =
-                type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
-                    ? !isScanTypeEnabled(type, state.scanFilters)
-                    : false;
-
-            if (isMissingOnDisk || disabledByProfile) {
-                db.deleteFile(file.id);
-                removedCount++;
-            }
-        }
-
-        state.onBatchCommitted?.({
-            rootFolderId,
-            scanPath: dirPath,
-            committedCount: 0,
-            totalCommitted: state.committedCount,
-            removedCount,
-            stage: 'complete'
-        });
 
         if (onProgress) {
             console.log(`Scan completed. Total: ${total}, New: ${state.stats.newCount}, Update: ${state.stats.updateCount}, Skip: ${state.stats.skipCount}, Removed: ${removedCount}`);

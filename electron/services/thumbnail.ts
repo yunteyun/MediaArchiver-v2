@@ -6,30 +6,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { isArchive, getArchiveThumbnail } from './archiveHandler';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import {
-    isFfmpegWorkerJobCancelledError,
-    runMediaMetadataJob,
-    runPreviewFrameJob,
-    runVideoDurationJob,
-    runVideoThumbnailJob,
-} from './previewFrameWorkerService';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
-import type {
-    ExtractedMediaMetadata,
-    FfmpegWorkerJobSource,
-    MediaMetadataJobRequest,
-    PreviewFrameJobRequest,
-    VideoDurationJobRequest,
-    VideoThumbnailJobRequest,
-} from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('Thumbnail');
-const PREVIEW_FRAME_WIDTH = 256;
-
-interface FfmpegJobOptions {
-    jobSource?: FfmpegWorkerJobSource;
-}
 
 // Phase 25: basePath から動的取得（モジュールロード時に確定させない）
 function getCurrentProfileIdForThumbnails(): string | null {
@@ -47,6 +27,18 @@ if (ffprobePath) {
     ffmpeg.setFfprobePath(ffprobePath.replace('app.asar', 'app.asar.unpacked'));
 }
 
+interface ExtractedMediaMetadata {
+    width?: number;
+    height?: number;
+    format?: string;
+    container?: string;
+    codec?: string;
+    videoCodec?: string;
+    audioCodec?: string;
+    fps?: number;
+    bitrate?: number;
+}
+
 function parseFps(value?: string): number | undefined {
     if (!value || value === '0/0') return undefined;
     const [num, den] = value.split('/').map(Number);
@@ -55,13 +47,7 @@ function parseFps(value?: string): number | undefined {
     return Number.isFinite(fps) ? Number(fps.toFixed(3)) : undefined;
 }
 
-function formatDurationSeconds(durationSec: number): string {
-    const minutes = Math.floor(durationSec / 60);
-    const seconds = Math.floor(durationSec % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
-async function getMediaMetadataInline(filePath: string): Promise<ExtractedMediaMetadata | null> {
+export async function getMediaMetadata(filePath: string): Promise<ExtractedMediaMetadata | null> {
     return new Promise((resolve) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
             if (err || !metadata) {
@@ -111,35 +97,7 @@ async function getMediaMetadataInline(filePath: string): Promise<ExtractedMediaM
     });
 }
 
-export async function getMediaMetadata(
-    filePath: string,
-    options: FfmpegJobOptions = {}
-): Promise<ExtractedMediaMetadata | null> {
-    const request: MediaMetadataJobRequest = {
-        type: 'worker:read-media-metadata-job',
-        requestId: uuidv4(),
-        filePath,
-        jobSource: options.jobSource ?? 'interactive',
-    };
-
-    try {
-        return await runMediaMetadataJob(request);
-    } catch (error) {
-        if (isFfmpegWorkerJobCancelledError(error)) {
-            log.info(`Media metadata job cancelled for ${filePath}.`);
-            return null;
-        }
-
-        log.warn(`Media metadata worker failed for ${filePath}. Falling back to inline ffprobe.`, error);
-        return getMediaMetadataInline(filePath);
-    }
-}
-
-export async function generateThumbnail(
-    filePath: string,
-    resolution: number = 320,
-    options: FfmpegJobOptions = {}
-): Promise<string | null> {
+export async function generateThumbnail(filePath: string, resolution: number = 320): Promise<string | null> {
     const ext = path.extname(filePath).toLowerCase();
 
     try {
@@ -149,7 +107,7 @@ export async function generateThumbnail(
         }
         // Video files
         if (['.mp4', '.webm', '.mov', '.avi', '.mkv'].includes(ext)) {
-            return generateVideoThumbnail(filePath, resolution, options);
+            return generateVideoThumbnail(filePath, resolution);
         }
         // Image files
         if (['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp'].includes(ext)) {
@@ -170,7 +128,9 @@ export async function generateThumbnail(
  * ffmpeg の screenshots API は PNG 固定のため -vcodec libwebp 方式を使用
  * Phase 26: seekInput('%') を廃止 → ffprobe で秒数を取得して絶対値でシーク（Windowsでの Invalid argument 回避）
  */
-async function generateVideoThumbnailInline(videoPath: string, resolution: number, outputPath: string): Promise<string | null> {
+async function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
+    const outputPath = createThumbnailOutputPath('video', '.webp', getCurrentProfileIdForThumbnails());
+
     try {
         // ffprobe で動画の長さを取得
         const durationSec = await new Promise<number>((resolve) => {
@@ -210,35 +170,6 @@ async function generateVideoThumbnailInline(videoPath: string, resolution: numbe
     }
 }
 
-async function generateVideoThumbnail(
-    videoPath: string,
-    resolution: number = 320,
-    options: FfmpegJobOptions = {}
-): Promise<string | null> {
-    const outputPath = createThumbnailOutputPath('video', '.webp', getCurrentProfileIdForThumbnails());
-    const request: VideoThumbnailJobRequest = {
-        type: 'worker:run-video-thumbnail-job',
-        requestId: uuidv4(),
-        videoPath,
-        outputPath,
-        resolution,
-        quality: THUMBNAIL_WEBP_QUALITY.video,
-        jobSource: options.jobSource ?? 'interactive',
-    };
-
-    try {
-        return await runVideoThumbnailJob(request);
-    } catch (error) {
-        if (isFfmpegWorkerJobCancelledError(error)) {
-            log.info(`Video thumbnail job cancelled for ${videoPath}.`);
-            return null;
-        }
-
-        log.warn(`Video thumbnail worker failed for ${videoPath}. Falling back to inline generation.`, error);
-        return generateVideoThumbnailInline(videoPath, resolution, outputPath);
-    }
-}
-
 /**
  * 音声ファイルからアルバムアートを抽出
  * アルバムアートがない場合はnullを返す
@@ -269,51 +200,20 @@ function generateAudioThumbnail(audioPath: string): Promise<string | null> {
  * @param frameCount 生成するフレーム数（デフォルト: 6）
  * @returns カンマ区切りのフレームパス文字列
  */
-function buildPreviewTimemarks(frameCount: number): string[] {
-    if (frameCount <= 0) return [];
-    if (frameCount === 1) return ['50.0%'];
-
-    const timemarks: string[] = [];
-    for (let i = 0; i < frameCount; i++) {
-        const percentage = 5 + (i * 90 / (frameCount - 1));
-        timemarks.push(`${percentage.toFixed(1)}%`);
-    }
-    return timemarks;
-}
-
-function collectPreviewFramePaths(frameDir: string, frameCount: number): string[] {
-    const framePaths: string[] = [];
-
-    for (let i = 1; i <= frameCount; i++) {
-        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.webp`);
-        if (fs.existsSync(framePath)) {
-            framePaths.push(framePath);
-        }
-    }
-
-    if (framePaths.length > 0) {
-        return framePaths;
-    }
-
-    return fs.readdirSync(frameDir)
-        .filter((fileName) => fileName.endsWith('.webp'))
-        .sort()
-        .map((fileName) => path.join(frameDir, fileName));
-}
-
-async function generatePreviewFramesInline(videoPath: string, frameCount: number, frameDir: string): Promise<string | null> {
-    if (frameCount <= 0) {
-        return null;
-    }
+export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
+    const videoId = uuidv4();
+    const frameDir = createPreviewFramesDir(videoId, getCurrentProfileIdForThumbnails());
 
     try {
+        // フレームディレクトリ作成
         if (!fs.existsSync(frameDir)) {
             fs.mkdirSync(frameDir, { recursive: true });
         }
 
+        // 動画の長さを取得
         const durationSec = await new Promise<number>((resolve) => {
             ffmpeg.ffprobe(videoPath, (err, metadata) => {
-                if (err || !metadata?.format?.duration) {
+                if (err || !metadata.format.duration) {
                     resolve(0);
                 } else {
                     resolve(metadata.format.duration);
@@ -325,12 +225,17 @@ async function generatePreviewFramesInline(videoPath: string, frameCount: number
             return null;
         }
 
-        const timemarks = buildPreviewTimemarks(frameCount);
+        // タイムマークを生成（5%〜95%の範囲で均等に）
+        const timemarks: string[] = [];
+        for (let i = 0; i < frameCount; i++) {
+            const percentage = 5 + (i * 90 / (frameCount - 1));
+            timemarks.push(`${percentage.toFixed(1)}%`);
+        }
 
         return new Promise((resolve) => {
             ffmpeg(videoPath)
                 .outputOptions([
-                    '-threads', '1',
+                    '-threads', '1',  // コイル鳴き軽減
                     '-vcodec', 'libwebp',
                     '-quality', String(THUMBNAIL_WEBP_QUALITY.previewFrame),
                 ])
@@ -338,12 +243,32 @@ async function generatePreviewFramesInline(videoPath: string, frameCount: number
                     count: frameCount,
                     folder: frameDir,
                     filename: 'frame_%02d.webp',
-                    size: `${PREVIEW_FRAME_WIDTH}x?`,
-                    timemarks,
+                    size: '256x?',  // Phase 24: 320→256px
+                    timemarks: timemarks
                 })
                 .on('end', () => {
-                    const framePaths = collectPreviewFramePaths(frameDir, frameCount);
-                    resolve(framePaths.length > 0 ? framePaths.join(',') : null);
+                    // ディレクトリの内容を確認
+                    const filesInDir = fs.readdirSync(frameDir);
+
+                    // 生成されたフレームのパスを収集（想定形式: frame_01.webp）
+                    const framePaths: string[] = [];
+                    for (let i = 1; i <= frameCount; i++) {
+                        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.webp`);
+                        if (fs.existsSync(framePath)) {
+                            framePaths.push(framePath);
+                        }
+                    }
+
+                    if (framePaths.length > 0) {
+                        resolve(framePaths.join(','));
+                    } else {
+                        // フォールバック: ディレクトリ内の全WebPを使用
+                        const allWebps = filesInDir
+                            .filter(f => f.endsWith('.webp'))
+                            .sort()
+                            .map(f => path.join(frameDir, f));
+                        resolve(allWebps.length > 0 ? allWebps.join(',') : null);
+                    }
                 })
                 .on('error', (err) => {
                     log.error('Preview frames generation error:', err);
@@ -353,42 +278,6 @@ async function generatePreviewFramesInline(videoPath: string, frameCount: number
     } catch (e) {
         log.error('PreviewFrames exception:', e);
         return null;
-    }
-}
-
-export async function generatePreviewFrames(
-    videoPath: string,
-    frameCount: number = 6,
-    options: FfmpegJobOptions = {}
-): Promise<string | null> {
-    if (frameCount <= 0) {
-        return null;
-    }
-
-    const requestId = uuidv4();
-    const frameDir = createPreviewFramesDir(requestId, getCurrentProfileIdForThumbnails());
-    const request: PreviewFrameJobRequest = {
-        type: 'worker:run-preview-job',
-        requestId,
-        videoPath,
-        frameDir,
-        frameCount,
-        frameWidth: PREVIEW_FRAME_WIDTH,
-        quality: THUMBNAIL_WEBP_QUALITY.previewFrame,
-        jobSource: options.jobSource ?? 'interactive',
-    };
-
-    try {
-        const framePaths = await runPreviewFrameJob(request);
-        return framePaths?.join(',') ?? null;
-    } catch (error) {
-        if (isFfmpegWorkerJobCancelledError(error)) {
-            log.info(`Preview frame job cancelled for ${videoPath}.`);
-            return null;
-        }
-
-        log.warn(`Preview frame worker failed for ${videoPath}. Falling back to inline generation.`, error);
-        return generatePreviewFramesInline(videoPath, frameCount, frameDir);
     }
 }
 
@@ -410,7 +299,7 @@ async function generateImageThumbnail(imagePath: string, resolution: number = 32
     }
 }
 
-async function getVideoDurationInline(videoPath: string): Promise<string> {
+export async function getVideoDuration(videoPath: string): Promise<string> {
     return new Promise((resolve) => {
         ffmpeg.ffprobe(videoPath, (err, metadata) => {
             if (err) {
@@ -418,34 +307,11 @@ async function getVideoDurationInline(videoPath: string): Promise<string> {
                 return;
             }
             const durationSec = metadata.format.duration || 0;
-            resolve(formatDurationSeconds(durationSec));
+            const minutes = Math.floor(durationSec / 60);
+            const seconds = Math.floor(durationSec % 60);
+            resolve(`${minutes}:${seconds.toString().padStart(2, '0')}`);
         });
     });
-}
-
-export async function getVideoDuration(
-    videoPath: string,
-    options: FfmpegJobOptions = {}
-): Promise<string> {
-    const request: VideoDurationJobRequest = {
-        type: 'worker:read-video-duration-job',
-        requestId: uuidv4(),
-        filePath: videoPath,
-        jobSource: options.jobSource ?? 'interactive',
-    };
-
-    try {
-        const durationSeconds = await runVideoDurationJob(request);
-        return formatDurationSeconds(durationSeconds);
-    } catch (error) {
-        if (isFfmpegWorkerJobCancelledError(error)) {
-            log.info(`Video duration job cancelled for ${videoPath}.`);
-            return '';
-        }
-
-        log.warn(`Video duration worker failed for ${videoPath}. Falling back to inline ffprobe.`, error);
-        return getVideoDurationInline(videoPath);
-    }
 }
 
 // Binary check for animated GIF

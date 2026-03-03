@@ -97,16 +97,9 @@ export function registerFolderHandlers() {
 
                     try {
                         const webContents = event.sender;
-                        await scanDirectory(
-                            path,
-                            folderId,
-                            (progress) => {
-                                webContents.send('scanner:progress', progress);
-                            },
-                            (payload) => {
-                                webContents.send('scanner:batchCommitted', payload);
-                            }
-                        );
+                        await scanDirectory(path, folderId, (progress) => {
+                            webContents.send('scanner:progress', progress);
+                        });
                         webContents.send('folder:rescanComplete', folderId);
                     } catch (e) {
                         console.error('Rescan failed:', e);

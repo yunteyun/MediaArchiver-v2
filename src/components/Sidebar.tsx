@@ -17,28 +17,11 @@ export const FOLDER_PREFIX = '__folder:';
 export const VIRTUAL_FOLDER_PREFIX = '__vfolder:';
 export const VIRTUAL_FOLDER_RECURSIVE_PREFIX = '__vfolderr:';
 
-function normalizeFolderPathForCompare(folderPath: string): string {
-    return folderPath.replace(/[\\/]+$/, '').toLowerCase();
-}
-
-function isSameOrDescendantPath(folderPath: string, ancestorPath: string): boolean {
-    const normalizedFolderPath = normalizeFolderPathForCompare(folderPath);
-    const normalizedAncestorPath = normalizeFolderPathForCompare(ancestorPath);
-    if (normalizedFolderPath === normalizedAncestorPath) return true;
-    return normalizedFolderPath.startsWith(`${normalizedAncestorPath}\\`);
-}
-
-function getDriveFromPath(folderPath: string): string {
-    const match = folderPath.match(/^[A-Z]:/i);
-    return match ? match[0].toUpperCase() : '/';
-}
-
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
     const files = useFileStore((s) => s.files);
     const setFiles = useFileStore((s) => s.setFiles);
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
-    const setFolderMetadata = useFileStore((s) => s.setFolderMetadata);
 
     const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
     const toggleSidebar = useUIStore((s) => s.toggleSidebar);
@@ -104,7 +87,7 @@ export const Sidebar = React.memo(() => {
         } catch (e) {
             console.error('Error adding folder:', e);
         }
-    }, []);
+    }, [loadFolders]);
 
     const handleConfirmAddFolderSettings = useCallback(async (settings: AddFolderScanSettingsSubmit) => {
         if (!pendingAddFolderPath) return;
@@ -135,53 +118,83 @@ export const Sidebar = React.memo(() => {
         }
     }, [pendingAddFolderPath, loadFolders]);
 
-    const loadFilesForSelection = useCallback(async (
-        folderId: string | null,
-        options?: { reloadTagCache?: boolean }
-    ) => {
-        let loadedFiles;
-
-        if (!folderId || folderId === ALL_FILES_ID) {
-            loadedFiles = await window.electronAPI.getFiles();
-        }
-        else if (folderId.startsWith(DRIVE_PREFIX)) {
-            const drive = folderId.slice(DRIVE_PREFIX.length);
-            loadedFiles = await window.electronAPI.getFilesByDrive(drive);
-        }
-        else if (folderId.startsWith(FOLDER_PREFIX)) {
-            const actualId = folderId.slice(FOLDER_PREFIX.length);
-            loadedFiles = await window.electronAPI.getFilesByFolderRecursive(actualId);
-        }
-        else if (folderId.startsWith(VIRTUAL_FOLDER_RECURSIVE_PREFIX)) {
-            const folderPath = folderId.slice(VIRTUAL_FOLDER_RECURSIVE_PREFIX.length);
-            loadedFiles = await window.electronAPI.getFilesByFolderPathRecursive(folderPath);
-        }
-        else if (folderId.startsWith(VIRTUAL_FOLDER_PREFIX)) {
-            const folderPath = folderId.slice(VIRTUAL_FOLDER_PREFIX.length);
-            loadedFiles = await window.electronAPI.getFilesByFolderPathDirect(folderPath);
-        }
-        else {
-            loadedFiles = await window.electronAPI.getFiles(folderId);
-        }
-
-        setFiles(loadedFiles, options);
-    }, [setFiles]);
-
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
         setCurrentFolderId(folderId);
         useUIStore.getState().closeDuplicateView(); // 重複ビューを閉じる
         useUIStore.getState().setMainView('grid');  // 統計ビューを閉じる
         try {
-            await loadFilesForSelection(folderId);
+            let files;
+
+            if (!folderId || folderId === ALL_FILES_ID) {
+                // 全ファイル
+                files = await window.electronAPI.getFiles();
+            }
+            else if (folderId.startsWith(DRIVE_PREFIX)) {
+                // Phase 22-C: ドライブ配下の全ファイル
+                const drive = folderId.slice(DRIVE_PREFIX.length);
+                files = await window.electronAPI.getFilesByDrive(drive);
+            }
+            else if (folderId.startsWith(FOLDER_PREFIX)) {
+                // Phase 22-C: フォルダ配下の全ファイル（再帰）
+                const actualId = folderId.slice(FOLDER_PREFIX.length);
+                files = await window.electronAPI.getFilesByFolderRecursive(actualId);
+            }
+            else if (folderId.startsWith(VIRTUAL_FOLDER_RECURSIVE_PREFIX)) {
+                const folderPath = folderId.slice(VIRTUAL_FOLDER_RECURSIVE_PREFIX.length);
+                files = await window.electronAPI.getFilesByFolderPathRecursive(folderPath);
+            }
+            else if (folderId.startsWith(VIRTUAL_FOLDER_PREFIX)) {
+                const folderPath = folderId.slice(VIRTUAL_FOLDER_PREFIX.length);
+                files = await window.electronAPI.getFilesByFolderPathDirect(folderPath);
+            }
+            else {
+                // 通常のフォルダ（直下のみ）
+                files = await window.electronAPI.getFiles(folderId);
+            }
+
+            setFiles(files);
         } catch (e) {
             console.error('Error loading files:', e);
         }
-    }, [setCurrentFolderId, loadFilesForSelection]);
+    }, [setCurrentFolderId, setFiles]);
 
     // 「すべてのファイル」を選択
     const handleSelectAllFiles = useCallback(() => {
         handleSelectFolder(ALL_FILES_ID);
     }, [handleSelectFolder]);
+
+    useEffect(() => {
+        loadFolders();
+
+        // 起動直後/プロファイル切替直後:
+        // 見た目上は「すべてのファイル」選択状態（currentFolderId=null）なので、
+        // 実データも全件ロードしてフィルター対象を一致させる。
+        if (currentFolderId === null && files.length === 0) {
+            void handleSelectFolder(ALL_FILES_ID);
+        }
+
+        const cleanupDelete = window.electronAPI.onFolderDeleted((folderId) => {
+            console.log('Folder deleted:', folderId);
+            loadFolders();
+            if (currentFolderId === folderId) {
+                setCurrentFolderId(null);
+                setFiles([]);
+            }
+        });
+
+        const cleanupRescan = window.electronAPI.onFolderRescanComplete((folderId) => {
+            console.log('Folder rescan complete:', folderId);
+            // 現在のフォルダまたは「すべて」表示中ならリロード
+            if (currentFolderId === folderId || currentFolderId === ALL_FILES_ID) {
+                handleSelectFolder(currentFolderId);
+            }
+        });
+
+        return () => {
+            cleanupDelete();
+            cleanupRescan();
+        };
+    }, [loadFolders, currentFolderId, files.length, setCurrentFolderId, setFiles, handleSelectFolder]);
 
     const filteredFoldersForTree = useMemo(() => {
         const q = folderTreeSearch.trim().toLowerCase();
@@ -221,125 +234,6 @@ export const Sidebar = React.memo(() => {
 
         return folders.filter((f) => include.has(String(f.path).toLowerCase()));
     }, [folders, folderTreeSearch]);
-
-    const registeredFolderMap = useMemo(() => {
-        const next = new Map<string, MediaFolder>();
-        folders.forEach((folder) => {
-            if (!folder.isVirtualFolder) {
-                next.set(folder.id, folder);
-            }
-        });
-        return next;
-    }, [folders]);
-
-    const isCurrentViewAffectedByScanBatch = useCallback((payload: {
-        rootFolderId: string;
-        scanPath: string;
-    }) => {
-        if (mainView !== 'grid' || duplicateViewOpen) {
-            return false;
-        }
-
-        if (!currentFolderId || currentFolderId === ALL_FILES_ID) {
-            return true;
-        }
-
-        if (currentFolderId.startsWith(DRIVE_PREFIX)) {
-            const drive = currentFolderId.slice(DRIVE_PREFIX.length).toUpperCase();
-            return getDriveFromPath(payload.scanPath) === drive;
-        }
-
-        if (currentFolderId.startsWith(FOLDER_PREFIX)) {
-            const selectedFolderId = currentFolderId.slice(FOLDER_PREFIX.length);
-            let current = registeredFolderMap.get(payload.rootFolderId) ?? null;
-            while (current) {
-                if (current.id === selectedFolderId) {
-                    return true;
-                }
-                current = current.parentId ? (registeredFolderMap.get(current.parentId) ?? null) : null;
-            }
-            return false;
-        }
-
-        if (currentFolderId.startsWith(VIRTUAL_FOLDER_RECURSIVE_PREFIX)) {
-            const selectedPath = currentFolderId.slice(VIRTUAL_FOLDER_RECURSIVE_PREFIX.length);
-            return isSameOrDescendantPath(payload.scanPath, selectedPath);
-        }
-
-        if (currentFolderId.startsWith(VIRTUAL_FOLDER_PREFIX)) {
-            const selectedPath = currentFolderId.slice(VIRTUAL_FOLDER_PREFIX.length);
-            return normalizeFolderPathForCompare(payload.scanPath) === normalizeFolderPathForCompare(selectedPath);
-        }
-
-        return payload.rootFolderId === currentFolderId;
-    }, [currentFolderId, duplicateViewOpen, mainView, registeredFolderMap]);
-
-    const refreshCurrentSelection = useCallback(async () => {
-        const activeFolderId = currentFolderId ?? ALL_FILES_ID;
-        await loadFilesForSelection(activeFolderId);
-
-        if (activeFolderId === ALL_FILES_ID) {
-            const metadata = await window.electronAPI.getFolderMetadata();
-            setFolderMetadata(metadata);
-        }
-    }, [currentFolderId, loadFilesForSelection, setFolderMetadata]);
-
-    useEffect(() => {
-        loadFolders();
-
-        // 起動直後/プロファイル切替直後:
-        // 見た目上は「すべてのファイル」選択状態（currentFolderId=null）なので、
-        // 実データも全件ロードしてフィルター対象を一致させる。
-        if (currentFolderId === null && files.length === 0) {
-            void handleSelectFolder(ALL_FILES_ID);
-        }
-
-        const cleanupDelete = window.electronAPI.onFolderDeleted((folderId) => {
-            console.log('Folder deleted:', folderId);
-            loadFolders();
-            if (currentFolderId === folderId) {
-                setCurrentFolderId(null);
-                setFiles([]);
-            }
-        });
-
-        const cleanupRescan = window.electronAPI.onFolderRescanComplete((folderId) => {
-            console.log('Folder rescan complete:', folderId);
-            if (currentFolderId === folderId || currentFolderId === ALL_FILES_ID) {
-                void handleSelectFolder(currentFolderId);
-            }
-        });
-
-        const cleanupScanBatchCommitted = window.electronAPI.onScanBatchCommitted((payload) => {
-            if (payload.stage !== 'complete' && payload.stage !== 'cancelled') {
-                return;
-            }
-
-            void loadFolders();
-            if (!isCurrentViewAffectedByScanBatch(payload)) {
-                return;
-            }
-
-            void refreshCurrentSelection().catch((error) => {
-                console.error('Failed to refresh files after scan completion:', error);
-            });
-        });
-
-        return () => {
-            cleanupDelete();
-            cleanupRescan();
-            cleanupScanBatchCommitted();
-        };
-    }, [
-        loadFolders,
-        currentFolderId,
-        files.length,
-        setCurrentFolderId,
-        setFiles,
-        handleSelectFolder,
-        isCurrentViewAffectedByScanBatch,
-        refreshCurrentSelection,
-    ]);
 
     const hiddenScanIndicator = useMemo(() => {
         if (!scanProgress || isScanProgressVisible) return null;
