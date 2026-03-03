@@ -17,8 +17,8 @@
   - Main: `scanner.scanDirectory`, `thumbnail.generatePreviewFrames`
 
 ## ベースライン記録
-- 状態: 暫定計測済み
-- 備考: この環境では GUI の手動操作を実行できないため、以下は実機で取得した途中確認メモ。main 側ログは未取得。
+- 状態: 確認済み
+- 備考: この環境では GUI の手動操作を実行できないため、以下は実機で取得した確認メモ。
 
 ## 暫定記録
 - 日時: 2026-03-03
@@ -30,12 +30,12 @@
   - `FileGrid.sortAndFilter`: `rawFileCount=703`, `resultCount=703`, `elapsedMs=0.4`
   - `FileGrid.layout`: `containerWidth=1230`, `columns=5`, `cardHeight=332`
 - Main ログ:
-  - 未取得
+  - `thumbnail.generatePreviewFrames`: `493.2ms - 498.2ms`, `frameCount=5`, `generated=5`, `ok=true`, `mode=worker`
 - 体感メモ:
   - `Sidebar.loadFolders` が `230ms` と `391.9ms` で複数回走っていた段階では、若干のもたつきあり
   - `Sidebar` の不要な再読込抑制後は、体感上改善したとの報告あり
+  - `FileCard.contextMenu`: `9.8ms`
+  - `PreviewFrameWorkerService` は起動成功し、`worker-fallback` は観測されていない
 
 ## 残確認
-- `thumbnail.generatePreviewFrames` の main ログ取得
-- 手動サムネイル再生成時の Worker 経由ログ確認
-- ウィンドウ拡大時の最終体感確認
+- Step 2 の `thumbnail.generateVideoThumbnail` Worker 化比較へ進む

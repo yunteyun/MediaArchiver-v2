@@ -3,10 +3,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from './logger';
 import type {
-    PreviewFrameJobFailure,
     PreviewFrameJobRequest,
     PreviewFrameJobSuccess,
     PreviewFrameWorkerMessage,
+    VideoThumbnailJobRequest,
+    VideoThumbnailJobSuccess,
+    WorkerJobFailure,
 } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('PreviewFrameWorkerService');
@@ -14,8 +16,8 @@ const workerScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)),
 const PREVIEW_FRAME_JOB_TIMEOUT_MS = 90_000;
 
 interface QueuedPreviewFrameJob {
-    request: PreviewFrameJobRequest;
-    resolve: (framePaths: string[] | null) => void;
+    request: PreviewFrameJobRequest | VideoThumbnailJobRequest;
+    resolve: (result: string[] | string | null) => void;
     reject: (error: Error) => void;
 }
 
@@ -113,7 +115,7 @@ function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
     }
 
     if (!activeJob || message.requestId !== activeJob.request.requestId) {
-        log.warn(`Received unexpected worker message for request: ${(message as PreviewFrameJobSuccess | PreviewFrameJobFailure).requestId ?? 'unknown'}`);
+        log.warn(`Received unexpected worker message for request: ${(message as PreviewFrameJobSuccess | VideoThumbnailJobSuccess | WorkerJobFailure).requestId ?? 'unknown'}`);
         return;
     }
 
@@ -124,7 +126,9 @@ function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
 
     if (message.type === 'worker:preview-job-success') {
         completedJob.resolve(message.framePaths);
-    } else if (message.type === 'worker:preview-job-failure') {
+    } else if (message.type === 'worker:video-thumbnail-job-success') {
+        completedJob.resolve(message.thumbnailPath);
+    } else if (message.type === 'worker:job-failure') {
         completedJob.reject(new Error(message.error));
     }
 
@@ -212,7 +216,27 @@ export async function runPreviewFrameJob(request: PreviewFrameJobRequest): Promi
     return new Promise((resolve, reject) => {
         queuedJobs.push({
             request,
-            resolve,
+            resolve: (result) => resolve((result as string[] | null) ?? null),
+            reject,
+        });
+
+        void ensureWorkerReady()
+            .then(() => {
+                dispatchNextJob();
+            })
+            .catch((error) => {
+                const startupError = toError(error);
+                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
+                rejectAllJobs(startupError);
+            });
+    });
+}
+
+export async function runVideoThumbnailJob(request: VideoThumbnailJobRequest): Promise<string | null> {
+    return new Promise((resolve, reject) => {
+        queuedJobs.push({
+            request,
+            resolve: (result) => resolve((result as string | null) ?? null),
             reject,
         });
 

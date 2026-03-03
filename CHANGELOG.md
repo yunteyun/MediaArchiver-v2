@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 - 描画・一覧再読込・右クリック応答に加えて、スキャンとサムネイル処理の開発向け計測ログも安全な限定ログとして追加した（表示への変更なし）。
+- 動画プレビューフレーム生成を別プロセス化し、手動再生成時に Worker 経由で安定動作することを確認。
 
 ### Fixed
 - 開発向け計測ログの有効化時に一覧UIが表示されなくなる問題を修正。

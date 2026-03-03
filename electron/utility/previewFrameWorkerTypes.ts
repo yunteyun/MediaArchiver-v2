@@ -8,14 +8,29 @@ export interface PreviewFrameJobRequest {
     quality: number;
 }
 
+export interface VideoThumbnailJobRequest {
+    type: 'worker:run-video-thumbnail-job';
+    requestId: string;
+    videoPath: string;
+    outputPath: string;
+    resolution: number;
+    quality: number;
+}
+
 export interface PreviewFrameJobSuccess {
     type: 'worker:preview-job-success';
     requestId: string;
     framePaths: string[] | null;
 }
 
-export interface PreviewFrameJobFailure {
-    type: 'worker:preview-job-failure';
+export interface VideoThumbnailJobSuccess {
+    type: 'worker:video-thumbnail-job-success';
+    requestId: string;
+    thumbnailPath: string | null;
+}
+
+export interface WorkerJobFailure {
+    type: 'worker:job-failure';
     requestId: string;
     error: string;
 }
@@ -26,6 +41,8 @@ export interface PreviewFrameWorkerReady {
 
 export type PreviewFrameWorkerMessage =
     | PreviewFrameJobRequest
+    | VideoThumbnailJobRequest
     | PreviewFrameJobSuccess
-    | PreviewFrameJobFailure
+    | VideoThumbnailJobSuccess
+    | WorkerJobFailure
     | PreviewFrameWorkerReady;

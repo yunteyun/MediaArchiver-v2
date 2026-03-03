@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import type {
-    PreviewFrameJobFailure,
     PreviewFrameJobRequest,
     PreviewFrameJobSuccess,
     PreviewFrameWorkerReady,
+    VideoThumbnailJobRequest,
+    VideoThumbnailJobSuccess,
+    WorkerJobFailure,
 } from './previewFrameWorkerTypes';
 
 const require = createRequire(import.meta.url);
@@ -25,7 +27,7 @@ function postReady(): void {
     process.parentPort?.postMessage(readyMessage);
 }
 
-function postSuccess(requestId: string, framePaths: string[] | null): void {
+function postPreviewSuccess(requestId: string, framePaths: string[] | null): void {
     const successMessage: PreviewFrameJobSuccess = {
         type: 'worker:preview-job-success',
         requestId,
@@ -34,9 +36,18 @@ function postSuccess(requestId: string, framePaths: string[] | null): void {
     process.parentPort?.postMessage(successMessage);
 }
 
+function postVideoThumbnailSuccess(requestId: string, thumbnailPath: string | null): void {
+    const successMessage: VideoThumbnailJobSuccess = {
+        type: 'worker:video-thumbnail-job-success',
+        requestId,
+        thumbnailPath,
+    };
+    process.parentPort?.postMessage(successMessage);
+}
+
 function postFailure(requestId: string, error: string): void {
-    const failureMessage: PreviewFrameJobFailure = {
-        type: 'worker:preview-job-failure',
+    const failureMessage: WorkerJobFailure = {
+        type: 'worker:job-failure',
         requestId,
         error,
     };
@@ -132,19 +143,57 @@ async function runPreviewJob(request: PreviewFrameJobRequest): Promise<string[] 
     });
 }
 
+async function runVideoThumbnailJob(request: VideoThumbnailJobRequest): Promise<string | null> {
+    const outputDir = path.dirname(request.outputPath);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const durationSec = await getVideoDurationSeconds(request.videoPath);
+    const seekSec = durationSec > 1 ? Math.min(durationSec * 0.1, 300) : 0;
+
+    return new Promise((resolve, reject) => {
+        ffmpeg(request.videoPath)
+            .outputOptions([
+                '-vframes', '1',
+                '-vf', `scale=${request.resolution}:-1`,
+                '-vcodec', 'libwebp',
+                '-quality', String(request.quality),
+                '-threads', '1',
+            ])
+            .seekInput(seekSec)
+            .output(request.outputPath)
+            .on('end', () => resolve(request.outputPath))
+            .on('error', (error) => reject(error))
+            .run();
+    });
+}
+
 if (!process.parentPort) {
     throw new Error('Preview frame worker requires process.parentPort.');
 }
 
 process.parentPort.on('message', async (event) => {
-    const message = event.data as PreviewFrameJobRequest;
-    if (!message || message.type !== 'worker:run-preview-job') {
+    const message = event.data as PreviewFrameJobRequest | VideoThumbnailJobRequest;
+    if (!message) {
         return;
     }
 
     try {
-        const framePaths = await runPreviewJob(message);
-        postSuccess(message.requestId, framePaths);
+        switch (message.type) {
+        case 'worker:run-preview-job': {
+            const framePaths = await runPreviewJob(message);
+            postPreviewSuccess(message.requestId, framePaths);
+            break;
+        }
+        case 'worker:run-video-thumbnail-job': {
+            const thumbnailPath = await runVideoThumbnailJob(message);
+            postVideoThumbnailSuccess(message.requestId, thumbnailPath);
+            break;
+        }
+        default:
+            break;
+        }
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`[PreviewFrameWorker] ${errorMessage}`);

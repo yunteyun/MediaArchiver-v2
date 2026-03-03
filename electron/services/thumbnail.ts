@@ -9,8 +9,8 @@ import { logger } from './logger';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 import { logPerf, startPerfTimer } from './perfDebug';
-import { runPreviewFrameJob } from './previewFrameWorkerService';
-import type { PreviewFrameJobRequest } from '../utility/previewFrameWorkerTypes';
+import { runPreviewFrameJob, runVideoThumbnailJob } from './previewFrameWorkerService';
+import type { PreviewFrameJobRequest, VideoThumbnailJobRequest } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('Thumbnail');
 
@@ -146,9 +146,47 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
 async function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
     const outputPath = createThumbnailOutputPath('video', '.webp', getCurrentProfileIdForThumbnails());
     const perfStartedAt = startPerfTimer();
+    const request: VideoThumbnailJobRequest = {
+        type: 'worker:run-video-thumbnail-job',
+        requestId: uuidv4(),
+        videoPath,
+        outputPath,
+        resolution,
+        quality: THUMBNAIL_WEBP_QUALITY.video,
+    };
 
     try {
-        // ffprobe で動画の長さを取得
+        const thumbnailPath = await runVideoThumbnailJob(request);
+        logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
+            file: path.basename(videoPath),
+            resolution,
+            ok: thumbnailPath !== null,
+            mode: 'worker'
+        });
+        return thumbnailPath;
+    } catch (e) {
+        const fallbackError = e instanceof Error ? e.message : String(e);
+        log.warn(`Video thumbnail worker failed for ${path.basename(videoPath)}. Falling back to inline generation. ${fallbackError}`);
+        logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
+            file: path.basename(videoPath),
+            resolution,
+            ok: false,
+            mode: 'worker-fallback',
+            error: fallbackError
+        });
+        return generateVideoThumbnailInline(videoPath, resolution, outputPath);
+    }
+}
+
+async function generateVideoThumbnailInline(
+    videoPath: string,
+    resolution: number = 320,
+    outputPath?: string
+): Promise<string | null> {
+    const resolvedOutputPath = outputPath ?? createThumbnailOutputPath('video', '.webp', getCurrentProfileIdForThumbnails());
+    const perfStartedAt = startPerfTimer();
+
+    try {
         const durationSec = await new Promise<number>((resolve) => {
             ffmpeg.ffprobe(videoPath, (err, metadata) => {
                 if (err || !metadata?.format?.duration) {
@@ -159,7 +197,6 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
             });
         });
 
-        // シーク位置を絶対秒数で指定（10%の位置、最低0秒、最大300秒）
         const seekSec = durationSec > 1 ? Math.min(durationSec * 0.1, 300) : 0;
 
         return await new Promise((resolve) => {
@@ -169,24 +206,26 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
                     '-vf', `scale=${resolution}:-1`,
                     '-vcodec', 'libwebp',
                     '-quality', String(THUMBNAIL_WEBP_QUALITY.video),
-                    '-threads', '1',  // コイル鳴き軽減
+                    '-threads', '1',
                 ])
                 .seekInput(seekSec)
-                .output(outputPath)
+                .output(resolvedOutputPath)
                 .on('end', () => {
                     logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
                         file: path.basename(videoPath),
                         resolution,
-                        ok: true
+                        ok: true,
+                        mode: 'inline'
                     });
-                    resolve(outputPath);
+                    resolve(resolvedOutputPath);
                 })
                 .on('error', (err) => {
                     log.error('Error generating video thumbnail:', err);
                     logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
                         file: path.basename(videoPath),
                         resolution,
-                        ok: false
+                        ok: false,
+                        mode: 'inline'
                     });
                     resolve(null);
                 })
@@ -197,7 +236,8 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
         logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
             file: path.basename(videoPath),
             resolution,
-            ok: false
+            ok: false,
+            mode: 'inline'
         });
         return null;
     }
