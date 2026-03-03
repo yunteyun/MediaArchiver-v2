@@ -132,7 +132,9 @@ export const useUIStore = create<UIState>((set) => ({
         // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
         isScanProgressVisible:
             progress?.phase === 'counting' ||
-                (progress?.phase === 'scanning' && state.scanProgress === null)
+                (progress?.phase === 'scanning' &&
+                    state.scanProgress?.phase !== 'counting' &&
+                    state.scanProgress?.phase !== 'scanning')
                 ? true
                 : state.isScanProgressVisible
     })),

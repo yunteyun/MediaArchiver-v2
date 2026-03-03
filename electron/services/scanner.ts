@@ -143,7 +143,6 @@ export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) =>
 
 export interface ScanDirectoryOptions {
     skipInitialCount?: boolean;
-    initialEstimatedTotal?: number;
 }
 
 // スキャンキャンセル用フラグ
@@ -628,7 +627,7 @@ export async function scanDirectory(
 
     try {
         const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(rootFolderId);
-        let total = options?.skipInitialCount ? Math.max(0, options.initialEstimatedTotal ?? 0) : 0;
+        let total = 0;
 
         if (!options?.skipInitialCount) {
             if (onProgress) {

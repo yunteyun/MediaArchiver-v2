@@ -225,12 +225,6 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
     }));
 }
 
-export function getFileCountByRootFolderId(rootFolderId: string): number {
-    const db = getDb();
-    const row = db.prepare('SELECT COUNT(*) as count FROM files WHERE root_folder_id = ?').get(rootFolderId) as { count: number } | undefined;
-    return row?.count ?? 0;
-}
-
 function normalizeDirPathForMatch(dirPath: string): string {
     return dirPath.replace(/[\\/]+$/, '');
 }

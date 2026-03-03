@@ -12,7 +12,6 @@ export type ScanProgressCallback = (progress: {
 }) => void;
 export interface ScanDirectoryOptions {
     skipInitialCount?: boolean;
-    initialEstimatedTotal?: number;
 }
 export declare function cancelScan(): void;
 export declare function isScanCancelled(): boolean;
