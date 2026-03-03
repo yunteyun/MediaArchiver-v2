@@ -130,6 +130,17 @@ export type ScanProgressCallback = (progress: {
     };
 }) => void;
 
+export interface ScanBatchCommittedPayload {
+    rootFolderId: string;
+    scanPath: string;
+    committedCount: number;
+    totalCommitted: number;
+    removedCount: number;
+    stage: 'batch' | 'complete' | 'cancelled';
+}
+
+export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) => void;
+
 // スキャンキャンセル用フラグ
 let scanCancelled = false;
 export function cancelScan() {
@@ -178,8 +189,8 @@ interface PendingWrite {
 }
 
 // バッチコミット関数
-function commitBatch(pendingWrites: PendingWrite[]) {
-    if (pendingWrites.length === 0) return;
+function commitBatch(pendingWrites: PendingWrite[]): number {
+    if (pendingWrites.length === 0) return 0;
 
     const database = dbManager.getDb();
     const transaction = database.transaction(() => {
@@ -189,6 +200,7 @@ function commitBatch(pendingWrites: PendingWrite[]) {
     });
 
     transaction();
+    return pendingWrites.length;
 }
 
 // ファイル数をカウント (再帰)
@@ -246,6 +258,7 @@ async function scanDirectoryInternal(
     dirPath: string,
     rootFolderId: string,
     onProgress: ScanProgressCallback | undefined,
+    onBatchCommitted: ScanBatchCommittedCallback | undefined,
     state: {
         current: number;
         total: number;
@@ -253,6 +266,7 @@ async function scanDirectoryInternal(
         stats: { newCount: number; updateCount: number; skipCount: number };
         pendingWrites: PendingWrite[];
         scanFilters: ScanFileTypeCategoryFilters;
+        committedCount: number;
     }
 ) {
     // パス長チェック
@@ -290,7 +304,7 @@ async function scanDirectoryInternal(
             }
 
             if (entry.isDirectory()) {
-                await scanDirectoryInternal(fullPath, rootFolderId, onProgress, state);
+                await scanDirectoryInternal(fullPath, rootFolderId, onProgress, onBatchCommitted, state);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
                 const type = isScannableMediaType(ext, state.scanFilters);
@@ -543,8 +557,17 @@ async function scanDirectoryInternal(
 
                     // バッチサイズに達したらコミット
                     if (state.pendingWrites.length >= TRANSACTION_BATCH_SIZE) {
-                        commitBatch(state.pendingWrites);
+                        const committedCount = commitBatch(state.pendingWrites);
+                        state.committedCount += committedCount;
                         state.pendingWrites = [];
+                        onBatchCommitted?.({
+                            rootFolderId,
+                            scanPath: dirPath,
+                            committedCount,
+                            totalCommitted: state.committedCount,
+                            removedCount: 0,
+                            stage: 'batch'
+                        });
                     }
 
                     // Update stats
@@ -580,7 +603,12 @@ async function scanDirectoryInternal(
     }
 }
 
-export async function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback) {
+export async function scanDirectory(
+    dirPath: string,
+    rootFolderId: string,
+    onProgress?: ScanProgressCallback,
+    onBatchCommitted?: ScanBatchCommittedCallback
+) {
     const perfStartedAt = startPerfTimer();
     // キャンセルフラグをリセット
     scanCancelled = false;
@@ -613,14 +641,24 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             lastProgressTime: 0,
             stats: { newCount: 0, updateCount: 0, skipCount: 0 },
             pendingWrites: [] as PendingWrite[],
-            scanFilters: effectiveScanFilters
+            scanFilters: effectiveScanFilters,
+            committedCount: 0,
         };
-        await scanDirectoryInternal(dirPath, rootFolderId, onProgress, state);
+        await scanDirectoryInternal(dirPath, rootFolderId, onProgress, onBatchCommitted, state);
 
         // 残りのバッチをコミット
         if (state.pendingWrites.length > 0) {
-            commitBatch(state.pendingWrites);
+            const committedCount = commitBatch(state.pendingWrites);
+            state.committedCount += committedCount;
             state.pendingWrites = [];
+            onBatchCommitted?.({
+                rootFolderId,
+                scanPath: dirPath,
+                committedCount,
+                totalCommitted: state.committedCount,
+                removedCount: 0,
+                stage: 'batch'
+            });
         }
 
         // Orphan check (simplified)
@@ -642,6 +680,14 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
 
         // キャンセルされた場合
         if (scanCancelled) {
+            onBatchCommitted?.({
+                rootFolderId,
+                scanPath: dirPath,
+                committedCount: 0,
+                totalCommitted: state.committedCount,
+                removedCount,
+                stage: 'cancelled'
+            });
             logPerf('scanner.scanDirectory', perfStartedAt, {
                 folder: path.basename(dirPath) || dirPath,
                 total,
@@ -682,6 +728,14 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             at: Date.now(),
             status: 'success',
             message: `完了: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ, ${removedCount}件削除`
+        });
+        onBatchCommitted?.({
+            rootFolderId,
+            scanPath: dirPath,
+            committedCount: 0,
+            totalCommitted: state.committedCount,
+            removedCount,
+            stage: 'complete'
         });
         logPerf('scanner.scanDirectory', perfStartedAt, {
             folder: path.basename(dirPath) || dirPath,

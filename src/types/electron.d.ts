@@ -49,6 +49,15 @@ interface ProfileScopedSettingsResponse {
     exists: boolean;
 }
 
+interface ScanBatchCommittedPayload {
+    rootFolderId: string;
+    scanPath: string;
+    committedCount: number;
+    totalCommitted: number;
+    removedCount: number;
+    stage: 'batch' | 'complete' | 'cancelled';
+}
+
 // Phase 26-D: 複合検索型定義
 interface SearchConditionTagFilter {
     ids: string[];
@@ -161,6 +170,7 @@ declare global {
 
             // Events
             onScanProgress: (callback: (progress: any) => void) => () => void;
+            onScanBatchCommitted: (callback: (payload: ScanBatchCommittedPayload) => void) => () => void;
             cancelScan: () => Promise<void>;
             setPreviewFrameCount: (count: number) => Promise<void>;
             setScanThrottleMs: (ms: number) => Promise<void>;
