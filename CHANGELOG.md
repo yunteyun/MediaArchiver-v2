@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 - 動画プレビューフレーム生成を別プロセス化し、スキャン中や再生成中でもアプリ操作が重くなりにくいよう改善。
+- スキャン中の新規/更新ファイルを現在の一覧へ段階反映するようにし、完了まで待たずに追加結果を確認しやすくした。
 
 ---
 
