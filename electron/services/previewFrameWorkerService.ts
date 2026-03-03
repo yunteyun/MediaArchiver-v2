@@ -3,32 +3,37 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from './logger';
 import type {
-    PreviewFrameJobFailure,
+    ExtractedMediaMetadata,
+    FfmpegWorkerJobSource,
+    FfmpegWorkerMessage,
+    FfmpegWorkerRequest,
+    FfmpegWorkerSuccessMessage,
+    MediaMetadataJobRequest,
     PreviewFrameJobRequest,
-    PreviewFrameJobSource,
-    PreviewFrameJobSuccess,
-    PreviewFrameWorkerMessage,
+    VideoDurationJobRequest,
+    VideoThumbnailJobRequest,
 } from '../utility/previewFrameWorkerTypes';
 
-const log = logger.scope('PreviewFrameWorkerService');
+const log = logger.scope('FfmpegWorkerService');
 const workerScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'previewFrameWorker.js');
-const PREVIEW_FRAME_JOB_CANCELLED_MESSAGE = 'Preview frame worker job cancelled.';
+const FFMPEG_WORKER_JOB_CANCELLED_MESSAGE = 'Ffmpeg worker job cancelled.';
 
-interface QueuedPreviewFrameJob {
-    request: PreviewFrameJobRequest;
-    resolve: (framePaths: string[] | null) => void;
+interface QueuedWorkerJob<TResult> {
+    request: FfmpegWorkerRequest;
+    resolve: (result: TResult) => void;
     reject: (error: Error) => void;
+    mapSuccess: (message: FfmpegWorkerSuccessMessage) => TResult;
 }
 
-let previewFrameWorker: UtilityProcess | null = null;
+let ffmpegWorker: UtilityProcess | null = null;
 let workerReady = false;
 let workerStartupPromise: Promise<void> | null = null;
 let resolveWorkerStartup: (() => void) | null = null;
 let rejectWorkerStartup: ((error: Error) => void) | null = null;
-let activeJob: QueuedPreviewFrameJob | null = null;
+let activeJob: QueuedWorkerJob<unknown> | null = null;
 let isDisposing = false;
 let cancellationError: Error | null = null;
-const queuedJobs: QueuedPreviewFrameJob[] = [];
+const queuedJobs: QueuedWorkerJob<unknown>[] = [];
 
 function toError(error: unknown): Error {
     return error instanceof Error ? error : new Error(String(error));
@@ -65,7 +70,7 @@ function rejectAllJobs(error: Error): void {
     }
 }
 
-function rejectQueuedJobsBySource(source: PreviewFrameJobSource, error: Error): void {
+function rejectQueuedJobsBySource(source: FfmpegWorkerJobSource, error: Error): void {
     for (let i = queuedJobs.length - 1; i >= 0; i -= 1) {
         const queuedJob = queuedJobs[i];
         if (queuedJob.request.jobSource !== source) {
@@ -78,7 +83,7 @@ function rejectQueuedJobsBySource(source: PreviewFrameJobSource, error: Error): 
 }
 
 function dispatchNextJob(): void {
-    if (!previewFrameWorker || !workerReady || activeJob || queuedJobs.length === 0) {
+    if (!ffmpegWorker || !workerReady || activeJob || queuedJobs.length === 0) {
         return;
     }
 
@@ -87,10 +92,10 @@ function dispatchNextJob(): void {
         return;
     }
 
-    previewFrameWorker.postMessage(activeJob.request);
+    ffmpegWorker.postMessage(activeJob.request);
 }
 
-function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
+function handleWorkerMessage(message: FfmpegWorkerMessage): void {
     if (!message) return;
 
     if (message.type === 'worker:ready') {
@@ -102,29 +107,29 @@ function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
     }
 
     if (!activeJob || message.requestId !== activeJob.request.requestId) {
-        log.warn(`Received unexpected worker message for request: ${(message as PreviewFrameJobSuccess | PreviewFrameJobFailure).requestId ?? 'unknown'}`);
+        log.warn(`Received unexpected worker message for request: ${'requestId' in message ? message.requestId : 'unknown'}`);
         return;
     }
 
     const completedJob = activeJob;
     activeJob = null;
 
-    if (message.type === 'worker:preview-job-success') {
-        completedJob.resolve(message.framePaths);
-    } else if (message.type === 'worker:preview-job-failure') {
+    if (message.type === 'worker:job-failure') {
         completedJob.reject(new Error(message.error));
+    } else {
+        completedJob.resolve(completedJob.mapSuccess(message));
     }
 
     dispatchNextJob();
 }
 
 function handleWorkerExit(code: number): void {
-    const exitError = new Error(`Preview frame worker exited with code ${code}.`);
+    const exitError = new Error(`Ffmpeg worker exited with code ${code}.`);
     const wasDisposing = isDisposing;
     const workerCancellationError = cancellationError;
     const cancelledJob = activeJob;
 
-    previewFrameWorker = null;
+    ffmpegWorker = null;
     workerReady = false;
     cancellationError = null;
 
@@ -140,7 +145,7 @@ function handleWorkerExit(code: number): void {
 
     if (workerCancellationError && cancelledJob) {
         activeJob = null;
-        log.info(`Cancelled preview frame job: ${cancelledJob.request.requestId}`);
+        log.info(`Cancelled ffmpeg worker job: ${cancelledJob.request.requestId}`);
         cancelledJob.reject(workerCancellationError);
 
         if (queuedJobs.length > 0) {
@@ -150,7 +155,7 @@ function handleWorkerExit(code: number): void {
                 })
                 .catch((error) => {
                     const restartError = toError(error);
-                    log.warn(`Failed to restart preview frame worker after cancellation: ${restartError.message}`);
+                    log.warn(`Failed to restart ffmpeg worker after cancellation: ${restartError.message}`);
                     rejectAllJobs(restartError);
                 });
         }
@@ -162,7 +167,7 @@ function handleWorkerExit(code: number): void {
 }
 
 function ensureWorkerReady(): Promise<void> {
-    if (previewFrameWorker && workerReady) {
+    if (ffmpegWorker && workerReady) {
         return Promise.resolve();
     }
 
@@ -176,25 +181,25 @@ function ensureWorkerReady(): Promise<void> {
 
         try {
             const worker = utilityProcess.fork(workerScriptPath, [], {
-                serviceName: 'ffmpeg-preview-frame-worker',
+                serviceName: 'ffmpeg-utility-worker',
                 stdio: 'pipe',
             });
 
-            previewFrameWorker = worker;
+            ffmpegWorker = worker;
             workerReady = false;
             isDisposing = false;
 
             worker.on('spawn', () => {
-                log.info(`Preview frame worker spawned (pid=${worker.pid ?? 'unknown'}).`);
+                log.info(`Ffmpeg worker spawned (pid=${worker.pid ?? 'unknown'}).`);
             });
             worker.on('message', (message) => {
-                handleWorkerMessage(message as PreviewFrameWorkerMessage);
+                handleWorkerMessage(message as FfmpegWorkerMessage);
             });
             worker.on('exit', (code) => {
                 handleWorkerExit(code);
             });
             worker.on('error', (type, location, report) => {
-                log.error(`Preview frame worker fatal error: ${type} ${location}`, report);
+                log.error(`Ffmpeg worker fatal error: ${type} ${location}`, report);
             });
 
             worker.stdout?.on('data', (chunk) => {
@@ -205,7 +210,7 @@ function ensureWorkerReady(): Promise<void> {
             });
         } catch (error) {
             const startupError = toError(error);
-            previewFrameWorker = null;
+            ffmpegWorker = null;
             workerReady = false;
             resetStartupState();
             reject(startupError);
@@ -215,12 +220,16 @@ function ensureWorkerReady(): Promise<void> {
     return workerStartupPromise;
 }
 
-export async function runPreviewFrameJob(request: PreviewFrameJobRequest): Promise<string[] | null> {
+function enqueueWorkerJob<TResult>(
+    request: FfmpegWorkerRequest,
+    mapSuccess: (message: FfmpegWorkerSuccessMessage) => TResult
+): Promise<TResult> {
     return new Promise((resolve, reject) => {
         queuedJobs.push({
             request,
             resolve,
             reject,
+            mapSuccess,
         });
 
         void ensureWorkerReady()
@@ -229,18 +238,66 @@ export async function runPreviewFrameJob(request: PreviewFrameJobRequest): Promi
             })
             .catch((error) => {
                 const startupError = toError(error);
-                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
+                log.warn(`Failed to start ffmpeg worker: ${startupError.message}`);
                 rejectAllJobs(startupError);
             });
     });
 }
 
-export function isPreviewFrameJobCancelledError(error: unknown): boolean {
-    return toError(error).message === PREVIEW_FRAME_JOB_CANCELLED_MESSAGE;
+function expectPreviewFrameSuccess(message: FfmpegWorkerSuccessMessage): string[] | null {
+    if (message.type !== 'worker:preview-job-success') {
+        throw new Error(`Unexpected ffmpeg worker success message: ${message.type}`);
+    }
+    return message.framePaths;
 }
 
-export function cancelPreviewFrameJobsBySource(source: PreviewFrameJobSource): void {
-    const cancelError = new Error(PREVIEW_FRAME_JOB_CANCELLED_MESSAGE);
+function expectVideoThumbnailSuccess(message: FfmpegWorkerSuccessMessage): string | null {
+    if (message.type !== 'worker:video-thumbnail-job-success') {
+        throw new Error(`Unexpected ffmpeg worker success message: ${message.type}`);
+    }
+    return message.thumbnailPath;
+}
+
+function expectVideoDurationSuccess(message: FfmpegWorkerSuccessMessage): number {
+    if (message.type !== 'worker:video-duration-job-success') {
+        throw new Error(`Unexpected ffmpeg worker success message: ${message.type}`);
+    }
+    return message.durationSeconds;
+}
+
+function expectMediaMetadataSuccess(message: FfmpegWorkerSuccessMessage) {
+    if (message.type !== 'worker:media-metadata-job-success') {
+        throw new Error(`Unexpected ffmpeg worker success message: ${message.type}`);
+    }
+    return message.metadata;
+}
+
+export async function runPreviewFrameJob(request: PreviewFrameJobRequest): Promise<string[] | null> {
+    return enqueueWorkerJob(request, expectPreviewFrameSuccess);
+}
+
+export async function runVideoThumbnailJob(request: VideoThumbnailJobRequest): Promise<string | null> {
+    return enqueueWorkerJob(request, expectVideoThumbnailSuccess);
+}
+
+export async function runVideoDurationJob(request: VideoDurationJobRequest): Promise<number> {
+    return enqueueWorkerJob(request, expectVideoDurationSuccess);
+}
+
+export async function runMediaMetadataJob(request: MediaMetadataJobRequest): Promise<ExtractedMediaMetadata | null> {
+    return enqueueWorkerJob(request, expectMediaMetadataSuccess);
+}
+
+export function isFfmpegWorkerJobCancelledError(error: unknown): boolean {
+    return toError(error).message === FFMPEG_WORKER_JOB_CANCELLED_MESSAGE;
+}
+
+export function isPreviewFrameJobCancelledError(error: unknown): boolean {
+    return isFfmpegWorkerJobCancelledError(error);
+}
+
+export function cancelFfmpegJobsBySource(source: FfmpegWorkerJobSource): void {
+    const cancelError = new Error(FFMPEG_WORKER_JOB_CANCELLED_MESSAGE);
     rejectQueuedJobsBySource(source, cancelError);
 
     if (!activeJob || activeJob.request.jobSource !== source) {
@@ -248,18 +305,22 @@ export function cancelPreviewFrameJobsBySource(source: PreviewFrameJobSource): v
     }
 
     cancellationError = cancelError;
-    previewFrameWorker?.kill();
+    ffmpegWorker?.kill();
 }
 
-export function disposePreviewFrameWorker(): void {
-    const disposeError = new Error('Preview frame worker disposed.');
-    const hadWorker = Boolean(previewFrameWorker);
+export function cancelPreviewFrameJobsBySource(source: FfmpegWorkerJobSource): void {
+    cancelFfmpegJobsBySource(source);
+}
+
+export function disposeFfmpegWorker(): void {
+    const disposeError = new Error('Ffmpeg worker disposed.');
+    const hadWorker = Boolean(ffmpegWorker);
     isDisposing = true;
     cancellationError = null;
 
-    if (previewFrameWorker) {
-        previewFrameWorker.kill();
-        previewFrameWorker = null;
+    if (ffmpegWorker) {
+        ffmpegWorker.kill();
+        ffmpegWorker = null;
     }
 
     workerReady = false;
@@ -274,4 +335,8 @@ export function disposePreviewFrameWorker(): void {
     if (!hadWorker) {
         isDisposing = false;
     }
+}
+
+export function disposePreviewFrameWorker(): void {
+    disposeFfmpegWorker();
 }

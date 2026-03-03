@@ -27,7 +27,7 @@ import { registerStorageHandlers } from './ipc/storage';
 import { registerRatingHandlers } from './ipc/rating';
 import { registerSearchHandlers } from './ipc/search';
 import { syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
-import { disposePreviewFrameWorker } from './services/previewFrameWorkerService';
+import { disposeFfmpegWorker } from './services/previewFrameWorkerService';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -186,7 +186,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-    disposePreviewFrameWorker();
+    disposeFfmpegWorker();
 });
 
 process.on('uncaughtException', (error) => {

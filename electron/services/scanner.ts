@@ -6,7 +6,7 @@ import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { generateThumbnail, getVideoDuration, getMediaMetadata, generatePreviewFrames, checkIsAnimated } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
-import { cancelPreviewFrameJobsBySource } from './previewFrameWorkerService';
+import { cancelFfmpegJobsBySource } from './previewFrameWorkerService';
 import * as archiveHandler from './archiveHandler';
 
 const log = logger.scope('Scanner');
@@ -145,7 +145,7 @@ export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) =>
 let scanCancelled = false;
 export function cancelScan() {
     scanCancelled = true;
-    cancelPreviewFrameJobsBySource('scan');
+    cancelFfmpegJobsBySource('scan');
 }
 export function isScanCancelled() {
     return scanCancelled;
@@ -413,7 +413,11 @@ async function scanDirectoryInternal(
                                 });
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
-                            const generated = await thumbnailLimit(() => generateThumbnail(fullPath, thumbnailResolutionSetting));
+                            const generated = await thumbnailLimit(() => generateThumbnail(
+                                fullPath,
+                                thumbnailResolutionSetting,
+                                { jobSource: 'scan' }
+                            ));
                             if (scanCancelled) return;
                             if (generated) thumbnailPath = generated;
                         } catch (e) {
@@ -425,7 +429,7 @@ async function scanDirectoryInternal(
                     let duration = existing?.duration;
                     if ((type === 'video' || type === 'audio') && !duration) {
                         try {
-                            duration = await getVideoDuration(fullPath);
+                            duration = await getVideoDuration(fullPath, { jobSource: 'scan' });
                             if (scanCancelled) return;
                         } catch (e) {
                             log.error('Duration extraction failed:', e);
@@ -526,7 +530,7 @@ async function scanDirectoryInternal(
 
                     if ((type === 'video' || type === 'audio') && !metadata) {
                         try {
-                            const mediaMeta = await getMediaMetadata(fullPath);
+                            const mediaMeta = await getMediaMetadata(fullPath, { jobSource: 'scan' });
                             if (scanCancelled) return;
                             if (mediaMeta) {
                                 metadata = JSON.stringify(mediaMeta);
