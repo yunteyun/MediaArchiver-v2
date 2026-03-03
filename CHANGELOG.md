@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - 描画・一覧再読込・右クリック応答の開発向け計測ログを、安全な限定ログとして追加した（表示への変更なし）。
 
+### Fixed
+- 開発向け計測ログの有効化時に一覧UIが表示されなくなる問題を修正。
+
 ---
 
 ## [1.5.0d2] - 2026-03-03

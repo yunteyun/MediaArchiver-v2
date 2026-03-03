@@ -278,31 +278,6 @@ export const FileGrid = React.memo(() => {
         return () => resizeObserver.disconnect();
     }, [observedElement]);
 
-    useEffect(() => {
-        if (!perfDebugEnabled) return;
-
-        console.debug('[perf][FileGrid][layout]', {
-            containerWidth: Math.round(containerWidth),
-            columns,
-            cardHeight,
-            effectiveCardWidth,
-            effectiveThumbnailHeight,
-            rows,
-            gridItemCount: gridItems.length,
-            groupBy,
-        });
-    }, [
-        perfDebugEnabled,
-        containerWidth,
-        columns,
-        cardHeight,
-        effectiveCardWidth,
-        effectiveThumbnailHeight,
-        rows,
-        gridItems.length,
-        groupBy,
-    ]);
-
     // サムネイル再作成イベントをリッスン
     useEffect(() => {
         const unsubscribe = window.electronAPI.onThumbnailRegenerated((fileId: string) => {
@@ -382,6 +357,31 @@ export const FileGrid = React.memo(() => {
     }, [config, containerWidth, displayMode]);
 
     const rows = useMemo(() => Math.ceil(gridItems.length / columns), [gridItems.length, columns]);
+
+    useEffect(() => {
+        if (!perfDebugEnabled) return;
+
+        console.debug('[perf][FileGrid][layout]', {
+            containerWidth: Math.round(containerWidth),
+            columns,
+            cardHeight,
+            effectiveCardWidth,
+            effectiveThumbnailHeight,
+            rows,
+            gridItemCount: gridItems.length,
+            groupBy,
+        });
+    }, [
+        perfDebugEnabled,
+        containerWidth,
+        columns,
+        cardHeight,
+        effectiveCardWidth,
+        effectiveThumbnailHeight,
+        rows,
+        gridItems.length,
+        groupBy,
+    ]);
 
     const groupedVirtualRows = useMemo((): GroupVirtualRow[] => {
         if (groupBy === 'none') return [];
