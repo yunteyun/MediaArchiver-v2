@@ -1,3 +1,5 @@
+export type PreviewFrameJobSource = 'scan' | 'interactive';
+
 export interface PreviewFrameJobRequest {
     type: 'worker:run-preview-job';
     requestId: string;
@@ -6,6 +8,7 @@ export interface PreviewFrameJobRequest {
     frameCount: number;
     frameWidth: number;
     quality: number;
+    jobSource: PreviewFrameJobSource;
 }
 
 export interface PreviewFrameJobSuccess {

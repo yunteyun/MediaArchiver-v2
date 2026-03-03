@@ -6,6 +6,7 @@ import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { generateThumbnail, getVideoDuration, getMediaMetadata, generatePreviewFrames, checkIsAnimated } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
+import { cancelPreviewFrameJobsBySource } from './previewFrameWorkerService';
 import * as archiveHandler from './archiveHandler';
 
 const log = logger.scope('Scanner');
@@ -144,6 +145,7 @@ export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) =>
 let scanCancelled = false;
 export function cancelScan() {
     scanCancelled = true;
+    cancelPreviewFrameJobsBySource('scan');
 }
 export function isScanCancelled() {
     return scanCancelled;
@@ -165,6 +167,17 @@ export function setScanThrottleMs(ms: number) {
 }
 export function getScanThrottleMs() {
     return scanThrottleMsSetting;
+}
+
+async function waitForScanThrottle(ms: number): Promise<void> {
+    if (ms <= 0) return;
+
+    let remaining = ms;
+    while (remaining > 0 && !scanCancelled) {
+        const delay = Math.min(remaining, 50);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        remaining -= delay;
+    }
 }
 
 // サムネイル生成解像度（幅px、デフォルト: 320）
@@ -413,6 +426,7 @@ async function scanDirectoryInternal(
                     if ((type === 'video' || type === 'audio') && !duration) {
                         try {
                             duration = await getVideoDuration(fullPath);
+                            if (scanCancelled) return;
                         } catch (e) {
                             log.error('Duration extraction failed:', e);
                         }
@@ -454,11 +468,15 @@ async function scanDirectoryInternal(
                                 });
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
-                            previewFrames = await thumbnailLimit(() => generatePreviewFrames(fullPath, previewFrameCountSetting)) || undefined;
+                            previewFrames = await thumbnailLimit(() => generatePreviewFrames(
+                                fullPath,
+                                previewFrameCountSetting,
+                                { jobSource: 'scan' }
+                            )) || undefined;
 
                             // スキャン速度抑制（コイル鳴き対策）
                             if (scanThrottleMsSetting > 0) {
-                                await new Promise(resolve => setTimeout(resolve, scanThrottleMsSetting));
+                                await waitForScanThrottle(scanThrottleMsSetting);
                             }
 
                             if (scanCancelled) return;
@@ -482,6 +500,7 @@ async function scanDirectoryInternal(
                             }
                             const meta = await archiveHandler.getArchiveMetadata(fullPath);
                             metadata = JSON.stringify(meta);
+                            if (scanCancelled) return;
                         } catch (e) {
                             log.error('Archive metadata extraction failed:', e);
                         }
@@ -492,6 +511,7 @@ async function scanDirectoryInternal(
                         try {
                             const sharp = (await import('sharp')).default;
                             const imgMeta = await sharp(fullPath).metadata();
+                            if (scanCancelled) return;
                             if (imgMeta.width && imgMeta.height) {
                                 metadata = JSON.stringify({
                                     width: imgMeta.width,
@@ -507,6 +527,7 @@ async function scanDirectoryInternal(
                     if ((type === 'video' || type === 'audio') && !metadata) {
                         try {
                             const mediaMeta = await getMediaMetadata(fullPath);
+                            if (scanCancelled) return;
                             if (mediaMeta) {
                                 metadata = JSON.stringify(mediaMeta);
                             }
@@ -522,6 +543,7 @@ async function scanDirectoryInternal(
                         if (!existing || existing.is_animated === undefined || existing.is_animated === 0) {
                             try {
                                 isAnimated = await checkIsAnimated(fullPath);
+                                if (scanCancelled) return;
                             } catch (e) {
                                 log.error('Animation check failed:', e);
                             }
@@ -625,6 +647,32 @@ export async function scanDirectory(
         const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(rootFolderId);
         const total = await countFiles(dirPath, effectiveScanFilters);
 
+        if (scanCancelled) {
+            onBatchCommitted?.({
+                rootFolderId,
+                scanPath: dirPath,
+                committedCount: 0,
+                totalCommitted: 0,
+                removedCount: 0,
+                stage: 'cancelled'
+            });
+            db.updateFolderLastScanStatus(rootFolderId, {
+                at: Date.now(),
+                status: 'cancelled',
+                message: 'キャンセル: 0件新規, 0件更新, 0件スキップ'
+            });
+            if (onProgress) {
+                onProgress({
+                    phase: 'complete',
+                    current: 0,
+                    total,
+                    message: 'キャンセル: 0件新規, 0件更新, 0件スキップ',
+                    stats: { newCount: 0, updateCount: 0, skipCount: 0 }
+                });
+            }
+            return;
+        }
+
         if (onProgress) {
             onProgress({ phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
         }
@@ -657,22 +705,7 @@ export async function scanDirectory(
             });
         }
 
-        // Orphan check (simplified)
-        const registeredFiles = db.getFiles(rootFolderId);
         let removedCount = 0;
-        for (const file of registeredFiles) {
-            const isMissingOnDisk = !fs.existsSync(file.path);
-            const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
-            const disabledByProfile =
-                type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
-                    ? !isScanTypeEnabled(type, state.scanFilters)
-                    : false;
-
-            if (isMissingOnDisk || disabledByProfile) {
-                db.deleteFile(file.id);
-                removedCount++;
-            }
-        }
 
         // キャンセルされた場合
         if (scanCancelled) {
@@ -699,6 +732,22 @@ export async function scanDirectory(
                 });
             }
             return;
+        }
+
+        // Orphan check (simplified)
+        const registeredFiles = db.getFiles(rootFolderId);
+        for (const file of registeredFiles) {
+            const isMissingOnDisk = !fs.existsSync(file.path);
+            const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
+            const disabledByProfile =
+                type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+                    ? !isScanTypeEnabled(type, state.scanFilters)
+                    : false;
+
+            if (isMissingOnDisk || disabledByProfile) {
+                db.deleteFile(file.id);
+                removedCount++;
+            }
         }
 
         state.onBatchCommitted?.({

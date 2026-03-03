@@ -5,12 +5,14 @@ import { logger } from './logger';
 import type {
     PreviewFrameJobFailure,
     PreviewFrameJobRequest,
+    PreviewFrameJobSource,
     PreviewFrameJobSuccess,
     PreviewFrameWorkerMessage,
 } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('PreviewFrameWorkerService');
 const workerScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'previewFrameWorker.js');
+const PREVIEW_FRAME_JOB_CANCELLED_MESSAGE = 'Preview frame worker job cancelled.';
 
 interface QueuedPreviewFrameJob {
     request: PreviewFrameJobRequest;
@@ -25,6 +27,7 @@ let resolveWorkerStartup: (() => void) | null = null;
 let rejectWorkerStartup: ((error: Error) => void) | null = null;
 let activeJob: QueuedPreviewFrameJob | null = null;
 let isDisposing = false;
+let cancellationError: Error | null = null;
 const queuedJobs: QueuedPreviewFrameJob[] = [];
 
 function toError(error: unknown): Error {
@@ -59,6 +62,18 @@ function rejectAllJobs(error: Error): void {
     while (queuedJobs.length > 0) {
         const queuedJob = queuedJobs.shift();
         queuedJob?.reject(error);
+    }
+}
+
+function rejectQueuedJobsBySource(source: PreviewFrameJobSource, error: Error): void {
+    for (let i = queuedJobs.length - 1; i >= 0; i -= 1) {
+        const queuedJob = queuedJobs[i];
+        if (queuedJob.request.jobSource !== source) {
+            continue;
+        }
+
+        queuedJobs.splice(i, 1);
+        queuedJob.reject(error);
     }
 }
 
@@ -106,9 +121,12 @@ function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
 function handleWorkerExit(code: number): void {
     const exitError = new Error(`Preview frame worker exited with code ${code}.`);
     const wasDisposing = isDisposing;
+    const workerCancellationError = cancellationError;
+    const cancelledJob = activeJob;
 
     previewFrameWorker = null;
     workerReady = false;
+    cancellationError = null;
 
     if (workerStartupPromise) {
         rejectWorkerStartup?.(exitError);
@@ -117,6 +135,25 @@ function handleWorkerExit(code: number): void {
 
     if (wasDisposing) {
         isDisposing = false;
+        return;
+    }
+
+    if (workerCancellationError && cancelledJob) {
+        activeJob = null;
+        log.info(`Cancelled preview frame job: ${cancelledJob.request.requestId}`);
+        cancelledJob.reject(workerCancellationError);
+
+        if (queuedJobs.length > 0) {
+            void ensureWorkerReady()
+                .then(() => {
+                    dispatchNextJob();
+                })
+                .catch((error) => {
+                    const restartError = toError(error);
+                    log.warn(`Failed to restart preview frame worker after cancellation: ${restartError.message}`);
+                    rejectAllJobs(restartError);
+                });
+        }
         return;
     }
 
@@ -198,10 +235,27 @@ export async function runPreviewFrameJob(request: PreviewFrameJobRequest): Promi
     });
 }
 
+export function isPreviewFrameJobCancelledError(error: unknown): boolean {
+    return toError(error).message === PREVIEW_FRAME_JOB_CANCELLED_MESSAGE;
+}
+
+export function cancelPreviewFrameJobsBySource(source: PreviewFrameJobSource): void {
+    const cancelError = new Error(PREVIEW_FRAME_JOB_CANCELLED_MESSAGE);
+    rejectQueuedJobsBySource(source, cancelError);
+
+    if (!activeJob || activeJob.request.jobSource !== source) {
+        return;
+    }
+
+    cancellationError = cancelError;
+    previewFrameWorker?.kill();
+}
+
 export function disposePreviewFrameWorker(): void {
     const disposeError = new Error('Preview frame worker disposed.');
     const hadWorker = Boolean(previewFrameWorker);
     isDisposing = true;
+    cancellationError = null;
 
     if (previewFrameWorker) {
         previewFrameWorker.kill();
