@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
+### Changed
+- 動画プレビューフレーム生成を別プロセス化し、スキャン中や再生成中でもアプリ操作が重くなりにくいよう改善。
 
 ---
 
