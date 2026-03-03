@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - 開発向け計測ログの有効化時に一覧UIが表示されなくなる問題を修正。
+- フォルダ選択時に左サイドバーのフォルダ一覧とツリー統計を不要に再読込していた問題を抑え、一覧切り替え時のもたつきを軽減。
 
 ---
 
