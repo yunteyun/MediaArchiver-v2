@@ -1,12 +1,12 @@
 ﻿# ROADMAP
 
 ## 進行中 (In Progress)
+- ffmpeg Utility Process 再検証 Step 1（動画プレビューフレームだけを最小構成で再導入し退行有無を切り分ける）
 
 ## 予定 (Planned)
 ### 直近
 
 ### 将来候補
-- ffmpeg Worker / Utility Process 化（コスト: 高、リスク: 高）
 - スキャン性能改善（バックグラウンド/プログレッシブスキャン）（コスト: 高、リスク: 高）
 
 ## Backlog

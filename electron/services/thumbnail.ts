@@ -9,6 +9,8 @@ import { logger } from './logger';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 import { logPerf, startPerfTimer } from './perfDebug';
+import { runPreviewFrameJob } from './previewFrameWorkerService';
+import type { PreviewFrameJobRequest } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('Thumbnail');
 
@@ -232,14 +234,57 @@ function generateAudioThumbnail(audioPath: string): Promise<string | null> {
  * @returns カンマ区切りのフレームパス文字列
  */
 export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
+    const perfStartedAt = startPerfTimer();
+    const requestId = uuidv4();
     const videoId = uuidv4();
     const frameDir = createPreviewFramesDir(videoId, getCurrentProfileIdForThumbnails());
+
+    const request: PreviewFrameJobRequest = {
+        type: 'worker:run-preview-job',
+        requestId,
+        videoPath,
+        frameDir,
+        frameCount,
+        frameWidth: 256,
+        quality: THUMBNAIL_WEBP_QUALITY.previewFrame,
+    };
+
+    try {
+        const framePaths = await runPreviewFrameJob(request);
+        logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
+            file: path.basename(videoPath),
+            frameCount,
+            generated: framePaths?.length ?? 0,
+            ok: framePaths !== null,
+            mode: 'worker'
+        });
+        return framePaths?.join(',') ?? null;
+    } catch (error) {
+        const fallbackError = error instanceof Error ? error.message : String(error);
+        log.warn(`Preview frame worker failed for ${path.basename(videoPath)}. Falling back to inline generation. ${fallbackError}`);
+        logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
+            file: path.basename(videoPath),
+            frameCount,
+            ok: false,
+            mode: 'worker-fallback',
+            error: fallbackError
+        });
+        return generatePreviewFramesInline(videoPath, frameCount, frameDir);
+    }
+}
+
+async function generatePreviewFramesInline(
+    videoPath: string,
+    frameCount: number = 6,
+    frameDir?: string
+): Promise<string | null> {
+    const resolvedFrameDir = frameDir ?? createPreviewFramesDir(uuidv4(), getCurrentProfileIdForThumbnails());
     const perfStartedAt = startPerfTimer();
 
     try {
         // フレームディレクトリ作成
-        if (!fs.existsSync(frameDir)) {
-            fs.mkdirSync(frameDir, { recursive: true });
+        if (!fs.existsSync(resolvedFrameDir)) {
+            fs.mkdirSync(resolvedFrameDir, { recursive: true });
         }
 
         // 動画の長さを取得
@@ -258,7 +303,8 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                 file: path.basename(videoPath),
                 frameCount,
                 ok: false,
-                reason: 'short-duration'
+                reason: 'short-duration',
+                mode: 'inline'
             });
             return null;
         }
@@ -279,19 +325,19 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                 ])
                 .screenshots({
                     count: frameCount,
-                    folder: frameDir,
+                    folder: resolvedFrameDir,
                     filename: 'frame_%02d.webp',
                     size: '256x?',  // Phase 24: 320→256px
                     timemarks: timemarks
                 })
                 .on('end', () => {
                     // ディレクトリの内容を確認
-                    const filesInDir = fs.readdirSync(frameDir);
+                    const filesInDir = fs.readdirSync(resolvedFrameDir);
 
                     // 生成されたフレームのパスを収集（想定形式: frame_01.webp）
                     const framePaths: string[] = [];
                     for (let i = 1; i <= frameCount; i++) {
-                        const framePath = path.join(frameDir, `frame_${i.toString().padStart(2, '0')}.webp`);
+                        const framePath = path.join(resolvedFrameDir, `frame_${i.toString().padStart(2, '0')}.webp`);
                         if (fs.existsSync(framePath)) {
                             framePaths.push(framePath);
                         }
@@ -302,7 +348,8 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                             file: path.basename(videoPath),
                             frameCount,
                             generated: framePaths.length,
-                            ok: true
+                            ok: true,
+                            mode: 'inline'
                         });
                         resolve(framePaths.join(','));
                     } else {
@@ -310,12 +357,13 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                         const allWebps = filesInDir
                             .filter(f => f.endsWith('.webp'))
                             .sort()
-                            .map(f => path.join(frameDir, f));
+                            .map(f => path.join(resolvedFrameDir, f));
                         logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
                             file: path.basename(videoPath),
                             frameCount,
                             generated: allWebps.length,
-                            ok: allWebps.length > 0
+                            ok: allWebps.length > 0,
+                            mode: 'inline'
                         });
                         resolve(allWebps.length > 0 ? allWebps.join(',') : null);
                     }
@@ -325,7 +373,8 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                     logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
                         file: path.basename(videoPath),
                         frameCount,
-                        ok: false
+                        ok: false,
+                        mode: 'inline'
                     });
                     resolve(null);
                 });
@@ -335,7 +384,8 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
         logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
             file: path.basename(videoPath),
             frameCount,
-            ok: false
+            ok: false,
+            mode: 'inline'
         });
         return null;
     }

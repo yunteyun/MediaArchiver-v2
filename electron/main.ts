@@ -27,6 +27,7 @@ import { registerStorageHandlers } from './ipc/storage';
 import { registerRatingHandlers } from './ipc/rating';
 import { registerSearchHandlers } from './ipc/search';
 import { syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
+import { disposePreviewFrameWorker } from './services/previewFrameWorkerService';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -182,6 +183,10 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+
+app.on('before-quit', () => {
+    disposePreviewFrameWorker();
 });
 
 process.on('uncaughtException', (error) => {

@@ -1,24 +1,40 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import electron from 'vite-plugin-electron/simple';
+import electronFlat from 'vite-plugin-electron';
 import path from 'path';
 
-export default defineConfig({
+const electronExternal = ['better-sqlite3', 'sharp', 'fluent-ffmpeg', 'ffmpeg-static', 'ffprobe-static'];
+
+export default defineConfig(async () => ({
     plugins: [
         react(),
-        electron({
+        ...(await electron({
             main: {
                 entry: 'electron/main.ts',
                 vite: {
                     build: {
                         rollupOptions: {
-                            external: ['better-sqlite3', 'sharp', 'fluent-ffmpeg', 'ffmpeg-static', 'ffprobe-static'],
+                            external: electronExternal,
                         },
                     },
                 },
             },
             preload: {
                 input: 'electron/preload.ts',
+            },
+        })),
+        ...electronFlat({
+            entry: 'electron/utility/previewFrameWorker.ts',
+            vite: {
+                build: {
+                    rollupOptions: {
+                        external: electronExternal,
+                    },
+                },
+            },
+            onstart() {
+                // Build the utility-process entry during dev without starting another Electron app.
             },
         }),
     ],
@@ -27,4 +43,4 @@ export default defineConfig({
             '@': path.resolve(__dirname, './src'),
         },
     },
-});
+}));
