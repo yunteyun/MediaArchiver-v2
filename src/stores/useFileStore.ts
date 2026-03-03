@@ -16,7 +16,7 @@ interface FileState {
     folderFileCounts: Record<string, number>;
     folderThumbnails: Record<string, string>;
     // アクション
-    setFiles: (files: MediaFile[]) => void;
+    setFiles: (files: MediaFile[], options?: { reloadTagCache?: boolean }) => void;
     setCurrentFolderId: (id: string | null) => void;
     selectFile: (id: string) => void;                  // 単一選択（置き換え + anchor更新）
     toggleSelection: (id: string) => void;             // 選択トグル（Ctrl+クリック + anchor更新）
@@ -43,6 +43,9 @@ interface FileState {
     updateFileExternalOpenCount: (fileId: string, count: number, timestamp: number) => void;
 }
 
+const FILE_TAG_CACHE_RELOAD_DEBOUNCE_MS = 250;
+let pendingTagCacheReloadTimer: ReturnType<typeof setTimeout> | null = null;
+
 export const useFileStore = create<FileState>((set, get) => ({
     files: [],
     fileMap: new Map(),
@@ -54,11 +57,22 @@ export const useFileStore = create<FileState>((set, get) => ({
     folderFileCounts: {},
     folderThumbnails: {},
 
-    setFiles: (files) => {
+    setFiles: (files, options) => {
         const fileMap = new Map(files.map(f => [f.id, f]));
         set({ files, fileMap, focusedId: null });
-        // ファイルが更新されたらタグキャッシュをリロード
-        get().loadFileTagsCache();
+        if (options?.reloadTagCache === false) {
+            return;
+        }
+
+        if (pendingTagCacheReloadTimer) {
+            clearTimeout(pendingTagCacheReloadTimer);
+        }
+
+        // 短時間に複数回 setFiles されるケースでは全件タグ再取得をまとめる。
+        pendingTagCacheReloadTimer = setTimeout(() => {
+            pendingTagCacheReloadTimer = null;
+            get().loadFileTagsCache();
+        }, FILE_TAG_CACHE_RELOAD_DEBOUNCE_MS);
     },
     setCurrentFolderId: (id) => set({ currentFolderId: id }),
 

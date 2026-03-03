@@ -129,6 +129,17 @@ export type ScanProgressCallback = (progress: {
     };
 }) => void;
 
+export interface ScanBatchCommittedPayload {
+    rootFolderId: string;
+    scanPath: string;
+    committedCount: number;
+    totalCommitted: number;
+    removedCount: number;
+    stage: 'batch' | 'complete' | 'cancelled';
+}
+
+export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) => void;
+
 // スキャンキャンセル用フラグ
 let scanCancelled = false;
 export function cancelScan() {
@@ -177,8 +188,8 @@ interface PendingWrite {
 }
 
 // バッチコミット関数
-function commitBatch(pendingWrites: PendingWrite[]) {
-    if (pendingWrites.length === 0) return;
+function commitBatch(pendingWrites: PendingWrite[]): number {
+    if (pendingWrites.length === 0) return 0;
 
     const database = dbManager.getDb();
     const transaction = database.transaction(() => {
@@ -188,6 +199,7 @@ function commitBatch(pendingWrites: PendingWrite[]) {
     });
 
     transaction();
+    return pendingWrites.length;
 }
 
 // ファイル数をカウント (再帰)
@@ -252,6 +264,9 @@ async function scanDirectoryInternal(
         stats: { newCount: number; updateCount: number; skipCount: number };
         pendingWrites: PendingWrite[];
         scanFilters: ScanFileTypeCategoryFilters;
+        scanPath: string;
+        committedCount: number;
+        onBatchCommitted?: ScanBatchCommittedCallback;
     }
 ) {
     // パス長チェック
@@ -542,8 +557,17 @@ async function scanDirectoryInternal(
 
                     // バッチサイズに達したらコミット
                     if (state.pendingWrites.length >= TRANSACTION_BATCH_SIZE) {
-                        commitBatch(state.pendingWrites);
+                        const committedCount = commitBatch(state.pendingWrites);
                         state.pendingWrites = [];
+                        state.committedCount += committedCount;
+                        state.onBatchCommitted?.({
+                            rootFolderId,
+                            scanPath: state.scanPath,
+                            committedCount,
+                            totalCommitted: state.committedCount,
+                            removedCount: 0,
+                            stage: 'batch'
+                        });
                     }
 
                     // Update stats
@@ -579,7 +603,12 @@ async function scanDirectoryInternal(
     }
 }
 
-export async function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback) {
+export async function scanDirectory(
+    dirPath: string,
+    rootFolderId: string,
+    onProgress?: ScanProgressCallback,
+    onBatchCommitted?: ScanBatchCommittedCallback
+) {
     // キャンセルフラグをリセット
     scanCancelled = false;
     db.updateFolderLastScanStatus(rootFolderId, {
@@ -606,14 +635,26 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             lastProgressTime: 0,
             stats: { newCount: 0, updateCount: 0, skipCount: 0 },
             pendingWrites: [] as PendingWrite[],
-            scanFilters: effectiveScanFilters
+            scanFilters: effectiveScanFilters,
+            scanPath: dirPath,
+            committedCount: 0,
+            onBatchCommitted,
         };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, state);
 
         // 残りのバッチをコミット
         if (state.pendingWrites.length > 0) {
-            commitBatch(state.pendingWrites);
+            const committedCount = commitBatch(state.pendingWrites);
             state.pendingWrites = [];
+            state.committedCount += committedCount;
+            state.onBatchCommitted?.({
+                rootFolderId,
+                scanPath: dirPath,
+                committedCount,
+                totalCommitted: state.committedCount,
+                removedCount: 0,
+                stage: 'batch'
+            });
         }
 
         // Orphan check (simplified)
@@ -635,6 +676,14 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
 
         // キャンセルされた場合
         if (scanCancelled) {
+            state.onBatchCommitted?.({
+                rootFolderId,
+                scanPath: dirPath,
+                committedCount: 0,
+                totalCommitted: state.committedCount,
+                removedCount,
+                stage: 'cancelled'
+            });
             db.updateFolderLastScanStatus(rootFolderId, {
                 at: Date.now(),
                 status: 'cancelled',
@@ -651,6 +700,15 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             }
             return;
         }
+
+        state.onBatchCommitted?.({
+            rootFolderId,
+            scanPath: dirPath,
+            committedCount: 0,
+            totalCommitted: state.committedCount,
+            removedCount,
+            stage: 'complete'
+        });
 
         if (onProgress) {
             console.log(`Scan completed. Total: ${total}, New: ${state.stats.newCount}, Update: ${state.stats.updateCount}, Skip: ${state.stats.skipCount}, Removed: ${removedCount}`);
