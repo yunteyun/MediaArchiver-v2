@@ -129,6 +129,7 @@ declare global {
             openLogFolder: () => Promise<void>;
             selectFile: () => Promise<string | null>;
             validatePath: (appPath: string) => Promise<boolean>;
+            setPerfDebugEnabled: (enabled: boolean) => Promise<{ enabled: boolean }>;
             setExternalApps: (apps: any[]) => Promise<void>;
             openWithApp: (filePath: string, appPath: string, fileId?: string) => Promise<{
                 success: boolean;

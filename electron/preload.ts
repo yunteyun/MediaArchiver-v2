@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openLogFolder: () => ipcRenderer.invoke('app:openLogFolder'),
     selectFile: () => ipcRenderer.invoke('app:selectFile'),
     validatePath: (appPath: string) => ipcRenderer.invoke('app:validatePath', appPath),
+    setPerfDebugEnabled: (enabled: boolean) => ipcRenderer.invoke('app:setPerfDebugEnabled', enabled),
     setExternalApps: (apps: any[]) => ipcRenderer.invoke('app:setExternalApps', apps),
     openWithApp: (filePath: string, appPath: string, fileId?: string) => ipcRenderer.invoke('app:openWithApp', filePath, appPath, fileId),
 

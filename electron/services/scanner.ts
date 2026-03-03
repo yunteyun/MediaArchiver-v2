@@ -7,6 +7,7 @@ import { logger } from './logger';
 import { generateThumbnail, getVideoDuration, getMediaMetadata, generatePreviewFrames, checkIsAnimated } from './thumbnail';
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
 import * as archiveHandler from './archiveHandler';
+import { logPerf, startPerfTimer } from './perfDebug';
 
 const log = logger.scope('Scanner');
 
@@ -580,6 +581,7 @@ async function scanDirectoryInternal(
 }
 
 export async function scanDirectory(dirPath: string, rootFolderId: string, onProgress?: ScanProgressCallback) {
+    const perfStartedAt = startPerfTimer();
     // キャンセルフラグをリセット
     scanCancelled = false;
     db.updateFolderLastScanStatus(rootFolderId, {
@@ -594,7 +596,12 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
         }
 
         const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(rootFolderId);
+        const countStartedAt = startPerfTimer();
         const total = await countFiles(dirPath, effectiveScanFilters);
+        logPerf('scanner.countFiles', countStartedAt, {
+            folder: path.basename(dirPath) || dirPath,
+            total
+        });
 
         if (onProgress) {
             onProgress({ phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
@@ -635,6 +642,15 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
 
         // キャンセルされた場合
         if (scanCancelled) {
+            logPerf('scanner.scanDirectory', perfStartedAt, {
+                folder: path.basename(dirPath) || dirPath,
+                total,
+                phase: 'cancelled',
+                newCount: state.stats.newCount,
+                updateCount: state.stats.updateCount,
+                skipCount: state.stats.skipCount,
+                removedCount
+            });
             db.updateFolderLastScanStatus(rootFolderId, {
                 at: Date.now(),
                 status: 'cancelled',
@@ -667,8 +683,22 @@ export async function scanDirectory(dirPath: string, rootFolderId: string, onPro
             status: 'success',
             message: `完了: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ, ${removedCount}件削除`
         });
+        logPerf('scanner.scanDirectory', perfStartedAt, {
+            folder: path.basename(dirPath) || dirPath,
+            total,
+            phase: 'complete',
+            newCount: state.stats.newCount,
+            updateCount: state.stats.updateCount,
+            skipCount: state.stats.skipCount,
+            removedCount
+        });
 
     } catch (e) {
+        logPerf('scanner.scanDirectory', perfStartedAt, {
+            folder: path.basename(dirPath) || dirPath,
+            phase: 'error',
+            error: e instanceof Error ? e.message : String(e)
+        });
         db.updateFolderLastScanStatus(rootFolderId, {
             at: Date.now(),
             status: 'error',

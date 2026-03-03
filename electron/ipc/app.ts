@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { incrementExternalOpenCount } from '../services/database';
+import { setPerfDebugEnabled } from '../services/perfDebug';
 
 // 外部アプリのキャッシュ
 interface ExternalApp {
@@ -23,6 +24,10 @@ export function getCachedExternalApps(): ExternalApp[] {
 export function registerAppHandlers() {
     // アプリバージョンを返す（Phase 26）
     ipcMain.handle('app:getVersion', () => app.getVersion());
+
+    ipcMain.handle('app:setPerfDebugEnabled', async (_event, enabled: boolean) => {
+        return { enabled: setPerfDebugEnabled(enabled) };
+    });
 
     // ファイルをデフォルトアプリで開く
     ipcMain.handle('app:openExternal', async (_event, filePath: string) => {

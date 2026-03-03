@@ -8,6 +8,7 @@ import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
+import { logPerf, startPerfTimer } from './perfDebug';
 
 const log = logger.scope('Thumbnail');
 
@@ -48,9 +49,14 @@ function parseFps(value?: string): number | undefined {
 }
 
 export async function getMediaMetadata(filePath: string): Promise<ExtractedMediaMetadata | null> {
+    const perfStartedAt = startPerfTimer();
     return new Promise((resolve) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
             if (err || !metadata) {
+                logPerf('thumbnail.getMediaMetadata', perfStartedAt, {
+                    file: path.basename(filePath),
+                    ok: false
+                });
                 resolve(null);
                 return;
             }
@@ -92,7 +98,14 @@ export async function getMediaMetadata(filePath: string): Promise<ExtractedMedia
                 extracted.bitrate = bitrate;
             }
 
-            resolve(Object.keys(extracted).length > 0 ? extracted : null);
+            const result = Object.keys(extracted).length > 0 ? extracted : null;
+            logPerf('thumbnail.getMediaMetadata', perfStartedAt, {
+                file: path.basename(filePath),
+                ok: !!result,
+                hasVideo: !!videoStream,
+                hasAudio: !!audioStream
+            });
+            resolve(result);
         });
     });
 }
@@ -130,6 +143,7 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
  */
 async function generateVideoThumbnail(videoPath: string, resolution: number = 320): Promise<string | null> {
     const outputPath = createThumbnailOutputPath('video', '.webp', getCurrentProfileIdForThumbnails());
+    const perfStartedAt = startPerfTimer();
 
     try {
         // ffprobe で動画の長さを取得
@@ -157,15 +171,32 @@ async function generateVideoThumbnail(videoPath: string, resolution: number = 32
                 ])
                 .seekInput(seekSec)
                 .output(outputPath)
-                .on('end', () => resolve(outputPath))
+                .on('end', () => {
+                    logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
+                        file: path.basename(videoPath),
+                        resolution,
+                        ok: true
+                    });
+                    resolve(outputPath);
+                })
                 .on('error', (err) => {
                     log.error('Error generating video thumbnail:', err);
+                    logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
+                        file: path.basename(videoPath),
+                        resolution,
+                        ok: false
+                    });
                     resolve(null);
                 })
                 .run();
         });
     } catch (e) {
         log.error('generateVideoThumbnail exception:', e);
+        logPerf('thumbnail.generateVideoThumbnail', perfStartedAt, {
+            file: path.basename(videoPath),
+            resolution,
+            ok: false
+        });
         return null;
     }
 }
@@ -203,6 +234,7 @@ function generateAudioThumbnail(audioPath: string): Promise<string | null> {
 export async function generatePreviewFrames(videoPath: string, frameCount: number = 6): Promise<string | null> {
     const videoId = uuidv4();
     const frameDir = createPreviewFramesDir(videoId, getCurrentProfileIdForThumbnails());
+    const perfStartedAt = startPerfTimer();
 
     try {
         // フレームディレクトリ作成
@@ -222,6 +254,12 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
         });
 
         if (durationSec < 1) {
+            logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
+                file: path.basename(videoPath),
+                frameCount,
+                ok: false,
+                reason: 'short-duration'
+            });
             return null;
         }
 
@@ -260,6 +298,12 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                     }
 
                     if (framePaths.length > 0) {
+                        logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
+                            file: path.basename(videoPath),
+                            frameCount,
+                            generated: framePaths.length,
+                            ok: true
+                        });
                         resolve(framePaths.join(','));
                     } else {
                         // フォールバック: ディレクトリ内の全WebPを使用
@@ -267,16 +311,32 @@ export async function generatePreviewFrames(videoPath: string, frameCount: numbe
                             .filter(f => f.endsWith('.webp'))
                             .sort()
                             .map(f => path.join(frameDir, f));
+                        logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
+                            file: path.basename(videoPath),
+                            frameCount,
+                            generated: allWebps.length,
+                            ok: allWebps.length > 0
+                        });
                         resolve(allWebps.length > 0 ? allWebps.join(',') : null);
                     }
                 })
                 .on('error', (err) => {
                     log.error('Preview frames generation error:', err);
+                    logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
+                        file: path.basename(videoPath),
+                        frameCount,
+                        ok: false
+                    });
                     resolve(null);
                 });
         });
     } catch (e) {
         log.error('PreviewFrames exception:', e);
+        logPerf('thumbnail.generatePreviewFrames', perfStartedAt, {
+            file: path.basename(videoPath),
+            frameCount,
+            ok: false
+        });
         return null;
     }
 }
@@ -300,15 +360,25 @@ async function generateImageThumbnail(imagePath: string, resolution: number = 32
 }
 
 export async function getVideoDuration(videoPath: string): Promise<string> {
+    const perfStartedAt = startPerfTimer();
     return new Promise((resolve) => {
         ffmpeg.ffprobe(videoPath, (err, metadata) => {
             if (err) {
+                logPerf('thumbnail.getVideoDuration', perfStartedAt, {
+                    file: path.basename(videoPath),
+                    ok: false
+                });
                 resolve("");
                 return;
             }
             const durationSec = metadata.format.duration || 0;
             const minutes = Math.floor(durationSec / 60);
             const seconds = Math.floor(durationSec % 60);
+            logPerf('thumbnail.getVideoDuration', perfStartedAt, {
+                file: path.basename(videoPath),
+                ok: true,
+                durationSec: Number(durationSec.toFixed(1))
+            });
             resolve(`${minutes}:${seconds.toString().padStart(2, '0')}`);
         });
     });
