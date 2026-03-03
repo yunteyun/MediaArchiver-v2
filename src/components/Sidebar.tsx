@@ -17,6 +17,10 @@ export const FOLDER_PREFIX = '__folder:';
 export const VIRTUAL_FOLDER_PREFIX = '__vfolder:';
 export const VIRTUAL_FOLDER_RECURSIVE_PREFIX = '__vfolderr:';
 
+function isPerfDebugEnabled(): boolean {
+    return import.meta.env.DEV && (globalThis as { __MA_DEBUG_PERF?: boolean }).__MA_DEBUG_PERF === true;
+}
+
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
     const files = useFileStore((s) => s.files);
@@ -41,8 +45,10 @@ export const Sidebar = React.memo(() => {
     const [pendingAddFolderPath, setPendingAddFolderPath] = useState<string | null>(null);
     const [folderTreeSearch, setFolderTreeSearch] = useState('');
     const [folderTreeRecursiveCountsByPath, setFolderTreeRecursiveCountsByPath] = useState<Record<string, number>>({});
+    const perfDebugEnabled = isPerfDebugEnabled();
 
     const loadFolders = useCallback(async () => {
+        const start = perfDebugEnabled ? performance.now() : 0;
         try {
             const [registered, treeStats] = await Promise.all([
                 window.electronAPI.getFolders(),
@@ -70,10 +76,24 @@ export const Sidebar = React.memo(() => {
                 });
 
             setFolders([...(registered as MediaFolder[]), ...virtualFolders]);
+            if (perfDebugEnabled) {
+                console.debug('[perf][Sidebar][loadFolders]', {
+                    registeredCount: registered.length,
+                    virtualFolderCount: virtualFolders.length,
+                    elapsedMs: Number((performance.now() - start).toFixed(2)),
+                });
+            }
         } catch (e) {
+            if (perfDebugEnabled) {
+                console.debug('[perf][Sidebar][loadFolders]', {
+                    status: 'error',
+                    error: e instanceof Error ? e.message : String(e),
+                    elapsedMs: Number((performance.now() - start).toFixed(2)),
+                });
+            }
             console.error('Failed to load folders:', e);
         }
-    }, []);
+    }, [perfDebugEnabled]);
 
 
 
@@ -119,6 +139,7 @@ export const Sidebar = React.memo(() => {
     }, [pendingAddFolderPath, loadFolders]);
 
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
+        const start = perfDebugEnabled ? performance.now() : 0;
         setCurrentFolderId(folderId);
         useUIStore.getState().closeDuplicateView(); // 重複ビューを閉じる
         useUIStore.getState().setMainView('grid');  // 統計ビューを閉じる
@@ -153,10 +174,25 @@ export const Sidebar = React.memo(() => {
             }
 
             setFiles(files);
+            if (perfDebugEnabled) {
+                console.debug('[perf][Sidebar][handleSelectFolder]', {
+                    folderId: folderId ?? ALL_FILES_ID,
+                    fileCount: files.length,
+                    elapsedMs: Number((performance.now() - start).toFixed(2)),
+                });
+            }
         } catch (e) {
+            if (perfDebugEnabled) {
+                console.debug('[perf][Sidebar][handleSelectFolder]', {
+                    folderId: folderId ?? ALL_FILES_ID,
+                    status: 'error',
+                    error: e instanceof Error ? e.message : String(e),
+                    elapsedMs: Number((performance.now() - start).toFixed(2)),
+                });
+            }
             console.error('Error loading files:', e);
         }
-    }, [setCurrentFolderId, setFiles]);
+    }, [setCurrentFolderId, setFiles, perfDebugEnabled]);
 
     // 「すべてのファイル」を選択
     const handleSelectAllFiles = useCallback(() => {

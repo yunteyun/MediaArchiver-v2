@@ -27,11 +27,17 @@ type GroupVirtualRow =
     | { kind: 'header'; key: string; group: import('../utils/groupFiles').FileGroup }
     | { kind: 'files'; key: string; groupKey: string; files: import('../types/file').MediaFile[] };
 
+function isPerfDebugEnabled(): boolean {
+    return import.meta.env.DEV && (globalThis as { __MA_DEBUG_PERF?: boolean }).__MA_DEBUG_PERF === true;
+}
 
 
 export const FileGrid = React.memo(() => {
     const isDev = import.meta.env.DEV;
-    const groupPerfDebugEnabled = isDev && (globalThis as { __MA_DEBUG_GROUP_PERF?: boolean }).__MA_DEBUG_GROUP_PERF === true;
+    const perfDebugEnabled = isPerfDebugEnabled();
+    const groupPerfDebugEnabled =
+        (isDev && (globalThis as { __MA_DEBUG_GROUP_PERF?: boolean }).__MA_DEBUG_GROUP_PERF === true) ||
+        perfDebugEnabled;
     const rawFiles = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
     const focusedId = useFileStore((s) => s.focusedId);
@@ -90,6 +96,7 @@ export const FileGrid = React.memo(() => {
 
     // Sort and filter files in component using useMemo
     const files = useMemo(() => {
+        const start = perfDebugEnabled ? performance.now() : 0;
         // First sort
         const sorted = [...rawFiles].sort((a, b) => {
             let comparison = 0;
@@ -167,8 +174,24 @@ export const FileGrid = React.memo(() => {
             );
         }
 
+        if (perfDebugEnabled) {
+            const activeRatingAxisCount = (Object.entries(ratingFilter) as [string, { min?: number; max?: number }][]).filter(
+                ([, r]) => r.min !== undefined || r.max !== undefined
+            ).length;
+            console.debug('[perf][FileGrid][sortAndFilter]', {
+                rawFileCount: rawFiles.length,
+                resultCount: filtered.length,
+                selectedTagCount: selectedTagIds.length,
+                activeRatingAxisCount,
+                searchActive: searchQuery.trim().length > 0,
+                sortBy,
+                sortOrder,
+                elapsedMs: Number((performance.now() - start).toFixed(2)),
+            });
+        }
+
         return filtered;
-    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, ratingFilter, allFileRatings]);
+    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, ratingFilter, allFileRatings, perfDebugEnabled]);
 
 
     // グループ化されたファイル（Phase 12-10）
@@ -254,6 +277,31 @@ export const FileGrid = React.memo(() => {
         resizeObserver.observe(observedElement);
         return () => resizeObserver.disconnect();
     }, [observedElement]);
+
+    useEffect(() => {
+        if (!perfDebugEnabled) return;
+
+        console.debug('[perf][FileGrid][layout]', {
+            containerWidth: Math.round(containerWidth),
+            columns,
+            cardHeight,
+            effectiveCardWidth,
+            effectiveThumbnailHeight,
+            rows,
+            gridItemCount: gridItems.length,
+            groupBy,
+        });
+    }, [
+        perfDebugEnabled,
+        containerWidth,
+        columns,
+        cardHeight,
+        effectiveCardWidth,
+        effectiveThumbnailHeight,
+        rows,
+        gridItems.length,
+        groupBy,
+    ]);
 
     // サムネイル再作成イベントをリッスン
     useEffect(() => {

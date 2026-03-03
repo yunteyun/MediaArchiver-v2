@@ -57,6 +57,10 @@ function getTagBackgroundColor(colorName: string | undefined): string {
     return color !== undefined ? color : (colorMap.gray as string); // フォールバック: gray
 }
 
+function isPerfDebugEnabled(): boolean {
+    return import.meta.env.DEV && (globalThis as { __MA_DEBUG_PERF?: boolean }).__MA_DEBUG_PERF === true;
+}
+
 type TagSummaryUiConfig = {
     tagChipPaddingClass: string;
     tagChipTextClass: string;
@@ -313,6 +317,7 @@ interface FileCardProps {
 
 
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
+    const perfDebugEnabled = isPerfDebugEnabled();
     // アイコン選択ロジック
     const Icon = useMemo(() => {
         if (file.type === 'video') return Play;
@@ -1043,7 +1048,29 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         // 右クリック対象が選択中に含まれているかを判定
         const effectiveIds = selectedIdsArray.includes(file.id) ? selectedIdsArray : [file.id];
 
-        window.electronAPI.showFileContextMenu(file.id, file.path, effectiveIds, searchDestinations);
+        const start = perfDebugEnabled ? performance.now() : 0;
+        const menuPromise = window.electronAPI.showFileContextMenu(file.id, file.path, effectiveIds, searchDestinations);
+
+        if (perfDebugEnabled) {
+            menuPromise
+                .then(() => {
+                    console.debug('[perf][FileCard][contextMenu]', {
+                        fileId: file.id,
+                        selectedCount: effectiveIds.length,
+                        status: 'resolved',
+                        elapsedMs: Number((performance.now() - start).toFixed(2)),
+                    });
+                })
+                .catch((error) => {
+                    console.debug('[perf][FileCard][contextMenu]', {
+                        fileId: file.id,
+                        selectedCount: effectiveIds.length,
+                        status: 'error',
+                        error: error instanceof Error ? error.message : String(error),
+                        elapsedMs: Number((performance.now() - start).toFixed(2)),
+                    });
+                });
+        }
     };
 
     return (
