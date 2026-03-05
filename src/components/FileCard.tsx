@@ -95,7 +95,7 @@ type FileCardTagSummaryProps = {
 };
 
 function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
-    const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
+    const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge' || displayMode === 'whiteBrowser';
     const isMangaMode = displayMode === 'manga';
 
     if (isStandardDetailedMode) {

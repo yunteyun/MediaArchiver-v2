@@ -7,6 +7,7 @@ import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 type DetailedInfoUiConfig = {
     isMangaMode: boolean;
     isVideoMode: boolean;
+    isWhiteBrowserMode: boolean;
     isBadgeMetaMode: boolean;
     isStandardMode: boolean;
     containerClass: string;
@@ -35,29 +36,32 @@ type DetailedBottomRowProps = {
 function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
     const isMangaMode = displayMode === 'manga';
     const isVideoMode = displayMode === 'video';
+    const isWhiteBrowserMode = displayMode === 'whiteBrowser';
     const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const isBadgeMetaMode =
         isStandardMode ||
         isMangaMode ||
-        isVideoMode;
+        isVideoMode ||
+        isWhiteBrowserMode;
 
     return {
         isMangaMode,
         isVideoMode,
+        isWhiteBrowserMode,
         isBadgeMetaMode,
         isStandardMode,
-        containerClass: `flex flex-col bg-surface-800 ${isMangaMode ? 'px-3 py-1.5 justify-between' : 'px-3.5 py-2.5 justify-start'}`,
+        containerClass: `flex flex-col bg-surface-800 ${isMangaMode ? 'px-3 py-1.5 justify-between' : isWhiteBrowserMode ? 'px-3.5 py-2 justify-start' : 'px-3.5 py-2.5 justify-start'}`,
         titleClass: `text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors ${isMangaMode ? 'mb-0 leading-tight' : 'mb-0.5'}`,
         metaLineClass: `text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`,
-        folderBadgeMaxWidthClass: isMangaMode ? 'max-w-[84px]' : isVideoMode ? 'max-w-[96px]' : 'max-w-[110px]',
+        folderBadgeMaxWidthClass: isMangaMode ? 'max-w-[84px]' : isVideoMode ? 'max-w-[96px]' : isWhiteBrowserMode ? 'max-w-[140px]' : 'max-w-[110px]',
         bottomRowClass: `flex justify-between gap-1 ${
             isMangaMode
                 ? 'items-center'
-                : isStandardMode || isVideoMode
+                : isStandardMode || isVideoMode || isWhiteBrowserMode
                     ? 'items-center mt-auto'
                     : 'items-start mt-auto'
         }`,
-        tagSummaryVisibleCount: isMangaMode ? 2 : 3,
+        tagSummaryVisibleCount: isMangaMode ? 2 : isWhiteBrowserMode ? 4 : 3,
     };
 }
 

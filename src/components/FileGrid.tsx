@@ -21,6 +21,7 @@ const DISPLAY_MODE_CARD_GROWTH: Partial<Record<import('../stores/useSettingsStor
     standardLarge: 16,
     manga: 12,
     video: 12,
+    whiteBrowser: 20,
 };
 
 type GroupVirtualRow =

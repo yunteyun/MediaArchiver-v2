@@ -61,6 +61,20 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             totalHeight: 246,
         },
     },
+    whiteBrowser: {
+        mode: 'whiteBrowser',
+        label: 'WhiteBrowser風',
+        menuOrder: 45,
+        iconKey: 'layoutGrid',
+        infoVariant: 'detailed',
+        layout: {
+            aspectRatio: '16/9',
+            cardWidth: 340,
+            thumbnailHeight: 191,
+            infoAreaHeight: 92,
+            totalHeight: 283,
+        },
+    },
     compact: {
         mode: 'compact',
         // NOTE: Internal key "compact" is kept for persisted settings compatibility.
@@ -85,6 +99,7 @@ export const DISPLAY_MODE_LAYOUT_CONFIGS: Record<DisplayMode, FileCardLayoutConf
     standardLarge: FILE_CARD_DISPLAY_MODE_DEFINITIONS.standardLarge.layout,
     manga: FILE_CARD_DISPLAY_MODE_DEFINITIONS.manga.layout,
     video: FILE_CARD_DISPLAY_MODE_DEFINITIONS.video.layout,
+    whiteBrowser: FILE_CARD_DISPLAY_MODE_DEFINITIONS.whiteBrowser.layout,
     compact: FILE_CARD_DISPLAY_MODE_DEFINITIONS.compact.layout,
 };
 
