@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
+### Fixed
+- FileCard 一覧で1列表示になった時はカード行を左寄せし、中央寄せによる余白の違和感を軽減。
 
 ---
 

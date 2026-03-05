@@ -357,6 +357,7 @@ export const FileGrid = React.memo(() => {
     }, [config, containerWidth, displayMode]);
 
     const rows = useMemo(() => Math.ceil(gridItems.length / columns), [gridItems.length, columns]);
+    const rowJustifyContent: 'center' | 'flex-start' = shouldCenterRows && columns > 1 ? 'center' : 'flex-start';
 
     useEffect(() => {
         if (!perfDebugEnabled) return;
@@ -687,7 +688,7 @@ export const FileGrid = React.memo(() => {
                                         height: `${virtualRow.size}px`,
                                         transform: `translateY(${virtualRow.start}px)`,
                                         display: 'flex',
-                                        justifyContent: shouldCenterRows ? 'center' : 'flex-start',
+                                        justifyContent: rowJustifyContent,
                                         gap: `${CARD_GAP}px`,
                                         padding: `${CARD_GAP / 2}px`,
                                     }}
@@ -748,7 +749,7 @@ export const FileGrid = React.memo(() => {
                                     height: `${virtualRow.size}px`,
                                     transform: `translateY(${virtualRow.start}px)`,
                                     display: 'flex',
-                                    justifyContent: shouldCenterRows ? 'center' : 'flex-start',
+                                    justifyContent: rowJustifyContent,
                                     gap: `${CARD_GAP}px`,
                                     padding: `${CARD_GAP / 2}px`,
                                 }}
