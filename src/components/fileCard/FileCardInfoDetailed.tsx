@@ -41,8 +41,7 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
     const isBadgeMetaMode =
         isStandardMode ||
         isMangaMode ||
-        isVideoMode ||
-        isWhiteBrowserMode;
+        isVideoMode;
 
     return {
         isMangaMode,
@@ -50,18 +49,22 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
         isWhiteBrowserMode,
         isBadgeMetaMode,
         isStandardMode,
-        containerClass: `flex flex-col bg-surface-800 ${isMangaMode ? 'px-3 py-1.5 justify-between' : isWhiteBrowserMode ? 'px-3.5 py-2 justify-start' : 'px-3.5 py-2.5 justify-start'}`,
-        titleClass: `text-sm font-semibold truncate text-white hover:text-primary-400 transition-colors ${isMangaMode ? 'mb-0 leading-tight' : 'mb-0.5'}`,
-        metaLineClass: `text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`,
+        containerClass: `flex flex-col bg-surface-800 ${isMangaMode ? 'px-3 py-1.5 justify-between' : isWhiteBrowserMode ? 'px-2.5 py-2 justify-start' : 'px-3.5 py-2.5 justify-start'}`,
+        titleClass: `font-semibold text-white hover:text-primary-400 transition-colors ${isMangaMode ? 'text-sm mb-0 leading-tight truncate' : isWhiteBrowserMode ? 'text-[12px] leading-snug mb-1 line-clamp-2 break-all' : 'text-sm mb-0.5 truncate'}`,
+        metaLineClass: isWhiteBrowserMode
+            ? 'text-[10px] text-surface-400 leading-snug mb-1 whitespace-normal break-all line-clamp-3'
+            : `text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`,
         folderBadgeMaxWidthClass: isMangaMode ? 'max-w-[84px]' : isVideoMode ? 'max-w-[96px]' : isWhiteBrowserMode ? 'max-w-[140px]' : 'max-w-[110px]',
-        bottomRowClass: `flex justify-between gap-1 ${
-            isMangaMode
-                ? 'items-center'
-                : isStandardMode || isVideoMode || isWhiteBrowserMode
-                    ? 'items-center mt-auto'
-                    : 'items-start mt-auto'
-        }`,
-        tagSummaryVisibleCount: isMangaMode ? 2 : isWhiteBrowserMode ? 4 : 3,
+        bottomRowClass: isWhiteBrowserMode
+            ? 'flex flex-col items-start gap-1 mt-auto'
+            : `flex justify-between gap-1 ${
+                isMangaMode
+                    ? 'items-center'
+                    : isStandardMode || isVideoMode
+                        ? 'items-center mt-auto'
+                        : 'items-start mt-auto'
+            }`,
+        tagSummaryVisibleCount: isMangaMode ? 2 : isWhiteBrowserMode ? 6 : 3,
     };
 }
 
@@ -149,7 +152,7 @@ export const FileCardInfoDetailed = React.memo(({
     return (
         <div
             className={ui.containerClass}
-            style={{ height: `${infoAreaHeight}px` }}
+            style={ui.isWhiteBrowserMode ? { height: '100%' } : { height: `${infoAreaHeight}px` }}
         >
             <h3
                 className={ui.titleClass}

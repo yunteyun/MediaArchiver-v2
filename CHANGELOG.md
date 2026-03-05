@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 - 一覧表示モードに `WhiteBrowser風` を追加し、横長カードでファイル名・タグ・基本情報をまとめて把握しやすい表示プリセットを選べるようにした。
+- WhiteBrowser風表示モードのカード構造を `サムネイル左 / 情報右` の横並びへ調整し、一覧上で情報を同時に読み取りやすくした。
 
 ### Fixed
 - FileCard 一覧で1列表示になった時はカード行を左寄せし、中央寄せによる余白の違和感を軽減。

@@ -346,7 +346,9 @@ export const FileGrid = React.memo(() => {
         const effectiveThumbnailH = Math.floor(effectiveCardW * aspectRatio);
 
         // totalHeight を再計算
-        const totalH = effectiveThumbnailH + config.infoAreaHeight;
+        const totalH = displayMode === 'whiteBrowser'
+            ? effectiveThumbnailH
+            : effectiveThumbnailH + config.infoAreaHeight;
         const h = totalH + CARD_GAP * 2;
 
         return {
@@ -681,7 +683,9 @@ export const FileGrid = React.memo(() => {
                             }
 
                             const cardW = effectiveCardWidth;
-                            const cardH = effectiveThumbnailHeight + config.infoAreaHeight;
+                            const cardH = displayMode === 'whiteBrowser'
+                                ? effectiveThumbnailHeight
+                                : effectiveThumbnailHeight + config.infoAreaHeight;
 
                             return (
                                 <div
@@ -762,7 +766,9 @@ export const FileGrid = React.memo(() => {
                             >
                                 {rowItems.map((item) => {
                                     const cardW = effectiveCardWidth;
-                                    const cardH = effectiveThumbnailHeight + config.infoAreaHeight;
+                                    const cardH = displayMode === 'whiteBrowser'
+                                        ? effectiveThumbnailHeight
+                                        : effectiveThumbnailHeight + config.infoAreaHeight;
 
                                     return item.type === 'folder' ? (
                                         <div

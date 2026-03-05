@@ -343,6 +343,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const displayMode = useSettingsStore((s) => s.displayMode);
     const displayModeDefinition = getDisplayModeDefinition(displayMode);
     const config = displayModeDefinition.layout;
+    const isWhiteBrowserMode = displayMode === 'whiteBrowser';
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
     // タグ表示スタイル設定
@@ -1089,7 +1090,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             // ⚠️ overflow-hidden を削除するとサムネイルの角丸やレイアウトが崩れる。
             // カード外に要素を表示する場合は React Portal (createPortal) を使用すること。
             className={`
-                rounded-lg overflow-hidden border-2 flex flex-col cursor-pointer
+                rounded-lg overflow-hidden border-2 flex ${isWhiteBrowserMode ? 'flex-row' : 'flex-col'} cursor-pointer
                 transition-all duration-200 ease-out
                 ${isSelected
                     ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02] bg-surface-800'
@@ -1101,10 +1102,11 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             {/* Thumbnail Area - Phase 14: 固定高さ */}
             <div
                 ref={thumbnailAreaRef}
-                className="relative bg-surface-900 flex items-center justify-center overflow-hidden group w-full flex-shrink-0"
-                style={{
-                    aspectRatio: config.aspectRatio
-                }}
+                className={`relative bg-surface-900 flex items-center justify-center overflow-hidden group flex-shrink-0 ${isWhiteBrowserMode ? 'h-full' : 'w-full'}`}
+                style={isWhiteBrowserMode
+                    ? { width: '70%', height: '100%' }
+                    : { aspectRatio: config.aspectRatio }
+                }
             >
                 {/* サムネイル画像 */}
                 {displayImagePath ? (
@@ -1232,14 +1234,16 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
             {/* 情報エリア - Phase 14: モード別レイアウト */}
             {showFileName && (
-                <FileCardInfoArea
-                    file={file}
-                    displayMode={displayMode}
-                    infoVariant={displayModeDefinition.infoVariant}
-                    infoAreaHeight={config.infoAreaHeight}
-                    showFileSize={showFileSize}
-                    TagSummaryRenderer={TagSummaryRenderer}
-                />
+                <div className={isWhiteBrowserMode ? 'h-full flex-1 min-w-0 border-l border-surface-700/60' : ''}>
+                    <FileCardInfoArea
+                        file={file}
+                        displayMode={displayMode}
+                        infoVariant={displayModeDefinition.infoVariant}
+                        infoAreaHeight={config.infoAreaHeight}
+                        showFileSize={showFileSize}
+                        TagSummaryRenderer={TagSummaryRenderer}
+                    />
+                </div>
             )}
 
             {/* Phase 14-7: タグポップオーバー (Portal) */}
