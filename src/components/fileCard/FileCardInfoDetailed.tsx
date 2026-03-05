@@ -64,7 +64,7 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
                         ? 'items-center mt-auto'
                         : 'items-start mt-auto'
             }`,
-        tagSummaryVisibleCount: isMangaMode ? 2 : isWhiteBrowserMode ? 6 : 3,
+        tagSummaryVisibleCount: isMangaMode ? 2 : isWhiteBrowserMode ? 15 : 3,
     };
 }
 
@@ -148,11 +148,63 @@ export const FileCardInfoDetailed = React.memo(({
             day: '2-digit'
         }).replace(/\//g, '/')
         : null;
+    const updatedDateLabel = file.mtimeMs
+        ? new Date(file.mtimeMs).toLocaleDateString('ja-JP', {
+            year: '2-digit',
+            month: '2-digit',
+            day: '2-digit'
+        }).replace(/\//g, '/')
+        : null;
+    const extension = file.name.includes('.')
+        ? file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase()
+        : '';
+
+    if (ui.isWhiteBrowserMode) {
+        const whiteBrowserBadges: Array<{ label: string; value: string }> = [
+            { label: 'サイズ', value: showFileSize && !!file.size ? formatFileSize(file.size) : '-' },
+            { label: '拡張子', value: extension || '-' },
+            { label: '更新日', value: updatedDateLabel || '-' },
+            { label: 'フォルダ', value: folderName || '-' },
+        ];
+
+        return (
+            <div
+                className={ui.containerClass}
+                style={{ height: '100%' }}
+            >
+                <h3
+                    className={ui.titleClass}
+                    title={file.name}
+                >
+                    {file.name}
+                </h3>
+
+                <div className="grid grid-cols-2 gap-1">
+                    {whiteBrowserBadges.map((badge) => (
+                        <div
+                            key={badge.label}
+                            className="min-w-0 rounded bg-surface-700/60 px-1.5 py-1"
+                            title={`${badge.label}: ${badge.value}`}
+                        >
+                            <div className="truncate text-[8px] leading-none text-surface-400">{badge.label}</div>
+                            <div className={`mt-0.5 truncate text-[10px] font-semibold leading-tight text-surface-100 ${badge.label === 'フォルダ' ? ui.folderBadgeMaxWidthClass : ''}`}>
+                                {badge.value}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-1 min-w-0">
+                    <TagSummaryRenderer visibleCount={15} />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
             className={ui.containerClass}
-            style={ui.isWhiteBrowserMode ? { height: '100%' } : { height: `${infoAreaHeight}px` }}
+            style={{ height: `${infoAreaHeight}px` }}
         >
             <h3
                 className={ui.titleClass}

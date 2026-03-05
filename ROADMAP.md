@@ -1,7 +1,7 @@
 ﻿# ROADMAP
 
 ## 進行中 (In Progress)
-- WhiteBrowser風表示モードの回帰確認と微調整（横長カード表示の視認性を安定させる）
+(なし)
 
 ## 予定 (Planned)
 ### 直近

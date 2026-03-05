@@ -63,16 +63,16 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
     },
     whiteBrowser: {
         mode: 'whiteBrowser',
-        label: 'WhiteBrowser風',
+        label: '詳細表示',
         menuOrder: 45,
         iconKey: 'layoutGrid',
         infoVariant: 'detailed',
         layout: {
             aspectRatio: '16/9',
             cardWidth: 420,
-            thumbnailHeight: 165,
-            infoAreaHeight: 165,
-            totalHeight: 330,
+            thumbnailHeight: 200,
+            infoAreaHeight: 200,
+            totalHeight: 360,
         },
     },
     compact: {

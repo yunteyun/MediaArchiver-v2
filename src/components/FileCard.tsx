@@ -66,6 +66,7 @@ type TagSummaryUiConfig = {
     tagChipTextClass: string;
     tagChipRadiusClass: string;
     tagChipMaxWidthClass: string;
+    rowLayoutClass: string;
 };
 
 type FileCardTagSummaryRowProps = {
@@ -95,8 +96,19 @@ type FileCardTagSummaryProps = {
 };
 
 function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
-    const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge' || displayMode === 'whiteBrowser';
+    const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const isMangaMode = displayMode === 'manga';
+    const isWhiteBrowserMode = displayMode === 'whiteBrowser';
+
+    if (isWhiteBrowserMode) {
+        return {
+            tagChipPaddingClass: 'px-2 py-1',
+            tagChipTextClass: 'text-[9px] leading-none',
+            tagChipRadiusClass: 'rounded',
+            tagChipMaxWidthClass: 'max-w-[110px]',
+            rowLayoutClass: 'flex-wrap items-start justify-start content-start max-h-[72px]',
+        };
+    }
 
     if (isStandardDetailedMode) {
         return {
@@ -104,6 +116,7 @@ function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
             tagChipTextClass: 'text-[9px] leading-none',
             tagChipRadiusClass: 'rounded-md',
             tagChipMaxWidthClass: 'max-w-[90px]',
+            rowLayoutClass: 'flex-nowrap items-center justify-end',
         };
     }
 
@@ -113,6 +126,7 @@ function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
             tagChipTextClass: 'text-[8px]',
             tagChipRadiusClass: 'rounded',
             tagChipMaxWidthClass: 'max-w-[60px]',
+            rowLayoutClass: 'flex-nowrap items-center justify-end',
         };
     }
 
@@ -121,6 +135,7 @@ function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
         tagChipTextClass: 'text-[8px]',
         tagChipRadiusClass: 'rounded',
         tagChipMaxWidthClass: 'max-w-[60px]',
+        rowLayoutClass: 'flex-nowrap items-center justify-end',
     };
 }
 
@@ -135,7 +150,7 @@ const FileCardTagSummaryRow = React.memo(({
     onMoreMouseLeave,
 }: FileCardTagSummaryRowProps) => {
     return (
-        <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1 overflow-hidden">
+        <div className={`flex min-w-0 gap-1 overflow-hidden ${tagSummaryUi.rowLayoutClass}`}>
             {visibleTags.map(tag => (
                 <span
                     key={tag.id}
