@@ -1104,7 +1104,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 ref={thumbnailAreaRef}
                 className={`relative bg-surface-900 flex items-center justify-center overflow-hidden group flex-shrink-0 ${isWhiteBrowserMode ? 'h-full' : 'w-full'}`}
                 style={isWhiteBrowserMode
-                    ? { width: '70%', height: '100%' }
+                    ? { height: '100%', aspectRatio: '1 / 1' }
                     : { aspectRatio: config.aspectRatio }
                 }
             >
