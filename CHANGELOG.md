@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - FileCard 一覧で1列表示になった時はカード行を左寄せし、中央寄せによる余白の違和感を軽減。
+- FileCard 一覧で最終行などの不足行は左寄せにし、行内の空きが大きい時に中央へ寄って見える違和感を軽減。
 
 ---
 
