@@ -107,6 +107,7 @@ export const SettingsModal = React.memo(() => {
     const [updateCheckState, setUpdateCheckState] = useState<UpdateCheckUiState | null>(null);
     const [isDownloadingUpdateZip, setIsDownloadingUpdateZip] = useState(false);
     const [updateDownloadState, setUpdateDownloadState] = useState<AppUpdateDownloadResult | null>(null);
+    const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
     const [folderScanSettingsManagerOpen, setFolderScanSettingsManagerOpen] = useState(false);
 
     // Export context (current visible list basis)
@@ -656,7 +657,7 @@ export const SettingsModal = React.memo(() => {
                 useUIStore.getState().showToast(`更新ZIPの取得に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
                 return;
             }
-            useUIStore.getState().showToast('更新ZIPをダウンロードしました。update.bat で適用してください。', 'success', 5000);
+            useUIStore.getState().showToast('更新ZIPをダウンロードしました。続けて設定画面から適用できます。', 'success', 5000);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             setUpdateDownloadState({
@@ -669,6 +670,29 @@ export const SettingsModal = React.memo(() => {
             setIsDownloadingUpdateZip(false);
         }
     }, [isDownloadingUpdateZip, updateCheckState?.result.sourceUrl]);
+
+    const handleApplyUpdateFromZip = useCallback(async () => {
+        if (isApplyingUpdate || !updateDownloadState?.success || !updateDownloadState.filePath) return;
+        const confirmed = window.confirm(
+            'update.bat を起動して更新を適用します。実行するとアプリは終了されます。続行しますか？'
+        );
+        if (!confirmed) return;
+
+        setIsApplyingUpdate(true);
+        try {
+            const result = await window.electronAPI.applyUpdateFromZip(updateDownloadState.filePath);
+            if (!result.success) {
+                useUIStore.getState().showToast(`更新適用の起動に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            useUIStore.getState().showToast('update.bat を起動しました。更新処理を実行します。', 'info', 5000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            useUIStore.getState().showToast(`更新適用の起動に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsApplyingUpdate(false);
+        }
+    }, [isApplyingUpdate, updateDownloadState]);
 
     if (!isOpen) return null;
 
@@ -942,6 +966,17 @@ export const SettingsModal = React.memo(() => {
                                                         ハッシュ検証: {updateDownloadState.verified ? '一致' : '不一致'}
                                                     </div>
                                                 )}
+                                                <div className="pt-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { void handleApplyUpdateFromZip(); }}
+                                                        disabled={isApplyingUpdate}
+                                                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                                    >
+                                                        <AppWindow size={14} />
+                                                        {isApplyingUpdate ? '適用起動中...' : 'update.bat で適用（PoC）'}
+                                                    </button>
+                                                </div>
                                             </>
                                         ) : (
                                             <div className="text-red-300">

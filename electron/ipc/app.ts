@@ -31,6 +31,44 @@ export function registerAppHandlers() {
     ipcMain.handle('app:downloadLatestUpdateZip', async (_event, sourceUrl?: string) => {
         return downloadLatestUpdateZip(sourceUrl);
     });
+    ipcMain.handle('app:applyUpdateFromZip', async (_event, zipPath: string) => {
+        if (!zipPath || typeof zipPath !== 'string') {
+            return { success: false, error: 'ZIPパスが指定されていません' };
+        }
+
+        const resolvedZipPath = path.resolve(zipPath);
+        if (!existsSync(resolvedZipPath)) {
+            return { success: false, error: `ZIPファイルが見つかりません: ${resolvedZipPath}` };
+        }
+        if (path.extname(resolvedZipPath).toLowerCase() !== '.zip') {
+            return { success: false, error: '指定ファイルがZIP形式ではありません' };
+        }
+
+        const packagedUpdateBat = path.join(path.dirname(app.getPath('exe')), 'update.bat');
+        const devUpdateBat = path.join(process.cwd(), 'update.bat');
+        const updateBatPath = existsSync(packagedUpdateBat)
+            ? packagedUpdateBat
+            : (existsSync(devUpdateBat) ? devUpdateBat : '');
+
+        if (!updateBatPath) {
+            return { success: false, error: 'update.bat が見つかりませんでした' };
+        }
+
+        const command = `start "" "${updateBatPath}" "${resolvedZipPath}"`;
+        const child = spawn('cmd.exe', ['/d', '/s', '/c', command], {
+            cwd: path.dirname(updateBatPath),
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: true,
+        });
+        child.unref();
+
+        return {
+            success: true,
+            updateBatPath,
+            zipPath: resolvedZipPath,
+        };
+    });
 
     ipcMain.handle('app:setPerfDebugEnabled', async (_event, enabled: boolean) => {
         return { enabled: setPerfDebugEnabled(enabled) };
