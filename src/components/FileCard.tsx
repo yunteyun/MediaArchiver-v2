@@ -8,7 +8,7 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore, type Tag } from '../stores/useTagStore';
 
 import { toMediaUrl } from '../utils/mediaPath';
-import { isAudioArchive } from '../utils/fileHelpers';
+import { getArchiveImageCount, isAudioArchive } from '../utils/fileHelpers';
 import {
     getRandomSafeTime,
     getSequentialPreviewTime,
@@ -467,16 +467,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return null;
     }, [file.metadata]);
 
-    const archiveImageCount = useMemo(() => {
-        if (file.type !== 'archive' || !file.metadata) return null;
-        try {
-            const metadata = JSON.parse(file.metadata) as { imageEntries?: unknown };
-            if (!Array.isArray(metadata.imageEntries)) return null;
-            return metadata.imageEntries.length;
-        } catch {
-            return null;
-        }
-    }, [file.type, file.metadata]);
+    const archiveImageCount = getArchiveImageCount(file);
 
     // Phase 17-3: interval クリーンアップヘルパー
     const clearJumpInterval = useCallback(() => {

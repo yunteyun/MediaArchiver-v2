@@ -1,6 +1,7 @@
 import React from 'react';
 import type { MediaFile } from '../../types/file';
 import { SectionTitle } from './SectionTitle';
+import { getArchiveImageCount } from '../../utils/fileHelpers';
 
 interface BasicInfoSectionProps {
     file: MediaFile;
@@ -151,9 +152,7 @@ export const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ file, rootF
     const relativeFolderPath = getRootRelativeFolderPath(file.path, rootFolderPath);
     const updatedAt = formatDateTime(file.mtimeMs);
     const extension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() ?? '-' : '-';
-    const archiveImageCount = file.type === 'archive' && Array.isArray(metadata?.imageEntries)
-        ? metadata.imageEntries.length
-        : null;
+    const archiveImageCount = getArchiveImageCount(file);
     const archiveAudioCount = file.type === 'archive' && Array.isArray(metadata?.audioEntries)
         ? metadata.audioEntries.length
         : null;

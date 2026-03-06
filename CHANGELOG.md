@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - 設定の一般タブで「ZIPを選んで適用（従来方式）」実行後に反応がないことがある問題を修正し、ZIP未指定時は `update.bat` を通常起動してZIP選択ダイアログを開けるようにした。
+- 一部の書庫で一覧カードと右サイドバーの画像数表示が出ない問題を修正し、旧メタデータ形式（`imageCount` / `pageCount` / `fileCount`）でも件数を読み取れるようにした。
 
 ---
 
