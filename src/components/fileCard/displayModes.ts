@@ -75,6 +75,20 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
             totalHeight: 360,
         },
     },
+    mangaDetailed: {
+        mode: 'mangaDetailed',
+        label: '詳細表示（漫画）',
+        menuOrder: 46,
+        iconKey: 'layoutGrid',
+        infoVariant: 'detailed',
+        layout: {
+            aspectRatio: '3/2',
+            cardWidth: 360,
+            thumbnailHeight: 240,
+            infoAreaHeight: 240,
+            totalHeight: 360,
+        },
+    },
     compact: {
         mode: 'compact',
         // NOTE: Internal key "compact" is kept for persisted settings compatibility.
@@ -100,6 +114,7 @@ const LAYOUT_PRESET_TO_DISPLAY_MODE: Record<LayoutPreset, DisplayMode> = {
     manga: 'manga',
     video: 'video',
     detailed: 'whiteBrowser',
+    mangaDetailed: 'mangaDetailed',
     compact: 'compact',
 };
 
@@ -109,6 +124,7 @@ const DISPLAY_MODE_TO_LAYOUT_PRESET: Record<DisplayMode, LayoutPreset> = {
     manga: 'manga',
     video: 'video',
     whiteBrowser: 'detailed',
+    mangaDetailed: 'mangaDetailed',
     compact: 'compact',
 };
 
@@ -118,6 +134,7 @@ export const DISPLAY_MODE_LAYOUT_CONFIGS: Record<DisplayMode, FileCardLayoutConf
     manga: FILE_CARD_DISPLAY_MODE_DEFINITIONS.manga.layout,
     video: FILE_CARD_DISPLAY_MODE_DEFINITIONS.video.layout,
     whiteBrowser: FILE_CARD_DISPLAY_MODE_DEFINITIONS.whiteBrowser.layout,
+    mangaDetailed: FILE_CARD_DISPLAY_MODE_DEFINITIONS.mangaDetailed.layout,
     compact: FILE_CARD_DISPLAY_MODE_DEFINITIONS.compact.layout,
 };
 

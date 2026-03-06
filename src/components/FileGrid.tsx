@@ -22,6 +22,7 @@ const DISPLAY_MODE_CARD_GROWTH: Partial<Record<import('../stores/useSettingsStor
     manga: 12,
     video: 12,
     whiteBrowser: 20,
+    mangaDetailed: 16,
 };
 
 type GroupVirtualRow =
@@ -59,6 +60,7 @@ export const FileGrid = React.memo(() => {
     const sortOrder = useSettingsStore((s) => s.sortOrder);
     const layoutPreset = useSettingsStore((s) => s.layoutPreset);
     const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
+    const isDetailedHorizontalMode = displayMode === 'whiteBrowser' || displayMode === 'mangaDetailed';
     const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
@@ -340,7 +342,7 @@ export const FileGrid = React.memo(() => {
         const maxCardWidth = config.cardWidth + (DISPLAY_MODE_CARD_GROWTH[displayMode] ?? 0);
         const baseCardW = Math.max(1, Math.min(maxCardWidth, distributedCardW));
         const remainingWidth = Math.max(0, availableWidth - (baseCardW * cols + totalGapWidth));
-        const redistributedExtraPerCard = displayMode === 'whiteBrowser'
+        const redistributedExtraPerCard = isDetailedHorizontalMode
             ? Math.floor(remainingWidth / cols)
             : 0;
         const effectiveCardW = baseCardW + redistributedExtraPerCard;
@@ -350,7 +352,7 @@ export const FileGrid = React.memo(() => {
         const effectiveThumbnailH = Math.floor(effectiveCardW * aspectRatio);
 
         // totalHeight を再計算
-        const totalH = displayMode === 'whiteBrowser'
+        const totalH = isDetailedHorizontalMode
             ? effectiveThumbnailH
             : effectiveThumbnailH + config.infoAreaHeight;
         const h = totalH + CARD_GAP * 2;
@@ -361,7 +363,7 @@ export const FileGrid = React.memo(() => {
             effectiveCardWidth: effectiveCardW,
             effectiveThumbnailHeight: effectiveThumbnailH
         };
-    }, [config, containerWidth, displayMode]);
+    }, [config, containerWidth, displayMode, isDetailedHorizontalMode]);
 
     const rows = useMemo(() => Math.ceil(gridItems.length / columns), [gridItems.length, columns]);
 
@@ -681,7 +683,7 @@ export const FileGrid = React.memo(() => {
                             }
 
                             const cardW = effectiveCardWidth;
-                            const cardH = displayMode === 'whiteBrowser'
+                            const cardH = isDetailedHorizontalMode
                                 ? effectiveThumbnailHeight
                                 : effectiveThumbnailHeight + config.infoAreaHeight;
 
@@ -764,7 +766,7 @@ export const FileGrid = React.memo(() => {
                             >
                                 {rowItems.map((item) => {
                                     const cardW = effectiveCardWidth;
-                                    const cardH = displayMode === 'whiteBrowser'
+                                    const cardH = isDetailedHorizontalMode
                                         ? effectiveThumbnailHeight
                                         : effectiveThumbnailHeight + config.infoAreaHeight;
 

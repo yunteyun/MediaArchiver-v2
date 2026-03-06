@@ -6,8 +6,9 @@ import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
 type DetailedInfoUiConfig = {
     isMangaMode: boolean;
+    isMangaDetailedMode: boolean;
     isVideoMode: boolean;
-    isWhiteBrowserMode: boolean;
+    isDetailedHorizontalMode: boolean;
     isBadgeMetaMode: boolean;
     isStandardMode: boolean;
     containerClass: string;
@@ -35,8 +36,10 @@ type DetailedBottomRowProps = {
 
 function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
     const isMangaMode = displayMode === 'manga';
+    const isMangaDetailedMode = displayMode === 'mangaDetailed';
     const isVideoMode = displayMode === 'video';
     const isWhiteBrowserMode = displayMode === 'whiteBrowser';
+    const isDetailedHorizontalMode = isWhiteBrowserMode || isMangaDetailedMode;
     const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const isBadgeMetaMode =
         isStandardMode ||
@@ -45,17 +48,38 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
 
     return {
         isMangaMode,
+        isMangaDetailedMode,
         isVideoMode,
-        isWhiteBrowserMode,
+        isDetailedHorizontalMode,
         isBadgeMetaMode,
         isStandardMode,
-        containerClass: `flex flex-col bg-surface-800 ${isMangaMode ? 'px-3 py-1.5 justify-between' : isWhiteBrowserMode ? 'px-2.5 py-2 justify-start' : 'px-3.5 py-2.5 justify-start'}`,
-        titleClass: `font-semibold text-white hover:text-primary-400 transition-colors ${isMangaMode ? 'text-sm mb-0 leading-tight truncate' : isWhiteBrowserMode ? 'text-[12px] leading-snug mb-1 line-clamp-2 break-all' : 'text-sm mb-0.5 truncate'}`,
-        metaLineClass: isWhiteBrowserMode
+        containerClass: `flex flex-col bg-surface-800 ${
+            isMangaMode
+                ? 'px-3 py-1.5 justify-between'
+                : isDetailedHorizontalMode
+                    ? 'px-2.5 py-2 justify-start'
+                    : 'px-3.5 py-2.5 justify-start'
+        }`,
+        titleClass: `font-semibold text-white hover:text-primary-400 transition-colors ${
+            isMangaMode
+                ? 'text-sm mb-0 leading-tight truncate'
+                : isDetailedHorizontalMode
+                    ? 'text-[12px] leading-snug mb-1 line-clamp-2 break-all'
+                    : 'text-sm mb-0.5 truncate'
+        }`,
+        metaLineClass: isDetailedHorizontalMode
             ? 'text-[10px] text-surface-400 leading-snug mb-1 whitespace-normal break-all line-clamp-3'
             : `text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`,
-        folderBadgeMaxWidthClass: isMangaMode ? 'max-w-[84px]' : isVideoMode ? 'max-w-[96px]' : isWhiteBrowserMode ? 'max-w-[140px]' : 'max-w-[110px]',
-        bottomRowClass: isWhiteBrowserMode
+        folderBadgeMaxWidthClass: isMangaMode
+            ? 'max-w-[84px]'
+            : isVideoMode
+                ? 'max-w-[96px]'
+                : isMangaDetailedMode
+                    ? 'max-w-[110px]'
+                    : isDetailedHorizontalMode
+                        ? 'max-w-[140px]'
+                        : 'max-w-[110px]',
+        bottomRowClass: isDetailedHorizontalMode
             ? 'flex flex-col items-start gap-1 mt-auto'
             : `flex justify-between gap-1 ${
                 isMangaMode
@@ -64,7 +88,7 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
                         ? 'items-center mt-auto'
                         : 'items-start mt-auto'
             }`,
-        tagSummaryVisibleCount: isMangaMode ? 2 : isWhiteBrowserMode ? 15 : 3,
+        tagSummaryVisibleCount: isMangaMode ? 2 : isMangaDetailedMode ? 10 : isDetailedHorizontalMode ? 15 : 3,
     };
 }
 
@@ -159,7 +183,7 @@ export const FileCardInfoDetailed = React.memo(({
         ? file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase()
         : '';
 
-    if (ui.isWhiteBrowserMode) {
+    if (ui.isDetailedHorizontalMode) {
         const whiteBrowserBadges: Array<{ label: string; value: string }> = [
             { label: 'サイズ', value: showFileSize && !!file.size ? formatFileSize(file.size) : '-' },
             { label: '拡張子', value: extension || '-' },
@@ -195,7 +219,7 @@ export const FileCardInfoDetailed = React.memo(({
                 </div>
 
                 <div className="mt-1 min-w-0">
-                    <TagSummaryRenderer visibleCount={15} />
+                    <TagSummaryRenderer visibleCount={ui.tagSummaryVisibleCount} />
                 </div>
             </div>
         );

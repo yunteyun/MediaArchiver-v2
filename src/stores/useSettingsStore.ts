@@ -8,8 +8,8 @@ import {
 export type CardLayout = 'grid' | 'list';
 
 // 表示モード型定義（Phase 14）
-export type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'compact';
-export type LayoutPreset = 'standard' | 'standardLarge' | 'manga' | 'video' | 'detailed' | 'compact';
+export type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
+export type LayoutPreset = 'standard' | 'standardLarge' | 'manga' | 'video' | 'detailed' | 'mangaDetailed' | 'compact';
 export type ThumbnailPresentation = 'modeDefault' | 'contain' | 'cover' | 'square';
 
 // グループ化型定義（Phase 12-10）
@@ -147,6 +147,7 @@ const VALID_LAYOUT_PRESETS = new Set<LayoutPreset>([
     'manga',
     'video',
     'detailed',
+    'mangaDetailed',
     'compact',
 ]);
 
@@ -176,6 +177,8 @@ export function mapDisplayModeToPresentationAxes(displayMode: DisplayMode): {
     switch (displayMode) {
         case 'whiteBrowser':
             return { layoutPreset: 'detailed', thumbnailPresentation: 'square' };
+        case 'mangaDetailed':
+            return { layoutPreset: 'mangaDetailed', thumbnailPresentation: 'square' };
         case 'compact':
             return { layoutPreset: 'compact', thumbnailPresentation: 'modeDefault' };
         case 'standard':
@@ -195,6 +198,8 @@ function mapLayoutPresetToLegacyDisplayMode(layoutPreset: LayoutPreset): Display
     switch (layoutPreset) {
         case 'detailed':
             return 'whiteBrowser';
+        case 'mangaDetailed':
+            return 'mangaDetailed';
         case 'compact':
             return 'compact';
         case 'standard':

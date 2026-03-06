@@ -99,13 +99,15 @@ function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
     const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const isMangaMode = displayMode === 'manga';
     const isWhiteBrowserMode = displayMode === 'whiteBrowser';
+    const isMangaDetailedMode = displayMode === 'mangaDetailed';
+    const isDetailedPanelMode = isWhiteBrowserMode || isMangaDetailedMode;
 
-    if (isWhiteBrowserMode) {
+    if (isDetailedPanelMode) {
         return {
             tagChipPaddingClass: 'px-2 py-1',
             tagChipTextClass: 'text-[9px] leading-none',
             tagChipRadiusClass: 'rounded',
-            tagChipMaxWidthClass: 'max-w-[110px]',
+            tagChipMaxWidthClass: isMangaDetailedMode ? 'max-w-[84px]' : 'max-w-[110px]',
             rowLayoutClass: 'flex-wrap items-start justify-start content-start max-h-[72px]',
         };
     }
@@ -359,7 +361,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
     const displayModeDefinition = getDisplayModeDefinition(displayMode);
     const config = displayModeDefinition.layout;
-    const isWhiteBrowserMode = displayMode === 'whiteBrowser';
+    const isDetailedHorizontalMode = displayMode === 'whiteBrowser' || displayMode === 'mangaDetailed';
+    const detailedThumbnailAspectRatio = displayMode === 'mangaDetailed' ? '2 / 3' : '1 / 1';
     const thumbnailObjectFitClass = thumbnailPresentation === 'contain' ? 'object-contain' : 'object-cover';
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
@@ -1118,7 +1121,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             // ⚠️ overflow-hidden を削除するとサムネイルの角丸やレイアウトが崩れる。
             // カード外に要素を表示する場合は React Portal (createPortal) を使用すること。
             className={`
-                rounded-lg overflow-hidden border-2 flex ${isWhiteBrowserMode ? 'flex-row' : 'flex-col'} cursor-pointer
+                rounded-lg overflow-hidden border-2 flex ${isDetailedHorizontalMode ? 'flex-row' : 'flex-col'} cursor-pointer
                 transition-all duration-200 ease-out
                 ${isSelected
                     ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/20 scale-[1.02] bg-surface-800'
@@ -1130,9 +1133,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             {/* Thumbnail Area - Phase 14: 固定高さ */}
             <div
                 ref={thumbnailAreaRef}
-                className={`relative bg-surface-900 flex items-center justify-center overflow-hidden group flex-shrink-0 ${isWhiteBrowserMode ? 'h-full' : 'w-full'}`}
-                style={isWhiteBrowserMode
-                    ? { height: '100%', aspectRatio: '1 / 1' }
+                className={`relative bg-surface-900 flex items-center justify-center overflow-hidden group flex-shrink-0 ${isDetailedHorizontalMode ? 'h-full' : 'w-full'}`}
+                style={isDetailedHorizontalMode
+                    ? { height: '100%', aspectRatio: detailedThumbnailAspectRatio }
                     : { aspectRatio: config.aspectRatio }
                 }
             >
@@ -1269,7 +1272,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
             {/* 情報エリア - Phase 14: モード別レイアウト */}
             {showFileName && (
-                <div className={isWhiteBrowserMode ? 'h-full flex-1 min-w-0 border-l border-surface-700/60' : ''}>
+                <div className={isDetailedHorizontalMode ? 'h-full flex-1 min-w-0 border-l border-surface-700/60' : ''}>
                     <FileCardInfoArea
                         file={file}
                         displayMode={displayMode}
