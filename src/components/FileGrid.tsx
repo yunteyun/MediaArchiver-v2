@@ -60,7 +60,6 @@ export const FileGrid = React.memo(() => {
     // Phase 14: 表示モード取得
     const displayMode = useSettingsStore((s) => s.displayMode);
     const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
-    const shouldCenterRows = displayMode !== 'compact';
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const openLightbox = useUIStore((s) => s.openLightbox);
@@ -360,12 +359,6 @@ export const FileGrid = React.memo(() => {
     }, [config, containerWidth, displayMode]);
 
     const rows = useMemo(() => Math.ceil(gridItems.length / columns), [gridItems.length, columns]);
-
-    const getRowJustifyContent = useCallback((itemCount: number): 'center' | 'flex-start' => {
-        if (!shouldCenterRows) return 'flex-start';
-        if (columns <= 1) return 'flex-start';
-        return itemCount < columns ? 'flex-start' : 'center';
-    }, [shouldCenterRows, columns]);
 
     useEffect(() => {
         if (!perfDebugEnabled) return;
@@ -698,7 +691,7 @@ export const FileGrid = React.memo(() => {
                                         height: `${virtualRow.size}px`,
                                         transform: `translateY(${virtualRow.start}px)`,
                                         display: 'flex',
-                                        justifyContent: getRowJustifyContent(row.files.length),
+                                        justifyContent: 'flex-start',
                                         gap: `${CARD_GAP}px`,
                                         padding: `${CARD_GAP / 2}px`,
                                     }}
@@ -759,7 +752,7 @@ export const FileGrid = React.memo(() => {
                                     height: `${virtualRow.size}px`,
                                     transform: `translateY(${virtualRow.start}px)`,
                                     display: 'flex',
-                                    justifyContent: getRowJustifyContent(rowItems.length),
+                                    justifyContent: 'flex-start',
                                     gap: `${CARD_GAP}px`,
                                     padding: `${CARD_GAP / 2}px`,
                                 }}
