@@ -102,3 +102,8 @@
 - `useSettingsStore` に `layoutPreset` / `thumbnailPresentation` を追加した。
 - `setDisplayMode` 実行時に2軸へ同期する互換マッピングを実装した。
 - persist `merge` で新キー未保存時に旧 `displayMode` から補完する移行処理を追加した。
+
+## 現行実装メモ（2026-03-06）
+- `thumbnailPresentation` の描画反映は現時点で `contain` のみ専用分岐。
+- `cover` / `square` / `modeDefault` は同じ描画（`object-cover`）として扱っている。
+- `square` は将来拡張用の予約値で、現状は互換性維持を主目的としている。
