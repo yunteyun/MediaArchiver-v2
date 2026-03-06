@@ -9,6 +9,7 @@ export interface FileCardLayoutConfig {
 }
 
 export type FileCardInfoVariant = 'compact' | 'detailed';
+export type FileCardDirection = 'vertical' | 'horizontal';
 
 export type DisplayModeIconKey = 'grid' | 'maximize' | 'layoutGrid' | 'film' | 'minimize';
 
@@ -19,6 +20,8 @@ export interface FileCardDisplayModeDefinition {
     iconKey: DisplayModeIconKey;
     layout: FileCardLayoutConfig;
     infoVariant: FileCardInfoVariant;
+    cardDirection: FileCardDirection;
+    horizontalThumbnailAspectRatio?: string;
     hideThumbnailBadges?: boolean;
 }
 

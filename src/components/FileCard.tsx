@@ -16,7 +16,12 @@ import {
     VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS,
 } from '../utils/videoPreview';
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
-import { getDisplayModeDefinition, getDisplayModeFromLayoutPreset } from './fileCard/displayModes';
+import {
+    getDisplayModeDefinition,
+    getDisplayModeFromLayoutPreset,
+    getHorizontalThumbnailAspectRatio,
+    isHorizontalDisplayMode,
+} from './fileCard/displayModes';
 import type { DisplayMode, FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
 import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
 
@@ -98,9 +103,8 @@ type FileCardTagSummaryProps = {
 function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
     const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const isMangaMode = displayMode === 'manga';
-    const isWhiteBrowserMode = displayMode === 'whiteBrowser';
+    const isDetailedPanelMode = isHorizontalDisplayMode(displayMode);
     const isMangaDetailedMode = displayMode === 'mangaDetailed';
-    const isDetailedPanelMode = isWhiteBrowserMode || isMangaDetailedMode;
 
     if (isDetailedPanelMode) {
         return {
@@ -361,8 +365,8 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
     const displayModeDefinition = getDisplayModeDefinition(displayMode);
     const config = displayModeDefinition.layout;
-    const isDetailedHorizontalMode = displayMode === 'whiteBrowser' || displayMode === 'mangaDetailed';
-    const detailedThumbnailAspectRatio = displayMode === 'mangaDetailed' ? '2 / 3' : '1 / 1';
+    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
+    const detailedThumbnailAspectRatio = getHorizontalThumbnailAspectRatio(displayMode);
     const thumbnailObjectFitClass = thumbnailPresentation === 'contain' ? 'object-contain' : 'object-cover';
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);

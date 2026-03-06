@@ -11,6 +11,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         menuOrder: 20,
         iconKey: 'grid',
         infoVariant: 'detailed',
+        cardDirection: 'vertical',
         layout: {
             aspectRatio: '1/1',
             cardWidth: 220,
@@ -25,6 +26,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         menuOrder: 30,
         iconKey: 'maximize',
         infoVariant: 'detailed',
+        cardDirection: 'vertical',
         layout: {
             aspectRatio: '1/1',
             cardWidth: 265,
@@ -39,6 +41,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         menuOrder: 50,
         iconKey: 'layoutGrid',
         infoVariant: 'detailed',
+        cardDirection: 'vertical',
         layout: {
             aspectRatio: '2/3',
             cardWidth: 220,
@@ -53,6 +56,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         menuOrder: 40,
         iconKey: 'film',
         infoVariant: 'detailed',
+        cardDirection: 'vertical',
         layout: {
             aspectRatio: '25/16',
             cardWidth: 265,
@@ -67,6 +71,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         menuOrder: 45,
         iconKey: 'layoutGrid',
         infoVariant: 'detailed',
+        cardDirection: 'horizontal',
+        horizontalThumbnailAspectRatio: '1 / 1',
         layout: {
             aspectRatio: '16/9',
             cardWidth: 420,
@@ -81,6 +87,8 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         menuOrder: 46,
         iconKey: 'layoutGrid',
         infoVariant: 'detailed',
+        cardDirection: 'horizontal',
+        horizontalThumbnailAspectRatio: '2 / 3',
         layout: {
             aspectRatio: '3/2',
             cardWidth: 360,
@@ -97,6 +105,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         menuOrder: 10,
         iconKey: 'minimize',
         infoVariant: 'compact',
+        cardDirection: 'vertical',
         hideThumbnailBadges: true,
         layout: {
             aspectRatio: '5/4',
@@ -142,6 +151,14 @@ export const getDisplayModeDefinition = (mode: DisplayMode): FileCardDisplayMode
     return FILE_CARD_DISPLAY_MODE_DEFINITIONS[mode];
 };
 
+export const isHorizontalDisplayMode = (mode: DisplayMode): boolean => {
+    return getDisplayModeDefinition(mode).cardDirection === 'horizontal';
+};
+
+export const getHorizontalThumbnailAspectRatio = (mode: DisplayMode): string => {
+    return getDisplayModeDefinition(mode).horizontalThumbnailAspectRatio ?? '1 / 1';
+};
+
 export const getDisplayModeFromLayoutPreset = (layoutPreset: LayoutPreset): DisplayMode => {
     return LAYOUT_PRESET_TO_DISPLAY_MODE[layoutPreset];
 };
@@ -159,3 +176,4 @@ export const getDisplayModeMenuOptions = (): FileCardDisplayModeDefinition[] => 
         .slice()
         .sort((a, b) => a.menuOrder - b.menuOrder);
 };
+
