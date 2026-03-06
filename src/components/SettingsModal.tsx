@@ -105,6 +105,8 @@ export const SettingsModal = React.memo(() => {
     const [appVersion, setAppVersion] = useState<string>('');
     const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
     const [updateCheckState, setUpdateCheckState] = useState<UpdateCheckUiState | null>(null);
+    const [isDownloadingUpdateZip, setIsDownloadingUpdateZip] = useState(false);
+    const [updateDownloadState, setUpdateDownloadState] = useState<AppUpdateDownloadResult | null>(null);
     const [folderScanSettingsManagerOpen, setFolderScanSettingsManagerOpen] = useState(false);
 
     // Export context (current visible list basis)
@@ -644,6 +646,30 @@ export const SettingsModal = React.memo(() => {
         }
     }, [appVersion, isCheckingForUpdates]);
 
+    const handleDownloadLatestUpdateZip = useCallback(async () => {
+        if (isDownloadingUpdateZip) return;
+        setIsDownloadingUpdateZip(true);
+        try {
+            const result = await window.electronAPI.downloadLatestUpdateZip();
+            setUpdateDownloadState(result);
+            if (!result.success) {
+                useUIStore.getState().showToast(`更新ZIPの取得に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            useUIStore.getState().showToast('更新ZIPをダウンロードしました。update.bat で適用してください。', 'success', 5000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setUpdateDownloadState({
+                success: false,
+                sourceUrl: updateCheckState?.result.sourceUrl ?? 'unknown',
+                error: message,
+            });
+            useUIStore.getState().showToast(`更新ZIPの取得に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsDownloadingUpdateZip(false);
+        }
+    }, [isDownloadingUpdateZip, updateCheckState?.result.sourceUrl]);
+
     if (!isOpen) return null;
 
     return (
@@ -884,6 +910,44 @@ export const SettingsModal = React.memo(() => {
                                         <div className="text-surface-500">
                                             最終確認: {new Date(updateCheckState.checkedAt).toLocaleString('ja-JP')}
                                         </div>
+                                    </div>
+                                )}
+
+                                {updateCheckState?.result.success && updateCheckState.result.hasUpdate && (
+                                    <div className="mt-3 space-y-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => { void handleDownloadLatestUpdateZip(); }}
+                                            disabled={isDownloadingUpdateZip}
+                                            className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            <FolderOpen size={14} />
+                                            {isDownloadingUpdateZip ? 'ZIP取得中...' : '更新ZIPを取得（PoC）'}
+                                        </button>
+                                        <p className="text-xs text-surface-500">
+                                            取得後の適用は `update.bat` を利用します。
+                                        </p>
+                                    </div>
+                                )}
+
+                                {updateDownloadState && (
+                                    <div className="mt-2 space-y-1 text-xs">
+                                        {updateDownloadState.success ? (
+                                            <>
+                                                <div className="text-surface-300">
+                                                    ダウンロード先: <span className="text-surface-100 break-all">{updateDownloadState.filePath}</span>
+                                                </div>
+                                                {typeof updateDownloadState.verified === 'boolean' && (
+                                                    <div className={updateDownloadState.verified ? 'text-emerald-300' : 'text-red-300'}>
+                                                        ハッシュ検証: {updateDownloadState.verified ? '一致' : '不一致'}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="text-red-300">
+                                                ZIP取得失敗: {updateDownloadState.error ?? 'unknown error'}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

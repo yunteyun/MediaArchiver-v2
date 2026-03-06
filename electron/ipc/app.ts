@@ -5,7 +5,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { incrementExternalOpenCount } from '../services/database';
 import { setPerfDebugEnabled } from '../services/perfDebug';
-import { checkForAppUpdate } from '../services/updateCheckService';
+import { checkForAppUpdate, downloadLatestUpdateZip } from '../services/updateCheckService';
 
 // 外部アプリのキャッシュ
 interface ExternalApp {
@@ -27,6 +27,9 @@ export function registerAppHandlers() {
     ipcMain.handle('app:getVersion', () => app.getVersion());
     ipcMain.handle('app:checkForUpdates', async (_event, sourceUrl?: string) => {
         return checkForAppUpdate(app.getVersion(), sourceUrl);
+    });
+    ipcMain.handle('app:downloadLatestUpdateZip', async (_event, sourceUrl?: string) => {
+        return downloadLatestUpdateZip(sourceUrl);
     });
 
     ipcMain.handle('app:setPerfDebugEnabled', async (_event, enabled: boolean) => {

@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showInExplorer: (path: string) => ipcRenderer.invoke('app:showInExplorer', path),
     getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
     checkForAppUpdate: (sourceUrl?: string) => ipcRenderer.invoke('app:checkForUpdates', sourceUrl),
+    downloadLatestUpdateZip: (sourceUrl?: string) => ipcRenderer.invoke('app:downloadLatestUpdateZip', sourceUrl),
     getLogs: (lines?: number) => ipcRenderer.invoke('app:getLogs', lines),
     openLogFolder: () => ipcRenderer.invoke('app:openLogFolder'),
     selectFile: () => ipcRenderer.invoke('app:selectFile'),

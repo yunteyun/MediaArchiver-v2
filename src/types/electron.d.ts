@@ -104,9 +104,23 @@ interface AppUpdateCheckResult {
     currentVersion: string;
     latestVersion?: string;
     hasUpdate?: boolean;
+    downloadUrl?: string;
+    downloadFileName?: string;
     releaseUrl?: string;
     publishedAt?: string;
     sourceUrl: string;
+    error?: string;
+}
+
+interface AppUpdateDownloadResult {
+    success: boolean;
+    sourceUrl: string;
+    filePath?: string;
+    fileName?: string;
+    bytes?: number;
+    sha256?: string;
+    expectedSha256?: string;
+    verified?: boolean;
     error?: string;
 }
 
@@ -146,6 +160,7 @@ declare global {
             showInExplorer: (path: string) => Promise<void>;
             getAppVersion: () => Promise<string>;  // Phase 26
             checkForAppUpdate: (sourceUrl?: string) => Promise<AppUpdateCheckResult>;
+            downloadLatestUpdateZip: (sourceUrl?: string) => Promise<AppUpdateDownloadResult>;
             getLogs: (lines?: number) => Promise<string[]>;
             openLogFolder: () => Promise<void>;
             selectFile: () => Promise<string | null>;
