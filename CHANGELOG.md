@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - 表示モードとサムネイル表現を分離するための境界定義と互換マッピング仕様を整理し、実装前の設計方針を文書化した（表示への変更なし）。
 - 設定ストアに `layoutPreset` と `thumbnailPresentation` を追加し、既存 `displayMode` からの互換マッピングを導入した（表示への変更なし）。
+- 一覧ヘッダーにサムネイル表示方式（モード既定 / 切り取り / 全体表示 / 固定）を追加し、レイアウトと独立して見え方を切り替えられるようにした。
 
 ### Fixed
 (なし)

@@ -4,11 +4,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2 } from 'lucide-react';
-import { useSettingsStore, type GroupBy } from '../stores/useSettingsStore';
+import { useSettingsStore, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useToastStore } from '../stores/useToastStore';
 import { SearchBar } from './SearchBar';
-import { getDisplayModeDefinition, getDisplayModeMenuOptions } from './fileCard/displayModes';
+import {
+    getDisplayModeDefinitionByLayoutPreset,
+    getDisplayModeMenuOptions,
+    getLayoutPresetFromDisplayMode,
+} from './fileCard/displayModes';
 import type { DisplayModeIconKey } from './fileCard/displayModeTypes';
 
 const ICON_BY_KEY: Record<DisplayModeIconKey, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -20,6 +24,12 @@ const ICON_BY_KEY: Record<DisplayModeIconKey, React.ComponentType<{ size?: numbe
 };
 
 const DISPLAY_MODE_MENU_OPTIONS = getDisplayModeMenuOptions();
+const THUMBNAIL_PRESENTATION_OPTIONS: Array<{ value: ThumbnailPresentation; label: string }> = [
+    { value: 'modeDefault', label: 'モード既定' },
+    { value: 'cover', label: 'Cover（切り取り）' },
+    { value: 'contain', label: 'Contain（全体表示）' },
+    { value: 'square', label: 'Square（固定）' },
+];
 
 export const Header = React.memo(() => {
     const sortBy = useSettingsStore((s) => s.sortBy);
@@ -29,12 +39,13 @@ export const Header = React.memo(() => {
 
     const groupBy = useSettingsStore((s) => s.groupBy);
     const setGroupBy = useSettingsStore((s) => s.setGroupBy);
-    // Phase 14: 表示モード状態
-    const displayMode = useSettingsStore((s) => s.displayMode);
-    const setDisplayMode = useSettingsStore((s) => s.setDisplayMode);
+    const layoutPreset = useSettingsStore((s) => s.layoutPreset);
+    const setLayoutPreset = useSettingsStore((s) => s.setLayoutPreset);
+    const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
+    const setThumbnailPresentation = useSettingsStore((s) => s.setThumbnailPresentation);
     const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
     const modeMenuRef = useRef<HTMLDivElement>(null);
-    const selectedDisplayModeOption = getDisplayModeDefinition(displayMode);
+    const selectedDisplayModeOption = getDisplayModeDefinitionByLayoutPreset(layoutPreset);
     const SelectedDisplayModeIcon = ICON_BY_KEY[selectedDisplayModeOption.iconKey];
 
     // ドロップダウンのクリックアウトサイドハンドラー
@@ -95,7 +106,7 @@ export const Header = React.memo(() => {
 
 
 
-            {/* Display Mode Controls (Phase 14-6) */}
+            {/* Layout Preset Controls */}
             <div ref={modeMenuRef} className="relative flex gap-1 items-center">
                 <span className="text-surface-400 text-sm whitespace-nowrap mr-1">表示:</span>
                 <button
@@ -111,11 +122,15 @@ export const Header = React.memo(() => {
                     <div className="absolute top-full mt-1 right-0 bg-surface-800 rounded shadow-lg border border-surface-700 py-1 z-50 min-w-[160px]">
                         {DISPLAY_MODE_MENU_OPTIONS.map((option) => {
                             const Icon = ICON_BY_KEY[option.iconKey];
-                            const isActive = displayMode === option.mode;
+                            const optionLayoutPreset = getLayoutPresetFromDisplayMode(option.mode);
+                            const isActive = layoutPreset === optionLayoutPreset;
                             return (
                                 <button
                                     key={option.mode}
-                                    onClick={() => { setDisplayMode(option.mode); setIsModeMenuOpen(false); }}
+                                    onClick={() => {
+                                        setLayoutPreset(optionLayoutPreset);
+                                        setIsModeMenuOpen(false);
+                                    }}
                                     className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${isActive ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'}`}
                                 >
                                     <Icon size={16} />
@@ -125,6 +140,22 @@ export const Header = React.memo(() => {
                         })}
                     </div>
                 )}
+            </div>
+
+            {/* Thumbnail Presentation Controls */}
+            <div className="flex gap-2 items-center">
+                <span className="text-surface-400 text-sm whitespace-nowrap">サムネ:</span>
+                <select
+                    value={thumbnailPresentation}
+                    onChange={(e) => setThumbnailPresentation(e.target.value as ThumbnailPresentation)}
+                    className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
+                >
+                    {THUMBNAIL_PRESENTATION_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             {/* Sort Controls */}

@@ -16,7 +16,7 @@ import {
     VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS,
 } from '../utils/videoPreview';
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
-import { getDisplayModeDefinition } from './fileCard/displayModes';
+import { getDisplayModeDefinition, getDisplayModeFromLayoutPreset } from './fileCard/displayModes';
 import type { DisplayMode, FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
 import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
 
@@ -354,11 +354,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const showDuration = useSettingsStore((s) => s.showDuration);
     const showTags = useSettingsStore((s) => s.showTags);
     const showFileSize = useSettingsStore((s) => s.showFileSize);
-    // Phase 14: 表示モード取得
-    const displayMode = useSettingsStore((s) => s.displayMode);
+    const layoutPreset = useSettingsStore((s) => s.layoutPreset);
+    const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
+    const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
     const displayModeDefinition = getDisplayModeDefinition(displayMode);
     const config = displayModeDefinition.layout;
     const isWhiteBrowserMode = displayMode === 'whiteBrowser';
+    const thumbnailObjectFitClass = thumbnailPresentation === 'contain' ? 'object-contain' : 'object-cover';
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
     // タグ表示スタイル設定
@@ -1128,7 +1130,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     <img
                         src={displayImageSrc}
                         alt={file.name}
-                        className={`w-full h-full object-cover transition-transform duration-300 ${!shouldPlayVideo ? 'group-hover:scale-105' : ''
+                        className={`w-full h-full ${thumbnailObjectFitClass} transition-transform duration-300 ${!shouldPlayVideo ? 'group-hover:scale-105' : ''
                             } ${shouldPlayVideo ? 'opacity-0' : 'opacity-100'}`}
                         loading="lazy"
                         onError={(e) => {
@@ -1145,7 +1147,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                     <video
                         ref={videoRef}
                         src={toMediaUrl(file.path)}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className={`absolute inset-0 w-full h-full ${thumbnailObjectFitClass}`}
                         muted
                         loop
                         playsInline

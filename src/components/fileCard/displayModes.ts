@@ -1,4 +1,4 @@
-import type { DisplayMode } from '../../stores/useSettingsStore';
+import type { DisplayMode, LayoutPreset } from '../../stores/useSettingsStore';
 import type {
     FileCardDisplayModeDefinition,
     FileCardLayoutConfig,
@@ -94,6 +94,24 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
     },
 };
 
+const LAYOUT_PRESET_TO_DISPLAY_MODE: Record<LayoutPreset, DisplayMode> = {
+    standard: 'standard',
+    standardLarge: 'standardLarge',
+    manga: 'manga',
+    video: 'video',
+    detailed: 'whiteBrowser',
+    compact: 'compact',
+};
+
+const DISPLAY_MODE_TO_LAYOUT_PRESET: Record<DisplayMode, LayoutPreset> = {
+    standard: 'standard',
+    standardLarge: 'standardLarge',
+    manga: 'manga',
+    video: 'video',
+    whiteBrowser: 'detailed',
+    compact: 'compact',
+};
+
 export const DISPLAY_MODE_LAYOUT_CONFIGS: Record<DisplayMode, FileCardLayoutConfig> = {
     standard: FILE_CARD_DISPLAY_MODE_DEFINITIONS.standard.layout,
     standardLarge: FILE_CARD_DISPLAY_MODE_DEFINITIONS.standardLarge.layout,
@@ -105,6 +123,18 @@ export const DISPLAY_MODE_LAYOUT_CONFIGS: Record<DisplayMode, FileCardLayoutConf
 
 export const getDisplayModeDefinition = (mode: DisplayMode): FileCardDisplayModeDefinition => {
     return FILE_CARD_DISPLAY_MODE_DEFINITIONS[mode];
+};
+
+export const getDisplayModeFromLayoutPreset = (layoutPreset: LayoutPreset): DisplayMode => {
+    return LAYOUT_PRESET_TO_DISPLAY_MODE[layoutPreset];
+};
+
+export const getLayoutPresetFromDisplayMode = (displayMode: DisplayMode): LayoutPreset => {
+    return DISPLAY_MODE_TO_LAYOUT_PRESET[displayMode];
+};
+
+export const getDisplayModeDefinitionByLayoutPreset = (layoutPreset: LayoutPreset): FileCardDisplayModeDefinition => {
+    return getDisplayModeDefinition(getDisplayModeFromLayoutPreset(layoutPreset));
 };
 
 export const getDisplayModeMenuOptions = (): FileCardDisplayModeDefinition[] => {
