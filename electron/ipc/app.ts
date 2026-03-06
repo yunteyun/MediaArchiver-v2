@@ -55,9 +55,19 @@ export function registerAppHandlers() {
             return { success: false, error: 'update.bat が見つかりませんでした' };
         }
 
-        const command = resolvedZipPath
-            ? `start "" "${updateBatPath}" "${resolvedZipPath}"`
-            : `start "" "${updateBatPath}"`;
+        if (!resolvedZipPath) {
+            // ZIP未指定時は update.bat 内で OpenFileDialog を出すため、通常起動する。
+            const launchError = await shell.openPath(updateBatPath);
+            if (launchError) {
+                return { success: false, error: `update.bat の起動に失敗しました: ${launchError}` };
+            }
+            return {
+                success: true,
+                updateBatPath,
+            };
+        }
+
+        const command = `start "" "${updateBatPath}" "${resolvedZipPath}"`;
         const child = spawn('cmd.exe', ['/d', '/s', '/c', command], {
             cwd: path.dirname(updateBatPath),
             detached: true,

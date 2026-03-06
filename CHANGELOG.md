@@ -29,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 回帰確認チェックリストに更新導線の正常系/異常系項目を追加し、更新確認PoCの検証範囲を明確化した（表示への変更なし）。
 
 ### Fixed
-(なし)
+- 設定の一般タブで「ZIPを選んで適用（従来方式）」実行後に反応がないことがある問題を修正し、ZIP未指定時は `update.bat` を通常起動してZIP選択ダイアログを開けるようにした。
 
 ---
 
