@@ -9,6 +9,8 @@ export type CardLayout = 'grid' | 'list';
 
 // 表示モード型定義（Phase 14）
 export type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'compact';
+export type LayoutPreset = 'standard' | 'standardLarge' | 'manga' | 'video' | 'detailed' | 'compact';
+export type ThumbnailPresentation = 'modeDefault' | 'contain' | 'cover' | 'square';
 
 // グループ化型定義（Phase 12-10）
 export type GroupBy = 'none' | 'date' | 'size' | 'type';
@@ -139,6 +141,75 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
     },
 ];
 
+const VALID_LAYOUT_PRESETS = new Set<LayoutPreset>([
+    'standard',
+    'standardLarge',
+    'manga',
+    'video',
+    'detailed',
+    'compact',
+]);
+
+const VALID_THUMBNAIL_PRESENTATIONS = new Set<ThumbnailPresentation>([
+    'modeDefault',
+    'contain',
+    'cover',
+    'square',
+]);
+
+function normalizeLayoutPreset(value: unknown): LayoutPreset | null {
+    if (typeof value !== 'string') return null;
+    return VALID_LAYOUT_PRESETS.has(value as LayoutPreset) ? (value as LayoutPreset) : null;
+}
+
+function normalizeThumbnailPresentation(value: unknown): ThumbnailPresentation | null {
+    if (typeof value !== 'string') return null;
+    return VALID_THUMBNAIL_PRESENTATIONS.has(value as ThumbnailPresentation)
+        ? (value as ThumbnailPresentation)
+        : null;
+}
+
+export function mapDisplayModeToPresentationAxes(displayMode: DisplayMode): {
+    layoutPreset: LayoutPreset;
+    thumbnailPresentation: ThumbnailPresentation;
+} {
+    switch (displayMode) {
+        case 'whiteBrowser':
+            return { layoutPreset: 'detailed', thumbnailPresentation: 'square' };
+        case 'compact':
+            return { layoutPreset: 'compact', thumbnailPresentation: 'modeDefault' };
+        case 'standard':
+            return { layoutPreset: 'standard', thumbnailPresentation: 'modeDefault' };
+        case 'standardLarge':
+            return { layoutPreset: 'standardLarge', thumbnailPresentation: 'modeDefault' };
+        case 'manga':
+            return { layoutPreset: 'manga', thumbnailPresentation: 'modeDefault' };
+        case 'video':
+            return { layoutPreset: 'video', thumbnailPresentation: 'modeDefault' };
+        default:
+            return { layoutPreset: 'standard', thumbnailPresentation: 'modeDefault' };
+    }
+}
+
+function mapLayoutPresetToLegacyDisplayMode(layoutPreset: LayoutPreset): DisplayMode {
+    switch (layoutPreset) {
+        case 'detailed':
+            return 'whiteBrowser';
+        case 'compact':
+            return 'compact';
+        case 'standard':
+            return 'standard';
+        case 'standardLarge':
+            return 'standardLarge';
+        case 'manga':
+            return 'manga';
+        case 'video':
+            return 'video';
+        default:
+            return 'standard';
+    }
+}
+
 interface SettingsState {
     activeProfileId: string;
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
@@ -171,6 +242,8 @@ interface SettingsState {
 
     // 表示モード設定（Phase 14）
     displayMode: DisplayMode;
+    layoutPreset: LayoutPreset;
+    thumbnailPresentation: ThumbnailPresentation;
 
     // 外部アプリ設定（Phase 12-7）
     externalApps: ExternalApp[];
@@ -229,6 +302,8 @@ interface SettingsState {
     setShowFileSize: (show: boolean) => void;
     // 表示モードアクション（Phase 14）
     setDisplayMode: (mode: DisplayMode) => void;
+    setLayoutPreset: (preset: LayoutPreset) => void;
+    setThumbnailPresentation: (presentation: ThumbnailPresentation) => void;
     // 外部アプリアクション（Phase 12-7）
     addExternalApp: (name: string, path: string, extensions: string[]) => void;
     updateExternalApp: (id: string, updates: Partial<Omit<ExternalApp, 'id' | 'createdAt'>>) => void;
@@ -288,6 +363,8 @@ export const useSettingsStore = create<SettingsState>()(
 
             // 表示モード設定デフォルト値（Phase 14）
             displayMode: 'standard',
+            layoutPreset: 'standard',
+            thumbnailPresentation: 'modeDefault',
 
             // 外部アプリ設定（Phase 12-7）
             externalApps: [],
@@ -355,7 +432,15 @@ export const useSettingsStore = create<SettingsState>()(
             setShowTags: (showTags) => set({ showTags }),
             setShowFileSize: (showFileSize) => set({ showFileSize }),
             // 表示モード設定セッター（Phase 14）
-            setDisplayMode: (displayMode) => set({ displayMode }),
+            setDisplayMode: (displayMode) => {
+                const { layoutPreset, thumbnailPresentation } = mapDisplayModeToPresentationAxes(displayMode);
+                set({ displayMode, layoutPreset, thumbnailPresentation });
+            },
+            setLayoutPreset: (layoutPreset) => set({
+                layoutPreset,
+                displayMode: mapLayoutPresetToLegacyDisplayMode(layoutPreset),
+            }),
+            setThumbnailPresentation: (thumbnailPresentation) => set({ thumbnailPresentation }),
             // 外部アプリアクション（Phase 12-7）
             addExternalApp: (name, path, extensions) => {
                 const newApp: ExternalApp = {
@@ -532,11 +617,17 @@ export const useSettingsStore = create<SettingsState>()(
                         normalizeSearchDestination(destination as SearchDestination)
                     )
                     : currentState.searchDestinations;
+                const fallbackDisplayMode = typedPersisted?.displayMode ?? currentState.displayMode;
+                const mappedAxes = mapDisplayModeToPresentationAxes(fallbackDisplayMode);
+                const persistedLayoutPreset = normalizeLayoutPreset(typedPersisted?.layoutPreset);
+                const persistedThumbnailPresentation = normalizeThumbnailPresentation(typedPersisted?.thumbnailPresentation);
 
                 return {
                     ...currentState,
                     ...typedPersisted,
                     searchDestinations: persistedDestinations,
+                    layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,
+                    thumbnailPresentation: persistedThumbnailPresentation ?? mappedAxes.thumbnailPresentation,
                 };
             },
         }

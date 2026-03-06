@@ -97,3 +97,8 @@
 - 2軸の境界が文書化され、軸内/軸外の設定が曖昧でない。
 - `profile_settings` への影響範囲（今回対象外）が明示されている。
 - 旧 `displayMode` からの移行仕様が1回実行で再現可能な形で定義されている。
+
+## 実施済み（2026-03-06）
+- `useSettingsStore` に `layoutPreset` / `thumbnailPresentation` を追加した。
+- `setDisplayMode` 実行時に2軸へ同期する互換マッピングを実装した。
+- persist `merge` で新キー未保存時に旧 `displayMode` から補完する移行処理を追加した。
