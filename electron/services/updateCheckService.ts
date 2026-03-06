@@ -323,29 +323,47 @@ export async function downloadLatestUpdateZip(
             };
         }
 
+        const shaAsset = resolveSha256Asset(assets, zipAsset.name);
+        if (!shaAsset) {
+            return {
+                success: false,
+                sourceUrl,
+                fileName: zipAsset.name,
+                error: 'sha256ファイルが見つからないため、更新ZIPを安全に検証できませんでした',
+            };
+        }
+
+        let expectedSha256: string;
+        try {
+            const checksumText = await requestText(shaAsset.browserDownloadUrl, 15000);
+            const parsedSha256 = extractSha256FromText(checksumText);
+            if (!parsedSha256) {
+                return {
+                    success: false,
+                    sourceUrl,
+                    fileName: zipAsset.name,
+                    error: 'sha256ファイルの形式が不正でした',
+                };
+            }
+            expectedSha256 = parsedSha256;
+        } catch (error) {
+            return {
+                success: false,
+                sourceUrl,
+                fileName: zipAsset.name,
+                error: `sha256ファイルの取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+            };
+        }
+
         const downloadDir = ensureDownloadDirectory();
         const fileName = `${Date.now()}-${sanitizeFileName(zipAsset.name)}`;
         const filePath = path.join(downloadDir, fileName);
 
         const downloaded = await downloadFileWithSha256(zipAsset.browserDownloadUrl, filePath);
 
-        let expectedSha256: string | undefined;
-        let verified: boolean | undefined;
-        const shaAsset = resolveSha256Asset(assets, zipAsset.name);
-        if (shaAsset) {
-            try {
-                const checksumText = await requestText(shaAsset.browserDownloadUrl, 15000);
-                const parsedSha256 = extractSha256FromText(checksumText);
-                if (parsedSha256) {
-                    expectedSha256 = parsedSha256;
-                    verified = downloaded.sha256 === parsedSha256;
-                }
-            } catch {
-                // Keep checksum as best-effort; download result itself remains valid.
-            }
-        }
+        const verified = downloaded.sha256 === expectedSha256;
 
-        if (verified === false) {
+        if (!verified) {
             try {
                 fs.unlinkSync(filePath);
             } catch {

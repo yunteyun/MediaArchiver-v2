@@ -657,7 +657,7 @@ export const SettingsModal = React.memo(() => {
                 useUIStore.getState().showToast(`更新ZIPの取得に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
                 return;
             }
-            useUIStore.getState().showToast('更新ZIPをダウンロードしました。続けて設定画面から適用できます。', 'success', 5000);
+            useUIStore.getState().showToast('更新ZIPをダウンロードし、ハッシュ検証が完了しました。', 'success', 5000);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             setUpdateDownloadState({
@@ -672,7 +672,12 @@ export const SettingsModal = React.memo(() => {
     }, [isDownloadingUpdateZip, updateCheckState?.result.sourceUrl]);
 
     const handleApplyUpdateFromZip = useCallback(async () => {
-        if (isApplyingUpdate || !updateDownloadState?.success || !updateDownloadState.filePath) return;
+        if (
+            isApplyingUpdate
+            || !updateDownloadState?.success
+            || !updateDownloadState.filePath
+            || updateDownloadState.verified !== true
+        ) return;
         const confirmed = window.confirm(
             'update.bat を起動して更新を適用します。実行するとアプリは終了されます。続行しますか？'
         );
@@ -990,7 +995,7 @@ export const SettingsModal = React.memo(() => {
                                             {isDownloadingUpdateZip ? 'ZIP取得中...' : '更新ZIPを取得（PoC）'}
                                         </button>
                                         <p className="text-xs text-surface-500">
-                                            取得後の適用は `update.bat` を利用します。
+                                            `.sha256` による検証が通ったZIPのみ取得・適用できます。
                                         </p>
                                     </div>
                                 )}
@@ -1011,13 +1016,18 @@ export const SettingsModal = React.memo(() => {
                                                     <button
                                                         type="button"
                                                         onClick={() => { void handleApplyUpdateFromZip(); }}
-                                                        disabled={isApplyingUpdate}
+                                                        disabled={isApplyingUpdate || updateDownloadState.verified !== true}
                                                         className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
                                                     >
                                                         <AppWindow size={14} />
                                                         {isApplyingUpdate ? '適用起動中...' : 'update.bat で適用（PoC）'}
                                                     </button>
                                                 </div>
+                                                {updateDownloadState.verified !== true && (
+                                                    <div className="text-amber-300">
+                                                        ハッシュ検証済みのZIPのみ適用できます。
+                                                    </div>
+                                                )}
                                             </>
                                         ) : (
                                             <div className="text-red-300">
