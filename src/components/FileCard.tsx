@@ -1202,7 +1202,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 {/* Archive Image Count Badge */}
                 {file.type === 'archive' && archiveImageCount != null && archiveImageCount > 1 && (
                     <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                        {archiveImageCount}枚
+                        {archiveImageCount}p
                     </div>
                 )}
 
