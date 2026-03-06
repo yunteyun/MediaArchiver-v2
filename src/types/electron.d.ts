@@ -108,6 +108,7 @@ interface AppUpdateCheckResult {
     downloadFileName?: string;
     releaseUrl?: string;
     publishedAt?: string;
+    releaseNotes?: string;
     sourceUrl: string;
     error?: string;
 }

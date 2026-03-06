@@ -14,6 +14,7 @@ export interface AppUpdateCheckResult {
     downloadFileName?: string;
     releaseUrl?: string;
     publishedAt?: string;
+    releaseNotes?: string;
     sourceUrl: string;
     error?: string;
 }
@@ -34,6 +35,7 @@ type ReleaseFeedPayload = {
     tag_name?: unknown;
     html_url?: unknown;
     published_at?: unknown;
+    body?: unknown;
     assets?: unknown;
 };
 
@@ -292,6 +294,7 @@ export async function checkForAppUpdate(
             downloadFileName: zipAsset?.name,
             releaseUrl: typeof payload.html_url === 'string' ? payload.html_url : undefined,
             publishedAt: typeof payload.published_at === 'string' ? payload.published_at : undefined,
+            releaseNotes: typeof payload.body === 'string' ? payload.body.trim() : undefined,
             sourceUrl,
         };
     } catch (error) {

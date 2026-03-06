@@ -925,6 +925,24 @@ export const SettingsModal = React.memo(() => {
                                                         ? '更新があります。適用は update.bat を利用してください。'
                                                         : '最新バージョンです。'}
                                                 </div>
+                                                {updateCheckState.result.publishedAt && (
+                                                    <div className="text-surface-500">
+                                                        公開日: {new Date(updateCheckState.result.publishedAt).toLocaleString('ja-JP')}
+                                                    </div>
+                                                )}
+                                                {updateCheckState.result.releaseNotes && (
+                                                    <div className="mt-2 rounded border border-surface-700 bg-surface-950/40 p-2">
+                                                        <div className="text-surface-300">更新内容（最新リリース）</div>
+                                                        <div className="mt-1 max-h-36 overflow-y-auto whitespace-pre-wrap break-words text-surface-200">
+                                                            {updateCheckState.result.releaseNotes}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {updateCheckState.result.releaseUrl && (
+                                                    <div className="text-surface-500 break-all">
+                                                        リリースURL: {updateCheckState.result.releaseUrl}
+                                                    </div>
+                                                )}
                                             </>
                                         ) : (
                                             <div className="text-red-300">
