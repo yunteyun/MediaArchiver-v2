@@ -2,11 +2,12 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import { formatFileSize } from '../../utils/groupFiles';
 import { getDisplayFolderName } from '../../utils/path';
-import { getDetailedInfoUiPreset, isHorizontalDisplayMode } from './displayModes';
+import { getDetailedInfoUiPreset, isHorizontalDisplayMode, type DetailedPanelBadgeKey } from './displayModes';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
 type DetailedInfoUiConfig = {
     isDetailedHorizontalMode: boolean;
+    detailedPanelBadgeKeys: DetailedPanelBadgeKey[];
     isBadgeMetaMode: boolean;
     containerClass: string;
     titleClass: string;
@@ -39,6 +40,7 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
 
     return {
         isDetailedHorizontalMode,
+        detailedPanelBadgeKeys: detailedUiPreset.detailedPanelBadgeKeys,
         isBadgeMetaMode: detailedUiPreset.isBadgeMetaMode,
         containerClass: detailedUiPreset.containerClass,
         titleClass: detailedUiPreset.titleClass,
@@ -50,6 +52,13 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
         tagSummaryVisibleCount: detailedUiPreset.tagSummaryVisibleCount,
     };
 }
+
+const DETAILED_PANEL_BADGE_LABELS: Record<DetailedPanelBadgeKey, string> = {
+    size: 'サイズ',
+    extension: '拡張子',
+    updatedDate: '更新日',
+    folder: 'フォルダ',
+};
 
 const DetailedBadgeMetaRow = React.memo(({
     ui,
@@ -139,12 +148,17 @@ export const FileCardInfoDetailed = React.memo(({
         : '';
 
     if (ui.isDetailedHorizontalMode) {
-        const detailedPanelBadges: Array<{ label: string; value: string }> = [
-            { label: 'サイズ', value: showFileSize && !!file.size ? formatFileSize(file.size) : '-' },
-            { label: '拡張子', value: extension || '-' },
-            { label: '更新日', value: updatedDateLabel || '-' },
-            { label: 'フォルダ', value: folderName || '-' },
-        ];
+        const detailedPanelBadgeValues: Record<DetailedPanelBadgeKey, string> = {
+            size: showFileSize && !!file.size ? formatFileSize(file.size) : '-',
+            extension: extension || '-',
+            updatedDate: updatedDateLabel || '-',
+            folder: folderName || '-',
+        };
+        const detailedPanelBadges = ui.detailedPanelBadgeKeys.map((key) => ({
+            key,
+            label: DETAILED_PANEL_BADGE_LABELS[key],
+            value: detailedPanelBadgeValues[key],
+        }));
 
         return (
             <div
@@ -161,12 +175,12 @@ export const FileCardInfoDetailed = React.memo(({
                 <div className="grid grid-cols-2 gap-1">
                     {detailedPanelBadges.map((badge) => (
                         <div
-                            key={badge.label}
+                            key={badge.key}
                             className="min-w-0 rounded bg-surface-700/60 px-1.5 py-1"
                             title={`${badge.label}: ${badge.value}`}
                         >
                             <div className="truncate text-[8px] leading-none text-surface-400">{badge.label}</div>
-                            <div className={`mt-0.5 truncate text-[10px] font-semibold leading-tight text-surface-100 ${badge.label === 'フォルダ' ? ui.folderBadgeMaxWidthClass : ''}`}>
+                            <div className={`mt-0.5 truncate text-[10px] font-semibold leading-tight text-surface-100 ${badge.key === 'folder' ? ui.folderBadgeMaxWidthClass : ''}`}>
                                 {badge.value}
                             </div>
                         </div>

@@ -14,6 +14,7 @@ export type TagSummaryUiPreset = {
 };
 
 export type DetailedInfoUiPreset = {
+    detailedPanelBadgeKeys: DetailedPanelBadgeKey[];
     isBadgeMetaMode: boolean;
     containerClass: string;
     titleClass: string;
@@ -24,6 +25,8 @@ export type DetailedInfoUiPreset = {
     folderBadgeMaxWidthClass: string;
     tagSummaryVisibleCount: number;
 };
+
+export type DetailedPanelBadgeKey = 'size' | 'extension' | 'updatedDate' | 'folder';
 
 export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDisplayModeDefinition> = {
     standard: {
@@ -229,6 +232,7 @@ const TAG_SUMMARY_UI_PRESETS: Record<DisplayMode, TagSummaryUiPreset> = {
 
 const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
     standard: {
+        detailedPanelBadgeKeys: [],
         isBadgeMetaMode: true,
         containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
         titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
@@ -240,6 +244,7 @@ const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
         tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.standard.visibleCount,
     },
     standardLarge: {
+        detailedPanelBadgeKeys: [],
         isBadgeMetaMode: true,
         containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
         titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
@@ -251,6 +256,7 @@ const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
         tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.standardLarge.visibleCount,
     },
     manga: {
+        detailedPanelBadgeKeys: [],
         isBadgeMetaMode: true,
         containerClass: 'flex flex-col bg-surface-800 px-3 py-1.5 justify-between',
         titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0 leading-tight truncate',
@@ -262,6 +268,7 @@ const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
         tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.manga.visibleCount,
     },
     video: {
+        detailedPanelBadgeKeys: [],
         isBadgeMetaMode: true,
         containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
         titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
@@ -273,6 +280,7 @@ const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
         tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.video.visibleCount,
     },
     whiteBrowser: {
+        detailedPanelBadgeKeys: ['size', 'extension', 'updatedDate', 'folder'],
         isBadgeMetaMode: false,
         containerClass: 'flex flex-col bg-surface-800 px-2.5 py-2 justify-start',
         titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-[12px] leading-snug mb-1 line-clamp-2 break-all',
@@ -284,6 +292,7 @@ const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
         tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.whiteBrowser.visibleCount,
     },
     mangaDetailed: {
+        detailedPanelBadgeKeys: ['size', 'extension', 'updatedDate', 'folder'],
         isBadgeMetaMode: false,
         containerClass: 'flex flex-col bg-surface-800 px-2.5 py-2 justify-start',
         titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-[12px] leading-snug mb-1 line-clamp-2 break-all',
@@ -295,6 +304,7 @@ const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
         tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.mangaDetailed.visibleCount,
     },
     compact: {
+        detailedPanelBadgeKeys: [],
         isBadgeMetaMode: true,
         containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
         titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
