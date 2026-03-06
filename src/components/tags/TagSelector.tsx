@@ -13,12 +13,14 @@ interface TagSelectorProps {
     selectedTagIds: string[];
     onAdd: (tagId: string) => void;
     onRemove: (tagId: string) => void;
+    editable?: boolean;
 }
 
 export const TagSelector = React.memo(({
     selectedTagIds,
     onAdd,
     onRemove,
+    editable = true,
 }: TagSelectorProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -66,6 +68,7 @@ export const TagSelector = React.memo(({
     }, []);
 
     const handleToggle = () => {
+        if (!editable) return;
         if (!isOpen) {
             calcDropdownPosition();
         }
@@ -144,7 +147,7 @@ export const TagSelector = React.memo(({
                 : color === 'lime' ? 'bg-lime-600'
                     : `bg-${color}-600`;
 
-    const dropdown = isOpen && createPortal(
+    const dropdown = isOpen && editable && createPortal(
         <div
             ref={dropdownRef}
             className="bg-surface-800 border border-surface-700 rounded-lg shadow-xl overflow-hidden"
@@ -218,28 +221,30 @@ export const TagSelector = React.memo(({
             {/* Selected Tags Display */}
             <div className="flex flex-wrap gap-1 mb-2">
                 {selectedTagsSorted.map(tag => (
-                        <TagBadge
-                            key={tag.id}
-                            name={tag.name}
-                            color={tag.color}
-                            categoryColor={tag.categoryColor || (tag.categoryId ? categoryColorById.get(tag.categoryId) : undefined)}
-                            icon={tag.icon}
-                            description={tag.description}
-                            removable
-                            onRemove={() => onRemove(tag.id)}
-                        />
+                    <TagBadge
+                        key={tag.id}
+                        name={tag.name}
+                        color={tag.color}
+                        categoryColor={tag.categoryColor || (tag.categoryId ? categoryColorById.get(tag.categoryId) : undefined)}
+                        icon={tag.icon}
+                        description={tag.description}
+                        removable={editable}
+                        onRemove={editable ? () => onRemove(tag.id) : undefined}
+                    />
                 ))}
             </div>
 
             {/* Add Tag Button */}
-            <button
-                ref={buttonRef}
-                onClick={handleToggle}
-                className="flex items-center gap-1 text-sm text-surface-400 hover:text-surface-200 transition-colors"
-            >
-                <Plus size={14} />
-                <span>タグを追加</span>
-            </button>
+            {editable && (
+                <button
+                    ref={buttonRef}
+                    onClick={handleToggle}
+                    className="flex items-center gap-1 text-sm text-surface-400 hover:text-surface-200 transition-colors"
+                >
+                    <Plus size={14} />
+                    <span>タグを追加</span>
+                </button>
+            )}
 
             {/* Dropdown - Portal経由でbody直下に配置（overflowクリップ回避） */}
             {dropdown}
