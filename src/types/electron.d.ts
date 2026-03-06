@@ -169,7 +169,7 @@ declare global {
             getAppVersion: () => Promise<string>;  // Phase 26
             checkForAppUpdate: (sourceUrl?: string) => Promise<AppUpdateCheckResult>;
             downloadLatestUpdateZip: (sourceUrl?: string) => Promise<AppUpdateDownloadResult>;
-            applyUpdateFromZip: (zipPath: string) => Promise<AppUpdateApplyResult>;
+            applyUpdateFromZip: (zipPath?: string) => Promise<AppUpdateApplyResult>;
             getLogs: (lines?: number) => Promise<string[]>;
             openLogFolder: () => Promise<void>;
             selectFile: () => Promise<string | null>;

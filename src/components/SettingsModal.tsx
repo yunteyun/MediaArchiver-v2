@@ -694,6 +694,29 @@ export const SettingsModal = React.memo(() => {
         }
     }, [isApplyingUpdate, updateDownloadState]);
 
+    const handleApplyUpdateViaZipDialog = useCallback(async () => {
+        if (isApplyingUpdate) return;
+        const confirmed = window.confirm(
+            '従来方式で update.bat を起動します。ZIP選択後に更新が始まり、アプリは終了されます。続行しますか？'
+        );
+        if (!confirmed) return;
+
+        setIsApplyingUpdate(true);
+        try {
+            const result = await window.electronAPI.applyUpdateFromZip();
+            if (!result.success) {
+                useUIStore.getState().showToast(`update.bat の起動に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            useUIStore.getState().showToast('update.bat を起動しました。ZIP選択ダイアログで更新ファイルを指定してください。', 'info', 5000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            useUIStore.getState().showToast(`update.bat の起動に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsApplyingUpdate(false);
+        }
+    }, [isApplyingUpdate]);
+
     if (!isOpen) return null;
 
     return (
@@ -1003,6 +1026,24 @@ export const SettingsModal = React.memo(() => {
                                         )}
                                     </div>
                                 )}
+
+                                <div className="mt-3 rounded border border-surface-700 bg-surface-950/40 p-2">
+                                    <div className="text-xs text-surface-300">手動ZIP指定（従来方式）</div>
+                                    <div className="mt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => { void handleApplyUpdateViaZipDialog(); }}
+                                            disabled={isApplyingUpdate}
+                                            className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                        >
+                                            <FolderOpen size={14} />
+                                            {isApplyingUpdate ? '起動中...' : 'ZIPを選んで適用（従来方式）'}
+                                        </button>
+                                    </div>
+                                    <p className="mt-1 text-xs text-surface-500">
+                                        `update.bat` のZIP選択ダイアログから、手元のリリースZIPを指定して更新できます。
+                                    </p>
+                                </div>
                             </div>
 
 

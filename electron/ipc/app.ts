@@ -31,17 +31,18 @@ export function registerAppHandlers() {
     ipcMain.handle('app:downloadLatestUpdateZip', async (_event, sourceUrl?: string) => {
         return downloadLatestUpdateZip(sourceUrl);
     });
-    ipcMain.handle('app:applyUpdateFromZip', async (_event, zipPath: string) => {
-        if (!zipPath || typeof zipPath !== 'string') {
-            return { success: false, error: 'ZIPパスが指定されていません' };
-        }
-
-        const resolvedZipPath = path.resolve(zipPath);
-        if (!existsSync(resolvedZipPath)) {
-            return { success: false, error: `ZIPファイルが見つかりません: ${resolvedZipPath}` };
-        }
-        if (path.extname(resolvedZipPath).toLowerCase() !== '.zip') {
-            return { success: false, error: '指定ファイルがZIP形式ではありません' };
+    ipcMain.handle('app:applyUpdateFromZip', async (_event, zipPath?: string) => {
+        let resolvedZipPath: string | undefined;
+        if (typeof zipPath === 'string' && zipPath.trim().length > 0) {
+            resolvedZipPath = path.resolve(zipPath);
+            if (!existsSync(resolvedZipPath)) {
+                return { success: false, error: `ZIPファイルが見つかりません: ${resolvedZipPath}` };
+            }
+            if (path.extname(resolvedZipPath).toLowerCase() !== '.zip') {
+                return { success: false, error: '指定ファイルがZIP形式ではありません' };
+            }
+        } else if (zipPath != null && typeof zipPath !== 'string') {
+            return { success: false, error: 'ZIPパスの指定が不正です' };
         }
 
         const packagedUpdateBat = path.join(path.dirname(app.getPath('exe')), 'update.bat');
@@ -54,7 +55,9 @@ export function registerAppHandlers() {
             return { success: false, error: 'update.bat が見つかりませんでした' };
         }
 
-        const command = `start "" "${updateBatPath}" "${resolvedZipPath}"`;
+        const command = resolvedZipPath
+            ? `start "" "${updateBatPath}" "${resolvedZipPath}"`
+            : `start "" "${updateBatPath}"`;
         const child = spawn('cmd.exe', ['/d', '/s', '/c', command], {
             cwd: path.dirname(updateBatPath),
             detached: true,
