@@ -493,6 +493,17 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         return null;
     }, [file.metadata]);
 
+    const archiveImageCount = useMemo(() => {
+        if (file.type !== 'archive' || !file.metadata) return null;
+        try {
+            const metadata = JSON.parse(file.metadata) as { imageEntries?: unknown };
+            if (!Array.isArray(metadata.imageEntries)) return null;
+            return metadata.imageEntries.length;
+        } catch {
+            return null;
+        }
+    }, [file.type, file.metadata]);
+
     // Phase 17-3: interval クリーンアップヘルパー
     const clearJumpInterval = useCallback(() => {
         if (jumpIntervalRef.current) {
@@ -1185,6 +1196,13 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 {showDuration && file.duration && (
                     <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
                         {file.duration}
+                    </div>
+                )}
+
+                {/* Archive Image Count Badge */}
+                {file.type === 'archive' && archiveImageCount != null && archiveImageCount > 1 && (
+                    <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                        {archiveImageCount}枚
                     </div>
                 )}
 
