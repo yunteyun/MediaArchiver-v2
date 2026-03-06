@@ -2,6 +2,7 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import { formatFileSize } from '../../utils/groupFiles';
 import { getDisplayFolderName } from '../../utils/path';
+import { getDetailedInfoUiPreset, isHorizontalDisplayMode } from './displayModes';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
 type DetailedInfoUiConfig = {
@@ -36,11 +37,10 @@ type DetailedBottomRowProps = {
 
 function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
     const isMangaMode = displayMode === 'manga';
-    const isMangaDetailedMode = displayMode === 'mangaDetailed';
     const isVideoMode = displayMode === 'video';
-    const isWhiteBrowserMode = displayMode === 'whiteBrowser';
-    const isDetailedHorizontalMode = isWhiteBrowserMode || isMangaDetailedMode;
+    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
     const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
+    const detailedUiPreset = getDetailedInfoUiPreset(displayMode);
     const isBadgeMetaMode =
         isStandardMode ||
         isMangaMode ||
@@ -48,7 +48,7 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
 
     return {
         isMangaMode,
-        isMangaDetailedMode,
+        isMangaDetailedMode: displayMode === 'mangaDetailed',
         isVideoMode,
         isDetailedHorizontalMode,
         isBadgeMetaMode,
@@ -70,15 +70,7 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
         metaLineClass: isDetailedHorizontalMode
             ? 'text-[10px] text-surface-400 leading-snug mb-1 whitespace-normal break-all line-clamp-3'
             : `text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`,
-        folderBadgeMaxWidthClass: isMangaMode
-            ? 'max-w-[84px]'
-            : isVideoMode
-                ? 'max-w-[96px]'
-                : isMangaDetailedMode
-                    ? 'max-w-[110px]'
-                    : isDetailedHorizontalMode
-                        ? 'max-w-[140px]'
-                        : 'max-w-[110px]',
+        folderBadgeMaxWidthClass: detailedUiPreset.folderBadgeMaxWidthClass,
         bottomRowClass: isDetailedHorizontalMode
             ? 'flex flex-col items-start gap-1 mt-auto'
             : `flex justify-between gap-1 ${
@@ -88,7 +80,7 @@ function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMo
                         ? 'items-center mt-auto'
                         : 'items-start mt-auto'
             }`,
-        tagSummaryVisibleCount: isMangaMode ? 2 : isMangaDetailedMode ? 10 : isDetailedHorizontalMode ? 15 : 3,
+        tagSummaryVisibleCount: detailedUiPreset.tagSummaryVisibleCount,
     };
 }
 

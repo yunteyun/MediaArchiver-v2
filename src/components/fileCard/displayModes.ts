@@ -4,6 +4,20 @@ import type {
     FileCardLayoutConfig,
 } from './displayModeTypes';
 
+export type TagSummaryUiPreset = {
+    visibleCount: number;
+    chipPaddingClass: string;
+    chipTextClass: string;
+    chipRadiusClass: string;
+    chipMaxWidthClass: string;
+    rowLayoutClass: string;
+};
+
+export type DetailedInfoUiPreset = {
+    folderBadgeMaxWidthClass: string;
+    tagSummaryVisibleCount: number;
+};
+
 export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDisplayModeDefinition> = {
     standard: {
         mode: 'standard',
@@ -147,6 +161,96 @@ export const DISPLAY_MODE_LAYOUT_CONFIGS: Record<DisplayMode, FileCardLayoutConf
     compact: FILE_CARD_DISPLAY_MODE_DEFINITIONS.compact.layout,
 };
 
+const TAG_SUMMARY_UI_PRESETS: Record<DisplayMode, TagSummaryUiPreset> = {
+    standard: {
+        visibleCount: 3,
+        chipPaddingClass: 'px-1.5 py-1',
+        chipTextClass: 'text-[9px] leading-none',
+        chipRadiusClass: 'rounded-md',
+        chipMaxWidthClass: 'max-w-[90px]',
+        rowLayoutClass: 'flex-nowrap items-center justify-start',
+    },
+    standardLarge: {
+        visibleCount: 3,
+        chipPaddingClass: 'px-1.5 py-1',
+        chipTextClass: 'text-[9px] leading-none',
+        chipRadiusClass: 'rounded-md',
+        chipMaxWidthClass: 'max-w-[90px]',
+        rowLayoutClass: 'flex-nowrap items-center justify-start',
+    },
+    manga: {
+        visibleCount: 2,
+        chipPaddingClass: 'px-1.5 py-0.5',
+        chipTextClass: 'text-[8px]',
+        chipRadiusClass: 'rounded',
+        chipMaxWidthClass: 'max-w-[60px]',
+        rowLayoutClass: 'flex-nowrap items-center justify-start',
+    },
+    video: {
+        visibleCount: 3,
+        chipPaddingClass: 'px-1.5 py-0.5',
+        chipTextClass: 'text-[8px]',
+        chipRadiusClass: 'rounded',
+        chipMaxWidthClass: 'max-w-[60px]',
+        rowLayoutClass: 'flex-nowrap items-center justify-start',
+    },
+    whiteBrowser: {
+        visibleCount: 15,
+        chipPaddingClass: 'px-2 py-1',
+        chipTextClass: 'text-[9px] leading-none',
+        chipRadiusClass: 'rounded',
+        chipMaxWidthClass: 'max-w-[110px]',
+        rowLayoutClass: 'flex-wrap items-start justify-start content-start max-h-[72px]',
+    },
+    mangaDetailed: {
+        visibleCount: 10,
+        chipPaddingClass: 'px-2 py-1',
+        chipTextClass: 'text-[9px] leading-none',
+        chipRadiusClass: 'rounded',
+        chipMaxWidthClass: 'max-w-[84px]',
+        rowLayoutClass: 'flex-wrap items-start justify-start content-start max-h-[72px]',
+    },
+    compact: {
+        visibleCount: 3,
+        chipPaddingClass: 'px-1.5 py-0.5',
+        chipTextClass: 'text-[8px]',
+        chipRadiusClass: 'rounded',
+        chipMaxWidthClass: 'max-w-[60px]',
+        rowLayoutClass: 'flex-nowrap items-center justify-start',
+    },
+};
+
+const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
+    standard: {
+        folderBadgeMaxWidthClass: 'max-w-[110px]',
+        tagSummaryVisibleCount: 3,
+    },
+    standardLarge: {
+        folderBadgeMaxWidthClass: 'max-w-[110px]',
+        tagSummaryVisibleCount: 3,
+    },
+    manga: {
+        folderBadgeMaxWidthClass: 'max-w-[84px]',
+        tagSummaryVisibleCount: 2,
+    },
+    video: {
+        folderBadgeMaxWidthClass: 'max-w-[96px]',
+        tagSummaryVisibleCount: 3,
+    },
+    whiteBrowser: {
+        folderBadgeMaxWidthClass: 'max-w-[140px]',
+        tagSummaryVisibleCount: 15,
+    },
+    mangaDetailed: {
+        folderBadgeMaxWidthClass: 'max-w-[110px]',
+        tagSummaryVisibleCount: 10,
+    },
+    compact: {
+        folderBadgeMaxWidthClass: 'max-w-[110px]',
+        tagSummaryVisibleCount: 3,
+    },
+};
+
 export const getDisplayModeDefinition = (mode: DisplayMode): FileCardDisplayModeDefinition => {
     return FILE_CARD_DISPLAY_MODE_DEFINITIONS[mode];
 };
@@ -157,6 +261,14 @@ export const isHorizontalDisplayMode = (mode: DisplayMode): boolean => {
 
 export const getHorizontalThumbnailAspectRatio = (mode: DisplayMode): string => {
     return getDisplayModeDefinition(mode).horizontalThumbnailAspectRatio ?? '1 / 1';
+};
+
+export const getTagSummaryUiPreset = (mode: DisplayMode): TagSummaryUiPreset => {
+    return TAG_SUMMARY_UI_PRESETS[mode];
+};
+
+export const getDetailedInfoUiPreset = (mode: DisplayMode): DetailedInfoUiPreset => {
+    return DETAILED_INFO_UI_PRESETS[mode];
 };
 
 export const getDisplayModeFromLayoutPreset = (layoutPreset: LayoutPreset): DisplayMode => {

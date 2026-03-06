@@ -19,6 +19,7 @@ import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import {
     getDisplayModeDefinition,
     getDisplayModeFromLayoutPreset,
+    getTagSummaryUiPreset,
     getHorizontalThumbnailAspectRatio,
     isHorizontalDisplayMode,
 } from './fileCard/displayModes';
@@ -101,47 +102,13 @@ type FileCardTagSummaryProps = {
 };
 
 function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
-    const isStandardDetailedMode = displayMode === 'standard' || displayMode === 'standardLarge';
-    const isMangaMode = displayMode === 'manga';
-    const isDetailedPanelMode = isHorizontalDisplayMode(displayMode);
-    const isMangaDetailedMode = displayMode === 'mangaDetailed';
-
-    if (isDetailedPanelMode) {
-        return {
-            tagChipPaddingClass: 'px-2 py-1',
-            tagChipTextClass: 'text-[9px] leading-none',
-            tagChipRadiusClass: 'rounded',
-            tagChipMaxWidthClass: isMangaDetailedMode ? 'max-w-[84px]' : 'max-w-[110px]',
-            rowLayoutClass: 'flex-wrap items-start justify-start content-start max-h-[72px]',
-        };
-    }
-
-    if (isStandardDetailedMode) {
-        return {
-            tagChipPaddingClass: 'px-1.5 py-1',
-            tagChipTextClass: 'text-[9px] leading-none',
-            tagChipRadiusClass: 'rounded-md',
-            tagChipMaxWidthClass: 'max-w-[90px]',
-            rowLayoutClass: 'flex-nowrap items-center justify-end',
-        };
-    }
-
-    if (isMangaMode) {
-        return {
-            tagChipPaddingClass: 'px-1.5 py-0.5',
-            tagChipTextClass: 'text-[8px]',
-            tagChipRadiusClass: 'rounded',
-            tagChipMaxWidthClass: 'max-w-[60px]',
-            rowLayoutClass: 'flex-nowrap items-center justify-end',
-        };
-    }
-
+    const preset = getTagSummaryUiPreset(displayMode);
     return {
-        tagChipPaddingClass: 'px-1.5 py-0.5',
-        tagChipTextClass: 'text-[8px]',
-        tagChipRadiusClass: 'rounded',
-        tagChipMaxWidthClass: 'max-w-[60px]',
-        rowLayoutClass: 'flex-nowrap items-center justify-end',
+        tagChipPaddingClass: preset.chipPaddingClass,
+        tagChipTextClass: preset.chipTextClass,
+        tagChipRadiusClass: preset.chipRadiusClass,
+        tagChipMaxWidthClass: preset.chipMaxWidthClass,
+        rowLayoutClass: preset.rowLayoutClass,
     };
 }
 
