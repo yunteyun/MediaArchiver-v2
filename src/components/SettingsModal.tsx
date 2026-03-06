@@ -30,6 +30,10 @@ import {
 // Phase 25: ローカル型定義
 type StorageMode = 'appdata' | 'install' | 'custom';
 interface StorageConfig { mode: StorageMode; customPath?: string; resolvedPath: string; }
+interface UpdateCheckUiState {
+    checkedAt: number;
+    result: AppUpdateCheckResult;
+}
 
 const ALL_FILES_ID = '__all__';
 const DRIVE_PREFIX = '__drive:';
@@ -99,6 +103,8 @@ export const SettingsModal = React.memo(() => {
     const [logActionMessage, setLogActionMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
     // Phase 26: バージョン表記
     const [appVersion, setAppVersion] = useState<string>('');
+    const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
+    const [updateCheckState, setUpdateCheckState] = useState<UpdateCheckUiState | null>(null);
     const [folderScanSettingsManagerOpen, setFolderScanSettingsManagerOpen] = useState(false);
 
     // Export context (current visible list basis)
@@ -606,6 +612,38 @@ export const SettingsModal = React.memo(() => {
         }
     }, []);
 
+    const handleCheckForUpdates = useCallback(async () => {
+        if (isCheckingForUpdates) return;
+        setIsCheckingForUpdates(true);
+        try {
+            const result = await window.electronAPI.checkForAppUpdate();
+            setUpdateCheckState({ checkedAt: Date.now(), result });
+            if (!result.success) {
+                useUIStore.getState().showToast(`更新確認に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            if (result.hasUpdate) {
+                useUIStore.getState().showToast(`更新があります（最新: v${result.latestVersion}）`, 'info', 5000);
+            } else {
+                useUIStore.getState().showToast('最新バージョンです', 'success', 3000);
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setUpdateCheckState({
+                checkedAt: Date.now(),
+                result: {
+                    success: false,
+                    currentVersion: appVersion || 'unknown',
+                    sourceUrl: 'unknown',
+                    error: message,
+                },
+            });
+            useUIStore.getState().showToast(`更新確認に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsCheckingForUpdates(false);
+        }
+    }, [appVersion, isCheckingForUpdates]);
+
     if (!isOpen) return null;
 
     return (
@@ -801,6 +839,53 @@ export const SettingsModal = React.memo(() => {
                                         className="w-5 h-5 accent-primary-500 rounded"
                                     />
                                 </label>
+                            </div>
+
+                            {/* Update Check (PoC Step 3) */}
+                            <div className="rounded border border-surface-700 bg-surface-900/50 p-3">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-sm font-medium text-surface-200">更新確認（PoC）</div>
+                                        <p className="text-xs text-surface-500 mt-0.5">
+                                            最新版を手動で確認します（適用は従来どおり `update.bat`）。
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => { void handleCheckForUpdates(); }}
+                                        disabled={isCheckingForUpdates}
+                                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <RefreshCw size={14} className={isCheckingForUpdates ? 'animate-spin' : ''} />
+                                        {isCheckingForUpdates ? '確認中...' : '更新を確認'}
+                                    </button>
+                                </div>
+
+                                {updateCheckState && (
+                                    <div className="mt-3 space-y-1 text-xs">
+                                        {updateCheckState.result.success ? (
+                                            <>
+                                                <div className="text-surface-300">
+                                                    現在: <span className="text-surface-100">v{updateCheckState.result.currentVersion}</span>
+                                                    {' / '}
+                                                    最新: <span className="text-surface-100">v{updateCheckState.result.latestVersion}</span>
+                                                </div>
+                                                <div className={updateCheckState.result.hasUpdate ? 'text-amber-300' : 'text-emerald-300'}>
+                                                    {updateCheckState.result.hasUpdate
+                                                        ? '更新があります。適用は update.bat を利用してください。'
+                                                        : '最新バージョンです。'}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="text-red-300">
+                                                更新確認失敗: {updateCheckState.result.error ?? 'unknown error'}
+                                            </div>
+                                        )}
+                                        <div className="text-surface-500">
+                                            最終確認: {new Date(updateCheckState.checkedAt).toLocaleString('ja-JP')}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
 

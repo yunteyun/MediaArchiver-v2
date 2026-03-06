@@ -99,6 +99,17 @@ interface ContextMenuSearchDestination {
     enabled: boolean;
 }
 
+interface AppUpdateCheckResult {
+    success: boolean;
+    currentVersion: string;
+    latestVersion?: string;
+    hasUpdate?: boolean;
+    releaseUrl?: string;
+    publishedAt?: string;
+    sourceUrl: string;
+    error?: string;
+}
+
 declare global {
     interface Window {
         electronAPI: {
@@ -134,6 +145,7 @@ declare global {
             openExternal: (path: string) => Promise<void>;
             showInExplorer: (path: string) => Promise<void>;
             getAppVersion: () => Promise<string>;  // Phase 26
+            checkForAppUpdate: (sourceUrl?: string) => Promise<AppUpdateCheckResult>;
             getLogs: (lines?: number) => Promise<string[]>;
             openLogFolder: () => Promise<void>;
             selectFile: () => Promise<string | null>;
