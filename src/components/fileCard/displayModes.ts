@@ -14,6 +14,13 @@ export type TagSummaryUiPreset = {
 };
 
 export type DetailedInfoUiPreset = {
+    isBadgeMetaMode: boolean;
+    containerClass: string;
+    titleClass: string;
+    metaLineClass: string;
+    bottomRowClass: string;
+    standaloneFileSizeClass: string;
+    fallbackTagSummaryVisibleCount: number;
     folderBadgeMaxWidthClass: string;
     tagSummaryVisibleCount: number;
 };
@@ -222,32 +229,81 @@ const TAG_SUMMARY_UI_PRESETS: Record<DisplayMode, TagSummaryUiPreset> = {
 
 const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
     standard: {
+        isBadgeMetaMode: true,
+        containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
+        titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
+        metaLineClass: 'text-[10px] text-surface-500 truncate leading-snug mb-1',
+        bottomRowClass: 'flex justify-between gap-1 items-center mt-auto',
+        standaloneFileSizeClass: 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80',
+        fallbackTagSummaryVisibleCount: 3,
         folderBadgeMaxWidthClass: 'max-w-[110px]',
-        tagSummaryVisibleCount: 3,
+        tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.standard.visibleCount,
     },
     standardLarge: {
+        isBadgeMetaMode: true,
+        containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
+        titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
+        metaLineClass: 'text-[10px] text-surface-500 truncate leading-snug mb-1',
+        bottomRowClass: 'flex justify-between gap-1 items-center mt-auto',
+        standaloneFileSizeClass: 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80',
+        fallbackTagSummaryVisibleCount: 3,
         folderBadgeMaxWidthClass: 'max-w-[110px]',
-        tagSummaryVisibleCount: 3,
+        tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.standardLarge.visibleCount,
     },
     manga: {
+        isBadgeMetaMode: true,
+        containerClass: 'flex flex-col bg-surface-800 px-3 py-1.5 justify-between',
+        titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0 leading-tight truncate',
+        metaLineClass: 'text-[10px] text-surface-500 truncate leading-tight mb-0.5',
+        bottomRowClass: 'flex justify-between gap-1 items-center',
+        standaloneFileSizeClass: 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60',
+        fallbackTagSummaryVisibleCount: 3,
         folderBadgeMaxWidthClass: 'max-w-[84px]',
-        tagSummaryVisibleCount: 2,
+        tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.manga.visibleCount,
     },
     video: {
+        isBadgeMetaMode: true,
+        containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
+        titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
+        metaLineClass: 'text-[10px] text-surface-500 truncate leading-snug mb-1',
+        bottomRowClass: 'flex justify-between gap-1 items-center mt-auto',
+        standaloneFileSizeClass: 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80',
+        fallbackTagSummaryVisibleCount: 3,
         folderBadgeMaxWidthClass: 'max-w-[96px]',
-        tagSummaryVisibleCount: 3,
+        tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.video.visibleCount,
     },
     whiteBrowser: {
+        isBadgeMetaMode: false,
+        containerClass: 'flex flex-col bg-surface-800 px-2.5 py-2 justify-start',
+        titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-[12px] leading-snug mb-1 line-clamp-2 break-all',
+        metaLineClass: 'text-[10px] text-surface-400 leading-snug mb-1 whitespace-normal break-all line-clamp-3',
+        bottomRowClass: 'flex flex-col items-start gap-1 mt-auto',
+        standaloneFileSizeClass: 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60',
+        fallbackTagSummaryVisibleCount: 3,
         folderBadgeMaxWidthClass: 'max-w-[140px]',
-        tagSummaryVisibleCount: 15,
+        tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.whiteBrowser.visibleCount,
     },
     mangaDetailed: {
+        isBadgeMetaMode: false,
+        containerClass: 'flex flex-col bg-surface-800 px-2.5 py-2 justify-start',
+        titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-[12px] leading-snug mb-1 line-clamp-2 break-all',
+        metaLineClass: 'text-[10px] text-surface-400 leading-snug mb-1 whitespace-normal break-all line-clamp-3',
+        bottomRowClass: 'flex flex-col items-start gap-1 mt-auto',
+        standaloneFileSizeClass: 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60',
+        fallbackTagSummaryVisibleCount: 3,
         folderBadgeMaxWidthClass: 'max-w-[110px]',
-        tagSummaryVisibleCount: 10,
+        tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.mangaDetailed.visibleCount,
     },
     compact: {
+        isBadgeMetaMode: true,
+        containerClass: 'flex flex-col bg-surface-800 px-3.5 py-2.5 justify-start',
+        titleClass: 'font-semibold text-white hover:text-primary-400 transition-colors text-sm mb-0.5 truncate',
+        metaLineClass: 'text-[10px] text-surface-500 truncate leading-snug mb-1',
+        bottomRowClass: 'flex justify-between gap-1 items-center mt-auto',
+        standaloneFileSizeClass: 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80',
+        fallbackTagSummaryVisibleCount: 3,
         folderBadgeMaxWidthClass: 'max-w-[110px]',
-        tagSummaryVisibleCount: 3,
+        tagSummaryVisibleCount: TAG_SUMMARY_UI_PRESETS.compact.visibleCount,
     },
 };
 

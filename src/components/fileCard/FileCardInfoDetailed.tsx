@@ -6,17 +6,15 @@ import { getDetailedInfoUiPreset, isHorizontalDisplayMode } from './displayModes
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
 type DetailedInfoUiConfig = {
-    isMangaMode: boolean;
-    isMangaDetailedMode: boolean;
-    isVideoMode: boolean;
     isDetailedHorizontalMode: boolean;
     isBadgeMetaMode: boolean;
-    isStandardMode: boolean;
     containerClass: string;
     titleClass: string;
     metaLineClass: string;
     folderBadgeMaxWidthClass: string;
     bottomRowClass: string;
+    standaloneFileSizeClass: string;
+    fallbackTagSummaryVisibleCount: number;
     tagSummaryVisibleCount: number;
 };
 
@@ -36,50 +34,19 @@ type DetailedBottomRowProps = {
 };
 
 function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
-    const isMangaMode = displayMode === 'manga';
-    const isVideoMode = displayMode === 'video';
-    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
-    const isStandardMode = displayMode === 'standard' || displayMode === 'standardLarge';
     const detailedUiPreset = getDetailedInfoUiPreset(displayMode);
-    const isBadgeMetaMode =
-        isStandardMode ||
-        isMangaMode ||
-        isVideoMode;
+    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
 
     return {
-        isMangaMode,
-        isMangaDetailedMode: displayMode === 'mangaDetailed',
-        isVideoMode,
         isDetailedHorizontalMode,
-        isBadgeMetaMode,
-        isStandardMode,
-        containerClass: `flex flex-col bg-surface-800 ${
-            isMangaMode
-                ? 'px-3 py-1.5 justify-between'
-                : isDetailedHorizontalMode
-                    ? 'px-2.5 py-2 justify-start'
-                    : 'px-3.5 py-2.5 justify-start'
-        }`,
-        titleClass: `font-semibold text-white hover:text-primary-400 transition-colors ${
-            isMangaMode
-                ? 'text-sm mb-0 leading-tight truncate'
-                : isDetailedHorizontalMode
-                    ? 'text-[12px] leading-snug mb-1 line-clamp-2 break-all'
-                    : 'text-sm mb-0.5 truncate'
-        }`,
-        metaLineClass: isDetailedHorizontalMode
-            ? 'text-[10px] text-surface-400 leading-snug mb-1 whitespace-normal break-all line-clamp-3'
-            : `text-[10px] text-surface-500 truncate ${isMangaMode ? 'leading-tight mb-0.5' : 'leading-snug mb-1'}`,
+        isBadgeMetaMode: detailedUiPreset.isBadgeMetaMode,
+        containerClass: detailedUiPreset.containerClass,
+        titleClass: detailedUiPreset.titleClass,
+        metaLineClass: detailedUiPreset.metaLineClass,
         folderBadgeMaxWidthClass: detailedUiPreset.folderBadgeMaxWidthClass,
-        bottomRowClass: isDetailedHorizontalMode
-            ? 'flex flex-col items-start gap-1 mt-auto'
-            : `flex justify-between gap-1 ${
-                isMangaMode
-                    ? 'items-center'
-                    : isStandardMode || isVideoMode
-                        ? 'items-center mt-auto'
-                        : 'items-start mt-auto'
-            }`,
+        bottomRowClass: detailedUiPreset.bottomRowClass,
+        standaloneFileSizeClass: detailedUiPreset.standaloneFileSizeClass,
+        fallbackTagSummaryVisibleCount: detailedUiPreset.fallbackTagSummaryVisibleCount,
         tagSummaryVisibleCount: detailedUiPreset.tagSummaryVisibleCount,
     };
 }
@@ -124,11 +91,7 @@ const DetailedBottomRow = React.memo(({
         <div className={ui.bottomRowClass}>
             {!ui.isBadgeMetaMode && showFileSize && !!fileSize && (
                 <span
-                    className={`flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap ${
-                        ui.isStandardMode
-                            ? 'inline-flex items-center text-[8px] leading-none font-bold text-surface-200 bg-surface-700/80'
-                            : 'text-[11px] text-surface-200 font-semibold tracking-tight bg-surface-700/60'
-                    }`}
+                    className={`flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap ${ui.standaloneFileSizeClass}`}
                 >
                     {formatFileSize(fileSize)}
                 </span>
@@ -138,7 +101,7 @@ const DetailedBottomRow = React.memo(({
                     <TagSummaryRenderer visibleCount={ui.tagSummaryVisibleCount} />
                 </div>
             ) : (
-                <TagSummaryRenderer visibleCount={3} />
+                <TagSummaryRenderer visibleCount={ui.fallbackTagSummaryVisibleCount} />
             )}
         </div>
     );
@@ -176,7 +139,7 @@ export const FileCardInfoDetailed = React.memo(({
         : '';
 
     if (ui.isDetailedHorizontalMode) {
-        const whiteBrowserBadges: Array<{ label: string; value: string }> = [
+        const detailedPanelBadges: Array<{ label: string; value: string }> = [
             { label: 'サイズ', value: showFileSize && !!file.size ? formatFileSize(file.size) : '-' },
             { label: '拡張子', value: extension || '-' },
             { label: '更新日', value: updatedDateLabel || '-' },
@@ -196,7 +159,7 @@ export const FileCardInfoDetailed = React.memo(({
                 </h3>
 
                 <div className="grid grid-cols-2 gap-1">
-                    {whiteBrowserBadges.map((badge) => (
+                    {detailedPanelBadges.map((badge) => (
                         <div
                             key={badge.label}
                             className="min-w-0 rounded bg-surface-700/60 px-1.5 py-1"
