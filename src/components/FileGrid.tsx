@@ -338,7 +338,12 @@ export const FileGrid = React.memo(() => {
         const totalGapWidth = (cols - 1) * CARD_GAP;
         const distributedCardW = Math.floor((availableWidth - totalGapWidth) / cols);
         const maxCardWidth = config.cardWidth + (DISPLAY_MODE_CARD_GROWTH[displayMode] ?? 0);
-        const effectiveCardW = Math.max(1, Math.min(maxCardWidth, distributedCardW));
+        const baseCardW = Math.max(1, Math.min(maxCardWidth, distributedCardW));
+        const remainingWidth = Math.max(0, availableWidth - (baseCardW * cols + totalGapWidth));
+        const redistributedExtraPerCard = displayMode === 'whiteBrowser'
+            ? Math.floor(remainingWidth / cols)
+            : 0;
+        const effectiveCardW = baseCardW + redistributedExtraPerCard;
 
         // アスペクト比を維持してサムネイル高さを再計算
         const aspectRatio = config.thumbnailHeight / config.cardWidth;
