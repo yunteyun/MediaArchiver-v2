@@ -139,6 +139,34 @@ export interface ScanBatchCommittedPayload {
     stage: 'batch' | 'complete' | 'cancelled';
 }
 
+function parseLegacyArchiveImageCount(value: unknown): number | null {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+    if (value < 0) return null;
+    return Math.floor(value);
+}
+
+function hasArchiveImageCountMetadataForDisplay(metadata?: string): boolean {
+    if (!metadata) return false;
+
+    try {
+        const parsed = JSON.parse(metadata) as {
+            imageEntries?: unknown;
+            imageCount?: unknown;
+            pageCount?: unknown;
+            fileCount?: unknown;
+        };
+
+        if (!parsed || typeof parsed !== 'object') return false;
+        if (Array.isArray(parsed.imageEntries)) return true;
+        if (parseLegacyArchiveImageCount(parsed.imageCount) != null) return true;
+        if (parseLegacyArchiveImageCount(parsed.pageCount) != null) return true;
+        if (parseLegacyArchiveImageCount(parsed.fileCount) != null) return true;
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) => void;
 
 export interface ScanDirectoryOptions {
@@ -355,13 +383,18 @@ async function scanDirectoryInternal(
                     // Videos require both thumbnail and preview frames (only if setting > 0)
                     // Phase 15-2: 画像はメタデータ(width/height)も必要
                     const hasMetadata = !!existing?.metadata;
+                    const hasArchiveImageCountMetadata = type === 'archive'
+                        ? hasArchiveImageCountMetadataForDisplay(existing?.metadata)
+                        : false;
                     const isComplete = type === 'video'
                         ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0) && hasMetadata)
                         : type === 'audio'
                             ? (hasThumbnail && hasMetadata)
                         : type === 'image'
                             ? (hasThumbnail && hasMetadata)
-                            : (!isMedia || hasThumbnail);
+                            : type === 'archive'
+                                ? (hasThumbnail && hasArchiveImageCountMetadata)
+                                : (!isMedia || hasThumbnail);
 
                     const needsPngAnimationBackfillCheck = type === 'image'
                         && ext === '.png'
@@ -473,9 +506,9 @@ async function scanDirectoryInternal(
                         }
                     }
 
-                    // Generate archive metadata if missing (archive only)
+                    // Generate archive metadata if missing/incomplete (archive only)
                     let metadata = existing?.metadata;
-                    if (type === 'archive' && !metadata) {
+                    if (type === 'archive' && !hasArchiveImageCountMetadataForDisplay(metadata)) {
                         try {
                             if (onProgress) {
                                 onProgress({
@@ -487,7 +520,9 @@ async function scanDirectoryInternal(
                                 });
                             }
                             const meta = await archiveHandler.getArchiveMetadata(fullPath);
-                            metadata = JSON.stringify(meta);
+                            if (meta) {
+                                metadata = JSON.stringify(meta);
+                            }
                         } catch (e) {
                             log.error('Archive metadata extraction failed:', e);
                         }
