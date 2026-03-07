@@ -33,6 +33,14 @@ interface SmartFolderState {
     isMutating: boolean;
     loadSmartFolders: () => Promise<void>;
     createSmartFolder: (name: string, condition: SmartFolderConditionV1) => Promise<SmartFolderV1>;
+    updateSmartFolder: (
+        id: string,
+        updates: {
+            name?: string;
+            condition?: SmartFolderConditionV1;
+            sortOrder?: number;
+        }
+    ) => Promise<SmartFolderV1>;
     renameSmartFolder: (id: string, name: string) => Promise<SmartFolderV1>;
     deleteSmartFolder: (id: string) => Promise<boolean>;
     applySmartFolder: (id: string, options?: SmartFolderApplyOptions) => Promise<boolean>;
@@ -95,20 +103,41 @@ export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
         }
     },
 
-    renameSmartFolder: async (id, name) => {
+    updateSmartFolder: async (id, updates) => {
         set({ isMutating: true });
         try {
+            const payload: {
+                name?: string;
+                condition?: SmartFolderConditionV1;
+                sortOrder?: number;
+            } = {};
+            if (typeof updates.name === 'string') {
+                payload.name = updates.name.trim();
+            }
+            if (updates.condition) {
+                payload.condition = normalizeCondition(updates.condition);
+            }
+            if (typeof updates.sortOrder === 'number' && Number.isFinite(updates.sortOrder)) {
+                payload.sortOrder = Math.max(0, Math.floor(updates.sortOrder));
+            }
+
             const updated = await window.electronAPI.updateSmartFolder({
                 id,
-                updates: { name: name.trim() },
+                updates: payload,
             });
             set((state) => ({
-                smartFolders: state.smartFolders.map((item) => (item.id === id ? updated : item)),
+                smartFolders: state.smartFolders
+                    .map((item) => (item.id === id ? updated : item))
+                    .sort((a, b) => a.sortOrder - b.sortOrder),
             }));
             return updated;
         } finally {
             set({ isMutating: false });
         }
+    },
+
+    renameSmartFolder: async (id, name) => {
+        return get().updateSmartFolder(id, { name });
     },
 
     deleteSmartFolder: async (id) => {

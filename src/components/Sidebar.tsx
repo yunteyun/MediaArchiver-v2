@@ -11,7 +11,9 @@ import { RatingFilterPanel } from './ratings/RatingFilterPanel';
 import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { AddFolderScanSettingsDialog, type AddFolderScanSettingsSubmit } from './AddFolderScanSettingsDialog';
+import { SmartFolderEditorDialog, type SmartFolderFolderOption } from './SmartFolderEditorDialog';
 import type { MediaFolder } from '../types/file';
+import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
 
 // 特殊なフォルダID
 const ALL_FILES_ID = '__all__';
@@ -71,12 +73,7 @@ function resolveSmartFolderFolderLabel(folderSelection: string | null, folders: 
 }
 
 function buildSmartFolderPreviewText(
-    condition: {
-        folderSelection: string | null;
-        text: string;
-        tags: { ids: string[]; mode: 'AND' | 'OR' };
-        ratings: Record<string, { min?: number; max?: number }>;
-    },
+    condition: SmartFolderConditionV1,
     folders: MediaFolder[]
 ): string {
     const segments: string[] = [resolveSmartFolderFolderLabel(condition.folderSelection, folders)];
@@ -105,6 +102,71 @@ function buildSmartFolderPreviewText(
     return segments.join(' / ');
 }
 
+function toSmartFolderOptionLabel(folderSelection: string, folders: MediaFolder[]): string {
+    const label = resolveSmartFolderFolderLabel(folderSelection, folders);
+    return label.replace(/^範囲:\s*/, '');
+}
+
+function buildSmartFolderFolderOptions(
+    folders: MediaFolder[],
+    currentFolderId: string | null
+): SmartFolderFolderOption[] {
+    const options: SmartFolderFolderOption[] = [];
+    const seen = new Set<string>();
+    const pushOption = (value: string, label: string) => {
+        if (!value || seen.has(value)) return;
+        seen.add(value);
+        options.push({ value, label });
+    };
+
+    pushOption(ALL_FILES_ID, 'すべてのファイル');
+
+    if (currentFolderId && currentFolderId !== ALL_FILES_ID) {
+        pushOption(currentFolderId, `${toSmartFolderOptionLabel(currentFolderId, folders)} (現在選択中)`);
+    }
+
+    const driveList = Array.from(
+        new Set(
+            folders
+                .map((folder) => String(folder.drive || ''))
+                .filter((drive) => drive.length > 0)
+        )
+    ).sort((a, b) => a.localeCompare(b, 'ja'));
+    driveList.forEach((drive) => {
+        pushOption(`${DRIVE_PREFIX}${drive}`, `${drive} ドライブ`);
+    });
+
+    const registeredFolders = folders
+        .filter((folder) => !folder.isVirtualFolder)
+        .slice()
+        .sort((a, b) => a.path.localeCompare(b.path, 'ja'));
+    registeredFolders.forEach((folder) => {
+        pushOption(`${FOLDER_PREFIX}${folder.id}`, `登録: ${folder.path}`);
+    });
+
+    const virtualFolders = folders
+        .filter((folder) => !!folder.isVirtualFolder)
+        .slice()
+        .sort((a, b) => a.path.localeCompare(b.path, 'ja'));
+    virtualFolders.forEach((folder) => {
+        pushOption(`${VIRTUAL_FOLDER_RECURSIVE_PREFIX}${folder.path}`, `仮想: ${folder.path} (配下)`);
+    });
+
+    return options;
+}
+
+type SmartFolderEditorState =
+    | {
+        mode: 'create';
+        initialName: string;
+        initialCondition: SmartFolderConditionV1;
+    }
+    | {
+        mode: 'edit';
+        smartFolderId: string;
+    }
+    | null;
+
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
     const files = useFileStore((s) => s.files);
@@ -120,8 +182,12 @@ export const Sidebar = React.memo(() => {
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
     const searchQuery = useUIStore((s) => s.searchQuery);
+    const tags = useTagStore((s) => s.tags);
+    const loadTags = useTagStore((s) => s.loadTags);
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
     const filterMode = useTagStore((s) => s.filterMode);
+    const ratingAxes = useRatingStore((s) => s.axes);
+    const loadRatingAxes = useRatingStore((s) => s.loadAxes);
     const ratingFilter = useRatingStore((s) => s.ratingFilter);
     const smartFolders = useSmartFolderStore((s) => s.smartFolders);
     const activeSmartFolderId = useSmartFolderStore((s) => s.activeSmartFolderId);
@@ -129,7 +195,7 @@ export const Sidebar = React.memo(() => {
     const smartFolderMutating = useSmartFolderStore((s) => s.isMutating);
     const loadSmartFolders = useSmartFolderStore((s) => s.loadSmartFolders);
     const createSmartFolder = useSmartFolderStore((s) => s.createSmartFolder);
-    const renameSmartFolder = useSmartFolderStore((s) => s.renameSmartFolder);
+    const updateSmartFolder = useSmartFolderStore((s) => s.updateSmartFolder);
     const deleteSmartFolder = useSmartFolderStore((s) => s.deleteSmartFolder);
     const applySmartFolder = useSmartFolderStore((s) => s.applySmartFolder);
     const setActiveSmartFolderId = useSmartFolderStore((s) => s.setActiveSmartFolderId);
@@ -143,6 +209,7 @@ export const Sidebar = React.memo(() => {
     const [pendingAddFolderPath, setPendingAddFolderPath] = useState<string | null>(null);
     const [folderTreeSearch, setFolderTreeSearch] = useState('');
     const [folderTreeRecursiveCountsByPath, setFolderTreeRecursiveCountsByPath] = useState<Record<string, number>>({});
+    const [smartFolderEditorState, setSmartFolderEditorState] = useState<SmartFolderEditorState>(null);
     const perfDebugEnabled = isPerfDebugEnabled();
     const progressiveRefreshStateRef = useRef<{
         timer: ReturnType<typeof setTimeout> | null;
@@ -337,6 +404,11 @@ export const Sidebar = React.memo(() => {
         void loadSmartFolders();
     }, [loadSmartFolders]);
 
+    useEffect(() => {
+        void loadTags();
+        void loadRatingAxes();
+    }, [loadRatingAxes, loadTags]);
+
     const buildCurrentSmartFolderCondition = useCallback(() => {
         const normalizedRatings: Record<string, { min?: number; max?: number }> = {};
         Object.entries(ratingFilter).forEach(([axisId, range]) => {
@@ -363,20 +435,13 @@ export const Sidebar = React.memo(() => {
         return `条件 ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
     }, []);
 
-    const handleSaveCurrentAsSmartFolder = useCallback(async () => {
-        const suggestedName = createDefaultSmartFolderName();
-        const inputName = window.prompt('スマートフォルダ名を入力してください', suggestedName);
-        if (inputName == null) return;
-        const name = inputName.trim();
-        if (!name) return;
-
-        try {
-            await createSmartFolder(name, buildCurrentSmartFolderCondition());
-        } catch (error) {
-            console.error('Failed to create smart folder:', error);
-            window.alert('スマートフォルダの保存に失敗しました');
-        }
-    }, [buildCurrentSmartFolderCondition, createDefaultSmartFolderName, createSmartFolder]);
+    const handleOpenCreateSmartFolderEditor = useCallback(() => {
+        setSmartFolderEditorState({
+            mode: 'create',
+            initialName: createDefaultSmartFolderName(),
+            initialCondition: buildCurrentSmartFolderCondition(),
+        });
+    }, [buildCurrentSmartFolderCondition, createDefaultSmartFolderName]);
 
     const handleApplySmartFolder = useCallback(async (smartFolderId: string) => {
         try {
@@ -392,19 +457,35 @@ export const Sidebar = React.memo(() => {
         }
     }, [applySmartFolder, handleSelectFolder]);
 
-    const handleRenameSmartFolder = useCallback(async (id: string, currentName: string) => {
-        const inputName = window.prompt('スマートフォルダ名を変更', currentName);
-        if (inputName == null) return;
-        const name = inputName.trim();
-        if (!name || name === currentName) return;
+    const handleOpenEditSmartFolderEditor = useCallback((id: string) => {
+        setSmartFolderEditorState({
+            mode: 'edit',
+            smartFolderId: id,
+        });
+    }, []);
 
-        try {
-            await renameSmartFolder(id, name);
-        } catch (error) {
-            console.error('Failed to rename smart folder:', error);
-            window.alert('スマートフォルダ名の変更に失敗しました');
+    const handleSubmitSmartFolderEditor = useCallback(async (
+        payload: {
+            name: string;
+            condition: SmartFolderConditionV1;
         }
-    }, [renameSmartFolder]);
+    ) => {
+        if (!smartFolderEditorState) return;
+        try {
+            if (smartFolderEditorState.mode === 'create') {
+                await createSmartFolder(payload.name, payload.condition);
+            } else {
+                await updateSmartFolder(smartFolderEditorState.smartFolderId, {
+                    name: payload.name,
+                    condition: payload.condition,
+                });
+            }
+            setSmartFolderEditorState(null);
+        } catch (error) {
+            console.error('Failed to save smart folder:', error);
+            window.alert('スマートフォルダの保存に失敗しました');
+        }
+    }, [createSmartFolder, smartFolderEditorState, updateSmartFolder]);
 
     const handleDeleteSmartFolder = useCallback(async (id: string, name: string) => {
         const confirmed = window.confirm(`スマートフォルダ「${name}」を削除しますか？`);
@@ -467,6 +548,39 @@ export const Sidebar = React.memo(() => {
         });
         return map;
     }, [smartFolders, folders]);
+
+    const smartFolderFolderOptions = useMemo(() => {
+        return buildSmartFolderFolderOptions(folders, currentFolderId);
+    }, [folders, currentFolderId]);
+
+    const editingSmartFolder = useMemo(() => {
+        if (!smartFolderEditorState || smartFolderEditorState.mode !== 'edit') return null;
+        return smartFolders.find((item) => item.id === smartFolderEditorState.smartFolderId) ?? null;
+    }, [smartFolderEditorState, smartFolders]);
+
+    const smartFolderEditorInitialName = useMemo(() => {
+        if (!smartFolderEditorState) return '';
+        if (smartFolderEditorState.mode === 'create') return smartFolderEditorState.initialName;
+        return editingSmartFolder?.name ?? '';
+    }, [editingSmartFolder, smartFolderEditorState]);
+
+    const smartFolderEditorInitialCondition = useMemo<SmartFolderConditionV1>(() => {
+        if (!smartFolderEditorState) {
+            return {
+                folderSelection: ALL_FILES_ID,
+                text: '',
+                tags: { ids: [], mode: 'OR' },
+                ratings: {},
+            };
+        }
+        if (smartFolderEditorState.mode === 'create') return smartFolderEditorState.initialCondition;
+        return editingSmartFolder?.condition ?? {
+            folderSelection: ALL_FILES_ID,
+            text: '',
+            tags: { ids: [], mode: 'OR' },
+            ratings: {},
+        };
+    }, [editingSmartFolder, smartFolderEditorState]);
 
     const registeredFolderMap = useMemo(() => {
         const next = new Map<string, MediaFolder>();
@@ -793,7 +907,7 @@ export const Sidebar = React.memo(() => {
                                 <span className="font-medium">スマートフォルダ</span>
                                 <button
                                     type="button"
-                                    onClick={handleSaveCurrentAsSmartFolder}
+                                    onClick={handleOpenCreateSmartFolderEditor}
                                     className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-surface-300 hover:bg-surface-800"
                                     title="現在の条件を保存"
                                     disabled={smartFolderMutating}
@@ -836,10 +950,10 @@ export const Sidebar = React.memo(() => {
                                                         type="button"
                                                         onClick={(event) => {
                                                             event.stopPropagation();
-                                                            void handleRenameSmartFolder(smartFolder.id, smartFolder.name);
+                                                            handleOpenEditSmartFolderEditor(smartFolder.id);
                                                         }}
                                                         className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
-                                                        title="名前変更"
+                                                        title="条件編集"
                                                     >
                                                         <Pencil size={11} />
                                                     </button>
@@ -992,6 +1106,19 @@ export const Sidebar = React.memo(() => {
                     setPendingAddFolderPath(null);
                 }}
                 onSubmit={(settings) => { void handleConfirmAddFolderSettings(settings); }}
+            />
+            <SmartFolderEditorDialog
+                isOpen={smartFolderEditorState !== null}
+                title={smartFolderEditorState?.mode === 'edit' ? 'スマートフォルダを編集' : 'スマートフォルダを保存'}
+                submitLabel={smartFolderEditorState?.mode === 'edit' ? '更新' : '保存'}
+                initialName={smartFolderEditorInitialName}
+                initialCondition={smartFolderEditorInitialCondition}
+                folderOptions={smartFolderFolderOptions}
+                tags={tags}
+                ratingAxes={ratingAxes}
+                isSubmitting={smartFolderMutating}
+                onClose={() => setSmartFolderEditorState(null)}
+                onSubmit={handleSubmitSmartFolderEditor}
             />
         </aside>
     );
