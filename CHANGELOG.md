@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 - (なし)
+- スマートフォルダの検索条件に「検索対象（ファイル名 / フォルダ名）」を追加し、フォルダ名一致ベースの条件保存・再適用に対応した。
 
 ### Fixed
 - (なし)

@@ -17,6 +17,7 @@ export interface ScanProgress {
 
 export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
+export type SearchTarget = 'fileName' | 'folderName';
 
 interface UIState {
     sidebarWidth: number;
@@ -28,6 +29,7 @@ interface UIState {
     sortBy: 'name' | 'date' | 'size' | 'type';
     sortOrder: 'asc' | 'desc';
     searchQuery: string;
+    searchTarget: SearchTarget;
     selectedFileTypes: MediaFile['type'][];
     settingsModalOpen: boolean;
     settingsModalRequestedTab: SettingsModalTab | null;
@@ -56,6 +58,7 @@ interface UIState {
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
     setSortOrder: (order: 'asc' | 'desc') => void;
     setSearchQuery: (query: string) => void;
+    setSearchTarget: (target: SearchTarget) => void;
     toggleFileTypeFilter: (fileType: MediaFile['type']) => void;
     clearFileTypeFilter: () => void;
     setSelectedFileTypes: (types: MediaFile['type'][]) => void;
@@ -93,6 +96,7 @@ export const useUIStore = create<UIState>((set) => ({
     sortBy: 'name',
     sortOrder: 'asc',
     searchQuery: '',
+    searchTarget: 'fileName',
     selectedFileTypes: ['video', 'image', 'archive', 'audio'],
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
@@ -122,6 +126,7 @@ export const useUIStore = create<UIState>((set) => ({
     setSortBy: (sortBy) => set({ sortBy }),
     setSortOrder: (order) => set({ sortOrder: order }),
     setSearchQuery: (query) => set({ searchQuery: query }),
+    setSearchTarget: (target) => set({ searchTarget: target }),
     toggleFileTypeFilter: (fileType) => set((state) => ({
         selectedFileTypes: state.selectedFileTypes.includes(fileType)
             ? state.selectedFileTypes.filter((type) => type !== fileType)

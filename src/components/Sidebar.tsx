@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X, CheckCircle2, AlertCircle, BookmarkPlus, Pencil, Trash2 } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
-import { useUIStore } from '../stores/useUIStore';
+import { useUIStore, type SearchTarget } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useSmartFolderStore } from '../stores/useSmartFolderStore';
@@ -28,6 +28,10 @@ const FILE_TYPE_LABEL_MAP: Record<MediaFile['type'], string> = {
     image: '画像',
     archive: '書庫',
     audio: '音声',
+};
+const SEARCH_TARGET_LABEL_MAP: Record<SearchTarget, string> = {
+    fileName: 'ファイル名',
+    folderName: 'フォルダ名',
 };
 
 function normalizeFolderPathForCompare(folderPath: string): string {
@@ -88,7 +92,7 @@ function buildSmartFolderPreviewText(
     const query = condition.text.trim();
     if (query.length > 0) {
         const shortQuery = query.length > 16 ? `${query.slice(0, 16)}...` : query;
-        segments.push(`検索: ${shortQuery}`);
+        segments.push(`検索(${SEARCH_TARGET_LABEL_MAP[condition.textMatchTarget] ?? 'ファイル名'}): ${shortQuery}`);
     }
 
     if (condition.tags.ids.length > 0) {
@@ -140,6 +144,9 @@ function isSameSmartFolderCondition(a: SmartFolderConditionV1, b: SmartFolderCon
         return false;
     }
     if (a.text.trim() !== b.text.trim()) {
+        return false;
+    }
+    if (a.textMatchTarget !== b.textMatchTarget) {
         return false;
     }
     if (a.tags.mode !== b.tags.mode) {
@@ -265,6 +272,7 @@ export const Sidebar = React.memo(() => {
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
     const searchQuery = useUIStore((s) => s.searchQuery);
+    const searchTarget = useUIStore((s) => s.searchTarget);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const tags = useTagStore((s) => s.tags);
     const loadTags = useTagStore((s) => s.loadTags);
@@ -505,6 +513,7 @@ export const Sidebar = React.memo(() => {
         return {
             folderSelection: currentFolderId,
             text: searchQuery,
+            textMatchTarget: searchTarget,
             tags: {
                 ids: [...selectedTagIds],
                 mode: filterMode,
@@ -512,7 +521,7 @@ export const Sidebar = React.memo(() => {
             ratings: normalizedRatings,
             types: [...selectedFileTypes],
         };
-    }, [currentFolderId, filterMode, ratingFilter, searchQuery, selectedFileTypes, selectedTagIds]);
+    }, [currentFolderId, filterMode, ratingFilter, searchQuery, searchTarget, selectedFileTypes, selectedTagIds]);
 
     const createDefaultSmartFolderName = useCallback(() => {
         const now = new Date();
@@ -546,6 +555,7 @@ export const Sidebar = React.memo(() => {
         try {
             const uiStore = useUIStore.getState();
             uiStore.setSearchQuery('');
+            uiStore.setSearchTarget('fileName');
             uiStore.setSelectedFileTypes([...ALL_FILE_TYPES]);
             useTagStore.setState({
                 selectedTagIds: [],
@@ -686,6 +696,7 @@ export const Sidebar = React.memo(() => {
             return {
                 folderSelection: ALL_FILES_ID,
                 text: '',
+                textMatchTarget: 'fileName',
                 tags: { ids: [], mode: 'OR' },
                 ratings: {},
                 types: [...ALL_FILE_TYPES],
@@ -695,6 +706,7 @@ export const Sidebar = React.memo(() => {
         return editingSmartFolder?.condition ?? {
             folderSelection: ALL_FILES_ID,
             text: '',
+            textMatchTarget: 'fileName',
             tags: { ids: [], mode: 'OR' },
             ratings: {},
             types: [...ALL_FILE_TYPES],

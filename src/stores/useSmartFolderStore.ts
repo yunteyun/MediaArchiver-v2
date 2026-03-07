@@ -3,6 +3,7 @@ import { useRatingStore } from './useRatingStore';
 import { useTagStore } from './useTagStore';
 import { useUIStore } from './useUIStore';
 import type { MediaFile } from '../types/file';
+import type { SearchTarget } from './useUIStore';
 
 const SMART_FOLDER_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
 
@@ -19,6 +20,7 @@ function normalizeFileTypes(input: unknown): MediaFile['type'][] {
 export interface SmartFolderConditionV1 {
     folderSelection: string | null;
     text: string;
+    textMatchTarget: SearchTarget;
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';
@@ -74,6 +76,7 @@ function normalizeCondition(input: SmartFolderConditionV1): SmartFolderCondition
     return {
         folderSelection: typeof input.folderSelection === 'string' ? input.folderSelection : null,
         text: typeof input.text === 'string' ? input.text : '',
+        textMatchTarget: input.textMatchTarget === 'folderName' ? 'folderName' : 'fileName',
         tags: {
             ids: Array.isArray(input.tags?.ids) ? input.tags.ids.filter((id) => typeof id === 'string' && id.length > 0) : [],
             mode: input.tags?.mode === 'AND' ? 'AND' : 'OR',
@@ -178,6 +181,7 @@ export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
 
         const uiStore = useUIStore.getState();
         uiStore.setSearchQuery(normalized.text);
+        uiStore.setSearchTarget(normalized.textMatchTarget);
         uiStore.setSelectedFileTypes(normalized.types);
         useTagStore.setState({
             selectedTagIds: [...normalized.tags.ids],

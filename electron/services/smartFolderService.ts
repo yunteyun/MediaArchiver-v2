@@ -9,6 +9,7 @@ const SMART_FOLDERS_KEY = 'smart_folders_v1';
 export interface SmartFolderConditionV1 {
     folderSelection: string | null;
     text: string;
+    textMatchTarget: 'fileName' | 'folderName';
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';
@@ -34,6 +35,7 @@ interface SmartFolderStoreV1 {
 const DEFAULT_CONDITION: SmartFolderConditionV1 = {
     folderSelection: null,
     text: '',
+    textMatchTarget: 'fileName',
     tags: {
         ids: [],
         mode: 'OR',
@@ -84,6 +86,7 @@ function normalizeCondition(input: unknown): SmartFolderConditionV1 {
     return {
         folderSelection: typeof candidate.folderSelection === 'string' ? candidate.folderSelection : null,
         text: typeof candidate.text === 'string' ? candidate.text : '',
+        textMatchTarget: candidate.textMatchTarget === 'folderName' ? 'folderName' : 'fileName',
         tags: {
             ids: Array.isArray(tagsCandidate.ids)
                 ? tagsCandidate.ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)

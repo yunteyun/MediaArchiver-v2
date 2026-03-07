@@ -1,5 +1,5 @@
 /**
- * SearchBar - ファイル名検索用の入力フィールド
+ * SearchBar - 一覧検索用の入力フィールド
  */
 
 import React, { useState, useEffect } from 'react';
@@ -8,6 +8,7 @@ import { useUIStore } from '../stores/useUIStore';
 
 export const SearchBar = React.memo(() => {
     const searchQuery = useUIStore((s) => s.searchQuery);
+    const searchTarget = useUIStore((s) => s.searchTarget);
     const setSearchQuery = useUIStore((s) => s.setSearchQuery);
 
     // ローカル入力値（デバウンス用）
@@ -39,7 +40,9 @@ export const SearchBar = React.memo(() => {
             />
             <input
                 type="text"
-                placeholder="ファイル名で検索... (Ctrl+F)"
+                placeholder={searchTarget === 'folderName'
+                    ? 'フォルダ名で検索... (Ctrl+F)'
+                    : 'ファイル名で検索... (Ctrl+F)'}
                 value={localValue}
                 onChange={(e) => setLocalValue(e.target.value)}
                 data-search-input

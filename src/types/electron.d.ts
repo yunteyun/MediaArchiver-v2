@@ -93,6 +93,7 @@ interface SearchResult {
 interface SmartFolderConditionV1 {
     folderSelection: string | null;
     text: string;
+    textMatchTarget: 'fileName' | 'folderName';
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';

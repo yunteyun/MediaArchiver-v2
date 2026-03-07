@@ -68,6 +68,7 @@ export const FileGrid = React.memo(() => {
     const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
+    const searchTarget = useUIStore((s) => s.searchTarget);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
@@ -176,9 +177,20 @@ export const FileGrid = React.memo(() => {
         // Filter by search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            filtered = filtered.filter((file) =>
-                file.name.toLowerCase().includes(query)
-            );
+            filtered = filtered.filter((file) => {
+                if (searchTarget === 'folderName') {
+                    const normalizedPath = String(file.path || '').replace(/[\\/]+/g, '/');
+                    const folderPath = normalizedPath.includes('/')
+                        ? normalizedPath.slice(0, normalizedPath.lastIndexOf('/'))
+                        : '';
+                    const folderName = folderPath
+                        ? folderPath.slice(folderPath.lastIndexOf('/') + 1)
+                        : '';
+                    return folderName.toLowerCase().includes(query) || folderPath.toLowerCase().includes(query);
+                }
+
+                return file.name.toLowerCase().includes(query);
+            });
         }
 
         // Filter by file type
@@ -197,6 +209,7 @@ export const FileGrid = React.memo(() => {
                 selectedTagCount: selectedTagIds.length,
                 activeRatingAxisCount,
                 searchActive: searchQuery.trim().length > 0,
+                searchTarget,
                 selectedTypeCount: selectedFileTypes.length,
                 sortBy,
                 sortOrder,
@@ -205,7 +218,7 @@ export const FileGrid = React.memo(() => {
         }
 
         return filtered;
-    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, selectedFileTypes, ratingFilter, allFileRatings, perfDebugEnabled]);
+    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, searchTarget, selectedFileTypes, ratingFilter, allFileRatings, perfDebugEnabled]);
 
 
     // グループ化されたファイル（Phase 12-10）

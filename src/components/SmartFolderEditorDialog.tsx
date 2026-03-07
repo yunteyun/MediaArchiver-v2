@@ -4,6 +4,7 @@ import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
 import type { Tag } from '../stores/useTagStore';
 import type { RatingAxis } from '../stores/useRatingStore';
 import type { MediaFile } from '../types/file';
+import type { SearchTarget } from '../stores/useUIStore';
 
 export interface SmartFolderFolderOption {
     value: string;
@@ -36,6 +37,10 @@ const SMART_FOLDER_FILE_TYPE_OPTIONS: Array<{ value: MediaFile['type']; label: s
     { value: 'image', label: '画像' },
     { value: 'archive', label: '書庫' },
     { value: 'audio', label: '音声' },
+];
+const SEARCH_TARGET_OPTIONS: Array<{ value: SearchTarget; label: string }> = [
+    { value: 'fileName', label: 'ファイル名' },
+    { value: 'folderName', label: 'フォルダ名' },
 ];
 
 function normalizeConditionTypes(input: unknown): MediaFile['type'][] {
@@ -81,6 +86,9 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
     const [name, setName] = useState(initialName);
     const [folderSelection, setFolderSelection] = useState(initialCondition.folderSelection ?? '__all__');
     const [text, setText] = useState(initialCondition.text);
+    const [textMatchTarget, setTextMatchTarget] = useState<SearchTarget>(
+        initialCondition.textMatchTarget === 'folderName' ? 'folderName' : 'fileName'
+    );
     const [tagIds, setTagIds] = useState<string[]>([]);
     const [tagMode, setTagMode] = useState<'AND' | 'OR'>('OR');
     const [ratingInputs, setRatingInputs] = useState<RatingInputMap>({});
@@ -92,6 +100,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
         setName(initialName);
         setFolderSelection(initialCondition.folderSelection ?? '__all__');
         setText(initialCondition.text);
+        setTextMatchTarget(initialCondition.textMatchTarget === 'folderName' ? 'folderName' : 'fileName');
         setTagIds([...initialCondition.tags.ids]);
         setTagMode(initialCondition.tags.mode === 'AND' ? 'AND' : 'OR');
         setRatingInputs(createRatingInputMap(initialCondition));
@@ -167,8 +176,22 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                             value={text}
                             onChange={(event) => setText(event.target.value)}
                             className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                            placeholder="ファイル名で検索"
+                            placeholder={textMatchTarget === 'folderName' ? 'フォルダ名で検索' : 'ファイル名で検索'}
                         />
+                        <div className="mt-2 flex items-center gap-2">
+                            <span className="text-xs text-surface-400">検索対象</span>
+                            <select
+                                value={textMatchTarget}
+                                onChange={(event) => setTextMatchTarget(event.target.value as SearchTarget)}
+                                className="rounded border border-surface-700 bg-surface-900 px-2 py-1 text-xs text-surface-200 focus:outline-none focus:border-primary-500"
+                            >
+                                {SEARCH_TARGET_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
@@ -371,6 +394,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                                 condition: {
                                     folderSelection: folderSelection || '__all__',
                                     text: text.trim(),
+                                    textMatchTarget,
                                     tags: {
                                         ids: [...tagIds],
                                         mode: tagMode,
