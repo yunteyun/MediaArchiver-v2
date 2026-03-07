@@ -17,6 +17,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.5.0d7] - 2026-03-07
+### Changed
+- (なし)
+
+### Fixed
+- 一部リリース配布物で起動直後にアプリが終了してしまう問題を修正し、正常な `package.json` を含む形で再リリースした。
+- 起動初期化の失敗時に通常ログが出ない場合でも原因を追跡できるよう、起動前段で `%TEMP%/MediaArchiver-v2-startup.log` へフォールバックログを出力するようにした。
+
+---
+
 ## [1.5.0d6] - 2026-03-07
 ### Changed
 - (なし)

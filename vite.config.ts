@@ -11,7 +11,7 @@ export default defineConfig(async () => ({
         react(),
         ...(await electron({
             main: {
-                entry: 'electron/main.ts',
+                entry: 'electron/bootstrap.ts',
                 vite: {
                     build: {
                         rollupOptions: {
