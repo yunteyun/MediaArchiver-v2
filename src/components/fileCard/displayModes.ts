@@ -63,7 +63,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
     },
     manga: {
         mode: 'manga',
-        label: '漫画',
+        label: '縦型',
         menuOrder: 50,
         iconKey: 'layoutGrid',
         cardGrowMax: 12,
@@ -112,7 +112,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
     },
     mangaDetailed: {
         mode: 'mangaDetailed',
-        label: '詳細表示（漫画）',
+        label: '詳細表示（縦）',
         menuOrder: 46,
         iconKey: 'layoutGrid',
         cardGrowMax: 16,
