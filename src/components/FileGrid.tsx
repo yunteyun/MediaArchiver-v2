@@ -68,6 +68,7 @@ export const FileGrid = React.memo(() => {
     const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
+    const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
     const showToast = useUIStore((s) => s.showToast);
@@ -180,6 +181,12 @@ export const FileGrid = React.memo(() => {
             );
         }
 
+        // Filter by file type
+        if (selectedFileTypes.length < 4) {
+            const selectedTypeSet = new Set(selectedFileTypes);
+            filtered = filtered.filter((file) => selectedTypeSet.has(file.type));
+        }
+
         if (perfDebugEnabled) {
             const activeRatingAxisCount = (Object.entries(ratingFilter) as [string, { min?: number; max?: number }][]).filter(
                 ([, r]) => r.min !== undefined || r.max !== undefined
@@ -190,6 +197,7 @@ export const FileGrid = React.memo(() => {
                 selectedTagCount: selectedTagIds.length,
                 activeRatingAxisCount,
                 searchActive: searchQuery.trim().length > 0,
+                selectedTypeCount: selectedFileTypes.length,
                 sortBy,
                 sortOrder,
                 elapsedMs: Number((performance.now() - start).toFixed(2)),
@@ -197,7 +205,7 @@ export const FileGrid = React.memo(() => {
         }
 
         return filtered;
-    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, ratingFilter, allFileRatings, perfDebugEnabled]);
+    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, selectedFileTypes, ratingFilter, allFileRatings, perfDebugEnabled]);
 
 
     // グループ化されたファイル（Phase 12-10）

@@ -3,7 +3,8 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive } from 'lucide-react';
+import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useToastStore } from '../stores/useToastStore';
@@ -29,6 +30,17 @@ const THUMBNAIL_PRESENTATION_OPTIONS: Array<{ value: ThumbnailPresentation; labe
     { value: 'cover', label: 'Cover（切り取り）' },
     { value: 'contain', label: 'Contain（全体表示）' },
     { value: 'square', label: 'Square（固定）' },
+];
+
+const FILE_TYPE_FILTER_OPTIONS: Array<{
+    value: 'video' | 'image' | 'archive' | 'audio';
+    label: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+}> = [
+    { value: 'video', label: '動画', icon: Film },
+    { value: 'image', label: '画像', icon: Image },
+    { value: 'archive', label: '書庫', icon: Archive },
+    { value: 'audio', label: '音声', icon: Music },
 ];
 
 export const Header = React.memo(() => {
@@ -63,6 +75,10 @@ export const Header = React.memo(() => {
 
     const files = useFileStore((s) => s.files);
     const selectedIds = useFileStore((s) => s.selectedIds);
+    const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
+    const toggleFileTypeFilter = useUIStore((s) => s.toggleFileTypeFilter);
+    const clearFileTypeFilter = useUIStore((s) => s.clearFileTypeFilter);
+    const hasActiveTypeFilter = selectedFileTypes.length < FILE_TYPE_FILTER_OPTIONS.length;
     const toastInfo = useToastStore((s) => s.info);
     const toastSuccess = useToastStore((s) => s.success);
     const toastError = useToastStore((s) => s.error);
@@ -195,6 +211,43 @@ export const Header = React.memo(() => {
                     <option value="size">サイズ別</option>
                     <option value="type">タイプ別</option>
                 </select>
+            </div>
+
+            {/* File Type Filter */}
+            <div className="flex gap-2 items-center">
+                <span className="text-surface-400 text-sm whitespace-nowrap">タイプ:</span>
+                <div className="flex items-center gap-1">
+                    {FILE_TYPE_FILTER_OPTIONS.map((option) => {
+                        const Icon = option.icon;
+                        const active = selectedFileTypes.includes(option.value);
+                        return (
+                            <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => toggleFileTypeFilter(option.value)}
+                                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
+                                    active
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
+                                }`}
+                                title={`${option.label}を${active ? '除外' : '表示'}`}
+                            >
+                                <Icon size={12} />
+                                <span>{option.label}</span>
+                            </button>
+                        );
+                    })}
+                    {hasActiveTypeFilter && (
+                        <button
+                            type="button"
+                            onClick={clearFileTypeFilter}
+                            className="rounded px-2 py-1 text-xs text-surface-400 hover:bg-surface-700 hover:text-surface-200"
+                            title="タイプ絞り込みを解除"
+                        >
+                            全表示
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Auto Tag Apply Button (Phase 12-8 フェーズ2) */}

@@ -28,6 +28,7 @@ interface UIState {
     sortBy: 'name' | 'date' | 'size' | 'type';
     sortOrder: 'asc' | 'desc';
     searchQuery: string;
+    selectedFileTypes: MediaFile['type'][];
     settingsModalOpen: boolean;
     settingsModalRequestedTab: SettingsModalTab | null;
     scanProgress: ScanProgress | null;
@@ -55,6 +56,9 @@ interface UIState {
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
     setSortOrder: (order: 'asc' | 'desc') => void;
     setSearchQuery: (query: string) => void;
+    toggleFileTypeFilter: (fileType: MediaFile['type']) => void;
+    clearFileTypeFilter: () => void;
+    setSelectedFileTypes: (types: MediaFile['type'][]) => void;
     openSettingsModal: (tab?: SettingsModalTab) => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
@@ -89,6 +93,7 @@ export const useUIStore = create<UIState>((set) => ({
     sortBy: 'name',
     sortOrder: 'asc',
     searchQuery: '',
+    selectedFileTypes: ['video', 'image', 'archive', 'audio'],
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
     scanProgress: null,
@@ -117,6 +122,17 @@ export const useUIStore = create<UIState>((set) => ({
     setSortBy: (sortBy) => set({ sortBy }),
     setSortOrder: (order) => set({ sortOrder: order }),
     setSearchQuery: (query) => set({ searchQuery: query }),
+    toggleFileTypeFilter: (fileType) => set((state) => ({
+        selectedFileTypes: state.selectedFileTypes.includes(fileType)
+            ? state.selectedFileTypes.filter((type) => type !== fileType)
+            : [...state.selectedFileTypes, fileType],
+    })),
+    clearFileTypeFilter: () => set({ selectedFileTypes: ['video', 'image', 'archive', 'audio'] }),
+    setSelectedFileTypes: (types) => set({
+        selectedFileTypes: Array.from(new Set(types.filter((type): type is MediaFile['type'] => (
+            type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+        )))),
+    }),
     openSettingsModal: (tab) => set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null }),
     closeSettingsModal: () => set({ settingsModalOpen: false }),
     setScanProgress: (progress) => set((state) => ({
