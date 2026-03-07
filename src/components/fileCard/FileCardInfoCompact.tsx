@@ -1,13 +1,17 @@
 import React from 'react';
 import { formatFileSize } from '../../utils/groupFiles';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
+import { getTagSummaryUiPreset } from './displayModes';
 
 export const FileCardInfoCompact = React.memo(({
     file,
+    displayMode,
     infoAreaHeight,
     showFileSize,
     TagSummaryRenderer,
 }: FileCardInfoCommonProps) => {
+    const tagSummaryVisibleCount = getTagSummaryUiPreset(displayMode).visibleCount;
+
     return (
         <div
             className="px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0"
@@ -22,7 +26,7 @@ export const FileCardInfoCompact = React.memo(({
                         {formatFileSize(file.size)}
                     </span>
                 )}
-                <TagSummaryRenderer visibleCount={2} />
+                <TagSummaryRenderer visibleCount={tagSummaryVisibleCount} />
             </div>
         </div>
     );
