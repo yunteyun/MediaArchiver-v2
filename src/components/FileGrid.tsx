@@ -17,6 +17,7 @@ import { Header } from './SortMenu';
 import { GroupHeader } from './GroupHeader';
 import type { GridItem } from '../types/grid';
 import { groupFiles } from '../utils/groupFiles';
+import { buildVisibleFiles } from '../utils/fileListQuery';
 
 const CARD_GAP = 8;
 const GROUP_HEADER_HEIGHT = 40;
@@ -96,121 +97,43 @@ export const FileGrid = React.memo(() => {
     const ratingFilter = useRatingStore((s) => s.ratingFilter);
     const allFileRatings = useRatingStore((s) => s.fileRatings);
 
-    // Sort and filter files in component using useMemo
-    const files = useMemo(() => {
-        const start = perfDebugEnabled ? performance.now() : 0;
-        // First sort
-        const sorted = [...rawFiles].sort((a, b) => {
-            let comparison = 0;
-            switch (sortBy) {
-                case 'name':
-                    comparison = a.name.localeCompare(b.name);
-                    break;
-                case 'date':
-                    comparison = a.createdAt - b.createdAt;
-                    break;
-                case 'size':
-                    comparison = a.size - b.size;
-                    break;
-                case 'type':
-                    comparison = a.type.localeCompare(b.type);
-                    break;
-                case 'accessCount': // Phase 17: アクセス回数ソート
-                    comparison = (a.accessCount || 0) - (b.accessCount || 0);
-                    break;
-                case 'lastAccessed': // Phase 17: 直近アクセスソート
-                    // null は常に最後に（降順・昇順どちらでも）
-                    if (a.lastAccessedAt === null && b.lastAccessedAt === null) {
-                        comparison = 0;
-                    } else if (a.lastAccessedAt === null) {
-                        // a が null の場合、常に a を後ろに（sortOrder の反転を後で無効化）
-                        return 1;
-                    } else if (b.lastAccessedAt === null) {
-                        // b が null の場合、常に b を後ろに（sortOrder の反転を後で無効化）
-                        return -1;
-                    } else {
-                        comparison = a.lastAccessedAt - b.lastAccessedAt;
-                    }
-                    break;
-            }
-            const result = sortOrder === 'asc' ? comparison : -comparison;
-
-            return result;
-        });
-
-        // Filter by tags
-        let filtered = sorted;
-        if (selectedTagIds.length > 0) {
-            filtered = filtered.filter((file) => {
-                const fileTags = fileTagsCache.get(file.id) || [];
-                if (filterMode === 'OR') {
-                    return selectedTagIds.some((tagId) => fileTags.includes(tagId));
-                } else {
-                    return selectedTagIds.every((tagId) => fileTags.includes(tagId));
-                }
-            });
-        }
-
-        // Filter by rating（未評価は除外）
-        const activeRatingAxes = (Object.entries(ratingFilter) as [string, { min?: number; max?: number }][]).filter(
-            ([, r]) => r.min !== undefined || r.max !== undefined
-        );
-        if (activeRatingAxes.length > 0) {
-            filtered = filtered.filter((file) => {
-                const ratings = allFileRatings[file.id] ?? {};
-                for (const [axisId, { min, max }] of activeRatingAxes) {
-                    const rating = ratings[axisId];
-                    if (rating == null) return false;
-                    if (min !== undefined && rating < min) return false;
-                    if (max !== undefined && rating > max) return false;
-                }
-                return true;
-            });
-        }
-
-        // Filter by search conditions (AND)
-        const activeSearchConditions = [
+    const activeSearchConditions = useMemo(() => (
+        [
             { text: searchQuery, target: searchTarget },
             ...searchExtraConditions,
-        ].filter((condition) => condition.text.trim().length > 0);
+        ].filter((condition) => condition.text.trim().length > 0)
+    ), [searchQuery, searchTarget, searchExtraConditions]);
 
-        if (activeSearchConditions.length > 0) {
-            filtered = filtered.filter((file) => {
-                return activeSearchConditions.every((condition) => {
-                    const query = condition.text.toLowerCase();
-                    if (condition.target === 'folderName') {
-                        const normalizedPath = String(file.path || '').replace(/[\\/]+/g, '/');
-                        const folderPath = normalizedPath.includes('/')
-                            ? normalizedPath.slice(0, normalizedPath.lastIndexOf('/'))
-                            : '';
-                        const folderName = folderPath
-                            ? folderPath.slice(folderPath.lastIndexOf('/') + 1)
-                            : '';
-                        return folderName.toLowerCase().includes(query) || folderPath.toLowerCase().includes(query);
-                    }
-                    return file.name.toLowerCase().includes(query);
-                });
-            });
-        }
+    const activeRatingAxisCount = useMemo(
+        () => (Object.entries(ratingFilter) as [string, { min?: number; max?: number }][]).filter(
+            ([, range]) => range.min !== undefined || range.max !== undefined
+        ).length,
+        [ratingFilter]
+    );
 
-        // Filter by file type
-        if (selectedFileTypes.length < 4) {
-            const selectedTypeSet = new Set(selectedFileTypes);
-            filtered = filtered.filter((file) => selectedTypeSet.has(file.type));
-        }
+    const files = useMemo(() => {
+        const start = perfDebugEnabled ? performance.now() : 0;
+        const visibleFiles = buildVisibleFiles(rawFiles, {
+            sortBy,
+            sortOrder,
+            fileTagsCache,
+            selectedTagIds,
+            filterMode,
+            ratingFilter,
+            fileRatings: allFileRatings,
+            searchConditions: activeSearchConditions,
+            selectedFileTypes,
+        });
 
         if (perfDebugEnabled) {
-            const activeRatingAxisCount = (Object.entries(ratingFilter) as [string, { min?: number; max?: number }][]).filter(
-                ([, r]) => r.min !== undefined || r.max !== undefined
-            ).length;
             console.debug('[perf][FileGrid][sortAndFilter]', {
                 rawFileCount: rawFiles.length,
-                resultCount: filtered.length,
+                resultCount: visibleFiles.length,
                 selectedTagCount: selectedTagIds.length,
                 activeRatingAxisCount,
-                searchActive: searchQuery.trim().length > 0 || searchExtraConditions.length > 0,
+                searchActive: activeSearchConditions.length > 0,
                 searchTarget,
-                searchConditionCount: (searchQuery.trim() ? 1 : 0) + searchExtraConditions.length,
+                searchConditionCount: activeSearchConditions.length,
                 selectedTypeCount: selectedFileTypes.length,
                 sortBy,
                 sortOrder,
@@ -218,8 +141,22 @@ export const FileGrid = React.memo(() => {
             });
         }
 
-        return filtered;
-    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, searchTarget, searchExtraConditions, selectedFileTypes, ratingFilter, allFileRatings, perfDebugEnabled]);
+        return visibleFiles;
+    }, [
+        rawFiles,
+        sortBy,
+        sortOrder,
+        fileTagsCache,
+        selectedTagIds,
+        filterMode,
+        ratingFilter,
+        allFileRatings,
+        activeSearchConditions,
+        selectedFileTypes,
+        activeRatingAxisCount,
+        perfDebugEnabled,
+        searchTarget,
+    ]);
 
 
     // グループ化されたファイル（Phase 12-10）

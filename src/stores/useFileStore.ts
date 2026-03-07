@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
-import { useSettingsStore } from './useSettingsStore';
 
 interface FileState {
     files: MediaFile[];
@@ -23,12 +22,6 @@ interface FileState {
     setFocusedId: (id: string | null) => void;
     selectAll: () => void;
     clearSelection: () => void;
-    getSortedFiles: () => MediaFile[];
-    getFilteredFiles: (
-        tagFilter: { selectedTagIds: string[]; filterMode: 'AND' | 'OR' },
-        ratingFilter: Record<string, { min?: number; max?: number }>,
-        fileRatings: Record<string, Record<string, number>>
-    ) => MediaFile[];
     removeFile: (fileId: string) => void;
     refreshFile: (fileId: string) => Promise<void>;
     // タグキャッシュ管理
@@ -115,82 +108,6 @@ export const useFileStore = create<FileState>((set, get) => ({
         })),
 
     clearSelection: () => set({ selectedIds: new Set(), focusedId: null, anchorId: null }),
-
-    getSortedFiles: () => {
-        const { sortBy, sortOrder } = useSettingsStore.getState();
-        const files = get().files;
-
-        return [...files].sort((a, b) => {
-            let comparison = 0;
-            switch (sortBy) {
-                case 'name':
-                    comparison = a.name.localeCompare(b.name);
-                    break;
-                case 'date':
-                    comparison = a.createdAt - b.createdAt;
-                    break;
-                case 'size':
-                    comparison = a.size - b.size;
-                    break;
-                case 'type':
-                    comparison = a.type.localeCompare(b.type);
-                    break;
-                case 'accessCount': // Phase 17: アクセス回数ソート
-                    comparison = a.accessCount - b.accessCount;
-                    break;
-                case 'lastAccessed': // Phase 17: 直近アクセスソート
-                    // null は最後に
-                    if (a.lastAccessedAt === null && b.lastAccessedAt === null) comparison = 0;
-                    else if (a.lastAccessedAt === null) comparison = 1;
-                    else if (b.lastAccessedAt === null) comparison = -1;
-                    else comparison = a.lastAccessedAt - b.lastAccessedAt;
-                    break;
-            }
-            return sortOrder === 'asc' ? comparison : -comparison;
-        });
-    },
-
-    getFilteredFiles: (tagFilter, ratingFilter, fileRatings) => {
-        const { selectedTagIds, filterMode } = tagFilter;
-        const sortedFiles = get().getSortedFiles();
-        const fileTagsCache = get().fileTagsCache;
-
-        const hasTagFilter = selectedTagIds.length > 0;
-        const activeRatingAxes = Object.entries(ratingFilter).filter(
-            ([, r]) => r.min !== undefined || r.max !== undefined
-        );
-        const hasRatingFilter = activeRatingAxes.length > 0;
-
-        // フィルター無しなら全件返す
-        if (!hasTagFilter && !hasRatingFilter) {
-            return sortedFiles;
-        }
-
-        return sortedFiles.filter((file) => {
-            // --- タグフィルター ---
-            if (hasTagFilter) {
-                const fileTags = fileTagsCache.get(file.id) || [];
-                const tagMatch = filterMode === 'OR'
-                    ? selectedTagIds.some((tagId) => fileTags.includes(tagId))
-                    : selectedTagIds.every((tagId) => fileTags.includes(tagId));
-                if (!tagMatch) return false;
-            }
-
-            // --- 評価フィルター（未評価は除外） ---
-            if (hasRatingFilter) {
-                const ratings = fileRatings[file.id] ?? {};
-                for (const [axisId, { min, max }] of activeRatingAxes) {
-                    const rating = ratings[axisId];
-                    // 評価未設定のファイルは除外
-                    if (rating == null) return false;
-                    if (min !== undefined && rating < min) return false;
-                    if (max !== undefined && rating > max) return false;
-                }
-            }
-
-            return true;
-        });
-    },
 
     removeFile: (fileId: string) =>
         set((state) => {
