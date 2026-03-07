@@ -1,26 +1,29 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X, CheckCircle2, AlertCircle, BookmarkPlus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore, type SearchCondition, type SearchTarget } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useSmartFolderStore } from '../stores/useSmartFolderStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
-import { FolderTree } from './FolderTree';
 import { RatingFilterPanel } from './ratings/RatingFilterPanel';
 import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { AddFolderScanSettingsDialog, type AddFolderScanSettingsSubmit } from './AddFolderScanSettingsDialog';
 import { SmartFolderEditorDialog, type SmartFolderFolderOption } from './SmartFolderEditorDialog';
+import { SidebarFolderSection } from './sidebar/SidebarFolderSection';
+import { SidebarSmartFoldersSection } from './sidebar/SidebarSmartFoldersSection';
+import { SidebarUtilityActions } from './sidebar/SidebarUtilityActions';
+import {
+    ALL_FILES_ID,
+    DRIVE_PREFIX,
+    FOLDER_PREFIX,
+    VIRTUAL_FOLDER_PREFIX,
+    VIRTUAL_FOLDER_RECURSIVE_PREFIX,
+} from './sidebar/sidebarShared';
 import type { MediaFile, MediaFolder } from '../types/file';
 import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
 
-// 特殊なフォルダID
-const ALL_FILES_ID = '__all__';
-export const DRIVE_PREFIX = '__drive:';
-export const FOLDER_PREFIX = '__folder:';
-export const VIRTUAL_FOLDER_PREFIX = '__vfolder:';
-export const VIRTUAL_FOLDER_RECURSIVE_PREFIX = '__vfolderr:';
 const PROGRESSIVE_REFRESH_DEBOUNCE_MS = 1200;
 const ALL_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
 const FILE_TYPE_LABEL_MAP: Record<MediaFile['type'], string> = {
@@ -970,219 +973,40 @@ export const Sidebar = React.memo(() => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
-                {/* すべてのファイル */}
-                <div
-                    onClick={handleSelectAllFiles}
-                    className={`
-                        flex items-center gap-2 p-2 rounded cursor-pointer mb-2 transition-colors
-                        ${(currentFolderId === ALL_FILES_ID || currentFolderId === null)
-                            ? 'bg-blue-600 text-white'
-                            : 'hover:bg-surface-800 text-surface-300'}
-                        ${sidebarCollapsed ? 'justify-center' : ''}
-                    `}
-                    title="すべてのファイル"
-                >
-                    <Library size={18} className="flex-shrink-0" />
-                    {!sidebarCollapsed && (
-                        <>
-                            <span className="truncate text-sm font-medium">
-                                すべてのファイル
-                            </span>
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setFolderScanSettingsManagerOpen(true);
-                                }}
-                                className={`ml-auto rounded p-1 transition-colors ${(currentFolderId === ALL_FILES_ID || currentFolderId === null)
-                                    ? 'hover:bg-blue-500/40'
-                                    : 'hover:bg-surface-700'}`}
-                                title="フォルダ別スキャン設定（一覧管理）"
-                                aria-label="フォルダ別スキャン設定（一覧管理）"
-                            >
-                                <SlidersHorizontal size={14} className={(currentFolderId === ALL_FILES_ID || currentFolderId === null) ? 'text-blue-100' : 'text-surface-400'} />
-                            </button>
-                        </>
-                    )}
-                </div>
+                <SidebarFolderSection
+                    sidebarCollapsed={sidebarCollapsed}
+                    currentFolderId={currentFolderId}
+                    folders={folders}
+                    folderTreeSearch={folderTreeSearch}
+                    onFolderTreeSearchChange={setFolderTreeSearch}
+                    filteredFoldersForTree={filteredFoldersForTree}
+                    folderTreeRecursiveCountsByPath={folderTreeRecursiveCountsByPath}
+                    onSelectAllFiles={handleSelectAllFiles}
+                    onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
+                    onSelectFolder={handleSelectFolder}
+                    onOpenFolderSettings={(folder) => {
+                        setFolderSettingsTarget(folder);
+                        setFolderSettingsOpen(true);
+                    }}
+                />
 
-                {/* セパレーター */}
-                {folders.length > 0 && (
-                    <div className="border-t border-surface-700 my-2" />
-                )}
-
-                {!sidebarCollapsed && folders.length > 0 && (
-                    <div className="mb-2 px-1">
-                        <div className="relative">
-                            <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-surface-500" />
-                            <input
-                                type="text"
-                                value={folderTreeSearch}
-                                onChange={(e) => setFolderTreeSearch(e.target.value)}
-                                placeholder="フォルダツリー検索"
-                                className="w-full rounded border border-surface-700 bg-surface-900/50 py-1.5 pl-7 pr-7 text-xs text-surface-200 placeholder:text-surface-500 focus:outline-none focus:border-primary-500"
-                            />
-                            {folderTreeSearch && (
-                                <button
-                                    type="button"
-                                    onClick={() => setFolderTreeSearch('')}
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 text-surface-400 hover:bg-surface-800 hover:text-surface-200"
-                                    aria-label="フォルダツリー検索をクリア"
-                                    title="クリア"
-                                >
-                                    <X size={12} />
-                                </button>
-                            )}
-                        </div>
-                        <div className="mt-1 text-[11px] text-surface-500">
-                            {folderTreeSearch.trim() ? `検索結果 ${filteredFoldersForTree.length} 件` : `登録/仮想フォルダ ${folders.length} 件`}
-                        </div>
-                    </div>
-                )}
-
-                {/* フォルダツリー（Phase 22） */}
-                {folders.length === 0 ? (
-                    !sidebarCollapsed && (
-                        <p className="text-surface-500 text-sm text-center py-4">
-                            フォルダがありません
-                        </p>
-                    )
-                ) : folderTreeSearch.trim() && filteredFoldersForTree.length === 0 ? (
-                    !sidebarCollapsed && (
-                        <p className="text-surface-500 text-sm text-center py-4">
-                            検索結果がありません
-                        </p>
-                    )
-                ) : (
-                    <FolderTree
-                        folders={filteredFoldersForTree}
-                        folderRecursiveCountsByPath={folderTreeRecursiveCountsByPath}
-                        currentFolderId={currentFolderId}
-                        onSelectFolder={handleSelectFolder}
-                        collapsed={sidebarCollapsed}
-                        onOpenFolderSettings={(folder) => {
-                            setFolderSettingsTarget(folder);
-                            setFolderSettingsOpen(true);
-                        }}
-                    />
-                )}
-
-                {!sidebarCollapsed && (
-                    <>
-                        <div className="border-t border-surface-700 my-2" />
-                        <div className="px-1 mb-2">
-                            <div className="flex items-center justify-between text-xs text-surface-400 mb-1">
-                                <span className="font-medium">スマートフォルダ</span>
-                                <span className="inline-flex items-center gap-1">
-                                    {activeSmartFolder && (
-                                        <button
-                                            type="button"
-                                            onClick={() => { void handleClearSmartFolderConditions(); }}
-                                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-amber-300 hover:bg-surface-800"
-                                            title="範囲 / 検索 / タグ / 評価 / タイプの条件を解除"
-                                            disabled={smartFolderMutating}
-                                        >
-                                            <X size={12} />
-                                            解除
-                                        </button>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={handleOpenCreateSmartFolderEditor}
-                                        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-surface-300 hover:bg-surface-800"
-                                        title="現在の条件を保存"
-                                        disabled={smartFolderMutating}
-                                    >
-                                        <BookmarkPlus size={12} />
-                                        保存
-                                    </button>
-                                </span>
-                            </div>
-
-                            <div className={`mb-1 rounded border px-2 py-1 text-[10px] ${
-                                activeSmartFolderConditionStatus === 'none'
-                                    ? 'border-surface-700 text-surface-500'
-                                    : activeSmartFolderConditionStatus === 'matched'
-                                        ? 'border-blue-500/30 text-blue-200'
-                                        : 'border-amber-500/40 text-amber-200'
-                            }`}>
-                                {activeSmartFolderConditionStatus === 'none' ? (
-                                    <span>状態: 未適用</span>
-                                ) : activeSmartFolderConditionStatus === 'matched' ? (
-                                    <span>適用中: {activeSmartFolder?.name}（保存条件と一致）</span>
-                                ) : (
-                                    <span>適用中: {activeSmartFolder?.name}（条件変更済み / 解除可能）</span>
-                                )}
-                            </div>
-
-                            {smartFolderLoading ? (
-                                <div className="text-xs text-surface-500 px-2 py-1">読み込み中...</div>
-                            ) : smartFolders.length === 0 ? (
-                                <div className="text-xs text-surface-500 px-2 py-1">保存済み条件はありません</div>
-                            ) : (
-                                <div className="space-y-1">
-                                    {smartFolders.map((smartFolder) => {
-                                        const isActive = activeSmartFolderId === smartFolder.id;
-                                        return (
-                                            <button
-                                                key={smartFolder.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    if (isActive) {
-                                                        void handleClearSmartFolderConditions();
-                                                        return;
-                                                    }
-                                                    void handleApplySmartFolder(smartFolder.id);
-                                                }}
-                                                className={`w-full flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
-                                                    isActive
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'text-surface-300 hover:bg-surface-800'
-                                                }`}
-                                                title={isActive
-                                                    ? `${smartFolder.name}（再クリックで解除）`
-                                                    : `${smartFolder.name}（クリックで適用）`}
-                                            >
-                                                <span className="min-w-0 flex-1">
-                                                    <span className="truncate block">{smartFolder.name}</span>
-                                                    <span className={`truncate block text-[10px] mt-0.5 ${
-                                                        isActive ? 'text-blue-100/90' : 'text-surface-500'
-                                                    }`}>
-                                                        {smartFolderPreviewMap.get(smartFolder.id)}
-                                                    </span>
-                                                </span>
-                                                <span className="inline-flex items-center gap-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(event) => {
-                                                            event.stopPropagation();
-                                                            handleOpenEditSmartFolderEditor(smartFolder.id);
-                                                        }}
-                                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
-                                                        title="条件編集"
-                                                    >
-                                                        <Pencil size={11} />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={(event) => {
-                                                            event.stopPropagation();
-                                                            void handleDeleteSmartFolder(smartFolder.id, smartFolder.name);
-                                                        }}
-                                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
-                                                        title="削除"
-                                                    >
-                                                        <Trash2 size={11} />
-                                                    </button>
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
+                <SidebarSmartFoldersSection
+                    sidebarCollapsed={sidebarCollapsed}
+                    activeSmartFolder={activeSmartFolder}
+                    activeSmartFolderConditionStatus={activeSmartFolderConditionStatus}
+                    smartFolderMutating={smartFolderMutating}
+                    smartFolderLoading={smartFolderLoading}
+                    smartFolders={smartFolders}
+                    activeSmartFolderId={activeSmartFolderId}
+                    smartFolderPreviewMap={smartFolderPreviewMap}
+                    onClearSmartFolderConditions={() => { void handleClearSmartFolderConditions(); }}
+                    onOpenCreateSmartFolderEditor={handleOpenCreateSmartFolderEditor}
+                    onApplySmartFolder={(smartFolderId) => { void handleApplySmartFolder(smartFolderId); }}
+                    onOpenEditSmartFolderEditor={handleOpenEditSmartFolderEditor}
+                    onDeleteSmartFolder={(smartFolderId, smartFolderName) => {
+                        void handleDeleteSmartFolder(smartFolderId, smartFolderName);
+                    }}
+                />
 
                 {/* Tag Filter Panel */}
                 {!sidebarCollapsed && (
@@ -1192,102 +1016,28 @@ export const Sidebar = React.memo(() => {
                     </>
                 )}
 
-                {/* 重複ファイルチェック */}
-                <div className="border-t border-surface-700 my-2" />
-                <div
-                    onClick={() => {
+                <SidebarUtilityActions
+                    sidebarCollapsed={sidebarCollapsed}
+                    duplicateViewOpen={duplicateViewOpen}
+                    mainView={mainView}
+                    onOpenDuplicateView={() => {
                         setCurrentFolderId(null);
                         useUIStore.getState().openDuplicateView();
                         useUIStore.getState().setMainView('grid');
                     }}
-                    className={`
-                        flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                        ${duplicateViewOpen
-                            ? 'bg-blue-600 text-white'
-                            : 'hover:bg-surface-800 text-surface-300'}
-                        ${sidebarCollapsed ? 'justify-center' : ''}
-                    `}
-                    title="重複ファイルを検出"
-                >
-                    <Copy size={18} className="flex-shrink-0 text-current" />
-                    {!sidebarCollapsed && (
-                        <span className="truncate text-sm font-medium">重複チェック</span>
-                    )}
-                </div>
-
-                {/* 統計 */}
-                <div
-                    onClick={() => {
+                    onOpenStatistics={() => {
                         useUIStore.getState().closeDuplicateView();
                         useUIStore.getState().setMainView('statistics');
                     }}
-                    className={`
-                        flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                        ${mainView === 'statistics'
-                            ? 'bg-blue-600 text-white'
-                            : 'hover:bg-surface-800 text-surface-300'}
-                        ${sidebarCollapsed ? 'justify-center' : ''}
-                    `}
-                    title="ライブラリ統計"
-                >
-                    <BarChart3 size={18} className="flex-shrink-0 text-current" />
-                    {!sidebarCollapsed && (
-                        <span className="truncate text-sm font-medium">統計</span>
-                    )}
-                </div>
-
-                {/* 設定 */}
-                <div
-                    onClick={() => useUIStore.getState().openSettingsModal()}
-                    className={`
-                        flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                        hover:bg-surface-800 text-surface-300
-                        ${sidebarCollapsed ? 'justify-center' : ''}
-                    `}
-                    title="設定"
-                >
-                    <Settings size={18} className="flex-shrink-0 text-current" />
-                    {!sidebarCollapsed && (
-                        <span className="truncate text-sm font-medium">設定</span>
-                    )}
-                </div>
-
-                {/* スキャンインジケーター / 結果再表示 */}
-                {hiddenScanIndicator && (
-                    <div
-                        onClick={() => {
-                            acknowledgeScanProgress();
-                            useUIStore.getState().setScanProgressVisible(true);
-                        }}
-                        className={`
-                            flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                            ${hiddenScanIndicator.className}
-                            ${sidebarCollapsed ? 'justify-center' : ''}
-                        `}
-                        title={hiddenScanIndicator.title}
-                    >
-                        {hiddenScanIndicator.icon}
-                        {!sidebarCollapsed && (
-                            <>
-                                <span className="truncate text-sm font-medium">{hiddenScanIndicator.text}</span>
-                                {(scanProgress.phase === 'complete' || scanProgress.phase === 'error') && (
-                                    <button
-                                        type="button"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            clearScanProgress();
-                                        }}
-                                        className="ml-auto rounded p-1 text-surface-400 transition-colors hover:bg-surface-700 hover:text-surface-100"
-                                        title="表示を閉じる"
-                                        aria-label="表示を閉じる"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                )}
-                            </>
-                        )}
-                    </div>
-                )}
+                    onOpenSettings={() => useUIStore.getState().openSettingsModal()}
+                    hiddenScanIndicator={hiddenScanIndicator}
+                    canDismissScanIndicator={!!scanProgress && (scanProgress.phase === 'complete' || scanProgress.phase === 'error')}
+                    onShowScanProgress={() => {
+                        acknowledgeScanProgress();
+                        useUIStore.getState().setScanProgressVisible(true);
+                    }}
+                    onDismissScanIndicator={clearScanProgress}
+                />
             </div>
 
             {/* Tag Manager Modal */}

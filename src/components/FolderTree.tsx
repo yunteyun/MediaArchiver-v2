@@ -2,7 +2,7 @@ import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Folder, FolderOpen, ChevronRight, ChevronDown, HardDrive, Settings2 } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
 import { buildFolderTreeByDrive, type FolderTreeNode } from '../utils/buildFolderTree';
-import { DRIVE_PREFIX, FOLDER_PREFIX, VIRTUAL_FOLDER_PREFIX, VIRTUAL_FOLDER_RECURSIVE_PREFIX } from './Sidebar';
+import { DRIVE_PREFIX, FOLDER_PREFIX, VIRTUAL_FOLDER_PREFIX, VIRTUAL_FOLDER_RECURSIVE_PREFIX } from './sidebar/sidebarShared';
 
 interface FolderTreeProps {
     folders: MediaFolder[];
