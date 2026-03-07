@@ -41,6 +41,70 @@ function isPerfDebugEnabled(): boolean {
     return import.meta.env.DEV && (globalThis as { __MA_DEBUG_PERF?: boolean }).__MA_DEBUG_PERF === true;
 }
 
+function resolveSmartFolderFolderLabel(folderSelection: string | null, folders: MediaFolder[]): string {
+    if (!folderSelection || folderSelection === ALL_FILES_ID) return '範囲: すべて';
+
+    if (folderSelection.startsWith(DRIVE_PREFIX)) {
+        return `範囲: ${folderSelection.slice(DRIVE_PREFIX.length)} ドライブ`;
+    }
+
+    if (folderSelection.startsWith(FOLDER_PREFIX)) {
+        const folderId = folderSelection.slice(FOLDER_PREFIX.length);
+        const folder = folders.find((item) => item.id === folderId);
+        return `範囲: ${folder?.name ?? '登録フォルダ'}`;
+    }
+
+    if (folderSelection.startsWith(VIRTUAL_FOLDER_RECURSIVE_PREFIX)) {
+        const folderPath = folderSelection.slice(VIRTUAL_FOLDER_RECURSIVE_PREFIX.length);
+        const name = folderPath.split(/[\\/]/).filter(Boolean).pop() ?? folderPath;
+        return `範囲: ${name} (配下)`;
+    }
+
+    if (folderSelection.startsWith(VIRTUAL_FOLDER_PREFIX)) {
+        const folderPath = folderSelection.slice(VIRTUAL_FOLDER_PREFIX.length);
+        const name = folderPath.split(/[\\/]/).filter(Boolean).pop() ?? folderPath;
+        return `範囲: ${name}`;
+    }
+
+    const folder = folders.find((item) => item.id === folderSelection);
+    return `範囲: ${folder?.name ?? '指定フォルダ'}`;
+}
+
+function buildSmartFolderPreviewText(
+    condition: {
+        folderSelection: string | null;
+        text: string;
+        tags: { ids: string[]; mode: 'AND' | 'OR' };
+        ratings: Record<string, { min?: number; max?: number }>;
+    },
+    folders: MediaFolder[]
+): string {
+    const segments: string[] = [resolveSmartFolderFolderLabel(condition.folderSelection, folders)];
+
+    const query = condition.text.trim();
+    if (query.length > 0) {
+        const shortQuery = query.length > 16 ? `${query.slice(0, 16)}...` : query;
+        segments.push(`検索: ${shortQuery}`);
+    }
+
+    if (condition.tags.ids.length > 0) {
+        segments.push(`タグ: ${condition.tags.mode} ${condition.tags.ids.length}`);
+    }
+
+    const activeRatingCount = Object.values(condition.ratings).filter((range) => {
+        return typeof range.min === 'number' || typeof range.max === 'number';
+    }).length;
+    if (activeRatingCount > 0) {
+        segments.push(`評価: ${activeRatingCount}軸`);
+    }
+
+    if (segments.length === 1) {
+        segments.push('条件: 追加なし');
+    }
+
+    return segments.join(' / ');
+}
+
 export const Sidebar = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
     const files = useFileStore((s) => s.files);
@@ -392,6 +456,17 @@ export const Sidebar = React.memo(() => {
 
         return folders.filter((f) => include.has(String(f.path).toLowerCase()));
     }, [folders, folderTreeSearch]);
+
+    const smartFolderPreviewMap = useMemo(() => {
+        const map = new Map<string, string>();
+        smartFolders.forEach((smartFolder) => {
+            map.set(
+                smartFolder.id,
+                buildSmartFolderPreviewText(smartFolder.condition, folders)
+            );
+        });
+        return map;
+    }, [smartFolders, folders]);
 
     const registeredFolderMap = useMemo(() => {
         const next = new Map<string, MediaFolder>();
@@ -748,7 +823,14 @@ export const Sidebar = React.memo(() => {
                                                 }`}
                                                 title={smartFolder.name}
                                             >
-                                                <span className="truncate flex-1">{smartFolder.name}</span>
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="truncate block">{smartFolder.name}</span>
+                                                    <span className={`truncate block text-[10px] mt-0.5 ${
+                                                        isActive ? 'text-blue-100/90' : 'text-surface-500'
+                                                    }`}>
+                                                        {smartFolderPreviewMap.get(smartFolder.id)}
+                                                    </span>
+                                                </span>
                                                 <span className="inline-flex items-center gap-1">
                                                     <button
                                                         type="button"
