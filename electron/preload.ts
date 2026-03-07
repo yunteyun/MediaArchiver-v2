@@ -1,4 +1,93 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import type { MediaFile } from '../src/types/file';
+import type { ExternalApp } from '../src/stores/useSettingsStore';
+import type { ScanProgress } from '../src/stores/useUIStore';
+import type { SmartFolderConditionV1 } from '../src/stores/useSmartFolderStore';
+import type {
+    AutoTagRule,
+    MatchTarget,
+    MatchMode,
+} from '../src/stores/useTagStore';
+import type { SearchCondition } from './services/searchService';
+import type { DuplicateProgress } from './services/duplicateService';
+import type { BackupSettings } from './services/backupService';
+import type { ActivityAction } from './services/activityLogService';
+import type { StorageMode } from './services/storageConfig';
+
+type ScanBatchCommittedPayload = {
+    rootFolderId: string;
+    scanPath: string;
+    committedCount: number;
+    totalCommitted: number;
+    removedCount: number;
+    stage: 'batch' | 'complete' | 'cancelled';
+};
+
+type ContextMenuSearchDestination = {
+    id: string;
+    name: string;
+    type: 'filename' | 'image';
+    url: string;
+    icon?: 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
+    enabled: boolean;
+};
+
+type RequestRenamePayload = {
+    fileId: string;
+    currentName: string;
+    currentPath?: string;
+    suggestedName?: string;
+};
+
+type ToastPayload = {
+    message: string;
+    type?: 'success' | 'error' | 'info';
+    duration?: number;
+};
+
+type OpenFileAsModePayload = {
+    fileId: string;
+    mode: 'archive-audio' | 'archive-image';
+};
+
+type MoveDialogPayload = {
+    fileIds: string[];
+    currentFolderId: string | null;
+};
+
+type MoveRequestPayload = {
+    fileId: string;
+    targetFolderId: string;
+};
+
+type FileMovedPayload = {
+    fileId: string;
+    newPath: string;
+    targetFolderId: string;
+};
+
+type ExternalOpenCountUpdatedPayload = {
+    fileId: string;
+    externalOpenCount: number;
+    lastExternalOpenedAt: number;
+};
+
+type ThumbnailRegenerateProgress = {
+    current: number;
+    total: number;
+};
+
+type PreviewMatch = {
+    fileId: string;
+    fileName: string;
+    matchedKeywords: string[];
+};
+
+function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
+    const handler = (_event: IpcRendererEvent, payload: T) => callback(payload);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.removeListener(channel, handler);
+}
 
 /**
  * Preload script - Renderer と Main プロセス間の安全なブリッジ
@@ -51,7 +140,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectFile: () => ipcRenderer.invoke('app:selectFile'),
     validatePath: (appPath: string) => ipcRenderer.invoke('app:validatePath', appPath),
     setPerfDebugEnabled: (enabled: boolean) => ipcRenderer.invoke('app:setPerfDebugEnabled', enabled),
-    setExternalApps: (apps: any[]) => ipcRenderer.invoke('app:setExternalApps', apps),
+    setExternalApps: (apps: ExternalApp[]) => ipcRenderer.invoke('app:setExternalApps', apps),
     openWithApp: (filePath: string, appPath: string, fileId?: string) => ipcRenderer.invoke('app:openWithApp', filePath, appPath, fileId),
 
     // === File Operations ===
@@ -76,21 +165,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('dialog:openBinaryFile', options),
 
     // === Events (Main -> Renderer) ===
-    onScanProgress: (callback: (progress: any) => void) => {
-        const subscription = (_event: any, progress: any) => callback(progress);
-        ipcRenderer.on('scanner:progress', subscription);
-        // Return a cleanup function if needed, but for now specific implementation
-        return () => {
-            ipcRenderer.removeListener('scanner:progress', subscription);
-        };
-    },
-    onScanBatchCommitted: (callback: (payload: any) => void) => {
-        const subscription = (_event: any, payload: any) => callback(payload);
-        ipcRenderer.on('scanner:batchCommitted', subscription);
-        return () => {
-            ipcRenderer.removeListener('scanner:batchCommitted', subscription);
-        };
-    },
+    onScanProgress: (callback: (progress: ScanProgress) => void) =>
+        subscribe('scanner:progress', callback),
+    onScanBatchCommitted: (callback: (payload: ScanBatchCommittedPayload) => void) =>
+        subscribe('scanner:batchCommitted', callback),
     cancelScan: () => ipcRenderer.invoke('scanner:cancel'),
     setPreviewFrameCount: (count: number) => ipcRenderer.invoke('scanner:setPreviewFrameCount', count),
     setScanThrottleMs: (ms: number) => ipcRenderer.invoke('scanner:setScanThrottleMs', ms),
@@ -103,84 +181,42 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showFolderContextMenu: (folderId: string, path: string) =>
         ipcRenderer.invoke('folder:showContextMenu', { folderId, path }),
 
-    onFolderDeleted: (callback: (folderId: string) => void) => {
-        const handler = (_event: any, folderId: string) => callback(folderId);
-        ipcRenderer.on('folder:deleted', handler);
-        return () => ipcRenderer.removeListener('folder:deleted', handler);
-    },
+    onFolderDeleted: (callback: (folderId: string) => void) => subscribe('folder:deleted', callback),
 
-    onFolderRescanComplete: (callback: (folderId: string) => void) => {
-        const handler = (_event: any, folderId: string) => callback(folderId);
-        ipcRenderer.on('folder:rescanComplete', handler);
-        return () => ipcRenderer.removeListener('folder:rescanComplete', handler);
-    },
+    onFolderRescanComplete: (callback: (folderId: string) => void) => subscribe('folder:rescanComplete', callback),
 
     // === File Context Menu ===
-    showFileContextMenu: (fileId: string, path: string, selectedFileIds?: string[], searchDestinations?: any[]) =>
+    showFileContextMenu: (fileId: string, path: string, selectedFileIds?: string[], searchDestinations?: ContextMenuSearchDestination[]) =>
         ipcRenderer.invoke('file:showContextMenu', { fileId, filePath: path, selectedFileIds, searchDestinations }),
 
-    onFileDeleted: (callback: (fileId: string) => void) => {
-        const handler = (_event: any, fileId: string) => callback(fileId);
-        ipcRenderer.on('file:deleted', handler);
-        return () => ipcRenderer.removeListener('file:deleted', handler);
-    },
+    onFileDeleted: (callback: (fileId: string) => void) => subscribe('file:deleted', callback),
 
-    onThumbnailRegenerated: (callback: (fileId: string) => void) => {
-        const handler = (_event: any, fileId: string) => callback(fileId);
-        ipcRenderer.on('file:thumbnailRegenerated', handler);
-        return () => ipcRenderer.removeListener('file:thumbnailRegenerated', handler);
-    },
+    onThumbnailRegenerated: (callback: (fileId: string) => void) => subscribe('file:thumbnailRegenerated', callback),
 
-    onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => {
-        const handler = (_event: any, data: any) => callback(data);
-        ipcRenderer.on('file:externalOpenCountUpdated', handler);
-        return () => ipcRenderer.removeListener('file:externalOpenCountUpdated', handler);
-    },
-    onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' | 'archive-image' }) => void) => {
-        const handler = (_event: any, data: any) => callback(data);
-        ipcRenderer.on('file:openAsMode', handler);
-        return () => ipcRenderer.removeListener('file:openAsMode', handler);
-    },
+    onExternalOpenCountUpdated: (callback: (data: ExternalOpenCountUpdatedPayload) => void) =>
+        subscribe('file:externalOpenCountUpdated', callback),
+    onOpenFileAsMode: (callback: (data: OpenFileAsModePayload) => void) =>
+        subscribe('file:openAsMode', callback),
 
     // Phase 22-C-2: ファイル移動ダイアログ
-    onOpenMoveDialog: (callback: (data: { fileIds: string[]; currentFolderId: string | null }) => void) => {
-        const handler = (_event: any, data: any) => callback(data);
-        ipcRenderer.on('file:openMoveDialog', handler);
-        return () => ipcRenderer.removeListener('file:openMoveDialog', handler);
-    },
-    onRequestRename: (callback: (data: { fileId: string; currentName: string }) => void) => {
-        const handler = (_event: any, data: any) => callback(data);
-        ipcRenderer.on('file:requestRename', handler);
-        return () => ipcRenderer.removeListener('file:requestRename', handler);
-    },
-    onShowToast: (callback: (data: { message: string; type?: 'success' | 'error' | 'info'; duration?: number }) => void) => {
-        const handler = (_event: any, data: any) => callback(data);
-        ipcRenderer.on('ui:showToast', handler);
-        return () => ipcRenderer.removeListener('ui:showToast', handler);
-    },
+    onOpenMoveDialog: (callback: (data: MoveDialogPayload) => void) =>
+        subscribe('file:openMoveDialog', callback),
+    onRequestRename: (callback: (data: RequestRenamePayload) => void) =>
+        subscribe('file:requestRename', callback),
+    onShowToast: (callback: (data: ToastPayload) => void) =>
+        subscribe('ui:showToast', callback),
 
     // === File Delete Dialog (Phase 12-17B) ===
     confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) =>
         ipcRenderer.invoke('file:confirmDelete', { fileId, filePath, permanentDelete }),
-    onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) => {
-        const listener = (_: any, data: any) => callback(data);
-        ipcRenderer.on('file:showDeleteDialog', listener);
-        return () => ipcRenderer.removeListener('file:showDeleteDialog', listener);
-    },
+    onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) =>
+        subscribe('file:showDeleteDialog', callback),
 
     // Phase 18-C: ファイル移動
     moveFileToFolder: (fileId: string, targetFolderId: string) =>
         ipcRenderer.invoke('file:moveToFolder', { fileId, targetFolderId }),
-    onFileMoved: (callback: (data: { fileId: string; newPath: string; targetFolderId: string }) => void) => {
-        const listener = (_: any, data: any) => callback(data);
-        ipcRenderer.on('file:moved', listener);
-        return () => ipcRenderer.removeListener('file:moved', listener);
-    },
-    onRequestMove: (callback: (data: { fileId: string; targetFolderId: string }) => void) => {
-        const listener = (_: any, data: any) => callback(data);
-        ipcRenderer.on('file:requestMove', listener);
-        return () => ipcRenderer.removeListener('file:requestMove', listener);
-    },
+    onFileMoved: (callback: (data: FileMovedPayload) => void) => subscribe('file:moved', callback),
+    onRequestMove: (callback: (data: MoveRequestPayload) => void) => subscribe('file:requestMove', callback),
 
     // === Archive ===
     getArchiveMetadata: (path: string) => ipcRenderer.invoke('archive:getMetadata', path),
@@ -203,9 +239,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // Tag Definitions
     getAllTags: () => ipcRenderer.invoke('tag:getAll'),
-    createTag: (name: string, color?: string, categoryId?: string) =>
-        ipcRenderer.invoke('tag:create', { name, color, categoryId }),
-    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number }) =>
+    createTag: (name: string, color?: string, categoryId?: string, icon?: string, description?: string) =>
+        ipcRenderer.invoke('tag:create', { name, color, categoryId, icon, description }),
+    updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number; icon?: string; description?: string }) =>
         ipcRenderer.invoke('tag:update', { id, ...updates }),
     deleteTag: (id: string) => ipcRenderer.invoke('tag:delete', { id }),
 
@@ -230,42 +266,55 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getActiveProfileId: () => ipcRenderer.invoke('profile:getActive'),
     switchProfile: (profileId: string) => ipcRenderer.invoke('profile:switch', profileId),
     getProfileScopedSettings: () => ipcRenderer.invoke('profileSettings:get'),
-    setProfileScopedSettings: (partial: any) => ipcRenderer.invoke('profileSettings:set', partial),
-    replaceProfileScopedSettings: (settings: any) => ipcRenderer.invoke('profileSettings:replace', settings),
+    setProfileScopedSettings: (partial: {
+        fileTypeFilters?: {
+            video?: boolean;
+            image?: boolean;
+            archive?: boolean;
+            audio?: boolean;
+        };
+        previewFrameCount?: number;
+        scanThrottleMs?: number;
+        thumbnailResolution?: number;
+    }) => ipcRenderer.invoke('profileSettings:set', partial),
+    replaceProfileScopedSettings: (settings: {
+        fileTypeFilters: {
+            video: boolean;
+            image: boolean;
+            archive: boolean;
+            audio: boolean;
+        };
+        previewFrameCount: number;
+        scanThrottleMs: number;
+        thumbnailResolution: number;
+    }) => ipcRenderer.invoke('profileSettings:replace', settings),
     getSmartFolders: () => ipcRenderer.invoke('smartFolder:getAll'),
     getSmartFolderById: (id: string) => ipcRenderer.invoke('smartFolder:getById', id),
-    createSmartFolder: (payload: { name: string; condition?: any }) => ipcRenderer.invoke('smartFolder:create', payload),
+    createSmartFolder: (payload: { name: string; condition?: Partial<SmartFolderConditionV1> }) => ipcRenderer.invoke('smartFolder:create', payload),
     updateSmartFolder: (
         payload: {
             id: string;
-            updates: { name?: string; condition?: any; sortOrder?: number };
+            updates: { name?: string; condition?: Partial<SmartFolderConditionV1>; sortOrder?: number };
         }
     ) => ipcRenderer.invoke('smartFolder:update', payload),
     deleteSmartFolder: (id: string) => ipcRenderer.invoke('smartFolder:delete', id),
 
-    onProfileSwitched: (callback: (profileId: string) => void) => {
-        const handler = (_event: any, profileId: string) => callback(profileId);
-        ipcRenderer.on('profile:switched', handler);
-        return () => ipcRenderer.removeListener('profile:switched', handler);
-    },
+    onProfileSwitched: (callback: (profileId: string) => void) => subscribe('profile:switched', callback),
 
     // === Backup ===
     createBackup: (profileId: string) => ipcRenderer.invoke('backup:create', { profileId }),
     getBackupHistory: (profileId: string) => ipcRenderer.invoke('backup:history', { profileId }),
     restoreBackup: (backupPath: string) => ipcRenderer.invoke('backup:restore', { backupPath }),
     getBackupSettings: () => ipcRenderer.invoke('backup:getSettings'),
-    setBackupSettings: (settings: any) => ipcRenderer.invoke('backup:setSettings', settings),
+    setBackupSettings: (settings: BackupSettings) => ipcRenderer.invoke('backup:setSettings', settings),
     shouldAutoBackup: (profileId: string) => ipcRenderer.invoke('backup:shouldAutoBackup', { profileId }),
 
     // === Duplicate Detection ===
     findDuplicates: () => ipcRenderer.invoke('duplicate:find'),
     cancelDuplicateSearch: () => ipcRenderer.invoke('duplicate:cancel'),
     deleteDuplicateFiles: (fileIds: string[]) => ipcRenderer.invoke('duplicate:deleteFiles', fileIds),
-    onDuplicateProgress: (callback: (progress: any) => void) => {
-        const handler = (_event: any, progress: any) => callback(progress);
-        ipcRenderer.on('duplicate:progress', handler);
-        return () => ipcRenderer.removeListener('duplicate:progress', handler);
-    },
+    onDuplicateProgress: (callback: (progress: DuplicateProgress) => void) =>
+        subscribe('duplicate:progress', callback),
 
     // === Statistics ===
     getLibraryStats: () => ipcRenderer.invoke('statistics:get'),
@@ -285,13 +334,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === Auto Tag Rules (Phase 12-8 フェーズ2) ===
     getAllAutoTagRules: () =>
         ipcRenderer.invoke('autoTag:getAllRules'),
-    createAutoTagRule: (tagId: string, keywords: string[], target: string, matchMode: string) =>
+    createAutoTagRule: (tagId: string, keywords: string[], target: MatchTarget, matchMode: MatchMode) =>
         ipcRenderer.invoke('autoTag:createRule', { tagId, keywords, target, matchMode }),
-    updateAutoTagRule: (id: string, updates: any) =>
+    updateAutoTagRule: (id: string, updates: Partial<AutoTagRule>) =>
         ipcRenderer.invoke('autoTag:updateRule', { id, updates }),
     deleteAutoTagRule: (id: string) =>
         ipcRenderer.invoke('autoTag:deleteRule', { id }),
-    previewAutoTagRule: (rule: any, files: any[]) =>
+    previewAutoTagRule: (rule: AutoTagRule, files: Array<Pick<MediaFile, 'id' | 'name' | 'path'>>) =>
         ipcRenderer.invoke('autoTag:previewRule', { rule, files }),
     applyAutoTagsToFiles: (fileIds: string[]) =>
         ipcRenderer.invoke('autoTag:applyToFiles', { fileIds }),
@@ -303,16 +352,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === Phase 24: Thumbnail Regeneration ===
     regenerateAllThumbnails: () =>
         ipcRenderer.invoke('thumbnail:regenerateAll'),
-    onThumbnailRegenerateProgress: (callback: (progress: { current: number; total: number }) => void) => {
-        const handler = (_event: any, progress: any) => callback(progress);
-        ipcRenderer.on('thumbnail:regenerateProgress', handler);
-        return () => ipcRenderer.removeListener('thumbnail:regenerateProgress', handler);
-    },
+    onThumbnailRegenerateProgress: (callback: (progress: ThumbnailRegenerateProgress) => void) =>
+        subscribe('thumbnail:regenerateProgress', callback),
 
     // === Phase 25: Storage Config ===
     getStorageConfig: () =>
         ipcRenderer.invoke('storage:getConfig'),
-    setStorageConfig: (mode: string, customPath?: string) =>
+    setStorageConfig: (mode: StorageMode, customPath?: string) =>
         ipcRenderer.invoke('storage:setConfig', mode, customPath),
     browseStorageFolder: () =>
         ipcRenderer.invoke('storage:browseFolder'),
@@ -343,7 +389,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('rating:getDistribution', { axisId }),
 
     // === Phase 26-D: 複合検索 ===
-    searchFiles: (condition: any) =>
+    searchFiles: (condition: SearchCondition) =>
         ipcRenderer.invoke('search:searchFiles', condition),
 });
 

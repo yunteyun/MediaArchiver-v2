@@ -1,25 +1,16 @@
+import type { MediaFile, MediaFolder } from './file';
+import type { ExternalApp as SettingsExternalApp } from '../stores/useSettingsStore';
+import type { ScanProgress as UiScanProgress } from '../stores/useUIStore';
+import type { SmartFolderConditionV1, SmartFolderV1 } from '../stores/useSmartFolderStore';
+import type {
+    Tag as RendererTagDefinition,
+    TagCategory as RendererTagCategory,
+    AutoTagRule as RendererAutoTagRule,
+    MatchTarget,
+    MatchMode,
+} from '../stores/useTagStore';
+
 export { };
-
-// Shared types for Tag system
-interface TagDefinition {
-    id: string;
-    name: string;
-    color: string;
-    categoryId: string | null;
-    categoryColor?: string;  // カテゴリの色（動的ボーダー用）
-    sortOrder: number;
-    createdAt: number;
-    icon: string;
-    description: string;
-}
-
-interface TagCategory {
-    id: string;
-    name: string;
-    color: string;
-    sortOrder: number;
-    createdAt: number;
-}
 
 // Profile type
 interface Profile {
@@ -90,31 +81,6 @@ interface SearchResult {
     thumbnailPath: string | null;
 }
 
-interface SmartFolderConditionV1 {
-    folderSelection: string | null;
-    text: string;
-    textMatchTarget: 'fileName' | 'folderName';
-    textConditions: Array<{
-        text: string;
-        target: 'fileName' | 'folderName';
-    }>;
-    tags: {
-        ids: string[];
-        mode: 'AND' | 'OR';
-    };
-    ratings: Record<string, { min?: number; max?: number }>;
-    types: Array<'video' | 'image' | 'archive' | 'audio'>;
-}
-
-interface SmartFolderV1 {
-    id: string;
-    name: string;
-    condition: SmartFolderConditionV1;
-    sortOrder: number;
-    createdAt: number;
-    updatedAt: number;
-}
-
 interface ContextMenuSearchDestination {
     id: string;
     name: string;
@@ -161,14 +127,14 @@ declare global {
     interface Window {
         electronAPI: {
             // Database
-            getFiles: (folderId?: string) => Promise<any[]>;
-            getFilesByFolderPathDirect: (folderPath: string) => Promise<any[]>;
-            getFilesByFolderPathRecursive: (folderPath: string) => Promise<any[]>;
-            getFileById: (fileId: string) => Promise<any | null>;
+            getFiles: (folderId?: string) => Promise<MediaFile[]>;
+            getFilesByFolderPathDirect: (folderPath: string) => Promise<MediaFile[]>;
+            getFilesByFolderPathRecursive: (folderPath: string) => Promise<MediaFile[]>;
+            getFileById: (fileId: string) => Promise<MediaFile | null>;
 
             // Folder
-            addFolder: (folderPath: string) => Promise<any>;
-            getFolders: () => Promise<any[]>;
+            addFolder: (folderPath: string) => Promise<MediaFolder>;
+            getFolders: () => Promise<MediaFolder[]>;
             deleteFolder: (folderId: string) => Promise<void>;
             getFolderMetadata: () => Promise<{ fileCounts: Record<string, number>; thumbnails: Record<string, string> }>;
             getFolderTreePaths: () => Promise<string[]>;
@@ -182,8 +148,8 @@ declare global {
             clearFolderScanFileTypeOverrides: (folderId: string) => Promise<{ success: boolean }>;
 
             // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得
-            getFilesByDrive: (drive: string) => Promise<any[]>;
-            getFilesByFolderRecursive: (folderId: string) => Promise<any[]>;
+            getFilesByDrive: (drive: string) => Promise<MediaFile[]>;
+            getFilesByFolderRecursive: (folderId: string) => Promise<MediaFile[]>;
 
             // Scanner
             scanFolder: (folderPath: string) => Promise<void>;
@@ -200,7 +166,7 @@ declare global {
             selectFile: () => Promise<string | null>;
             validatePath: (appPath: string) => Promise<boolean>;
             setPerfDebugEnabled: (enabled: boolean) => Promise<{ enabled: boolean }>;
-            setExternalApps: (apps: any[]) => Promise<void>;
+            setExternalApps: (apps: SettingsExternalApp[]) => Promise<void>;
             openWithApp: (filePath: string, appPath: string, fileId?: string) => Promise<{
                 success: boolean;
                 error?: string;
@@ -230,7 +196,7 @@ declare global {
             }) => Promise<{ canceled: boolean; filePath?: string; bytes?: Uint8Array }>;
 
             // Events
-            onScanProgress: (callback: (progress: any) => void) => () => void;
+            onScanProgress: (callback: (progress: UiScanProgress) => void) => () => void;
             onScanBatchCommitted: (callback: (payload: ScanBatchCommittedPayload) => void) => () => void;
             cancelScan: () => Promise<void>;
             setPreviewFrameCount: (count: number) => Promise<void>;
@@ -284,21 +250,21 @@ declare global {
             extractArchiveAudioFile: (archivePath: string, entryName: string) => Promise<string | null>;
 
             // Tags - Categories
-            getTagCategories: () => Promise<TagCategory[]>;
-            createTagCategory: (name: string, color?: string) => Promise<TagCategory>;
-            updateTagCategory: (id: string, updates: { name?: string; color?: string; sortOrder?: number }) => Promise<TagCategory | null>;
+            getTagCategories: () => Promise<RendererTagCategory[]>;
+            createTagCategory: (name: string, color?: string) => Promise<RendererTagCategory>;
+            updateTagCategory: (id: string, updates: { name?: string; color?: string; sortOrder?: number }) => Promise<RendererTagCategory | null>;
             deleteTagCategory: (id: string) => Promise<{ success: boolean }>;
 
             // Tags - Definitions
-            getAllTags: () => Promise<TagDefinition[]>;
-            createTag: (name: string, color?: string, categoryId?: string, icon?: string, description?: string) => Promise<TagDefinition>;
-            updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number; icon?: string; description?: string }) => Promise<TagDefinition | null>;
+            getAllTags: () => Promise<RendererTagDefinition[]>;
+            createTag: (name: string, color?: string, categoryId?: string, icon?: string, description?: string) => Promise<RendererTagDefinition>;
+            updateTag: (id: string, updates: { name?: string; color?: string; categoryId?: string | null; sortOrder?: number; icon?: string; description?: string }) => Promise<RendererTagDefinition | null>;
             deleteTag: (id: string) => Promise<{ success: boolean }>;
 
             // Tags - File Operations
             addTagToFile: (fileId: string, tagId: string) => Promise<{ success: boolean }>;
             removeTagFromFile: (fileId: string, tagId: string) => Promise<{ success: boolean }>;
-            getFileTags: (fileId: string) => Promise<TagDefinition[]>;
+            getFileTags: (fileId: string) => Promise<RendererTagDefinition[]>;
             getFileTagIds: (fileId: string) => Promise<string[]>;
             getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') => Promise<string[]>;
             getAllFileTagIds: () => Promise<Record<string, string[]>>;
@@ -357,11 +323,11 @@ declare global {
             cleanupOrphanedThumbnails: () => Promise<CleanupResult>;
 
             // Auto Tag Rules (Phase 12-8 フェーズ2)
-            getAllAutoTagRules: () => Promise<AutoTagRule[]>;
-            createAutoTagRule: (tagId: string, keywords: string[], target: MatchTarget, matchMode: MatchMode) => Promise<AutoTagRule>;
-            updateAutoTagRule: (id: string, updates: Partial<AutoTagRule>) => Promise<{ success: boolean }>;
+            getAllAutoTagRules: () => Promise<RendererAutoTagRule[]>;
+            createAutoTagRule: (tagId: string, keywords: string[], target: MatchTarget, matchMode: MatchMode) => Promise<RendererAutoTagRule>;
+            updateAutoTagRule: (id: string, updates: Partial<RendererAutoTagRule>) => Promise<{ success: boolean }>;
             deleteAutoTagRule: (id: string) => Promise<{ success: boolean }>;
-            previewAutoTagRule: (rule: AutoTagRule, files: Array<{ id: string; name: string; path: string }>) => Promise<PreviewMatch[]>;
+            previewAutoTagRule: (rule: RendererAutoTagRule, files: Array<Pick<MediaFile, 'id' | 'name' | 'path'>>) => Promise<PreviewMatch[]>;
             applyAutoTagsToFiles: (fileIds: string[]) => Promise<ApplyResult>;
             previewFilenameBracketTags: (fileIds: string[]) => Promise<FilenameBracketTagPreviewResult>;
             applyFilenameBracketTagsToFiles: (fileIds: string[]) => Promise<FilenameBracketTagApplyResult>;
@@ -409,20 +375,6 @@ declare global {
 }
 
 // Auto Tag Rule types (Phase 12-8 フェーズ2)
-type MatchTarget = 'filename' | 'foldername' | 'both';
-type MatchMode = 'partial' | 'exact';
-
-interface AutoTagRule {
-    id: string;
-    tagId: string;
-    keywords: string[];
-    target: MatchTarget;
-    matchMode: MatchMode;
-    enabled: boolean;
-    sortOrder: number;
-    createdAt: number;
-}
-
 interface PreviewMatch {
     fileId: string;
     fileName: string;
@@ -449,10 +401,28 @@ interface FilenameBracketTagApplyResult extends ApplyResult {
 }
 
 // Duplicate Detection types
+interface DuplicateFileEntry {
+    id: string;
+    name: string;
+    path: string;
+    size: number;
+    type: string;
+    created_at: number;
+    duration?: string;
+    thumbnail_path?: string;
+    preview_frames?: string;
+    root_folder_id?: string;
+    tags: string[];
+    content_hash?: string;
+    metadata?: string;
+    mtime_ms?: number;
+    notes?: string;
+}
+
 interface DuplicateGroup {
     hash: string;
     size: number;
-    files: any[];
+    files: DuplicateFileEntry[];
     count: number;
 }
 

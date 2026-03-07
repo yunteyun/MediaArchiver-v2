@@ -5,10 +5,28 @@
 import { create } from 'zustand';
 
 // Types
+export interface DuplicateFileEntry {
+    id: string;
+    name: string;
+    path: string;
+    size: number;
+    type: string;
+    created_at: number;
+    duration?: string;
+    thumbnail_path?: string;
+    preview_frames?: string;
+    root_folder_id?: string;
+    tags: string[];
+    content_hash?: string;
+    metadata?: string;
+    mtime_ms?: number;
+    notes?: string;
+}
+
 export interface DuplicateGroup {
     hash: string;
     size: number;
-    files: any[];
+    files: DuplicateFileEntry[];
     count: number;
 }
 
@@ -198,10 +216,10 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
         const group = groups.find(g => g.hash === groupHash);
         if (!group || group.files.length < 2) return;
 
-        let keepFile: any;
+        let keepFile: DuplicateFileEntry;
 
         // 比較用のヘルパー関数
-        const getTimePriority = (file: any): number => {
+        const getTimePriority = (file: DuplicateFileEntry): number => {
             // mtime_msを優先、なければcreated_at
             return file.mtime_ms || file.created_at || 0;
         };
