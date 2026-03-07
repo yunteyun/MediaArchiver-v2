@@ -90,6 +90,25 @@ interface SearchResult {
     thumbnailPath: string | null;
 }
 
+interface SmartFolderConditionV1 {
+    folderSelection: string | null;
+    text: string;
+    tags: {
+        ids: string[];
+        mode: 'AND' | 'OR';
+    };
+    ratings: Record<string, { min?: number; max?: number }>;
+}
+
+interface SmartFolderV1 {
+    id: string;
+    name: string;
+    condition: SmartFolderConditionV1;
+    sortOrder: number;
+    createdAt: number;
+    updatedAt: number;
+}
+
 interface ContextMenuSearchDestination {
     id: string;
     name: string;
@@ -289,6 +308,18 @@ declare global {
             getProfileScopedSettings: () => Promise<ProfileScopedSettingsResponse>;
             setProfileScopedSettings: (partial: Partial<ProfileScopedSettingsV1>) => Promise<ProfileScopedSettingsResponse>;
             replaceProfileScopedSettings: (settings: ProfileScopedSettingsV1) => Promise<ProfileScopedSettingsResponse>;
+            getSmartFolders: () => Promise<SmartFolderV1[]>;
+            getSmartFolderById: (id: string) => Promise<SmartFolderV1 | null>;
+            createSmartFolder: (payload: { name: string; condition?: Partial<SmartFolderConditionV1> }) => Promise<SmartFolderV1>;
+            updateSmartFolder: (payload: {
+                id: string;
+                updates: {
+                    name?: string;
+                    condition?: Partial<SmartFolderConditionV1>;
+                    sortOrder?: number;
+                };
+            }) => Promise<SmartFolderV1>;
+            deleteSmartFolder: (id: string) => Promise<{ success: boolean }>;
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
 
             // Duplicate Detection

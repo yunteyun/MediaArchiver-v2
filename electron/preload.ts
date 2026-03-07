@@ -232,6 +232,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getProfileScopedSettings: () => ipcRenderer.invoke('profileSettings:get'),
     setProfileScopedSettings: (partial: any) => ipcRenderer.invoke('profileSettings:set', partial),
     replaceProfileScopedSettings: (settings: any) => ipcRenderer.invoke('profileSettings:replace', settings),
+    getSmartFolders: () => ipcRenderer.invoke('smartFolder:getAll'),
+    getSmartFolderById: (id: string) => ipcRenderer.invoke('smartFolder:getById', id),
+    createSmartFolder: (payload: { name: string; condition?: any }) => ipcRenderer.invoke('smartFolder:create', payload),
+    updateSmartFolder: (
+        payload: {
+            id: string;
+            updates: { name?: string; condition?: any; sortOrder?: number };
+        }
+    ) => ipcRenderer.invoke('smartFolder:update', payload),
+    deleteSmartFolder: (id: string) => ipcRenderer.invoke('smartFolder:delete', id),
 
     onProfileSwitched: (callback: (profileId: string) => void) => {
         const handler = (_event: any, profileId: string) => callback(profileId);

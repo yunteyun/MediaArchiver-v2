@@ -26,6 +26,7 @@ import { initStorageConfig } from './services/storageConfig';
 import { registerStorageHandlers } from './ipc/storage';
 import { registerRatingHandlers } from './ipc/rating';
 import { registerSearchHandlers } from './ipc/search';
+import { registerSmartFolderHandlers } from './ipc/smartFolder';
 import { syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
 import { disposePreviewFrameWorker } from './services/previewFrameWorkerService';
 
@@ -182,6 +183,7 @@ app.whenReady().then(async () => {
     registerStorageHandlers();
     registerRatingHandlers();
     registerSearchHandlers();
+    registerSmartFolderHandlers();
     logger.info('IPC handlers registered');
 
     // 古いアクティビティログを削除（30日以上前）

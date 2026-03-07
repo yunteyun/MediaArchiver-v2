@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-- (なし)
+- スマートフォルダ v1 の基盤として、プロファイル単位で条件セットを保存・取得できる Electron サービスと IPC を追加した（表示への変更なし）。
 
 ### Fixed
 - (なし)
