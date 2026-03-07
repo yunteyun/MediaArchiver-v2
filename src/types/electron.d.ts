@@ -363,6 +363,8 @@ declare global {
             deleteAutoTagRule: (id: string) => Promise<{ success: boolean }>;
             previewAutoTagRule: (rule: AutoTagRule, files: Array<{ id: string; name: string; path: string }>) => Promise<PreviewMatch[]>;
             applyAutoTagsToFiles: (fileIds: string[]) => Promise<ApplyResult>;
+            previewFilenameBracketTags: (fileIds: string[]) => Promise<FilenameBracketTagPreviewResult>;
+            applyFilenameBracketTagsToFiles: (fileIds: string[]) => Promise<FilenameBracketTagApplyResult>;
 
             // Phase 17: Access Count
             incrementAccessCount: (fileId: string) => Promise<{
@@ -432,6 +434,18 @@ interface ApplyResult {
     filesProcessed: number;
     filesUpdated: number;
     tagsAssigned: number;
+}
+
+interface FilenameBracketTagPreviewResult {
+    filesProcessed: number;
+    filesWithCandidates: number;
+    candidateTagNames: string[];
+    newTagNames: string[];
+}
+
+interface FilenameBracketTagApplyResult extends ApplyResult {
+    tagsCreated: number;
+    createdTagNames: string[];
 }
 
 // Duplicate Detection types

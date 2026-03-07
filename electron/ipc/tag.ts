@@ -127,4 +127,12 @@ export function registerTagHandlers(): void {
     ipcMain.handle('autoTag:applyToFiles', async (_event, { fileIds }: { fileIds: string[] }) => {
         return autoTagService.applyRulesToFiles(fileIds);
     });
+
+    ipcMain.handle('autoTag:previewFilenameBracketTags', async (_event, { fileIds }: { fileIds: string[] }) => {
+        return autoTagService.previewFilenameBracketTags(fileIds);
+    });
+
+    ipcMain.handle('autoTag:applyFilenameBracketTags', async (_event, { fileIds }: { fileIds: string[] }) => {
+        return autoTagService.applyFilenameBracketTagsToFiles(fileIds);
+    });
 }

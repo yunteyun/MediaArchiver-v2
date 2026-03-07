@@ -3,10 +3,11 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
+import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp, SlidersHorizontal, Tag } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
+import { useTagStore } from '../stores/useTagStore';
 import { useToastStore } from '../stores/useToastStore';
 import { SearchBar } from './SearchBar';
 import {
@@ -96,10 +97,12 @@ export const Header = React.memo(() => {
     const toastInfo = useToastStore((s) => s.info);
     const toastSuccess = useToastStore((s) => s.success);
     const toastError = useToastStore((s) => s.error);
+    const loadTags = useTagStore((s) => s.loadTags);
     const [isDisplayControlsOpen, setIsDisplayControlsOpen] = useState<boolean>(() =>
         readInitialToggleOpen(HEADER_DISPLAY_CONTROLS_OPEN_STORAGE_KEY, true)
     );
-    const [isApplying, setIsApplying] = useState(false);
+    const [isApplyingAutoTags, setIsApplyingAutoTags] = useState(false);
+    const [isApplyingFilenameTags, setIsApplyingFilenameTags] = useState(false);
 
     useEffect(() => {
         try {
@@ -118,15 +121,13 @@ export const Header = React.memo(() => {
             return;
         }
 
-        setIsApplying(true);
+        setIsApplyingAutoTags(true);
         try {
             const result = await window.electronAPI.applyAutoTagsToFiles(targetIds);
 
             if (result.tagsAssigned > 0) {
                 toastSuccess(`${result.filesUpdated}件のファイルに${result.tagsAssigned}個のタグを適用しました`);
-                // ファイルリストを再読み込み
-                const updatedFiles = await window.electronAPI.getFiles();
-                useFileStore.getState().setFiles(updatedFiles);
+                await useFileStore.getState().loadFileTagsCache();
             } else {
                 toastInfo('適用されたタグはありませんでした');
             }
@@ -134,7 +135,66 @@ export const Header = React.memo(() => {
             console.error('Auto tag apply error:', error);
             toastError('自動タグ適用中にエラーが発生しました');
         } finally {
-            setIsApplying(false);
+            setIsApplyingAutoTags(false);
+        }
+    };
+
+    const handleApplyFilenameBracketTags = async () => {
+        const targetIds = selectedIds.size > 0 ? Array.from(selectedIds) : files.map((file) => file.id);
+
+        if (targetIds.length === 0) {
+            toastInfo('適用するファイルがありません');
+            return;
+        }
+
+        setIsApplyingFilenameTags(true);
+        try {
+            const preview = await window.electronAPI.previewFilenameBracketTags(targetIds);
+            if (preview.candidateTagNames.length === 0) {
+                toastInfo('[] / () 内にタグ候補が見つかりませんでした');
+                return;
+            }
+
+            const sampleNames = preview.candidateTagNames.slice(0, 8).join(', ');
+            const remainingCount = Math.max(preview.candidateTagNames.length - 8, 0);
+            const targetLabel = selectedIds.size > 0
+                ? `選択中の${targetIds.length}件`
+                : `現在表示中の${targetIds.length}件`;
+            const confirmed = window.confirm([
+                `${targetLabel}からファイル名の [] / () 内の語句をタグとして適用します。`,
+                '',
+                `候補タグ: ${preview.candidateTagNames.length}件`,
+                `新規作成予定: ${preview.newTagNames.length}件`,
+                `候補が見つかったファイル: ${preview.filesWithCandidates}件`,
+                '',
+                `候補例: ${sampleNames}${remainingCount > 0 ? ` ほか${remainingCount}件` : ''}`,
+                '',
+                'このまま実行しますか？',
+            ].join('\n'));
+
+            if (!confirmed) {
+                return;
+            }
+
+            const result = await window.electronAPI.applyFilenameBracketTagsToFiles(targetIds);
+            if (result.tagsAssigned === 0 && result.tagsCreated === 0) {
+                toastInfo('追加されたタグはありませんでした');
+                return;
+            }
+
+            await Promise.all([
+                useFileStore.getState().loadFileTagsCache(),
+                loadTags(),
+            ]);
+            toastSuccess(
+                `${result.filesUpdated}件のファイルに${result.tagsAssigned}個のタグを適用しました` +
+                (result.tagsCreated > 0 ? `（新規タグ ${result.tagsCreated}件作成）` : '')
+            );
+        } catch (error) {
+            console.error('Filename bracket tag apply error:', error);
+            toastError('ファイル名記号タグの適用中にエラーが発生しました');
+        } finally {
+            setIsApplyingFilenameTags(false);
         }
     };
 
@@ -205,12 +265,22 @@ export const Header = React.memo(() => {
                 {/* Auto Tag Apply Button (Phase 12-8 フェーズ2) */}
                 <button
                     onClick={handleApplyAutoTags}
-                    disabled={isApplying}
+                    disabled={isApplyingAutoTags || isApplyingFilenameTags}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary-600 hover:bg-primary-500 disabled:bg-surface-700 disabled:text-surface-500 text-white text-sm transition-colors whitespace-nowrap"
                     title={selectedIds.size > 0 ? `選択中の${selectedIds.size}件に自動タグを適用` : '全ファイルに自動タグを適用'}
                 >
-                    <Wand2 size={16} className={isApplying ? 'animate-spin' : ''} />
-                    {isApplying ? '適用中...' : '自動タグ適用'}
+                    <Wand2 size={16} className={isApplyingAutoTags ? 'animate-spin' : ''} />
+                    {isApplyingAutoTags ? '適用中...' : '自動タグ適用'}
+                </button>
+
+                <button
+                    onClick={handleApplyFilenameBracketTags}
+                    disabled={isApplyingAutoTags || isApplyingFilenameTags}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-700 disabled:text-surface-500 text-surface-100 border border-surface-700 text-sm transition-colors whitespace-nowrap"
+                    title={selectedIds.size > 0 ? `選択中の${selectedIds.size}件から [] / () 内の語句をタグ化` : '表示中のファイルから [] / () 内の語句をタグ化'}
+                >
+                    <Tag size={16} className={isApplyingFilenameTags ? 'animate-pulse' : ''} />
+                    {isApplyingFilenameTags ? '確認中...' : 'ファイル名記号タグ'}
                 </button>
 
                 <button

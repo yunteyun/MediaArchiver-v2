@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- (なし)
+- 一覧ヘッダーに「ファイル名記号タグ」を追加し、ファイル名の `[]` / `()` 内の語句をプレビュー確認つきで手動抽出し、新規タグを自動生成しながら一括付与できるようにした。
 
 ### Changed
 - (なし)

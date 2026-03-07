@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
-import { addTagToFile, getFileTags } from './tagService';
+import { addTagToFile, createTag, getAllTags, getFileTags, type TagDefinition } from './tagService';
 
 const log = logger.scope('AutoTag');
 const db = () => dbManager.getDb();
@@ -35,10 +35,70 @@ export interface ApplyResult {
     tagsAssigned: number;
 }
 
+export interface FilenameBracketTagPreviewResult {
+    filesProcessed: number;
+    filesWithCandidates: number;
+    candidateTagNames: string[];
+    newTagNames: string[];
+}
+
+export interface FilenameBracketTagApplyResult extends ApplyResult {
+    tagsCreated: number;
+    createdTagNames: string[];
+}
+
 export interface PreviewMatch {
     fileId: string;
     fileName: string;
     matchedKeywords: string[];
+}
+
+function normalizeExtractedTagName(raw: string): string {
+    return raw
+        .normalize('NFKC')
+        .replace(/\u3000/g, ' ')
+        .replace(/^[\s._-]+|[\s._-]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function extractBracketTagNames(fileName: string): string[] {
+    const baseName = path.parse(fileName).name.normalize('NFKC');
+    const extracted = new Map<string, string>();
+    const matches = baseName.matchAll(/[\[\(［（]([^\]\)］）]+)[\]\)］）]/gu);
+
+    for (const match of matches) {
+        const rawSegment = match[1];
+        if (!rawSegment) continue;
+
+        const parts = rawSegment.split(/[\s,，、/／|｜;；]+/u);
+        for (const part of parts) {
+            const normalized = normalizeExtractedTagName(part);
+            if (!normalized) continue;
+
+            const key = normalized.toLocaleLowerCase();
+            if (!extracted.has(key)) {
+                extracted.set(key, normalized);
+            }
+        }
+    }
+
+    return Array.from(extracted.values());
+}
+
+function buildTagLookup(tags: TagDefinition[]): Map<string, TagDefinition> {
+    const lookup = new Map<string, TagDefinition>();
+    for (const tag of tags) {
+        const key = normalizeExtractedTagName(tag.name).toLocaleLowerCase();
+        if (key && !lookup.has(key)) {
+            lookup.set(key, tag);
+        }
+    }
+    return lookup;
+}
+
+function sortTagNames(names: Iterable<string>): string[] {
+    return Array.from(names).sort((left, right) => left.localeCompare(right, 'ja'));
 }
 
 // --- CRUD Operations ---
@@ -217,6 +277,42 @@ export function previewRule(
     return matches;
 }
 
+export function previewFilenameBracketTags(fileIds: string[]): FilenameBracketTagPreviewResult {
+    const database = db();
+    const selectFileStmt = database.prepare('SELECT name FROM files WHERE id = ?');
+    const existingTags = buildTagLookup(getAllTags());
+    const candidateTagMap = new Map<string, string>();
+    const newTagMap = new Map<string, string>();
+    let filesWithCandidates = 0;
+
+    for (const fileId of fileIds) {
+        const file = selectFileStmt.get(fileId) as { name: string } | undefined;
+        if (!file) continue;
+
+        const tagNames = extractBracketTagNames(file.name);
+        if (tagNames.length === 0) continue;
+
+        filesWithCandidates += 1;
+
+        for (const tagName of tagNames) {
+            const key = tagName.toLocaleLowerCase();
+            if (!candidateTagMap.has(key)) {
+                candidateTagMap.set(key, tagName);
+            }
+            if (!existingTags.has(key) && !newTagMap.has(key)) {
+                newTagMap.set(key, tagName);
+            }
+        }
+    }
+
+    return {
+        filesProcessed: fileIds.length,
+        filesWithCandidates,
+        candidateTagNames: sortTagNames(candidateTagMap.values()),
+        newTagNames: sortTagNames(newTagMap.values()),
+    };
+}
+
 // --- Apply ---
 
 /**
@@ -286,6 +382,71 @@ export function applyRulesToFiles(
         };
     } catch (error) {
         log.error('Failed to apply auto tags:', error);
+        throw error;
+    }
+}
+
+export function applyFilenameBracketTagsToFiles(fileIds: string[]): FilenameBracketTagApplyResult {
+    const database = db();
+    const selectFileStmt = database.prepare('SELECT name FROM files WHERE id = ?');
+    const tagsByKey = buildTagLookup(getAllTags());
+    const createdTagMap = new Map<string, string>();
+    let filesUpdated = 0;
+    let tagsAssigned = 0;
+    let tagsCreated = 0;
+
+    const transaction = database.transaction(() => {
+        for (const fileId of fileIds) {
+            const file = selectFileStmt.get(fileId) as { name: string } | undefined;
+            if (!file) continue;
+
+            const tagNames = extractBracketTagNames(file.name);
+            if (tagNames.length === 0) continue;
+
+            const existingFileTagIds = new Set(getFileTags(fileId).map((tag) => tag.id));
+            let fileUpdated = false;
+
+            for (const tagName of tagNames) {
+                const key = tagName.toLocaleLowerCase();
+                let tag = tagsByKey.get(key);
+
+                if (!tag) {
+                    tag = createTag(tagName);
+                    tagsByKey.set(key, tag);
+                    tagsCreated += 1;
+                    createdTagMap.set(key, tag.name);
+                }
+
+                if (existingFileTagIds.has(tag.id)) {
+                    continue;
+                }
+
+                addTagToFile(fileId, tag.id);
+                existingFileTagIds.add(tag.id);
+                tagsAssigned += 1;
+                fileUpdated = true;
+            }
+
+            if (fileUpdated) {
+                filesUpdated += 1;
+            }
+        }
+    });
+
+    try {
+        transaction();
+        log.info(`Applied filename bracket tags: ${filesUpdated} files updated, ${tagsAssigned} tags assigned, ${tagsCreated} tags created`);
+
+        return {
+            success: true,
+            filesProcessed: fileIds.length,
+            filesUpdated,
+            tagsAssigned,
+            tagsCreated,
+            createdTagNames: sortTagNames(createdTagMap.values()),
+        };
+    } catch (error) {
+        log.error('Failed to apply filename bracket tags:', error);
         throw error;
     }
 }

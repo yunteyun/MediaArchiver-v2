@@ -295,6 +295,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('autoTag:previewRule', { rule, files }),
     applyAutoTagsToFiles: (fileIds: string[]) =>
         ipcRenderer.invoke('autoTag:applyToFiles', { fileIds }),
+    previewFilenameBracketTags: (fileIds: string[]) =>
+        ipcRenderer.invoke('autoTag:previewFilenameBracketTags', { fileIds }),
+    applyFilenameBracketTagsToFiles: (fileIds: string[]) =>
+        ipcRenderer.invoke('autoTag:applyFilenameBracketTags', { fileIds }),
 
     // === Phase 24: Thumbnail Regeneration ===
     regenerateAllThumbnails: () =>
