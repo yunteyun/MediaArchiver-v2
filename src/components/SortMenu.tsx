@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowUp, ArrowDown, Wand2, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp, SlidersHorizontal, Filter } from 'lucide-react';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
@@ -43,17 +43,18 @@ const FILE_TYPE_FILTER_OPTIONS: Array<{
     { value: 'audio', label: '音声', icon: Music },
 ];
 
-const HEADER_DETAIL_TOGGLE_STORAGE_KEY = 'header.detailControls.open.v1';
+const HEADER_DISPLAY_CONTROLS_OPEN_STORAGE_KEY = 'header.displayControls.open.v1';
+const HEADER_TYPE_FILTER_CONTROLS_OPEN_STORAGE_KEY = 'header.typeFilterControls.open.v1';
 
-function readInitialDetailControlsOpen(): boolean {
+function readInitialToggleOpen(storageKey: string, defaultValue: boolean): boolean {
     try {
-        const raw = window.localStorage.getItem(HEADER_DETAIL_TOGGLE_STORAGE_KEY);
+        const raw = window.localStorage.getItem(storageKey);
         if (raw === '0') return false;
         if (raw === '1') return true;
     } catch {
         // ignore localStorage errors
     }
-    return true;
+    return defaultValue;
 }
 
 export const Header = React.memo(() => {
@@ -96,16 +97,29 @@ export const Header = React.memo(() => {
     const toastInfo = useToastStore((s) => s.info);
     const toastSuccess = useToastStore((s) => s.success);
     const toastError = useToastStore((s) => s.error);
-    const [isDetailControlsOpen, setIsDetailControlsOpen] = useState<boolean>(() => readInitialDetailControlsOpen());
+    const [isDisplayControlsOpen, setIsDisplayControlsOpen] = useState<boolean>(() =>
+        readInitialToggleOpen(HEADER_DISPLAY_CONTROLS_OPEN_STORAGE_KEY, true)
+    );
+    const [isTypeFilterControlsOpen, setIsTypeFilterControlsOpen] = useState<boolean>(() =>
+        readInitialToggleOpen(HEADER_TYPE_FILTER_CONTROLS_OPEN_STORAGE_KEY, true)
+    );
     const [isApplying, setIsApplying] = useState(false);
 
     useEffect(() => {
         try {
-            window.localStorage.setItem(HEADER_DETAIL_TOGGLE_STORAGE_KEY, isDetailControlsOpen ? '1' : '0');
+            window.localStorage.setItem(HEADER_DISPLAY_CONTROLS_OPEN_STORAGE_KEY, isDisplayControlsOpen ? '1' : '0');
         } catch {
             // ignore localStorage errors
         }
-    }, [isDetailControlsOpen]);
+    }, [isDisplayControlsOpen]);
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(HEADER_TYPE_FILTER_CONTROLS_OPEN_STORAGE_KEY, isTypeFilterControlsOpen ? '1' : '0');
+        } catch {
+            // ignore localStorage errors
+        }
+    }, [isTypeFilterControlsOpen]);
 
     // 自動タグ適用ハンドラー (Phase 12-8 フェーズ2)
     const handleApplyAutoTags = async () => {
@@ -140,117 +154,143 @@ export const Header = React.memo(() => {
 
     return (
         <div className="px-4 py-2 bg-surface-900 border-b border-surface-700 space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
                 {/* Search Bar */}
                 <SearchBar />
 
-                {/* Layout Preset Controls */}
-                <div ref={modeMenuRef} className="relative flex gap-1 items-center">
-                    <span className="text-surface-400 text-sm whitespace-nowrap mr-1">表示:</span>
-                    <button
-                        onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
-                        className="flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors bg-surface-700 text-surface-300 hover:bg-surface-600 whitespace-nowrap"
-                        title="表示モードを切り替え"
-                    >
-                        <SelectedDisplayModeIcon size={14} />
-                        <span>{selectedDisplayModeOption.label}</span>
-                    </button>
-
-                    {isModeMenuOpen && (
-                        <div className="absolute top-full mt-1 right-0 bg-surface-800 rounded shadow-lg border border-surface-700 py-1 z-50 min-w-[160px]">
-                            {DISPLAY_MODE_MENU_OPTIONS.map((option) => {
-                                const Icon = ICON_BY_KEY[option.iconKey];
-                                const optionLayoutPreset = getLayoutPresetFromDisplayMode(option.mode);
-                                const isActive = layoutPreset === optionLayoutPreset;
-                                return (
-                                    <button
-                                        key={option.mode}
-                                        onClick={() => {
-                                            setLayoutPreset(optionLayoutPreset);
-                                            setIsModeMenuOpen(false);
-                                        }}
-                                        className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${isActive ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'}`}
-                                    >
-                                        <Icon size={16} />
-                                        <span>{option.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {/* Thumbnail Presentation Controls */}
-                <div className="flex gap-2 items-center">
-                    <span className="text-surface-400 text-sm whitespace-nowrap">サムネ:</span>
-                    <select
-                        value={thumbnailPresentation}
-                        onChange={(e) => setThumbnailPresentation(e.target.value as ThumbnailPresentation)}
-                        className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
-                    >
-                        {THUMBNAIL_PRESENTATION_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                {/* Auto Tag Apply Button (Phase 12-8 フェーズ2) */}
+                <button
+                    onClick={handleApplyAutoTags}
+                    disabled={isApplying}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary-600 hover:bg-primary-500 disabled:bg-surface-700 disabled:text-surface-500 text-white text-sm transition-colors whitespace-nowrap"
+                    title={selectedIds.size > 0 ? `選択中の${selectedIds.size}件に自動タグを適用` : '全ファイルに自動タグを適用'}
+                >
+                    <Wand2 size={16} className={isApplying ? 'animate-spin' : ''} />
+                    {isApplying ? '適用中...' : '自動タグ適用'}
+                </button>
 
                 <button
                     type="button"
-                    onClick={() => setIsDetailControlsOpen((prev) => !prev)}
+                    onClick={() => setIsDisplayControlsOpen((prev) => !prev)}
                     className="ml-auto inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-surface-300 bg-surface-800 hover:bg-surface-700"
-                    title={isDetailControlsOpen ? '詳細操作を閉じる' : '詳細操作を開く'}
+                    title={isDisplayControlsOpen ? '表示設定を閉じる' : '表示設定を開く'}
                 >
-                    {isDetailControlsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    <span>{isDetailControlsOpen ? '詳細を閉じる' : '詳細を開く'}</span>
+                    <SlidersHorizontal size={12} />
+                    {isDisplayControlsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    <span>{isDisplayControlsOpen ? '表示設定を閉じる' : '表示設定を開く'}</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setIsTypeFilterControlsOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-surface-300 bg-surface-800 hover:bg-surface-700"
+                    title={isTypeFilterControlsOpen ? 'タイプ絞り込みを閉じる' : 'タイプ絞り込みを開く'}
+                >
+                    <Filter size={12} />
+                    {isTypeFilterControlsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    <span>{isTypeFilterControlsOpen ? 'タイプ絞り込みを閉じる' : 'タイプ絞り込みを開く'}</span>
                 </button>
             </div>
 
-            {isDetailControlsOpen && (
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                        {/* Sort Controls */}
-                        <div className="flex gap-2 items-center">
-                            <span className="text-surface-400 text-sm whitespace-nowrap">並び替え:</span>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                                className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
-                            >
-                                <option value="name">名前</option>
-                                <option value="date">日付</option>
-                                <option value="size">サイズ</option>
-                                <option value="type">種類</option>
-                                <option value="accessCount">アクセス回数</option>
-                                <option value="lastAccessed">直近アクセス</option>
-                            </select>
-                            <button
-                                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                                className="p-1.5 hover:bg-surface-700 rounded transition-colors text-surface-400 hover:text-white"
-                                title={sortOrder === 'asc' ? '昇順' : '降順'}
-                            >
-                                {sortOrder === 'asc' ? <ArrowUp size={18} /> : <ArrowDown size={18} />}
-                            </button>
-                        </div>
+            {(isDisplayControlsOpen || isTypeFilterControlsOpen) && (
+                <div className="flex flex-wrap items-start gap-2">
+                    {isDisplayControlsOpen && (
+                        <div className="flex flex-wrap items-center gap-3 rounded border border-surface-700 bg-surface-900/50 px-2 py-2">
+                            {/* Layout Preset Controls */}
+                            <div ref={modeMenuRef} className="relative flex gap-1 items-center">
+                                <span className="text-surface-400 text-sm whitespace-nowrap mr-1">表示:</span>
+                                <button
+                                    onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
+                                    className="flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors bg-surface-700 text-surface-300 hover:bg-surface-600 whitespace-nowrap"
+                                    title="表示モードを切り替え"
+                                >
+                                    <SelectedDisplayModeIcon size={14} />
+                                    <span>{selectedDisplayModeOption.label}</span>
+                                </button>
 
-                        {/* Group By Controls (Phase 12-10) */}
-                        <div className="flex gap-2 items-center">
-                            <span className="text-surface-400 text-sm whitespace-nowrap">グループ:</span>
-                            <select
-                                value={groupBy}
-                                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                                className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
-                            >
-                                <option value="none">なし</option>
-                                <option value="date">年月別</option>
-                                <option value="size">サイズ別</option>
-                                <option value="type">タイプ別</option>
-                            </select>
-                        </div>
+                                {isModeMenuOpen && (
+                                    <div className="absolute top-full mt-1 right-0 bg-surface-800 rounded shadow-lg border border-surface-700 py-1 z-50 min-w-[160px]">
+                                        {DISPLAY_MODE_MENU_OPTIONS.map((option) => {
+                                            const Icon = ICON_BY_KEY[option.iconKey];
+                                            const optionLayoutPreset = getLayoutPresetFromDisplayMode(option.mode);
+                                            const isActive = layoutPreset === optionLayoutPreset;
+                                            return (
+                                                <button
+                                                    key={option.mode}
+                                                    onClick={() => {
+                                                        setLayoutPreset(optionLayoutPreset);
+                                                        setIsModeMenuOpen(false);
+                                                    }}
+                                                    className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${isActive ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'}`}
+                                                >
+                                                    <Icon size={16} />
+                                                    <span>{option.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* File Type Filter */}
-                        <div className="flex gap-2 items-center">
+                            {/* Thumbnail Presentation Controls */}
+                            <div className="flex gap-2 items-center">
+                                <span className="text-surface-400 text-sm whitespace-nowrap">サムネ:</span>
+                                <select
+                                    value={thumbnailPresentation}
+                                    onChange={(e) => setThumbnailPresentation(e.target.value as ThumbnailPresentation)}
+                                    className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
+                                >
+                                    {THUMBNAIL_PRESENTATION_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Sort Controls */}
+                            <div className="flex gap-2 items-center">
+                                <span className="text-surface-400 text-sm whitespace-nowrap">並び替え:</span>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                                    className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value="name">名前</option>
+                                    <option value="date">日付</option>
+                                    <option value="size">サイズ</option>
+                                    <option value="type">種類</option>
+                                    <option value="accessCount">アクセス回数</option>
+                                    <option value="lastAccessed">直近アクセス</option>
+                                </select>
+                                <button
+                                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                    className="p-1.5 hover:bg-surface-700 rounded transition-colors text-surface-400 hover:text-white"
+                                    title={sortOrder === 'asc' ? '昇順' : '降順'}
+                                >
+                                    {sortOrder === 'asc' ? <ArrowUp size={18} /> : <ArrowDown size={18} />}
+                                </button>
+                            </div>
+
+                            {/* Group By Controls (Phase 12-10) */}
+                            <div className="flex gap-2 items-center">
+                                <span className="text-surface-400 text-sm whitespace-nowrap">グループ:</span>
+                                <select
+                                    value={groupBy}
+                                    onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                                    className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value="none">なし</option>
+                                    <option value="date">年月別</option>
+                                    <option value="size">サイズ別</option>
+                                    <option value="type">タイプ別</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {isTypeFilterControlsOpen && (
+                        <div className="flex flex-wrap items-center gap-2 rounded border border-surface-700 bg-surface-900/50 px-2 py-2">
                             <span className="text-surface-400 text-sm whitespace-nowrap">タイプ:</span>
                             <div className="flex items-center gap-1">
                                 {FILE_TYPE_FILTER_OPTIONS.map((option) => {
@@ -307,18 +347,7 @@ export const Header = React.memo(() => {
                                 )}
                             </div>
                         </div>
-                    </div>
-
-                    {/* Auto Tag Apply Button (Phase 12-8 フェーズ2) */}
-                    <button
-                        onClick={handleApplyAutoTags}
-                        disabled={isApplying}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary-600 hover:bg-primary-500 disabled:bg-surface-700 disabled:text-surface-500 text-white text-sm transition-colors whitespace-nowrap"
-                        title={selectedIds.size > 0 ? `選択中の${selectedIds.size}件に自動タグを適用` : '全ファイルに自動タグを適用'}
-                    >
-                        <Wand2 size={16} className={isApplying ? 'animate-spin' : ''} />
-                        {isApplying ? '適用中...' : '自動タグ適用'}
-                    </button>
+                    )}
                 </div>
             )}
         </div>
