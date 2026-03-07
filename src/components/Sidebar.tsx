@@ -12,7 +12,7 @@ import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { AddFolderScanSettingsDialog, type AddFolderScanSettingsSubmit } from './AddFolderScanSettingsDialog';
 import { SmartFolderEditorDialog, type SmartFolderFolderOption } from './SmartFolderEditorDialog';
-import type { MediaFolder } from '../types/file';
+import type { MediaFile, MediaFolder } from '../types/file';
 import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
 
 // 特殊なフォルダID
@@ -22,6 +22,13 @@ export const FOLDER_PREFIX = '__folder:';
 export const VIRTUAL_FOLDER_PREFIX = '__vfolder:';
 export const VIRTUAL_FOLDER_RECURSIVE_PREFIX = '__vfolderr:';
 const PROGRESSIVE_REFRESH_DEBOUNCE_MS = 1200;
+const ALL_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
+const FILE_TYPE_LABEL_MAP: Record<MediaFile['type'], string> = {
+    video: '動画',
+    image: '画像',
+    archive: '書庫',
+    audio: '音声',
+};
 
 function normalizeFolderPathForCompare(folderPath: string): string {
     return folderPath.replace(/[\\/]+$/, '').toLowerCase();
@@ -93,6 +100,17 @@ function buildSmartFolderPreviewText(
     }).length;
     if (activeRatingCount > 0) {
         segments.push(`評価: ${activeRatingCount}軸`);
+    }
+
+    const normalizedTypes = condition.types.filter((type): type is MediaFile['type'] => (
+        type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+    ));
+    if (normalizedTypes.length > 0 && normalizedTypes.length < ALL_FILE_TYPES.length) {
+        const labels = normalizedTypes
+            .map((type) => FILE_TYPE_LABEL_MAP[type])
+            .filter(Boolean)
+            .join('/');
+        segments.push(`タイプ: ${labels}`);
     }
 
     if (segments.length === 1) {
@@ -182,6 +200,7 @@ export const Sidebar = React.memo(() => {
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
     const searchQuery = useUIStore((s) => s.searchQuery);
+    const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const tags = useTagStore((s) => s.tags);
     const loadTags = useTagStore((s) => s.loadTags);
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -426,8 +445,9 @@ export const Sidebar = React.memo(() => {
                 mode: filterMode,
             },
             ratings: normalizedRatings,
+            types: [...selectedFileTypes],
         };
-    }, [currentFolderId, filterMode, ratingFilter, searchQuery, selectedTagIds]);
+    }, [currentFolderId, filterMode, ratingFilter, searchQuery, selectedFileTypes, selectedTagIds]);
 
     const createDefaultSmartFolderName = useCallback(() => {
         const now = new Date();
@@ -571,6 +591,7 @@ export const Sidebar = React.memo(() => {
                 text: '',
                 tags: { ids: [], mode: 'OR' },
                 ratings: {},
+                types: [...ALL_FILE_TYPES],
             };
         }
         if (smartFolderEditorState.mode === 'create') return smartFolderEditorState.initialCondition;
@@ -579,6 +600,7 @@ export const Sidebar = React.memo(() => {
             text: '',
             tags: { ids: [], mode: 'OR' },
             ratings: {},
+            types: [...ALL_FILE_TYPES],
         };
     }, [editingSmartFolder, smartFolderEditorState]);
 

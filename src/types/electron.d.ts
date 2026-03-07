@@ -98,6 +98,7 @@ interface SmartFolderConditionV1 {
         mode: 'AND' | 'OR';
     };
     ratings: Record<string, { min?: number; max?: number }>;
+    types: Array<'video' | 'image' | 'archive' | 'audio'>;
 }
 
 interface SmartFolderV1 {

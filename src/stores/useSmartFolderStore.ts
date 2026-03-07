@@ -2,6 +2,19 @@ import { create } from 'zustand';
 import { useRatingStore } from './useRatingStore';
 import { useTagStore } from './useTagStore';
 import { useUIStore } from './useUIStore';
+import type { MediaFile } from '../types/file';
+
+const SMART_FOLDER_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
+
+function normalizeFileTypes(input: unknown): MediaFile['type'][] {
+    if (!Array.isArray(input)) return [...SMART_FOLDER_FILE_TYPES];
+    const normalized = Array.from(new Set(
+        input.filter((type): type is MediaFile['type'] => (
+            type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+        ))
+    ));
+    return normalized.length > 0 ? normalized : [...SMART_FOLDER_FILE_TYPES];
+}
 
 export interface SmartFolderConditionV1 {
     folderSelection: string | null;
@@ -11,6 +24,7 @@ export interface SmartFolderConditionV1 {
         mode: 'AND' | 'OR';
     };
     ratings: Record<string, { min?: number; max?: number }>;
+    types: MediaFile['type'][];
 }
 
 export interface SmartFolderV1 {
@@ -65,6 +79,7 @@ function normalizeCondition(input: SmartFolderConditionV1): SmartFolderCondition
             mode: input.tags?.mode === 'AND' ? 'AND' : 'OR',
         },
         ratings: normalizedRatings,
+        types: normalizeFileTypes(input.types),
     };
 }
 
@@ -161,7 +176,9 @@ export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
 
         const normalized = normalizeCondition(target.condition);
 
-        useUIStore.getState().setSearchQuery(normalized.text);
+        const uiStore = useUIStore.getState();
+        uiStore.setSearchQuery(normalized.text);
+        uiStore.setSelectedFileTypes(normalized.types);
         useTagStore.setState({
             selectedTagIds: [...normalized.tags.ids],
             filterMode: normalized.tags.mode,

@@ -14,6 +14,7 @@ export interface SmartFolderConditionV1 {
         mode: 'AND' | 'OR';
     };
     ratings: Record<string, { min?: number; max?: number }>;
+    types: Array<'video' | 'image' | 'archive' | 'audio'>;
 }
 
 export interface SmartFolderV1 {
@@ -38,6 +39,7 @@ const DEFAULT_CONDITION: SmartFolderConditionV1 = {
         mode: 'OR',
     },
     ratings: {},
+    types: ['video', 'image', 'archive', 'audio'],
 };
 
 function ensureProfileSettingsTable(): void {
@@ -53,6 +55,16 @@ function ensureProfileSettingsTable(): void {
 
 function normalizeTagMode(value: unknown): 'AND' | 'OR' {
     return value === 'AND' ? 'AND' : 'OR';
+}
+
+function normalizeConditionTypes(input: unknown): Array<'video' | 'image' | 'archive' | 'audio'> {
+    if (!Array.isArray(input)) return [...DEFAULT_CONDITION.types];
+    const normalized = Array.from(new Set(
+        input.filter((type): type is 'video' | 'image' | 'archive' | 'audio' => (
+            type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+        ))
+    ));
+    return normalized.length > 0 ? normalized : [...DEFAULT_CONDITION.types];
 }
 
 function normalizeCondition(input: unknown): SmartFolderConditionV1 {
@@ -79,6 +91,7 @@ function normalizeCondition(input: unknown): SmartFolderConditionV1 {
             mode: normalizeTagMode(tagsCandidate.mode),
         },
         ratings,
+        types: normalizeConditionTypes(candidate.types),
     };
 }
 

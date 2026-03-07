@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
 import type { Tag } from '../stores/useTagStore';
 import type { RatingAxis } from '../stores/useRatingStore';
+import type { MediaFile } from '../types/file';
 
 export interface SmartFolderFolderOption {
     value: string;
@@ -29,6 +30,23 @@ interface SmartFolderEditorDialogProps {
 }
 
 type RatingInputMap = Record<string, { min: string; max: string }>;
+const SMART_FOLDER_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
+const SMART_FOLDER_FILE_TYPE_OPTIONS: Array<{ value: MediaFile['type']; label: string }> = [
+    { value: 'video', label: '動画' },
+    { value: 'image', label: '画像' },
+    { value: 'archive', label: '書庫' },
+    { value: 'audio', label: '音声' },
+];
+
+function normalizeConditionTypes(input: unknown): MediaFile['type'][] {
+    if (!Array.isArray(input)) return [...SMART_FOLDER_FILE_TYPES];
+    const normalized = Array.from(new Set(
+        input.filter((type): type is MediaFile['type'] => (
+            type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+        ))
+    ));
+    return normalized.length > 0 ? normalized : [...SMART_FOLDER_FILE_TYPES];
+}
 
 function createRatingInputMap(condition: SmartFolderConditionV1): RatingInputMap {
     const next: RatingInputMap = {};
@@ -67,6 +85,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
     const [tagMode, setTagMode] = useState<'AND' | 'OR'>('OR');
     const [ratingInputs, setRatingInputs] = useState<RatingInputMap>({});
     const [tagSearch, setTagSearch] = useState('');
+    const [types, setTypes] = useState<MediaFile['type'][]>(() => normalizeConditionTypes(initialCondition.types));
 
     useEffect(() => {
         if (!isOpen) return;
@@ -77,6 +96,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
         setTagMode(initialCondition.tags.mode === 'AND' ? 'AND' : 'OR');
         setRatingInputs(createRatingInputMap(initialCondition));
         setTagSearch('');
+        setTypes(normalizeConditionTypes(initialCondition.types));
     }, [initialCondition, initialName, isOpen]);
 
     const normalizedFolderOptions = useMemo(() => {
@@ -149,6 +169,51 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                             className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                             placeholder="ファイル名で検索"
                         />
+                    </div>
+
+                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
+                        <div className="flex items-center justify-between">
+                            <label className="block text-xs text-surface-400">ファイルタイプ</label>
+                            {types.length < SMART_FOLDER_FILE_TYPES.length && (
+                                <button
+                                    type="button"
+                                    onClick={() => setTypes([...SMART_FOLDER_FILE_TYPES])}
+                                    className="rounded px-2 py-0.5 text-[11px] text-surface-400 hover:bg-surface-800 hover:text-surface-200"
+                                >
+                                    全タイプ
+                                </button>
+                            )}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                            {SMART_FOLDER_FILE_TYPE_OPTIONS.map((option) => {
+                                const active = types.includes(option.value);
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => {
+                                            setTypes((prev) => {
+                                                if (prev.includes(option.value)) {
+                                                    if (prev.length === 1) return prev;
+                                                    return prev.filter((type) => type !== option.value);
+                                                }
+                                                return [...prev, option.value];
+                                            });
+                                        }}
+                                        className={`rounded px-2 py-1 text-xs transition-colors ${
+                                            active
+                                                ? 'bg-primary-600 text-white'
+                                                : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <p className="mt-2 text-[11px] text-surface-500">
+                            1つ以上を選択してください（未選択にはできません）
+                        </p>
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
@@ -299,6 +364,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
 
                             const normalizedName = name.trim();
                             if (!normalizedName) return;
+                            const normalizedTypes = normalizeConditionTypes(types);
 
                             void onSubmit({
                                 name: normalizedName,
@@ -310,6 +376,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                                         mode: tagMode,
                                     },
                                     ratings: normalizedRatings,
+                                    types: normalizedTypes,
                                 },
                             });
                         }}
