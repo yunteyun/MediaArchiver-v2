@@ -446,7 +446,11 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                                 className="w-full px-2 py-1.5 bg-surface-800 border border-surface-600 rounded text-xs focus:outline-none focus:border-primary-500"
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
-                                                        editingCategory ? handleUpdateCategory() : handleCreateCategory();
+                                                        if (editingCategory) {
+                                                            handleUpdateCategory();
+                                                        } else {
+                                                            handleCreateCategory();
+                                                        }
                                                     }
                                                 }}
                                                 autoFocus
@@ -572,7 +576,11 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                                 className="flex-1 px-3 py-1.5 bg-surface-900 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
-                                                        editingTag ? handleUpdateTag() : handleCreateTag();
+                                                        if (editingTag) {
+                                                            handleUpdateTag();
+                                                        } else {
+                                                            handleCreateTag();
+                                                        }
                                                     }
                                                 }}
                                             />

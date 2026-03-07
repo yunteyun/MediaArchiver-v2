@@ -59,8 +59,8 @@ function buildFilenameSearchQuery(filePath: string): string {
     const normalized = parsed.name
         .normalize('NFKC')
         .replace(/[\u3000]/g, ' ')
-        .replace(/[_\.]+/g, ' ')
-        .replace(/[()\[\]{}]+/g, ' ')
+        .replace(/[_.]+/g, ' ')
+        .replace(/[[\](){}]+/g, ' ')
         .replace(/(?<=\s|^)(?:img|image|scan|sample|copy|cropped?|edited?)(?=\s|$)/gi, ' ')
         .replace(/(?<=\s|^)\d{2,4}x\d{2,4}(?=\s|$)/gi, ' ')
         .replace(/(?<=\s|^)(?:\d{1,4}p|4k|8k|uhd|fhd|qhd|hd)(?=\s|$)/gi, ' ')

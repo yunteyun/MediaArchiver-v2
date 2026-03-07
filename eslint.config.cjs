@@ -14,7 +14,7 @@ const relaxedRules = {
 
 module.exports = tseslint.config(
   {
-    ignores: ['dist/**', 'dist-electron/**', 'node_modules/**', '**/*.d.ts', 'eslint.config.cjs'],
+    ignores: ['dist/**', 'dist-electron/**', 'release/**', 'node_modules/**', '**/*.d.ts', 'eslint.config.cjs'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -36,7 +36,7 @@ module.exports = tseslint.config(
     },
   },
   {
-    files: ['electron/**/*.ts', 'vite.config.ts', 'tailwind.config.js', 'postcss.config.js'],
+    files: ['electron/**/*.ts', 'electron/**/*.cjs', 'vite.config.ts', 'tailwind.config.js', 'postcss.config.js'],
     languageOptions: {
       globals: {
         ...globals.node,

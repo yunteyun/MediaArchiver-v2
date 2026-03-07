@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - 自動タグ適用とファイル名記号タグの実行導線を一覧ヘッダーからタグ管理モーダルの「自動割り当て」タブへ移し、高頻度操作と低頻度のタグ補助操作を分離した。
+- ESLint 設定を整理し、配布生成物や Node スクリプト由来のノイズを除外して静的チェックを常用しやすい状態へ戻した（表示への変更なし）。
 
 ### Fixed
 - (なし)

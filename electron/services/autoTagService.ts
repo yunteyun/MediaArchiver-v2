@@ -65,7 +65,7 @@ function normalizeExtractedTagName(raw: string): string {
 function extractBracketTagNames(fileName: string): string[] {
     const baseName = path.parse(fileName).name.normalize('NFKC');
     const extracted = new Map<string, string>();
-    const matches = baseName.matchAll(/[\[\(［（]([^\]\)］）]+)[\]\)］）]/gu);
+    const matches = baseName.matchAll(/(?:\[|\(|［|（)([^\]）)]*)(?:\]|\)|］|）)/gu);
 
     for (const match of matches) {
         const rawSegment = match[1];
