@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X, CheckCircle2, AlertCircle, BookmarkPlus, Pencil, Trash2 } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
-import { useUIStore, type SearchTarget } from '../stores/useUIStore';
+import { useUIStore, type SearchCondition, type SearchTarget } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useSmartFolderStore } from '../stores/useSmartFolderStore';
@@ -89,10 +89,17 @@ function buildSmartFolderPreviewText(
 ): string {
     const segments: string[] = [resolveSmartFolderFolderLabel(condition.folderSelection, folders)];
 
-    const query = condition.text.trim();
-    if (query.length > 0) {
-        const shortQuery = query.length > 16 ? `${query.slice(0, 16)}...` : query;
-        segments.push(`検索(${SEARCH_TARGET_LABEL_MAP[condition.textMatchTarget] ?? 'ファイル名'}): ${shortQuery}`);
+    const normalizedTextConditions = normalizeSmartFolderTextConditionsForCompare(condition);
+    if (normalizedTextConditions.length > 0) {
+        const labels = normalizedTextConditions
+            .slice(0, 2)
+            .map((item) => {
+                const shortQuery = item.text.length > 12 ? `${item.text.slice(0, 12)}...` : item.text;
+                return `${SEARCH_TARGET_LABEL_MAP[item.target] ?? 'ファイル名'}:${shortQuery}`;
+            })
+            .join(' + ');
+        const suffix = normalizedTextConditions.length > 2 ? ` (+${normalizedTextConditions.length - 2})` : '';
+        segments.push(`検索: ${labels}${suffix}`);
     }
 
     if (condition.tags.ids.length > 0) {
@@ -139,14 +146,38 @@ function normalizeSmartFolderTypesForCompare(types: MediaFile['type'][]): MediaF
     return next.slice().sort();
 }
 
+function normalizeSmartFolderTextConditionsForCompare(condition: SmartFolderConditionV1): SearchCondition[] {
+    const raw = Array.isArray(condition.textConditions) ? condition.textConditions : [];
+    const normalized = raw
+        .map((item) => ({
+            text: typeof item?.text === 'string' ? item.text.trim() : '',
+            target: item?.target === 'folderName' ? 'folderName' : 'fileName',
+        }))
+        .filter((item) => item.text.length > 0);
+
+    if (normalized.length > 0) return normalized;
+
+    const legacyText = typeof condition.text === 'string' ? condition.text.trim() : '';
+    if (!legacyText) return [];
+    return [{ text: legacyText, target: condition.textMatchTarget === 'folderName' ? 'folderName' : 'fileName' }];
+}
+
 function isSameSmartFolderCondition(a: SmartFolderConditionV1, b: SmartFolderConditionV1): boolean {
     if (normalizeSmartFolderSelectionForCompare(a.folderSelection) !== normalizeSmartFolderSelectionForCompare(b.folderSelection)) {
         return false;
     }
-    if (a.text.trim() !== b.text.trim()) {
+    const aTextConditions = normalizeSmartFolderTextConditionsForCompare(a)
+        .slice()
+        .sort((left, right) => `${left.target}:${left.text}`.localeCompare(`${right.target}:${right.text}`));
+    const bTextConditions = normalizeSmartFolderTextConditionsForCompare(b)
+        .slice()
+        .sort((left, right) => `${left.target}:${left.text}`.localeCompare(`${right.target}:${right.text}`));
+    if (aTextConditions.length !== bTextConditions.length) {
         return false;
     }
-    if (a.textMatchTarget !== b.textMatchTarget) {
+    if (aTextConditions.some((item, index) => (
+        item.target !== bTextConditions[index].target || item.text !== bTextConditions[index].text
+    ))) {
         return false;
     }
     if (a.tags.mode !== b.tags.mode) {
@@ -273,6 +304,7 @@ export const Sidebar = React.memo(() => {
     const mainView = useUIStore((s) => s.mainView);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
+    const searchExtraConditions = useUIStore((s) => s.searchExtraConditions);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const tags = useTagStore((s) => s.tags);
     const loadTags = useTagStore((s) => s.loadTags);
@@ -514,6 +546,10 @@ export const Sidebar = React.memo(() => {
             folderSelection: currentFolderId,
             text: searchQuery,
             textMatchTarget: searchTarget,
+            textConditions: [
+                { text: searchQuery, target: searchTarget },
+                ...searchExtraConditions,
+            ].filter((item) => item.text.trim().length > 0),
             tags: {
                 ids: [...selectedTagIds],
                 mode: filterMode,
@@ -521,7 +557,7 @@ export const Sidebar = React.memo(() => {
             ratings: normalizedRatings,
             types: [...selectedFileTypes],
         };
-    }, [currentFolderId, filterMode, ratingFilter, searchQuery, searchTarget, selectedFileTypes, selectedTagIds]);
+    }, [currentFolderId, filterMode, ratingFilter, searchQuery, searchTarget, searchExtraConditions, selectedFileTypes, selectedTagIds]);
 
     const createDefaultSmartFolderName = useCallback(() => {
         const now = new Date();
@@ -554,8 +590,7 @@ export const Sidebar = React.memo(() => {
     const handleClearSmartFolderConditions = useCallback(async () => {
         try {
             const uiStore = useUIStore.getState();
-            uiStore.setSearchQuery('');
-            uiStore.setSearchTarget('fileName');
+            uiStore.clearSearchConditions();
             uiStore.setSelectedFileTypes([...ALL_FILE_TYPES]);
             useTagStore.setState({
                 selectedTagIds: [],
@@ -697,6 +732,7 @@ export const Sidebar = React.memo(() => {
                 folderSelection: ALL_FILES_ID,
                 text: '',
                 textMatchTarget: 'fileName',
+                textConditions: [],
                 tags: { ids: [], mode: 'OR' },
                 ratings: {},
                 types: [...ALL_FILE_TYPES],
@@ -707,6 +743,7 @@ export const Sidebar = React.memo(() => {
             folderSelection: ALL_FILES_ID,
             text: '',
             textMatchTarget: 'fileName',
+            textConditions: [],
             tags: { ids: [], mode: 'OR' },
             ratings: {},
             types: [...ALL_FILE_TYPES],

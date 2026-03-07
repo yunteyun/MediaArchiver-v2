@@ -4,7 +4,7 @@ import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
 import type { Tag } from '../stores/useTagStore';
 import type { RatingAxis } from '../stores/useRatingStore';
 import type { MediaFile } from '../types/file';
-import type { SearchTarget } from '../stores/useUIStore';
+import type { SearchCondition, SearchTarget } from '../stores/useUIStore';
 
 export interface SmartFolderFolderOption {
     value: string;
@@ -53,6 +53,26 @@ function normalizeConditionTypes(input: unknown): MediaFile['type'][] {
     return normalized.length > 0 ? normalized : [...SMART_FOLDER_FILE_TYPES];
 }
 
+function normalizeTextConditions(input: unknown, fallbackText?: string, fallbackTarget?: SearchTarget): SearchCondition[] {
+    const fromList = Array.isArray(input)
+        ? input.map((item) => {
+            const candidate = item && typeof item === 'object' ? (item as Partial<SearchCondition>) : {};
+            const text = typeof candidate.text === 'string' ? candidate.text.trim() : '';
+            if (!text) return null;
+            return {
+                text,
+                target: candidate.target === 'folderName' ? 'folderName' : 'fileName',
+            } as SearchCondition;
+        }).filter((item): item is SearchCondition => item !== null)
+        : [];
+
+    if (fromList.length > 0) return fromList;
+
+    const legacyText = typeof fallbackText === 'string' ? fallbackText.trim() : '';
+    if (!legacyText) return [];
+    return [{ text: legacyText, target: fallbackTarget === 'folderName' ? 'folderName' : 'fileName' }];
+}
+
 function createRatingInputMap(condition: SmartFolderConditionV1): RatingInputMap {
     const next: RatingInputMap = {};
     Object.entries(condition.ratings || {}).forEach(([axisId, range]) => {
@@ -85,10 +105,14 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
 }) => {
     const [name, setName] = useState(initialName);
     const [folderSelection, setFolderSelection] = useState(initialCondition.folderSelection ?? '__all__');
-    const [text, setText] = useState(initialCondition.text);
-    const [textMatchTarget, setTextMatchTarget] = useState<SearchTarget>(
-        initialCondition.textMatchTarget === 'folderName' ? 'folderName' : 'fileName'
-    );
+    const [textConditions, setTextConditions] = useState<SearchCondition[]>(() => {
+        const normalized = normalizeTextConditions(
+            initialCondition.textConditions,
+            initialCondition.text,
+            initialCondition.textMatchTarget
+        );
+        return normalized.length > 0 ? normalized : [{ text: '', target: 'fileName' }];
+    });
     const [tagIds, setTagIds] = useState<string[]>([]);
     const [tagMode, setTagMode] = useState<'AND' | 'OR'>('OR');
     const [ratingInputs, setRatingInputs] = useState<RatingInputMap>({});
@@ -99,8 +123,12 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
         if (!isOpen) return;
         setName(initialName);
         setFolderSelection(initialCondition.folderSelection ?? '__all__');
-        setText(initialCondition.text);
-        setTextMatchTarget(initialCondition.textMatchTarget === 'folderName' ? 'folderName' : 'fileName');
+        const normalizedTextConditions = normalizeTextConditions(
+            initialCondition.textConditions,
+            initialCondition.text,
+            initialCondition.textMatchTarget
+        );
+        setTextConditions(normalizedTextConditions.length > 0 ? normalizedTextConditions : [{ text: '', target: 'fileName' }]);
         setTagIds([...initialCondition.tags.ids]);
         setTagMode(initialCondition.tags.mode === 'AND' ? 'AND' : 'OR');
         setRatingInputs(createRatingInputMap(initialCondition));
@@ -170,27 +198,68 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
-                        <label className="block text-xs text-surface-400 mb-1">検索語</label>
-                        <input
-                            type="text"
-                            value={text}
-                            onChange={(event) => setText(event.target.value)}
-                            className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                            placeholder={textMatchTarget === 'folderName' ? 'フォルダ名で検索' : 'ファイル名で検索'}
-                        />
-                        <div className="mt-2 flex items-center gap-2">
-                            <span className="text-xs text-surface-400">検索対象</span>
-                            <select
-                                value={textMatchTarget}
-                                onChange={(event) => setTextMatchTarget(event.target.value as SearchTarget)}
-                                className="rounded border border-surface-700 bg-surface-900 px-2 py-1 text-xs text-surface-200 focus:outline-none focus:border-primary-500"
+                        <div className="flex items-center justify-between">
+                            <label className="block text-xs text-surface-400">検索条件</label>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setTextConditions((prev) => [...prev, { text: '', target: 'fileName' }]);
+                                }}
+                                className="rounded px-2 py-0.5 text-[11px] text-surface-300 hover:bg-surface-800"
                             >
-                                {SEARCH_TARGET_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                                + 条件追加
+                            </button>
+                        </div>
+                        <div className="mt-2 space-y-2">
+                            {textConditions.map((condition, index) => (
+                                <div key={`${index}-${condition.target}`} className="grid grid-cols-[110px_1fr_auto] items-center gap-2">
+                                    <select
+                                        value={condition.target}
+                                        onChange={(event) => {
+                                            const nextTarget = event.target.value as SearchTarget;
+                                            setTextConditions((prev) => prev.map((item, itemIndex) => (
+                                                itemIndex === index
+                                                    ? { ...item, target: nextTarget }
+                                                    : item
+                                            )));
+                                        }}
+                                        className="rounded border border-surface-700 bg-surface-900 px-2 py-1 text-xs text-surface-200 focus:outline-none focus:border-primary-500"
+                                    >
+                                        {SEARCH_TARGET_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={condition.text}
+                                        onChange={(event) => {
+                                            const nextText = event.target.value;
+                                            setTextConditions((prev) => prev.map((item, itemIndex) => (
+                                                itemIndex === index
+                                                    ? { ...item, text: nextText }
+                                                    : item
+                                            )));
+                                        }}
+                                        className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-1.5 text-xs text-surface-200 focus:outline-none focus:border-primary-500"
+                                        placeholder={condition.target === 'folderName' ? 'フォルダ名で検索' : 'ファイル名で検索'}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTextConditions((prev) => {
+                                                if (prev.length <= 1) return [{ text: '', target: 'fileName' }];
+                                                return prev.filter((_, itemIndex) => itemIndex !== index);
+                                            });
+                                        }}
+                                        className="rounded px-2 py-1 text-[11px] text-surface-500 hover:bg-surface-800 hover:text-surface-300"
+                                        title="この検索条件を削除"
+                                    >
+                                        削除
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -388,13 +457,21 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                             const normalizedName = name.trim();
                             if (!normalizedName) return;
                             const normalizedTypes = normalizeConditionTypes(types);
+                            const normalizedTextConditions = textConditions
+                                .map((condition) => ({
+                                    text: condition.text.trim(),
+                                    target: condition.target === 'folderName' ? 'folderName' : 'fileName',
+                                }))
+                                .filter((condition) => condition.text.length > 0);
+                            const primaryTextCondition = normalizedTextConditions[0];
 
                             void onSubmit({
                                 name: normalizedName,
                                 condition: {
                                     folderSelection: folderSelection || '__all__',
-                                    text: text.trim(),
-                                    textMatchTarget,
+                                    text: primaryTextCondition?.text ?? '',
+                                    textMatchTarget: primaryTextCondition?.target ?? 'fileName',
+                                    textConditions: normalizedTextConditions,
                                     tags: {
                                         ids: [...tagIds],
                                         mode: tagMode,

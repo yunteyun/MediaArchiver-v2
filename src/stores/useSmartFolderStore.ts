@@ -3,7 +3,7 @@ import { useRatingStore } from './useRatingStore';
 import { useTagStore } from './useTagStore';
 import { useUIStore } from './useUIStore';
 import type { MediaFile } from '../types/file';
-import type { SearchTarget } from './useUIStore';
+import type { SearchCondition, SearchTarget } from './useUIStore';
 
 const SMART_FOLDER_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
 
@@ -17,10 +17,31 @@ function normalizeFileTypes(input: unknown): MediaFile['type'][] {
     return normalized.length > 0 ? normalized : [...SMART_FOLDER_FILE_TYPES];
 }
 
+function normalizeTextConditions(input: unknown, fallbackText?: string, fallbackTarget?: SearchTarget): SearchCondition[] {
+    const fromList = Array.isArray(input)
+        ? input.map((item) => {
+            const candidate = item && typeof item === 'object' ? (item as Partial<SearchCondition>) : {};
+            const text = typeof candidate.text === 'string' ? candidate.text.trim() : '';
+            if (!text) return null;
+            return {
+                text,
+                target: candidate.target === 'folderName' ? 'folderName' : 'fileName',
+            } as SearchCondition;
+        }).filter((item): item is SearchCondition => item !== null)
+        : [];
+
+    if (fromList.length > 0) return fromList;
+
+    const legacyText = typeof fallbackText === 'string' ? fallbackText.trim() : '';
+    if (!legacyText) return [];
+    return [{ text: legacyText, target: fallbackTarget === 'folderName' ? 'folderName' : 'fileName' }];
+}
+
 export interface SmartFolderConditionV1 {
     folderSelection: string | null;
     text: string;
     textMatchTarget: SearchTarget;
+    textConditions: SearchCondition[];
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';
@@ -73,10 +94,18 @@ function normalizeCondition(input: SmartFolderConditionV1): SmartFolderCondition
         normalizedRatings[axisId] = { min, max };
     });
 
+    const normalizedTextConditions = normalizeTextConditions(
+        input.textConditions,
+        input.text,
+        input.textMatchTarget
+    );
+    const primaryTextCondition = normalizedTextConditions[0];
+
     return {
         folderSelection: typeof input.folderSelection === 'string' ? input.folderSelection : null,
-        text: typeof input.text === 'string' ? input.text : '',
-        textMatchTarget: input.textMatchTarget === 'folderName' ? 'folderName' : 'fileName',
+        text: primaryTextCondition?.text ?? '',
+        textMatchTarget: primaryTextCondition?.target ?? 'fileName',
+        textConditions: normalizedTextConditions,
         tags: {
             ids: Array.isArray(input.tags?.ids) ? input.tags.ids.filter((id) => typeof id === 'string' && id.length > 0) : [],
             mode: input.tags?.mode === 'AND' ? 'AND' : 'OR',
@@ -180,8 +209,7 @@ export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
         const normalized = normalizeCondition(target.condition);
 
         const uiStore = useUIStore.getState();
-        uiStore.setSearchQuery(normalized.text);
-        uiStore.setSearchTarget(normalized.textMatchTarget);
+        uiStore.setSearchConditions(normalized.textConditions);
         uiStore.setSelectedFileTypes(normalized.types);
         useTagStore.setState({
             selectedTagIds: [...normalized.tags.ids],

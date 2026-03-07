@@ -69,6 +69,7 @@ export const FileGrid = React.memo(() => {
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
+    const searchExtraConditions = useUIStore((s) => s.searchExtraConditions);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
@@ -174,22 +175,28 @@ export const FileGrid = React.memo(() => {
             });
         }
 
-        // Filter by search query
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter((file) => {
-                if (searchTarget === 'folderName') {
-                    const normalizedPath = String(file.path || '').replace(/[\\/]+/g, '/');
-                    const folderPath = normalizedPath.includes('/')
-                        ? normalizedPath.slice(0, normalizedPath.lastIndexOf('/'))
-                        : '';
-                    const folderName = folderPath
-                        ? folderPath.slice(folderPath.lastIndexOf('/') + 1)
-                        : '';
-                    return folderName.toLowerCase().includes(query) || folderPath.toLowerCase().includes(query);
-                }
+        // Filter by search conditions (AND)
+        const activeSearchConditions = [
+            { text: searchQuery, target: searchTarget },
+            ...searchExtraConditions,
+        ].filter((condition) => condition.text.trim().length > 0);
 
-                return file.name.toLowerCase().includes(query);
+        if (activeSearchConditions.length > 0) {
+            filtered = filtered.filter((file) => {
+                return activeSearchConditions.every((condition) => {
+                    const query = condition.text.toLowerCase();
+                    if (condition.target === 'folderName') {
+                        const normalizedPath = String(file.path || '').replace(/[\\/]+/g, '/');
+                        const folderPath = normalizedPath.includes('/')
+                            ? normalizedPath.slice(0, normalizedPath.lastIndexOf('/'))
+                            : '';
+                        const folderName = folderPath
+                            ? folderPath.slice(folderPath.lastIndexOf('/') + 1)
+                            : '';
+                        return folderName.toLowerCase().includes(query) || folderPath.toLowerCase().includes(query);
+                    }
+                    return file.name.toLowerCase().includes(query);
+                });
             });
         }
 
@@ -208,8 +215,9 @@ export const FileGrid = React.memo(() => {
                 resultCount: filtered.length,
                 selectedTagCount: selectedTagIds.length,
                 activeRatingAxisCount,
-                searchActive: searchQuery.trim().length > 0,
+                searchActive: searchQuery.trim().length > 0 || searchExtraConditions.length > 0,
                 searchTarget,
+                searchConditionCount: (searchQuery.trim() ? 1 : 0) + searchExtraConditions.length,
                 selectedTypeCount: selectedFileTypes.length,
                 sortBy,
                 sortOrder,
@@ -218,7 +226,7 @@ export const FileGrid = React.memo(() => {
         }
 
         return filtered;
-    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, searchTarget, selectedFileTypes, ratingFilter, allFileRatings, perfDebugEnabled]);
+    }, [rawFiles, sortBy, sortOrder, selectedTagIds, filterMode, fileTagsCache, searchQuery, searchTarget, searchExtraConditions, selectedFileTypes, ratingFilter, allFileRatings, perfDebugEnabled]);
 
 
     // グループ化されたファイル（Phase 12-10）

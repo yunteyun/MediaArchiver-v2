@@ -5,11 +5,17 @@ import { logger } from './logger';
 const log = logger.scope('SmartFolder');
 
 const SMART_FOLDERS_KEY = 'smart_folders_v1';
+type SearchTarget = 'fileName' | 'folderName';
+interface SearchCondition {
+    text: string;
+    target: SearchTarget;
+}
 
 export interface SmartFolderConditionV1 {
     folderSelection: string | null;
     text: string;
-    textMatchTarget: 'fileName' | 'folderName';
+    textMatchTarget: SearchTarget;
+    textConditions: SearchCondition[];
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';
@@ -36,6 +42,7 @@ const DEFAULT_CONDITION: SmartFolderConditionV1 = {
     folderSelection: null,
     text: '',
     textMatchTarget: 'fileName',
+    textConditions: [],
     tags: {
         ids: [],
         mode: 'OR',
@@ -69,6 +76,26 @@ function normalizeConditionTypes(input: unknown): Array<'video' | 'image' | 'arc
     return normalized.length > 0 ? normalized : [...DEFAULT_CONDITION.types];
 }
 
+function normalizeTextConditions(input: unknown, fallbackText?: string, fallbackTarget?: SearchTarget): SearchCondition[] {
+    const fromList = Array.isArray(input)
+        ? input.map((item) => {
+            const candidate = item && typeof item === 'object' ? (item as Partial<SearchCondition>) : {};
+            const text = typeof candidate.text === 'string' ? candidate.text.trim() : '';
+            if (!text) return null;
+            return {
+                text,
+                target: candidate.target === 'folderName' ? 'folderName' : 'fileName',
+            } as SearchCondition;
+        }).filter((item): item is SearchCondition => item !== null)
+        : [];
+
+    if (fromList.length > 0) return fromList;
+
+    const legacyText = typeof fallbackText === 'string' ? fallbackText.trim() : '';
+    if (!legacyText) return [];
+    return [{ text: legacyText, target: fallbackTarget === 'folderName' ? 'folderName' : 'fileName' }];
+}
+
 function normalizeCondition(input: unknown): SmartFolderConditionV1 {
     const candidate = input && typeof input === 'object' ? (input as Partial<SmartFolderConditionV1>) : {};
     const tagsCandidate = candidate.tags && typeof candidate.tags === 'object' ? candidate.tags : {};
@@ -82,11 +109,18 @@ function normalizeCondition(input: unknown): SmartFolderConditionV1 {
         if (min === undefined && max === undefined) return;
         ratings[axisId] = { min, max };
     });
+    const textConditions = normalizeTextConditions(
+        candidate.textConditions,
+        candidate.text,
+        candidate.textMatchTarget
+    );
+    const primaryTextCondition = textConditions[0];
 
     return {
         folderSelection: typeof candidate.folderSelection === 'string' ? candidate.folderSelection : null,
-        text: typeof candidate.text === 'string' ? candidate.text : '',
-        textMatchTarget: candidate.textMatchTarget === 'folderName' ? 'folderName' : 'fileName',
+        text: primaryTextCondition?.text ?? '',
+        textMatchTarget: primaryTextCondition?.target ?? 'fileName',
+        textConditions,
         tags: {
             ids: Array.isArray(tagsCandidate.ids)
                 ? tagsCandidate.ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)

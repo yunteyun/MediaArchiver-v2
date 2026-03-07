@@ -94,6 +94,10 @@ interface SmartFolderConditionV1 {
     folderSelection: string | null;
     text: string;
     textMatchTarget: 'fileName' | 'folderName';
+    textConditions: Array<{
+        text: string;
+        target: 'fileName' | 'folderName';
+    }>;
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';

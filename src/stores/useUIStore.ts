@@ -18,6 +18,10 @@ export interface ScanProgress {
 export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
 export type SearchTarget = 'fileName' | 'folderName';
+export interface SearchCondition {
+    text: string;
+    target: SearchTarget;
+}
 
 interface UIState {
     sidebarWidth: number;
@@ -30,6 +34,7 @@ interface UIState {
     sortOrder: 'asc' | 'desc';
     searchQuery: string;
     searchTarget: SearchTarget;
+    searchExtraConditions: SearchCondition[];
     selectedFileTypes: MediaFile['type'][];
     settingsModalOpen: boolean;
     settingsModalRequestedTab: SettingsModalTab | null;
@@ -59,6 +64,8 @@ interface UIState {
     setSortOrder: (order: 'asc' | 'desc') => void;
     setSearchQuery: (query: string) => void;
     setSearchTarget: (target: SearchTarget) => void;
+    setSearchConditions: (conditions: SearchCondition[]) => void;
+    clearSearchConditions: () => void;
     toggleFileTypeFilter: (fileType: MediaFile['type']) => void;
     clearFileTypeFilter: () => void;
     setSelectedFileTypes: (types: MediaFile['type'][]) => void;
@@ -97,6 +104,7 @@ export const useUIStore = create<UIState>((set) => ({
     sortOrder: 'asc',
     searchQuery: '',
     searchTarget: 'fileName',
+    searchExtraConditions: [],
     selectedFileTypes: ['video', 'image', 'archive', 'audio'],
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
@@ -127,6 +135,26 @@ export const useUIStore = create<UIState>((set) => ({
     setSortOrder: (order) => set({ sortOrder: order }),
     setSearchQuery: (query) => set({ searchQuery: query }),
     setSearchTarget: (target) => set({ searchTarget: target }),
+    setSearchConditions: (conditions) => set(() => {
+        const normalized = conditions
+            .map((condition) => ({
+                text: typeof condition?.text === 'string' ? condition.text : '',
+                target: condition?.target === 'folderName' ? 'folderName' : 'fileName',
+            }))
+            .filter((condition) => condition.text.trim().length > 0);
+
+        const first = normalized[0] ?? { text: '', target: 'fileName' as const };
+        return {
+            searchQuery: first.text,
+            searchTarget: first.target,
+            searchExtraConditions: normalized.slice(1),
+        };
+    }),
+    clearSearchConditions: () => set({
+        searchQuery: '',
+        searchTarget: 'fileName',
+        searchExtraConditions: [],
+    }),
     toggleFileTypeFilter: (fileType) => set((state) => ({
         selectedFileTypes: state.selectedFileTypes.includes(fileType)
             ? state.selectedFileTypes.filter((type) => type !== fileType)

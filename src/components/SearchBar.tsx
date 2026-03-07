@@ -10,6 +10,7 @@ export const SearchBar = React.memo(() => {
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
     const setSearchQuery = useUIStore((s) => s.setSearchQuery);
+    const clearSearchConditions = useUIStore((s) => s.clearSearchConditions);
 
     // ローカル入力値（デバウンス用）
     const [localValue, setLocalValue] = useState(searchQuery);
@@ -29,7 +30,7 @@ export const SearchBar = React.memo(() => {
 
     const handleClear = () => {
         setLocalValue('');
-        setSearchQuery('');
+        clearSearchConditions();
     };
 
     return (
