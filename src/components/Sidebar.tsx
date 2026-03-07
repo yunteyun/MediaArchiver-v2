@@ -1078,13 +1078,21 @@ export const Sidebar = React.memo(() => {
                                             <button
                                                 key={smartFolder.id}
                                                 type="button"
-                                                onClick={() => { void handleApplySmartFolder(smartFolder.id); }}
+                                                onClick={() => {
+                                                    if (isActive) {
+                                                        void handleClearSmartFolderConditions();
+                                                        return;
+                                                    }
+                                                    void handleApplySmartFolder(smartFolder.id);
+                                                }}
                                                 className={`w-full flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
                                                     isActive
                                                         ? 'bg-blue-600 text-white'
                                                         : 'text-surface-300 hover:bg-surface-800'
                                                 }`}
-                                                title={smartFolder.name}
+                                                title={isActive
+                                                    ? `${smartFolder.name}（再クリックで解除）`
+                                                    : `${smartFolder.name}（クリックで適用）`}
                                             >
                                                 <span className="min-w-0 flex-1">
                                                     <span className="truncate block">{smartFolder.name}</span>
