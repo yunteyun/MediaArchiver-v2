@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Changed
 - スマートフォルダ v1 の基盤として、プロファイル単位で条件セットを保存・取得できる Electron サービスと IPC を追加した（表示への変更なし）。
+- 左サイドバーにスマートフォルダセクションを追加し、現在条件の保存・一覧からの再適用・名前変更・削除を実行できるようにした。
 
 ### Fixed
 - (なし)

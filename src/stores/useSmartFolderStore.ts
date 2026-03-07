@@ -1,0 +1,155 @@
+import { create } from 'zustand';
+import { useRatingStore } from './useRatingStore';
+import { useTagStore } from './useTagStore';
+import { useUIStore } from './useUIStore';
+
+export interface SmartFolderConditionV1 {
+    folderSelection: string | null;
+    text: string;
+    tags: {
+        ids: string[];
+        mode: 'AND' | 'OR';
+    };
+    ratings: Record<string, { min?: number; max?: number }>;
+}
+
+export interface SmartFolderV1 {
+    id: string;
+    name: string;
+    condition: SmartFolderConditionV1;
+    sortOrder: number;
+    createdAt: number;
+    updatedAt: number;
+}
+
+interface SmartFolderApplyOptions {
+    applyFolderSelection?: (folderSelection: string | null) => Promise<void> | void;
+}
+
+interface SmartFolderState {
+    smartFolders: SmartFolderV1[];
+    activeSmartFolderId: string | null;
+    isLoading: boolean;
+    isMutating: boolean;
+    loadSmartFolders: () => Promise<void>;
+    createSmartFolder: (name: string, condition: SmartFolderConditionV1) => Promise<SmartFolderV1>;
+    renameSmartFolder: (id: string, name: string) => Promise<SmartFolderV1>;
+    deleteSmartFolder: (id: string) => Promise<boolean>;
+    applySmartFolder: (id: string, options?: SmartFolderApplyOptions) => Promise<boolean>;
+    setActiveSmartFolderId: (id: string | null) => void;
+}
+
+function normalizeCondition(input: SmartFolderConditionV1): SmartFolderConditionV1 {
+    const normalizedRatings: Record<string, { min?: number; max?: number }> = {};
+
+    Object.entries(input.ratings || {}).forEach(([axisId, range]) => {
+        const min = typeof range?.min === 'number' && Number.isFinite(range.min) ? range.min : undefined;
+        const max = typeof range?.max === 'number' && Number.isFinite(range.max) ? range.max : undefined;
+        if (min === undefined && max === undefined) return;
+        normalizedRatings[axisId] = { min, max };
+    });
+
+    return {
+        folderSelection: typeof input.folderSelection === 'string' ? input.folderSelection : null,
+        text: typeof input.text === 'string' ? input.text : '',
+        tags: {
+            ids: Array.isArray(input.tags?.ids) ? input.tags.ids.filter((id) => typeof id === 'string' && id.length > 0) : [],
+            mode: input.tags?.mode === 'AND' ? 'AND' : 'OR',
+        },
+        ratings: normalizedRatings,
+    };
+}
+
+export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
+    smartFolders: [],
+    activeSmartFolderId: null,
+    isLoading: false,
+    isMutating: false,
+
+    loadSmartFolders: async () => {
+        set({ isLoading: true });
+        try {
+            const smartFolders = await window.electronAPI.getSmartFolders();
+            set({ smartFolders });
+        } catch (error) {
+            console.error('Failed to load smart folders:', error);
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    createSmartFolder: async (name, condition) => {
+        set({ isMutating: true });
+        try {
+            const created = await window.electronAPI.createSmartFolder({
+                name,
+                condition: normalizeCondition(condition),
+            });
+            set((state) => ({
+                smartFolders: [...state.smartFolders, created].sort((a, b) => a.sortOrder - b.sortOrder),
+                activeSmartFolderId: created.id,
+            }));
+            return created;
+        } finally {
+            set({ isMutating: false });
+        }
+    },
+
+    renameSmartFolder: async (id, name) => {
+        set({ isMutating: true });
+        try {
+            const updated = await window.electronAPI.updateSmartFolder({
+                id,
+                updates: { name: name.trim() },
+            });
+            set((state) => ({
+                smartFolders: state.smartFolders.map((item) => (item.id === id ? updated : item)),
+            }));
+            return updated;
+        } finally {
+            set({ isMutating: false });
+        }
+    },
+
+    deleteSmartFolder: async (id) => {
+        set({ isMutating: true });
+        try {
+            const result = await window.electronAPI.deleteSmartFolder(id);
+            if (!result.success) return false;
+            set((state) => ({
+                smartFolders: state.smartFolders.filter((item) => item.id !== id),
+                activeSmartFolderId: state.activeSmartFolderId === id ? null : state.activeSmartFolderId,
+            }));
+            return true;
+        } finally {
+            set({ isMutating: false });
+        }
+    },
+
+    applySmartFolder: async (id, options) => {
+        const target = get().smartFolders.find((item) => item.id === id);
+        if (!target) return false;
+
+        const normalized = normalizeCondition(target.condition);
+
+        useUIStore.getState().setSearchQuery(normalized.text);
+        useTagStore.setState({
+            selectedTagIds: [...normalized.tags.ids],
+            filterMode: normalized.tags.mode,
+        });
+        useRatingStore.setState({
+            ratingFilter: { ...normalized.ratings },
+        });
+
+        if (options?.applyFolderSelection) {
+            await options.applyFolderSelection(normalized.folderSelection);
+        }
+
+        set({ activeSmartFolderId: id });
+        return true;
+    },
+
+    setActiveSmartFolderId: (id) => {
+        set({ activeSmartFolderId: id });
+    },
+}));

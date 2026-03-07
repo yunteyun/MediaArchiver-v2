@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Library, Copy, BarChart3, Settings, Loader2, SlidersHorizontal, Search, X, CheckCircle2, AlertCircle, BookmarkPlus, Pencil, Trash2 } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
+import { useTagStore } from '../stores/useTagStore';
+import { useRatingStore } from '../stores/useRatingStore';
+import { useSmartFolderStore } from '../stores/useSmartFolderStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
 import { FolderTree } from './FolderTree';
 import { RatingFilterPanel } from './ratings/RatingFilterPanel';
@@ -52,6 +55,20 @@ export const Sidebar = React.memo(() => {
     const acknowledgeScanProgress = useUIStore((s) => s.acknowledgeScanProgress);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
+    const searchQuery = useUIStore((s) => s.searchQuery);
+    const selectedTagIds = useTagStore((s) => s.selectedTagIds);
+    const filterMode = useTagStore((s) => s.filterMode);
+    const ratingFilter = useRatingStore((s) => s.ratingFilter);
+    const smartFolders = useSmartFolderStore((s) => s.smartFolders);
+    const activeSmartFolderId = useSmartFolderStore((s) => s.activeSmartFolderId);
+    const smartFolderLoading = useSmartFolderStore((s) => s.isLoading);
+    const smartFolderMutating = useSmartFolderStore((s) => s.isMutating);
+    const loadSmartFolders = useSmartFolderStore((s) => s.loadSmartFolders);
+    const createSmartFolder = useSmartFolderStore((s) => s.createSmartFolder);
+    const renameSmartFolder = useSmartFolderStore((s) => s.renameSmartFolder);
+    const deleteSmartFolder = useSmartFolderStore((s) => s.deleteSmartFolder);
+    const applySmartFolder = useSmartFolderStore((s) => s.applySmartFolder);
+    const setActiveSmartFolderId = useSmartFolderStore((s) => s.setActiveSmartFolderId);
 
     const [folders, setFolders] = useState<MediaFolder[]>([]);
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
@@ -209,6 +226,7 @@ export const Sidebar = React.memo(() => {
 
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
         const start = perfDebugEnabled ? performance.now() : 0;
+        setActiveSmartFolderId(null);
         setCurrentFolderId(folderId);
         useUIStore.getState().closeDuplicateView(); // 重複ビューを閉じる
         useUIStore.getState().setMainView('grid');  // 統計ビューを閉じる
@@ -232,7 +250,7 @@ export const Sidebar = React.memo(() => {
             }
             console.error('Error loading files:', e);
         }
-    }, [setCurrentFolderId, loadFilesForSelection, perfDebugEnabled]);
+    }, [setActiveSmartFolderId, setCurrentFolderId, loadFilesForSelection, perfDebugEnabled]);
 
     // 「すべてのファイル」を選択
     const handleSelectAllFiles = useCallback(() => {
@@ -250,6 +268,94 @@ export const Sidebar = React.memo(() => {
             void handleSelectFolder(ALL_FILES_ID);
         }
     }, [loadFolders, handleSelectFolder]);
+
+    useEffect(() => {
+        void loadSmartFolders();
+    }, [loadSmartFolders]);
+
+    const buildCurrentSmartFolderCondition = useCallback(() => {
+        const normalizedRatings: Record<string, { min?: number; max?: number }> = {};
+        Object.entries(ratingFilter).forEach(([axisId, range]) => {
+            const min = typeof range.min === 'number' && Number.isFinite(range.min) ? range.min : undefined;
+            const max = typeof range.max === 'number' && Number.isFinite(range.max) ? range.max : undefined;
+            if (min === undefined && max === undefined) return;
+            normalizedRatings[axisId] = { min, max };
+        });
+
+        return {
+            folderSelection: currentFolderId,
+            text: searchQuery,
+            tags: {
+                ids: [...selectedTagIds],
+                mode: filterMode,
+            },
+            ratings: normalizedRatings,
+        };
+    }, [currentFolderId, filterMode, ratingFilter, searchQuery, selectedTagIds]);
+
+    const createDefaultSmartFolderName = useCallback(() => {
+        const now = new Date();
+        const pad = (value: number) => String(value).padStart(2, '0');
+        return `条件 ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }, []);
+
+    const handleSaveCurrentAsSmartFolder = useCallback(async () => {
+        const suggestedName = createDefaultSmartFolderName();
+        const inputName = window.prompt('スマートフォルダ名を入力してください', suggestedName);
+        if (inputName == null) return;
+        const name = inputName.trim();
+        if (!name) return;
+
+        try {
+            await createSmartFolder(name, buildCurrentSmartFolderCondition());
+        } catch (error) {
+            console.error('Failed to create smart folder:', error);
+            window.alert('スマートフォルダの保存に失敗しました');
+        }
+    }, [buildCurrentSmartFolderCondition, createDefaultSmartFolderName, createSmartFolder]);
+
+    const handleApplySmartFolder = useCallback(async (smartFolderId: string) => {
+        try {
+            const applied = await applySmartFolder(smartFolderId, {
+                applyFolderSelection: handleSelectFolder,
+            });
+            if (!applied) {
+                window.alert('スマートフォルダが見つかりません');
+            }
+        } catch (error) {
+            console.error('Failed to apply smart folder:', error);
+            window.alert('スマートフォルダの適用に失敗しました');
+        }
+    }, [applySmartFolder, handleSelectFolder]);
+
+    const handleRenameSmartFolder = useCallback(async (id: string, currentName: string) => {
+        const inputName = window.prompt('スマートフォルダ名を変更', currentName);
+        if (inputName == null) return;
+        const name = inputName.trim();
+        if (!name || name === currentName) return;
+
+        try {
+            await renameSmartFolder(id, name);
+        } catch (error) {
+            console.error('Failed to rename smart folder:', error);
+            window.alert('スマートフォルダ名の変更に失敗しました');
+        }
+    }, [renameSmartFolder]);
+
+    const handleDeleteSmartFolder = useCallback(async (id: string, name: string) => {
+        const confirmed = window.confirm(`スマートフォルダ「${name}」を削除しますか？`);
+        if (!confirmed) return;
+
+        try {
+            const deleted = await deleteSmartFolder(id);
+            if (!deleted) {
+                window.alert('スマートフォルダが見つかりません');
+            }
+        } catch (error) {
+            console.error('Failed to delete smart folder:', error);
+            window.alert('スマートフォルダの削除に失敗しました');
+        }
+    }, [deleteSmartFolder]);
 
     const filteredFoldersForTree = useMemo(() => {
         const q = folderTreeSearch.trim().toLowerCase();
@@ -602,6 +708,78 @@ export const Sidebar = React.memo(() => {
                             setFolderSettingsOpen(true);
                         }}
                     />
+                )}
+
+                {!sidebarCollapsed && (
+                    <>
+                        <div className="border-t border-surface-700 my-2" />
+                        <div className="px-1 mb-2">
+                            <div className="flex items-center justify-between text-xs text-surface-400 mb-1">
+                                <span className="font-medium">スマートフォルダ</span>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveCurrentAsSmartFolder}
+                                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-surface-300 hover:bg-surface-800"
+                                    title="現在の条件を保存"
+                                    disabled={smartFolderMutating}
+                                >
+                                    <BookmarkPlus size={12} />
+                                    保存
+                                </button>
+                            </div>
+
+                            {smartFolderLoading ? (
+                                <div className="text-xs text-surface-500 px-2 py-1">読み込み中...</div>
+                            ) : smartFolders.length === 0 ? (
+                                <div className="text-xs text-surface-500 px-2 py-1">保存済み条件はありません</div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {smartFolders.map((smartFolder) => {
+                                        const isActive = activeSmartFolderId === smartFolder.id;
+                                        return (
+                                            <button
+                                                key={smartFolder.id}
+                                                type="button"
+                                                onClick={() => { void handleApplySmartFolder(smartFolder.id); }}
+                                                className={`w-full flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
+                                                    isActive
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-surface-300 hover:bg-surface-800'
+                                                }`}
+                                                title={smartFolder.name}
+                                            >
+                                                <span className="truncate flex-1">{smartFolder.name}</span>
+                                                <span className="inline-flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            void handleRenameSmartFolder(smartFolder.id, smartFolder.name);
+                                                        }}
+                                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
+                                                        title="名前変更"
+                                                    >
+                                                        <Pencil size={11} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            void handleDeleteSmartFolder(smartFolder.id, smartFolder.name);
+                                                        }}
+                                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
+                                                        title="削除"
+                                                    >
+                                                        <Trash2 size={11} />
+                                                    </button>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </>
                 )}
 
                 {/* Tag Filter Panel */}
