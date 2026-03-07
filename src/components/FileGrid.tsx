@@ -8,7 +8,7 @@ import { useRatingStore } from '../stores/useRatingStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
 import {
-    DISPLAY_MODE_LAYOUT_CONFIGS,
+    getDisplayModeDefinition,
     getDisplayModeFromLayoutPreset,
     isHorizontalDisplayMode,
 } from './fileCard/displayModes';
@@ -20,14 +20,6 @@ import { groupFiles } from '../utils/groupFiles';
 
 const CARD_GAP = 8;
 const GROUP_HEADER_HEIGHT = 40;
-const DISPLAY_MODE_CARD_GROWTH: Partial<Record<import('../stores/useSettingsStore').DisplayMode, number>> = {
-    standard: 16,
-    standardLarge: 16,
-    manga: 12,
-    video: 12,
-    whiteBrowser: 20,
-    mangaDetailed: 16,
-};
 
 type GroupVirtualRow =
     | { kind: 'header'; key: string; group: import('../utils/groupFiles').FileGroup }
@@ -64,8 +56,9 @@ export const FileGrid = React.memo(() => {
     const sortOrder = useSettingsStore((s) => s.sortOrder);
     const layoutPreset = useSettingsStore((s) => s.layoutPreset);
     const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
+    const displayModeDefinition = getDisplayModeDefinition(displayMode);
     const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
-    const config = DISPLAY_MODE_LAYOUT_CONFIGS[displayMode];
+    const config = displayModeDefinition.layout;
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
@@ -372,7 +365,7 @@ export const FileGrid = React.memo(() => {
         // これにより右サイドバー表示などで列数が同じ場合でも、M/L の差が潰れにくくなる。
         const totalGapWidth = (cols - 1) * CARD_GAP;
         const distributedCardW = Math.floor((availableWidth - totalGapWidth) / cols);
-        const maxCardWidth = config.cardWidth + (DISPLAY_MODE_CARD_GROWTH[displayMode] ?? 0);
+        const maxCardWidth = config.cardWidth + (displayModeDefinition.cardGrowMax ?? 0);
         const baseCardW = Math.max(1, Math.min(maxCardWidth, distributedCardW));
         const remainingWidth = Math.max(0, availableWidth - (baseCardW * cols + totalGapWidth));
         const redistributedExtraPerCard = isDetailedHorizontalMode
@@ -396,7 +389,7 @@ export const FileGrid = React.memo(() => {
             effectiveCardWidth: effectiveCardW,
             effectiveThumbnailHeight: effectiveThumbnailH
         };
-    }, [config, containerWidth, displayMode, isDetailedHorizontalMode]);
+    }, [config, containerWidth, isDetailedHorizontalMode, displayModeDefinition.cardGrowMax]);
 
     const rows = useMemo(() => Math.ceil(gridItems.length / columns), [gridItems.length, columns]);
 

@@ -19,6 +19,7 @@ export interface FileCardDisplayModeDefinition {
     menuOrder: number;
     iconKey: DisplayModeIconKey;
     layout: FileCardLayoutConfig;
+    cardGrowMax?: number;
     infoVariant: FileCardInfoVariant;
     cardDirection: FileCardDirection;
     horizontalThumbnailAspectRatio?: string;

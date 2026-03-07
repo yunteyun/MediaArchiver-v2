@@ -34,6 +34,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         label: '標準（M）',
         menuOrder: 20,
         iconKey: 'grid',
+        cardGrowMax: 16,
         infoVariant: 'detailed',
         cardDirection: 'vertical',
         layout: {
@@ -49,6 +50,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         label: '標準（L）',
         menuOrder: 30,
         iconKey: 'maximize',
+        cardGrowMax: 16,
         infoVariant: 'detailed',
         cardDirection: 'vertical',
         layout: {
@@ -64,6 +66,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         label: '漫画',
         menuOrder: 50,
         iconKey: 'layoutGrid',
+        cardGrowMax: 12,
         infoVariant: 'detailed',
         cardDirection: 'vertical',
         layout: {
@@ -79,6 +82,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         label: '動画（ワイド）',
         menuOrder: 40,
         iconKey: 'film',
+        cardGrowMax: 12,
         infoVariant: 'detailed',
         cardDirection: 'vertical',
         layout: {
@@ -94,6 +98,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         label: '詳細表示',
         menuOrder: 45,
         iconKey: 'layoutGrid',
+        cardGrowMax: 20,
         infoVariant: 'detailed',
         cardDirection: 'horizontal',
         horizontalThumbnailAspectRatio: '1 / 1',
@@ -110,6 +115,7 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
         label: '詳細表示（漫画）',
         menuOrder: 46,
         iconKey: 'layoutGrid',
+        cardGrowMax: 16,
         infoVariant: 'detailed',
         cardDirection: 'horizontal',
         horizontalThumbnailAspectRatio: '2 / 3',
