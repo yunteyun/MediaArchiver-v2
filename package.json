@@ -1,7 +1,7 @@
 {
     "name": "media-archiver-v2",
     "private": true,
-  "version": "1.5.0d5",
+  "version": "1.5.0d6",
     "main": "dist-electron/main.js",
     "scripts": {
         "dev": "vite",
@@ -77,6 +77,12 @@
             {
                 "from": "update.bat",
                 "to": "update.bat"
+            }
+        ],
+        "extraResources": [
+            {
+                "from": "dist",
+                "to": "dist"
             }
         ],
         "win": {

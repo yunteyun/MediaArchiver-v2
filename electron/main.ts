@@ -90,11 +90,33 @@ const createWindow = () => {
         show: false,
     });
 
+    mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+        if (!isMainFrame) return;
+        logger.error('Renderer failed to load:', {
+            errorCode,
+            errorDescription,
+            validatedURL
+        });
+    });
+
     // Load the app
     if (process.env.VITE_DEV_SERVER_URL) {
         mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     } else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        const packagedIndexCandidates = [
+            path.join(__dirname, '../dist/index.html'),
+            path.join(process.resourcesPath, 'dist/index.html'),
+            path.join(process.resourcesPath, 'app.asar.unpacked/dist/index.html'),
+        ];
+        const packagedIndexPath = packagedIndexCandidates.find((candidate) => fs.existsSync(candidate));
+
+        if (!packagedIndexPath) {
+            logger.error('Renderer entry not found in packaged build', { candidates: packagedIndexCandidates });
+            app.quit();
+            return;
+        }
+
+        mainWindow.loadFile(packagedIndexPath);
     }
 
     // Show window when ready
