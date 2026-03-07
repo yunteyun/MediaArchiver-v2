@@ -120,6 +120,71 @@ function buildSmartFolderPreviewText(
     return segments.join(' / ');
 }
 
+function normalizeSmartFolderSelectionForCompare(folderSelection: string | null): string {
+    if (!folderSelection || folderSelection === ALL_FILES_ID) return ALL_FILES_ID;
+    return folderSelection;
+}
+
+function normalizeSmartFolderTypesForCompare(types: MediaFile['type'][]): MediaFile['type'][] {
+    const normalized = Array.from(new Set(
+        types.filter((type): type is MediaFile['type'] => (
+            type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+        ))
+    ));
+    const next = normalized.length > 0 ? normalized : [...ALL_FILE_TYPES];
+    return next.slice().sort();
+}
+
+function isSameSmartFolderCondition(a: SmartFolderConditionV1, b: SmartFolderConditionV1): boolean {
+    if (normalizeSmartFolderSelectionForCompare(a.folderSelection) !== normalizeSmartFolderSelectionForCompare(b.folderSelection)) {
+        return false;
+    }
+    if (a.text.trim() !== b.text.trim()) {
+        return false;
+    }
+    if (a.tags.mode !== b.tags.mode) {
+        return false;
+    }
+
+    const aTagIds = Array.from(new Set(a.tags.ids)).sort();
+    const bTagIds = Array.from(new Set(b.tags.ids)).sort();
+    if (aTagIds.length !== bTagIds.length || aTagIds.some((id, index) => id !== bTagIds[index])) {
+        return false;
+    }
+
+    const aTypes = normalizeSmartFolderTypesForCompare(a.types);
+    const bTypes = normalizeSmartFolderTypesForCompare(b.types);
+    if (aTypes.length !== bTypes.length || aTypes.some((type, index) => type !== bTypes[index])) {
+        return false;
+    }
+
+    const normalizeRatings = (ratings: SmartFolderConditionV1['ratings']) => {
+        return Object.entries(ratings)
+            .map(([axisId, range]) => ({
+                axisId,
+                min: typeof range.min === 'number' && Number.isFinite(range.min) ? range.min : undefined,
+                max: typeof range.max === 'number' && Number.isFinite(range.max) ? range.max : undefined,
+            }))
+            .filter((item) => item.min !== undefined || item.max !== undefined)
+            .sort((left, right) => left.axisId.localeCompare(right.axisId));
+    };
+
+    const aRatings = normalizeRatings(a.ratings);
+    const bRatings = normalizeRatings(b.ratings);
+    if (aRatings.length !== bRatings.length) {
+        return false;
+    }
+    for (let i = 0; i < aRatings.length; i += 1) {
+        const left = aRatings[i];
+        const right = bRatings[i];
+        if (left.axisId !== right.axisId || left.min !== right.min || left.max !== right.max) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function toSmartFolderOptionLabel(folderSelection: string, folders: MediaFolder[]): string {
     const label = resolveSmartFolderFolderLabel(folderSelection, folders);
     return label.replace(/^範囲:\s*/, '');
@@ -477,6 +542,27 @@ export const Sidebar = React.memo(() => {
         }
     }, [applySmartFolder, handleSelectFolder]);
 
+    const handleClearSmartFolderConditions = useCallback(async () => {
+        try {
+            const uiStore = useUIStore.getState();
+            uiStore.setSearchQuery('');
+            uiStore.setSelectedFileTypes([...ALL_FILE_TYPES]);
+            useTagStore.setState({
+                selectedTagIds: [],
+                filterMode: 'OR',
+            });
+            useRatingStore.setState({
+                ratingFilter: {},
+            });
+            await handleSelectFolder(ALL_FILES_ID);
+            setActiveSmartFolderId(null);
+            uiStore.showToast('スマートフォルダ条件を解除しました');
+        } catch (error) {
+            console.error('Failed to clear smart folder conditions:', error);
+            window.alert('スマートフォルダ条件の解除に失敗しました');
+        }
+    }, [handleSelectFolder, setActiveSmartFolderId]);
+
     const handleOpenEditSmartFolderEditor = useCallback((id: string) => {
         setSmartFolderEditorState({
             mode: 'edit',
@@ -568,6 +654,17 @@ export const Sidebar = React.memo(() => {
         });
         return map;
     }, [smartFolders, folders]);
+
+    const activeSmartFolder = useMemo(() => {
+        if (!activeSmartFolderId) return null;
+        return smartFolders.find((item) => item.id === activeSmartFolderId) ?? null;
+    }, [activeSmartFolderId, smartFolders]);
+
+    const activeSmartFolderConditionStatus = useMemo<'matched' | 'changed' | 'none'>(() => {
+        if (!activeSmartFolder) return 'none';
+        const current = buildCurrentSmartFolderCondition();
+        return isSameSmartFolderCondition(activeSmartFolder.condition, current) ? 'matched' : 'changed';
+    }, [activeSmartFolder, buildCurrentSmartFolderCondition]);
 
     const smartFolderFolderOptions = useMemo(() => {
         return buildSmartFolderFolderOptions(folders, currentFolderId);
@@ -927,16 +1024,46 @@ export const Sidebar = React.memo(() => {
                         <div className="px-1 mb-2">
                             <div className="flex items-center justify-between text-xs text-surface-400 mb-1">
                                 <span className="font-medium">スマートフォルダ</span>
-                                <button
-                                    type="button"
-                                    onClick={handleOpenCreateSmartFolderEditor}
-                                    className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-surface-300 hover:bg-surface-800"
-                                    title="現在の条件を保存"
-                                    disabled={smartFolderMutating}
-                                >
-                                    <BookmarkPlus size={12} />
-                                    保存
-                                </button>
+                                <span className="inline-flex items-center gap-1">
+                                    {activeSmartFolder && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { void handleClearSmartFolderConditions(); }}
+                                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-amber-300 hover:bg-surface-800"
+                                            title="範囲 / 検索 / タグ / 評価 / タイプの条件を解除"
+                                            disabled={smartFolderMutating}
+                                        >
+                                            <X size={12} />
+                                            解除
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenCreateSmartFolderEditor}
+                                        className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-surface-300 hover:bg-surface-800"
+                                        title="現在の条件を保存"
+                                        disabled={smartFolderMutating}
+                                    >
+                                        <BookmarkPlus size={12} />
+                                        保存
+                                    </button>
+                                </span>
+                            </div>
+
+                            <div className={`mb-1 rounded border px-2 py-1 text-[10px] ${
+                                activeSmartFolderConditionStatus === 'none'
+                                    ? 'border-surface-700 text-surface-500'
+                                    : activeSmartFolderConditionStatus === 'matched'
+                                        ? 'border-blue-500/30 text-blue-200'
+                                        : 'border-amber-500/40 text-amber-200'
+                            }`}>
+                                {activeSmartFolderConditionStatus === 'none' ? (
+                                    <span>状態: 未適用</span>
+                                ) : activeSmartFolderConditionStatus === 'matched' ? (
+                                    <span>適用中: {activeSmartFolder?.name}（保存条件と一致）</span>
+                                ) : (
+                                    <span>適用中: {activeSmartFolder?.name}（条件変更済み / 解除可能）</span>
+                                )}
                             </div>
 
                             {smartFolderLoading ? (
