@@ -256,6 +256,7 @@ export const Header = React.memo(() => {
                                 {FILE_TYPE_FILTER_OPTIONS.map((option) => {
                                     const Icon = option.icon;
                                     const active = selectedFileTypes.includes(option.value);
+                                    const selectedCount = selectedFileTypes.length;
                                     return (
                                         <button
                                             key={option.value}
@@ -265,14 +266,29 @@ export const Header = React.memo(() => {
                                                     toggleFileTypeFilter(option.value);
                                                     return;
                                                 }
-                                                setSelectedFileTypes([option.value]);
+
+                                                if (selectedCount >= FILE_TYPE_FILTER_OPTIONS.length) {
+                                                    // 初回クリック（全表示状態）は単一タイプに絞る
+                                                    setSelectedFileTypes([option.value]);
+                                                    return;
+                                                }
+
+                                                if (selectedCount === 1) {
+                                                    // 単一タイプ選択中に別タイプを押したら条件へ追加
+                                                    if (active) return;
+                                                    setSelectedFileTypes([...selectedFileTypes, option.value]);
+                                                    return;
+                                                }
+
+                                                // 2つ目以降は通常トグル
+                                                toggleFileTypeFilter(option.value);
                                             }}
                                             className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors whitespace-nowrap ${
                                                 active
                                                     ? 'bg-primary-600 text-white'
                                                     : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
                                             }`}
-                                            title={`${option.label}のみ表示（Ctrl+クリックで複数選択）`}
+                                            title={`${option.label}を選択（Ctrl+クリックで即トグル）`}
                                         >
                                             <Icon size={12} />
                                             <span>{option.label}</span>
