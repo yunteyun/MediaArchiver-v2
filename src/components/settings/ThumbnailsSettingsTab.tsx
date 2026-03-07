@@ -1,0 +1,294 @@
+import React from 'react';
+import type {
+    AnimatedImagePreviewMode,
+    FlipbookSpeed,
+    PlayModeJumpInterval,
+    PlayModeJumpType,
+    RightPanelVideoPreviewMode,
+} from '../../stores/useSettingsStore';
+
+type ThumbnailAction = 'scrub' | 'flipbook' | 'play';
+
+interface ThumbnailsSettingsTabProps {
+    previewFrameCount: number;
+    onProfilePreviewFrameCountChange: (count: number) => void;
+    thumbnailResolution: number;
+    onProfileThumbnailResolutionChange: (resolution: number) => void;
+    thumbnailAction: ThumbnailAction;
+    onThumbnailActionChange: (value: ThumbnailAction) => void;
+    flipbookSpeed: FlipbookSpeed;
+    onFlipbookSpeedChange: (value: FlipbookSpeed) => void;
+    animatedImagePreviewMode: AnimatedImagePreviewMode;
+    onAnimatedImagePreviewModeChange: (value: AnimatedImagePreviewMode) => void;
+    playMode: {
+        jumpType: PlayModeJumpType;
+        jumpInterval: PlayModeJumpInterval;
+    };
+    onPlayModeJumpTypeChange: (value: PlayModeJumpType) => void;
+    onPlayModeJumpIntervalChange: (value: PlayModeJumpInterval) => void;
+    rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
+    onRightPanelVideoPreviewModeChange: (value: RightPanelVideoPreviewMode) => void;
+    rightPanelVideoJumpInterval: PlayModeJumpInterval;
+    onRightPanelVideoJumpIntervalChange: (value: PlayModeJumpInterval) => void;
+}
+
+export const ThumbnailsSettingsTab = React.memo(({
+    previewFrameCount,
+    onProfilePreviewFrameCountChange,
+    thumbnailResolution,
+    onProfileThumbnailResolutionChange,
+    thumbnailAction,
+    onThumbnailActionChange,
+    flipbookSpeed,
+    onFlipbookSpeedChange,
+    animatedImagePreviewMode,
+    onAnimatedImagePreviewModeChange,
+    playMode,
+    onPlayModeJumpTypeChange,
+    onPlayModeJumpIntervalChange,
+    rightPanelVideoPreviewMode,
+    onRightPanelVideoPreviewModeChange,
+    rightPanelVideoJumpInterval,
+    onRightPanelVideoJumpIntervalChange,
+}: ThumbnailsSettingsTabProps) => (
+    <div className="px-4 py-4 space-y-6">
+        <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
+                サムネイル設定
+            </h3>
+
+            <div>
+                <label className="block text-sm font-medium text-surface-300 mb-2">
+                    プレビューフレーム数（プロファイル別）: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
+                </label>
+                <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    step="5"
+                    value={previewFrameCount}
+                    onChange={(e) => onProfilePreviewFrameCountChange(Number(e.target.value))}
+                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                    <span>オフ</span>
+                    <span>30枚</span>
+                </div>
+                <p className="text-xs text-surface-500 mt-1">
+                    現在のプロファイルに保存されます。スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
+                </p>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-surface-300 mb-2">
+                    サムネイル解像度（プロファイル別）: {thumbnailResolution}px
+                </label>
+                <input
+                    type="range"
+                    min="160"
+                    max="480"
+                    step="40"
+                    value={thumbnailResolution}
+                    onChange={(e) => onProfileThumbnailResolutionChange(Number(e.target.value))}
+                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                    <span>160px</span>
+                    <span>480px</span>
+                </div>
+                <p className="text-xs text-surface-500 mt-1">
+                    現在のプロファイルに保存されます。次回スキャンから反映。拡大表示時や高DPI環境で効果が出ます。
+                </p>
+            </div>
+
+            <div className="pt-1">
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
+                    全体設定
+                </h4>
+            </div>
+
+            <div className="space-y-4 rounded-lg border border-surface-700 bg-surface-900/40 p-4">
+                <div>
+                    <h4 className="text-sm font-semibold text-surface-200">
+                        サムネイルホバー設定
+                    </h4>
+                    <p className="mt-1 text-xs text-surface-500">
+                        一覧カード上にマウスを乗せた時のプレビュー動作を設定します。
+                    </p>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                        サムネイルホバー時の動作
+                    </label>
+                    <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="thumbnailAction"
+                                value="scrub"
+                                checked={thumbnailAction === 'scrub'}
+                                onChange={() => onThumbnailActionChange('scrub')}
+                                className="w-4 h-4 accent-primary-500"
+                            />
+                            <span className="text-surface-200">スクラブ</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="thumbnailAction"
+                                value="flipbook"
+                                checked={thumbnailAction === 'flipbook'}
+                                onChange={() => onThumbnailActionChange('flipbook')}
+                                className="w-4 h-4 accent-primary-500"
+                            />
+                            <span className="text-surface-200">自動パラパラ</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="thumbnailAction"
+                                value="play"
+                                checked={thumbnailAction === 'play'}
+                                onChange={() => onThumbnailActionChange('play')}
+                                className="w-4 h-4 accent-primary-500"
+                            />
+                            <span className="text-surface-200">再生</span>
+                        </label>
+                    </div>
+                </div>
+
+                {thumbnailAction === 'flipbook' && (
+                    <div className="ml-6 mt-2">
+                        <label className="block text-sm font-medium text-surface-300 mb-1">
+                            自動パラパラ速度
+                        </label>
+                        <select
+                            value={flipbookSpeed}
+                            onChange={(e) => onFlipbookSpeedChange(e.target.value as FlipbookSpeed)}
+                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                        >
+                            <option value="slow">遅い</option>
+                            <option value="normal">標準</option>
+                            <option value="fast">速い</option>
+                        </select>
+                        <p className="text-xs text-surface-500 mt-1">
+                            プレビューフレーム枚数が少ないほど速く見えやすいです。
+                        </p>
+                    </div>
+                )}
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        アニメ画像プレビュー
+                    </label>
+                    <select
+                        value={animatedImagePreviewMode}
+                        onChange={(e) => onAnimatedImagePreviewModeChange(e.target.value as AnimatedImagePreviewMode)}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="off">オフ</option>
+                        <option value="hover">ホバーで再生</option>
+                        <option value="visible">表示中に自動再生</option>
+                    </select>
+                    <p className="text-xs text-surface-500 mt-1">
+                        GIF / アニメーションWebP が対象。表示中自動再生は同時2件まで。パフォーマンスモード時は無効になります。
+                    </p>
+                </div>
+
+                {thumbnailAction === 'play' && (
+                    <div className="space-y-3 rounded-md border border-surface-700/80 bg-surface-950/40 p-3">
+                        <div>
+                            <label className="block text-sm font-medium text-surface-300 mb-1">
+                                プレビュー動作
+                            </label>
+                            <select
+                                value={playMode.jumpType}
+                                onChange={(e) => onPlayModeJumpTypeChange(e.target.value as PlayModeJumpType)}
+                                className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                            >
+                                <option value="light">軽量（ジャンプなし）</option>
+                                <option value="random">ランダムジャンプ</option>
+                                <option value="sequential">固定間隔ジャンプ</option>
+                            </select>
+                            <div className="text-xs text-surface-400 mt-1.5 space-y-0.5">
+                                <div><strong>軽量:</strong> 先頭から再生のみ（低負荷）</div>
+                                <div><strong>ランダム:</strong> 毎回ランダムな位置にジャンプ</div>
+                                <div><strong>固定間隔:</strong> 動画を分割して順番にプレビュー</div>
+                            </div>
+                        </div>
+
+                        {playMode.jumpType !== 'light' && (
+                            <div>
+                                <label className="block text-sm font-medium text-surface-300 mb-1">
+                                    ジャンプ間隔
+                                </label>
+                                <select
+                                    value={playMode.jumpInterval}
+                                    onChange={(e) => onPlayModeJumpIntervalChange(Number(e.target.value) as PlayModeJumpInterval)}
+                                    className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value={1000}>1秒（高速プレビュー）</option>
+                                    <option value={2000}>2秒（推奨）</option>
+                                    <option value={3000}>3秒</option>
+                                    <option value={5000}>5秒（じっくり確認）</option>
+                                </select>
+                                <p className="text-xs text-surface-400 mt-1.5">
+                                    短いほど多くのシーンを確認できますが、負荷が高くなります
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className="space-y-4 rounded-lg border border-surface-700 bg-surface-900/40 p-4">
+                <div>
+                    <h4 className="text-sm font-semibold text-surface-200">
+                        右サイドバー動画プレビュー
+                    </h4>
+                    <p className="mt-1 text-xs text-surface-500">
+                        右パネル上部に表示される動画プレビューの既定動作を設定します。
+                    </p>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        プレビュー方式
+                    </label>
+                    <select
+                        value={rightPanelVideoPreviewMode}
+                        onChange={(e) => onRightPanelVideoPreviewModeChange(e.target.value as RightPanelVideoPreviewMode)}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="loop">ループ再生</option>
+                        <option value="long">固定間隔プレビュー</option>
+                    </select>
+                    <p className="text-xs text-surface-500 mt-1">
+                        固定間隔は内容を順送りで確認します。
+                    </p>
+                </div>
+
+                {rightPanelVideoPreviewMode === 'long' && (
+                    <div>
+                        <label className="block text-sm font-medium text-surface-300 mb-1">
+                            ジャンプ間隔
+                        </label>
+                        <select
+                            value={rightPanelVideoJumpInterval}
+                            onChange={(e) => onRightPanelVideoJumpIntervalChange(Number(e.target.value) as PlayModeJumpInterval)}
+                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                        >
+                            <option value={1000}>1秒（高速プレビュー）</option>
+                            <option value={2000}>2秒（推奨）</option>
+                            <option value={3000}>3秒</option>
+                            <option value={5000}>5秒（じっくり確認）</option>
+                        </select>
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+));
+
+ThumbnailsSettingsTab.displayName = 'ThumbnailsSettingsTab';

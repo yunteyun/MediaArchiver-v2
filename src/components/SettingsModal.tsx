@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Settings, FileText, RefreshCw, FolderOpen, Copy, AlertCircle, AlertTriangle, Info, Database, AppWindow, Image, HardDrive, Star, FileSpreadsheet, FileCode2 } from 'lucide-react';
+import { X, Settings, RefreshCw, FolderOpen, HardDrive } from 'lucide-react';
 import { useUIStore, type SettingsModalTab } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
@@ -13,6 +13,12 @@ import { useProfileStore } from '../stores/useProfileStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { StorageCleanupSection } from './settings/StorageCleanupSection';
 import { RatingAxesManager } from './settings/RatingAxesManager';
+import { SettingsTabNav } from './settings/SettingsTabNav';
+import { GeneralSettingsTab } from './settings/GeneralSettingsTab';
+import { ScanSettingsTab } from './settings/ScanSettingsTab';
+import { ThumbnailsSettingsTab } from './settings/ThumbnailsSettingsTab';
+import { LogsSettingsTab } from './settings/LogsSettingsTab';
+import { BackupSettingsTab } from './settings/BackupSettingsTab';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { buildCsvContent, buildFileExportRows, buildHtmlContent } from '../utils/fileExport';
 import {
@@ -21,11 +27,6 @@ import {
     type CsvImportDryRunSummary,
     type MediaArchiverCsvImportRow
 } from '../utils/fileImport';
-import {
-    LIGHTBOX_OVERLAY_OPACITY_MAX,
-    LIGHTBOX_OVERLAY_OPACITY_MIN,
-    LIGHTBOX_OVERLAY_OPACITY_STEP,
-} from '../features/lightbox-clean/constants';
 
 // Phase 25: ローカル型定義
 type StorageMode = 'appdata' | 'install' | 'custom';
@@ -521,8 +522,8 @@ export const SettingsModal = React.memo(() => {
             } else {
                 setMigrationMsg({ type: 'error', text: result.error ?? '移行に失敗しました' });
             }
-        } catch (e: any) {
-            setMigrationMsg({ type: 'error', text: e.message });
+        } catch (error) {
+            setMigrationMsg({ type: 'error', text: error instanceof Error ? error.message : String(error) });
         }
         setIsMigrating(false);
     };
@@ -583,13 +584,6 @@ export const SettingsModal = React.memo(() => {
         if (logFilter === 'info') return line.includes('[info]');
         return true;
     });
-
-    const getLogLevelIcon = (line: string) => {
-        if (line.includes('[error]')) return <AlertCircle size={14} className="text-red-400 flex-shrink-0" />;
-        if (line.includes('[warn]')) return <AlertTriangle size={14} className="text-yellow-400 flex-shrink-0" />;
-        if (line.includes('[info]')) return <Info size={14} className="text-blue-400 flex-shrink-0" />;
-        return <Info size={14} className="text-surface-500 flex-shrink-0" />;
-    };
 
     const handleCopyVisibleLogs = useCallback(async () => {
         if (filteredLogs.length === 0) {
@@ -722,6 +716,20 @@ export const SettingsModal = React.memo(() => {
         }
     }, [isApplyingUpdate]);
 
+    const handleCreateBackup = useCallback(async () => {
+        try {
+            const profileId = await window.electronAPI.getActiveProfileId();
+            const result = await window.electronAPI.createBackup(profileId);
+            if (result.success) {
+                alert('バックアップが作成されました');
+            } else {
+                alert(`バックアップ失敗: ${result.error}`);
+            }
+        } catch (error) {
+            alert(`エラー: ${(error as Error).message}`);
+        }
+    }, []);
+
     if (!isOpen) return null;
 
     return (
@@ -744,768 +752,77 @@ export const SettingsModal = React.memo(() => {
                     </button>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex flex-nowrap overflow-x-auto border-b border-surface-700">
-                    <button
-                        onClick={() => setActiveTab('general')}
-                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'general'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <Settings size={16} />
-                            一般
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('thumbnails')}
-                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'thumbnails'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <Image size={16} />
-                            サムネイル
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('scan')}
-                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'scan'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <RefreshCw size={16} />
-                            スキャン
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('storage')}
-                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'storage'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <HardDrive size={16} />
-                            ストレージ
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('apps')}
-                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'apps'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <AppWindow size={16} />
-                            外部アプリ
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('logs')}
-                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'logs'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <FileText size={16} />
-                            ログ
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('backup')}
-                        className={`shrink-0 px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'backup'
-                            ? 'text-primary-400 border-b-2 border-primary-400'
-                            : 'text-surface-400 hover:text-surface-200'
-                            }`}
-                    >
-                        <span className="flex items-center gap-2">
-                            <Database size={16} />
-                            バックアップ
-                        </span>
-                    </button>
-                </div>
+                <SettingsTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto">
                     {activeTab === 'general' && (
-                        <div className="px-4 py-4 space-y-6">
-
-                            {/* Video Volume */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    動画再生時の音量: {Math.round(videoVolume * 100)}%
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={Math.round(videoVolume * 100)}
-                                    onChange={(e) => setVideoVolume(Number(e.target.value) / 100)}
-                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                />
-                                <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                    <span>0%</span>
-                                    <span>100%</span>
-                                </div>
-                            </div>
-
-                            {/* Audio Volume */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    音声ファイル再生時の音量: {Math.round(audioVolume * 100)}%
-                                </label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    value={Math.round(audioVolume * 100)}
-                                    onChange={(e) => setAudioVolume(Number(e.target.value) / 100)}
-                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                />
-                                <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                    <span>0%</span>
-                                    <span>100%</span>
-                                </div>
-                            </div>
-
-                            {/* Lightbox Overlay Opacity */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    ライトボックス背景濃度: {lightboxOverlayOpacity}%
-                                </label>
-                                <input
-                                    type="range"
-                                    min={LIGHTBOX_OVERLAY_OPACITY_MIN}
-                                    max={LIGHTBOX_OVERLAY_OPACITY_MAX}
-                                    step={LIGHTBOX_OVERLAY_OPACITY_STEP}
-                                    value={lightboxOverlayOpacity}
-                                    onChange={(e) => setLightboxOverlayOpacity(Number(e.target.value))}
-                                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                />
-                                <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                    <span>{LIGHTBOX_OVERLAY_OPACITY_MIN}%</span>
-                                    <span>{LIGHTBOX_OVERLAY_OPACITY_MAX}%</span>
-                                </div>
-                                <p className="mt-1 text-xs text-surface-500">
-                                    画像ライトボックスの背景オーバーレイ濃度を調整します。
-                                </p>
-                            </div>
-
-
-                            {/* Performance Mode */}
-                            <div>
-                                <label className="flex items-center justify-between cursor-pointer">
-                                    <div>
-                                        <span className="block text-sm font-medium text-surface-300">
-                                            パフォーマンスモード
-                                        </span>
-                                        <span className="block text-xs text-surface-500 mt-0.5">
-                                            ホバーアニメーションを無効化して軽くする
-                                        </span>
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={performanceMode}
-                                        onChange={(e) => setPerformanceMode(e.target.checked)}
-                                        className="w-5 h-5 accent-primary-500 rounded"
-                                    />
-                                </label>
-                            </div>
-
-                            {/* Update Check (PoC Step 3) */}
-                            <div className="rounded border border-surface-700 bg-surface-900/50 p-3">
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <div>
-                                        <div className="text-sm font-medium text-surface-200">更新確認（PoC）</div>
-                                        <p className="text-xs text-surface-500 mt-0.5">
-                                            最新版を手動で確認します（適用は従来どおり `update.bat`）。
-                                        </p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => { void handleCheckForUpdates(); }}
-                                        disabled={isCheckingForUpdates}
-                                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        <RefreshCw size={14} className={isCheckingForUpdates ? 'animate-spin' : ''} />
-                                        {isCheckingForUpdates ? '確認中...' : '更新を確認'}
-                                    </button>
-                                </div>
-
-                                {updateCheckState && (
-                                    <div className="mt-3 space-y-1 text-xs">
-                                        {updateCheckState.result.success ? (
-                                            <>
-                                                <div className="text-surface-300">
-                                                    現在: <span className="text-surface-100">v{updateCheckState.result.currentVersion}</span>
-                                                    {' / '}
-                                                    最新: <span className="text-surface-100">v{updateCheckState.result.latestVersion}</span>
-                                                </div>
-                                                <div className={updateCheckState.result.hasUpdate ? 'text-amber-300' : 'text-emerald-300'}>
-                                                    {updateCheckState.result.hasUpdate
-                                                        ? '更新があります。適用は update.bat を利用してください。'
-                                                        : '最新バージョンです。'}
-                                                </div>
-                                                {updateCheckState.result.publishedAt && (
-                                                    <div className="text-surface-500">
-                                                        公開日: {new Date(updateCheckState.result.publishedAt).toLocaleString('ja-JP')}
-                                                    </div>
-                                                )}
-                                                {updateCheckState.result.releaseNotes && (
-                                                    <div className="mt-2 rounded border border-surface-700 bg-surface-950/40 p-2">
-                                                        <div className="text-surface-300">更新内容（最新リリース）</div>
-                                                        <div className="mt-1 max-h-36 overflow-y-auto whitespace-pre-wrap break-words text-surface-200">
-                                                            {updateCheckState.result.releaseNotes}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {updateCheckState.result.releaseUrl && (
-                                                    <div className="text-surface-500 break-all">
-                                                        リリースURL: {updateCheckState.result.releaseUrl}
-                                                    </div>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <div className="text-red-300">
-                                                更新確認失敗: {updateCheckState.result.error ?? 'unknown error'}
-                                            </div>
-                                        )}
-                                        <div className="text-surface-500">
-                                            最終確認: {new Date(updateCheckState.checkedAt).toLocaleString('ja-JP')}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {updateCheckState?.result.success && updateCheckState.result.hasUpdate && (
-                                    <div className="mt-3 space-y-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => { void handleDownloadLatestUpdateZip(); }}
-                                            disabled={isDownloadingUpdateZip}
-                                            className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            <FolderOpen size={14} />
-                                            {isDownloadingUpdateZip ? 'ZIP取得中...' : '更新ZIPを取得（PoC）'}
-                                        </button>
-                                        <p className="text-xs text-surface-500">
-                                            `.sha256` による検証が通ったZIPのみ取得・適用できます。
-                                        </p>
-                                    </div>
-                                )}
-
-                                {updateDownloadState && (
-                                    <div className="mt-2 space-y-1 text-xs">
-                                        {updateDownloadState.success ? (
-                                            <>
-                                                <div className="text-surface-300">
-                                                    ダウンロード先: <span className="text-surface-100 break-all">{updateDownloadState.filePath}</span>
-                                                </div>
-                                                {typeof updateDownloadState.verified === 'boolean' && (
-                                                    <div className={updateDownloadState.verified ? 'text-emerald-300' : 'text-red-300'}>
-                                                        ハッシュ検証: {updateDownloadState.verified ? '一致' : '不一致'}
-                                                    </div>
-                                                )}
-                                                <div className="pt-1">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => { void handleApplyUpdateFromZip(); }}
-                                                        disabled={isApplyingUpdate || updateDownloadState.verified !== true}
-                                                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        <AppWindow size={14} />
-                                                        {isApplyingUpdate ? '適用起動中...' : 'update.bat で適用（PoC）'}
-                                                    </button>
-                                                </div>
-                                                {updateDownloadState.verified !== true && (
-                                                    <div className="text-amber-300">
-                                                        ハッシュ検証済みのZIPのみ適用できます。
-                                                    </div>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <div className="text-red-300">
-                                                ZIP取得失敗: {updateDownloadState.error ?? 'unknown error'}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="mt-3 rounded border border-surface-700 bg-surface-950/40 p-2">
-                                    <div className="text-xs text-surface-300">手動ZIP指定（従来方式）</div>
-                                    <div className="mt-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => { void handleApplyUpdateViaZipDialog(); }}
-                                            disabled={isApplyingUpdate}
-                                            className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            <FolderOpen size={14} />
-                                            {isApplyingUpdate ? '起動中...' : 'ZIPを選んで適用（従来方式）'}
-                                        </button>
-                                    </div>
-                                    <p className="mt-1 text-xs text-surface-500">
-                                        `update.bat` のZIP選択ダイアログから、手元のリリースZIPを指定して更新できます。
-                                    </p>
-                                </div>
-                            </div>
-
-
-
-                            {/* Display Options */}
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-2">
-                                    表示項目
-                                </label>
-                                <div className="space-y-2">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={showFileName}
-                                            onChange={(e) => setShowFileName(e.target.checked)}
-                                            className="w-4 h-4 accent-primary-500 rounded"
-                                        />
-                                        <span className="text-surface-200 text-sm">ファイル名</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={showDuration}
-                                            onChange={(e) => setShowDuration(e.target.checked)}
-                                            className="w-4 h-4 accent-primary-500 rounded"
-                                        />
-                                        <span className="text-surface-200 text-sm">再生時間</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={showTags}
-                                            onChange={(e) => setShowTags(e.target.checked)}
-                                            className="w-4 h-4 accent-primary-500 rounded"
-                                        />
-                                        <span className="text-surface-200 text-sm">タグ</span>
-                                    </label>
-                                    {/* Phase 14-8: タグポップオーバートリガー設定 */}
-                                    {showTags && (
-                                        <div className="ml-6 mt-1">
-                                            <label className="block text-xs text-surface-400 mb-1">タグポップオーバー表示</label>
-                                            <select
-                                                value={tagPopoverTrigger}
-                                                onChange={(e) => setTagPopoverTrigger(e.target.value as 'click' | 'hover')}
-                                                className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                                            >
-                                                <option value="click">クリック</option>
-                                                <option value="hover">ホバー</option>
-                                            </select>
-                                        </div>
-                                    )}
-                                    {/* タグ表示スタイル設定 */}
-                                    {showTags && (
-                                        <div className="ml-6 mt-1">
-                                            <label className="block text-xs text-surface-400 mb-1">タグ表示スタイル</label>
-                                            <select
-                                                value={tagDisplayStyle}
-                                                onChange={(e) => setTagDisplayStyle(e.target.value as 'filled' | 'border')}
-                                                className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                                            >
-                                                <option value="filled">塗りつぶし（フル背景色）</option>
-                                                <option value="border">左端ライン（ダーク背景）</option>
-                                            </select>
-                                        </div>
-                                    )}
-                                    {showTags && (
-                                        <div className="ml-6 mt-1">
-                                            <label className="block text-xs text-surface-400 mb-1">ファイルカード要約タグの並び</label>
-                                            <select
-                                                value={fileCardTagOrderMode}
-                                                onChange={(e) => setFileCardTagOrderMode(e.target.value as 'balanced' | 'strict')}
-                                                className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                                            >
-                                                <option value="balanced">カテゴリ分散（カテゴリ偏りを抑える）</option>
-                                                <option value="strict">厳密順（カテゴリ順→タグ順）</option>
-                                            </select>
-                                            <p className="mt-1 text-[11px] text-surface-500">
-                                                ファイルカードの省略タグ表示（3件表示など）にのみ適用されます。
-                                            </p>
-                                        </div>
-                                    )}
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={showFileSize}
-                                            onChange={(e) => setShowFileSize(e.target.checked)}
-                                            className="w-4 h-4 accent-primary-500 rounded"
-                                        />
-                                        <span className="text-surface-200 text-sm">ファイルサイズ</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                        </div>
+                        <GeneralSettingsTab
+                            videoVolume={videoVolume}
+                            onVideoVolumeChange={setVideoVolume}
+                            audioVolume={audioVolume}
+                            onAudioVolumeChange={setAudioVolume}
+                            lightboxOverlayOpacity={lightboxOverlayOpacity}
+                            onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
+                            performanceMode={performanceMode}
+                            onPerformanceModeChange={setPerformanceMode}
+                            isCheckingForUpdates={isCheckingForUpdates}
+                            updateCheckState={updateCheckState}
+                            onCheckForUpdates={() => { void handleCheckForUpdates(); }}
+                            isDownloadingUpdateZip={isDownloadingUpdateZip}
+                            updateDownloadState={updateDownloadState}
+                            onDownloadLatestUpdateZip={() => { void handleDownloadLatestUpdateZip(); }}
+                            isApplyingUpdate={isApplyingUpdate}
+                            onApplyUpdateFromZip={() => { void handleApplyUpdateFromZip(); }}
+                            onApplyUpdateViaZipDialog={() => { void handleApplyUpdateViaZipDialog(); }}
+                            showFileName={showFileName}
+                            onShowFileNameChange={setShowFileName}
+                            showDuration={showDuration}
+                            onShowDurationChange={setShowDuration}
+                            showTags={showTags}
+                            onShowTagsChange={setShowTags}
+                            tagPopoverTrigger={tagPopoverTrigger}
+                            onTagPopoverTriggerChange={setTagPopoverTrigger}
+                            tagDisplayStyle={tagDisplayStyle}
+                            onTagDisplayStyleChange={setTagDisplayStyle}
+                            fileCardTagOrderMode={fileCardTagOrderMode}
+                            onFileCardTagOrderModeChange={setFileCardTagOrderMode}
+                            showFileSize={showFileSize}
+                            onShowFileSizeChange={setShowFileSize}
+                        />
                     )}
 
                     {activeTab === 'scan' && (
-                        <div className="px-4 py-4 space-y-6">
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
-                                    スキャン設定
-                                </h3>
-
-                                <div className="space-y-4 rounded-lg border border-primary-900/40 bg-primary-950/10 p-3">
-                                    <div>
-                                        <h4 className="text-sm font-medium text-primary-200">
-                                            プロファイル別スキャン設定
-                                        </h4>
-                                        <p className="text-xs text-surface-400 mt-1">
-                                            この設定は現在のプロファイルにのみ適用されます。
-                                        </p>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            対象: <span className="text-surface-300">{activeProfileLabel}</span>
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
-                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                            <div>
-                                                <div className="text-sm font-medium text-surface-200">フォルダ別スキャン設定（一覧管理）</div>
-                                                <div className="text-xs text-surface-500 mt-0.5">
-                                                    起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリを登録フォルダ一覧で確認・編集します。
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFolderScanSettingsManagerOpen(true)}
-                                                className="inline-flex items-center justify-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700"
-                                            >
-                                                <Settings size={15} />
-                                                一覧を開く
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                                            対応形式（カテゴリON/OFF）
-                                        </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                            {([
-                                                { key: 'video', label: '動画', hint: '.mp4 / .mkv / .webm' },
-                                                { key: 'image', label: '画像', hint: '.jpg / .png / .webp' },
-                                                { key: 'archive', label: '書庫', hint: '.zip / .cbz / .7z' },
-                                                { key: 'audio', label: '音声', hint: '.mp3 / .flac / .m4a' },
-                                            ] as const).map((item) => (
-                                                <label
-                                                    key={item.key}
-                                                    className="flex items-center justify-between gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-2 cursor-pointer hover:border-surface-600"
-                                                >
-                                                    <div className="min-w-0">
-                                                        <div className="text-sm text-surface-200">{item.label}</div>
-                                                        <div className="text-[11px] text-surface-500 truncate">{item.hint}</div>
-                                                    </div>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={profileFileTypeFilters[item.key]}
-                                                        onChange={(e) => { void handleProfileFileTypeToggle(item.key, e.target.checked); }}
-                                                        className="w-4 h-4 accent-primary-500 rounded shrink-0"
-                                                    />
-                                                </label>
-                                            ))}
-                                        </div>
-                                        <p className="text-xs text-surface-500 mt-2">
-                                            OFFにしたカテゴリは新規スキャン対象外になります。既に登録済みの対象は再スキャン時に一覧/DBから整理されます（元ファイルは削除しません）。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                                            スキャン速度調整（プロファイル別 / コイル鳴き対策）
-                                        </label>
-                                        <select
-                                            value={scanThrottleMs}
-                                            onChange={(e) => {
-                                                const ms = Number(e.target.value);
-                                                void handleProfileScanThrottleMsChange(ms);
-                                            }}
-                                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                                        >
-                                            <option value="0">通常速度（推奨）</option>
-                                            <option value="50">少し遅く（軽度の対策）</option>
-                                            <option value="100">遅く（中程度の対策）</option>
-                                            <option value="200">かなり遅く（重度の対策）</option>
-                                        </select>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            プレビュー生成時のファイル間待機時間を調整します。PCから異音がする場合に設定してください。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="rounded border border-surface-800 bg-surface-900/50 p-3">
-                                    <p className="text-xs text-surface-400">
-                                        `プレビューフレーム数` はサムネイルタブにあります（プロファイル別設定）。
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        <ScanSettingsTab
+                            activeProfileLabel={activeProfileLabel}
+                            profileFileTypeFilters={profileFileTypeFilters}
+                            onProfileFileTypeToggle={(category, checked) => { void handleProfileFileTypeToggle(category, checked); }}
+                            onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
+                            scanThrottleMs={scanThrottleMs}
+                            onProfileScanThrottleMsChange={(ms) => { void handleProfileScanThrottleMsChange(ms); }}
+                        />
                     )}
 
                     {activeTab === 'thumbnails' && (
-                        <div className="px-4 py-4 space-y-6">
-                            {/* サムネイル設定セクション */}
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
-                                    サムネイル設定
-                                </h3>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-300 mb-2">
-                                        プレビューフレーム数（プロファイル別）: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="30"
-                                        step="5"
-                                        value={previewFrameCount}
-                                        onChange={(e) => {
-                                            const count = Number(e.target.value);
-                                            void handleProfilePreviewFrameCountChange(count);
-                                        }}
-                                        className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                    />
-                                    <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                        <span>オフ</span>
-                                        <span>30枚</span>
-                                    </div>
-                                    <p className="text-xs text-surface-500 mt-1">
-                                        現在のプロファイルに保存されます。スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
-                                    </p>
-                                </div>
-
-                                {/* Thumbnail Resolution */}
-                                <div>
-                                    <label className="block text-sm font-medium text-surface-300 mb-2">
-                                        サムネイル解像度（プロファイル別）: {thumbnailResolution}px
-                                    </label>
-                                    <input
-                                        type="range"
-                                        min="160"
-                                        max="480"
-                                        step="40"
-                                        value={thumbnailResolution}
-                                        onChange={(e) => {
-                                            const resolution = Number(e.target.value);
-                                            void handleProfileThumbnailResolutionChange(resolution);
-                                        }}
-                                        className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                                    />
-                                    <div className="flex justify-between text-xs text-surface-500 mt-1">
-                                        <span>160px</span>
-                                        <span>480px</span>
-                                    </div>
-                                    <p className="text-xs text-surface-500 mt-1">
-                                        現在のプロファイルに保存されます。次回スキャンから反映。拡大表示時や高DPI環境で効果が出ます。
-                                    </p>
-                                </div>
-
-                                <div className="pt-1">
-                                    <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
-                                        全体設定
-                                    </h4>
-                                </div>
-
-                                <div className="space-y-4 rounded-lg border border-surface-700 bg-surface-900/40 p-4">
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-surface-200">
-                                            サムネイルホバー設定
-                                        </h4>
-                                        <p className="mt-1 text-xs text-surface-500">
-                                            一覧カード上にマウスを乗せた時のプレビュー動作を設定します。
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                                            サムネイルホバー時の動作
-                                        </label>
-                                        <div className="flex gap-4">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="thumbnailAction"
-                                                    value="scrub"
-                                                    checked={thumbnailAction === 'scrub'}
-                                                    onChange={() => setThumbnailAction('scrub')}
-                                                    className="w-4 h-4 accent-primary-500"
-                                                />
-                                                <span className="text-surface-200">スクラブ</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="thumbnailAction"
-                                                    value="flipbook"
-                                                    checked={thumbnailAction === 'flipbook'}
-                                                    onChange={() => setThumbnailAction('flipbook')}
-                                                    className="w-4 h-4 accent-primary-500"
-                                                />
-                                                <span className="text-surface-200">自動パラパラ</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="thumbnailAction"
-                                                    value="play"
-                                                    checked={thumbnailAction === 'play'}
-                                                    onChange={() => setThumbnailAction('play')}
-                                                    className="w-4 h-4 accent-primary-500"
-                                                />
-                                                <span className="text-surface-200">再生</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {thumbnailAction === 'flipbook' && (
-                                        <div className="ml-6 mt-2">
-                                            <label className="block text-sm font-medium text-surface-300 mb-1">
-                                                自動パラパラ速度
-                                            </label>
-                                            <select
-                                                value={flipbookSpeed}
-                                                onChange={(e) => setFlipbookSpeed(e.target.value as 'slow' | 'normal' | 'fast')}
-                                                className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                                            >
-                                                <option value="slow">遅い</option>
-                                                <option value="normal">標準</option>
-                                                <option value="fast">速い</option>
-                                            </select>
-                                            <p className="text-xs text-surface-500 mt-1">
-                                                プレビューフレーム枚数が少ないほど速く見えやすいです。
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-surface-300 mb-1">
-                                            アニメ画像プレビュー
-                                        </label>
-                                        <select
-                                            value={animatedImagePreviewMode}
-                                            onChange={(e) => setAnimatedImagePreviewMode(e.target.value as 'off' | 'hover' | 'visible')}
-                                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                                        >
-                                            <option value="off">オフ</option>
-                                            <option value="hover">ホバーで再生</option>
-                                            <option value="visible">表示中に自動再生</option>
-                                        </select>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            GIF / アニメーションWebP が対象。表示中自動再生は同時2件まで。パフォーマンスモード時は無効になります。
-                                        </p>
-                                    </div>
-
-                                    {/* Phase 17-3: Playモード詳細設定 */}
-                                    {thumbnailAction === 'play' && (
-                                        <div className="space-y-3 rounded-md border border-surface-700/80 bg-surface-950/40 p-3">
-                                            <div>
-                                                <label className="block text-sm font-medium text-surface-300 mb-1">
-                                                    プレビュー動作
-                                                </label>
-                                                <select
-                                                    value={playMode.jumpType}
-                                                    onChange={(e) => setPlayModeJumpType(e.target.value as any)}
-                                                    className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                                                >
-                                                    <option value="light">軽量（ジャンプなし）</option>
-                                                    <option value="random">ランダムジャンプ</option>
-                                                    <option value="sequential">固定間隔ジャンプ</option>
-                                                </select>
-                                                <div className="text-xs text-surface-400 mt-1.5 space-y-0.5">
-                                                    <div><strong>軽量:</strong> 先頭から再生のみ（低負荷）</div>
-                                                    <div><strong>ランダム:</strong> 毎回ランダムな位置にジャンプ</div>
-                                                    <div><strong>固定間隔:</strong> 動画を分割して順番にプレビュー</div>
-                                                </div>
-                                            </div>
-
-                                            {playMode.jumpType !== 'light' && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-surface-300 mb-1">
-                                                        ジャンプ間隔
-                                                    </label>
-                                                    <select
-                                                        value={playMode.jumpInterval}
-                                                        onChange={(e) => setPlayModeJumpInterval(Number(e.target.value) as any)}
-                                                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                                                    >
-                                                        <option value={1000}>1秒（高速プレビュー）</option>
-                                                        <option value={2000}>2秒（推奨）</option>
-                                                        <option value={3000}>3秒</option>
-                                                        <option value={5000}>5秒（じっくり確認）</option>
-                                                    </select>
-                                                    <p className="text-xs text-surface-400 mt-1.5">
-                                                        短いほど多くのシーンを確認できますが、負荷が高くなります
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-4 rounded-lg border border-surface-700 bg-surface-900/40 p-4">
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-surface-200">
-                                            右サイドバー動画プレビュー
-                                        </h4>
-                                        <p className="mt-1 text-xs text-surface-500">
-                                            右パネル上部に表示される動画プレビューの既定動作を設定します。
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-surface-300 mb-1">
-                                            プレビュー方式
-                                        </label>
-                                        <select
-                                            value={rightPanelVideoPreviewMode}
-                                            onChange={(e) => setRightPanelVideoPreviewMode(e.target.value as 'loop' | 'long')}
-                                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                                        >
-                                            <option value="loop">ループ再生</option>
-                                            <option value="long">固定間隔プレビュー</option>
-                                        </select>
-                                        <p className="text-xs text-surface-500 mt-1">
-                                            固定間隔は内容を順送りで確認します。
-                                        </p>
-                                    </div>
-
-                                    {rightPanelVideoPreviewMode === 'long' && (
-                                        <div>
-                                            <label className="block text-sm font-medium text-surface-300 mb-1">
-                                                ジャンプ間隔
-                                            </label>
-                                            <select
-                                                value={rightPanelVideoJumpInterval}
-                                                onChange={(e) => setRightPanelVideoJumpInterval(Number(e.target.value) as 1000 | 2000 | 3000 | 5000)}
-                                                className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                                            >
-                                                <option value={1000}>1秒（高速プレビュー）</option>
-                                                <option value={2000}>2秒（推奨）</option>
-                                                <option value={3000}>3秒</option>
-                                                <option value={5000}>5秒（じっくり確認）</option>
-                                            </select>
-                                        </div>
-                                    )}
-                                </div>
-
-                            </div>
-
-                        </div>
+                        <ThumbnailsSettingsTab
+                            previewFrameCount={previewFrameCount}
+                            onProfilePreviewFrameCountChange={(count) => { void handleProfilePreviewFrameCountChange(count); }}
+                            thumbnailResolution={thumbnailResolution}
+                            onProfileThumbnailResolutionChange={(resolution) => { void handleProfileThumbnailResolutionChange(resolution); }}
+                            thumbnailAction={thumbnailAction}
+                            onThumbnailActionChange={setThumbnailAction}
+                            flipbookSpeed={flipbookSpeed}
+                            onFlipbookSpeedChange={setFlipbookSpeed}
+                            animatedImagePreviewMode={animatedImagePreviewMode}
+                            onAnimatedImagePreviewModeChange={setAnimatedImagePreviewMode}
+                            playMode={playMode}
+                            onPlayModeJumpTypeChange={setPlayModeJumpType}
+                            onPlayModeJumpIntervalChange={setPlayModeJumpInterval}
+                            rightPanelVideoPreviewMode={rightPanelVideoPreviewMode}
+                            onRightPanelVideoPreviewModeChange={setRightPanelVideoPreviewMode}
+                            rightPanelVideoJumpInterval={rightPanelVideoJumpInterval}
+                            onRightPanelVideoJumpIntervalChange={setRightPanelVideoJumpInterval}
+                        />
                     )}
 
                     {activeTab === 'storage' && (
@@ -1614,315 +931,41 @@ export const SettingsModal = React.memo(() => {
                     )}
 
                     {activeTab === 'logs' && (
-                        <div className="p-4 space-y-4">
-                            {/* Log Controls */}
-                            <div className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-2">
-                                    <label className="text-sm text-surface-400">フィルター:</label>
-                                    <select
-                                        value={logFilter}
-                                        onChange={(e) => setLogFilter(e.target.value as any)}
-                                        className="bg-surface-800 text-surface-200 text-sm px-2 py-1 rounded border border-surface-600 focus:outline-none focus:border-primary-500"
-                                    >
-                                        <option value="all">すべて</option>
-                                        <option value="error">エラーのみ</option>
-                                        <option value="warn">警告のみ</option>
-                                        <option value="info">情報のみ</option>
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={loadLogs}
-                                        disabled={isLoadingLogs}
-                                        className="flex items-center gap-1 px-3 py-1 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors disabled:opacity-50"
-                                    >
-                                        <RefreshCw size={14} className={isLoadingLogs ? 'animate-spin' : ''} />
-                                        更新
-                                    </button>
-                                    <button
-                                        onClick={handleCopyVisibleLogs}
-                                        className="flex items-center gap-1 px-3 py-1 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors"
-                                    >
-                                        <Copy size={14} />
-                                        表示中をコピー
-                                    </button>
-                                    <button
-                                        onClick={handleOpenLogFolder}
-                                        className="flex items-center gap-1 px-3 py-1 bg-surface-700 hover:bg-surface-600 text-surface-200 text-sm rounded transition-colors"
-                                    >
-                                        <FolderOpen size={14} />
-                                        フォルダを開く
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <p className="text-xs text-surface-400">
-                                    問題報告時は「表示中をコピー」または「フォルダを開く」からログを共有してください。表示件数: {filteredLogs.length}件（取得済み {logs.length}件）
-                                </p>
-                                {logLoadError && (
-                                    <div className="text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded px-3 py-2">
-                                        {logLoadError}
-                                    </div>
-                                )}
-                                {logActionMessage && (
-                                    <div className={`text-xs rounded px-3 py-2 border ${logActionMessage.type === 'error'
-                                        ? 'text-red-300 bg-red-500/10 border-red-500/30'
-                                        : logActionMessage.type === 'success'
-                                            ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
-                                            : 'text-surface-300 bg-surface-800 border-surface-700'
-                                        }`}>
-                                        {logActionMessage.text}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Log Display */}
-                            <div className="bg-surface-950 rounded border border-surface-700 h-80 overflow-y-auto font-mono text-xs">
-                                {filteredLogs.length === 0 ? (
-                                    <div className="flex items-center justify-center h-full text-surface-500">
-                                        {isLoadingLogs ? '読み込み中...' : logs.length > 0 ? 'このフィルターに該当するログはありません' : 'ログがありません'}
-                                    </div>
-                                ) : (
-                                    <div className="p-2 space-y-0.5">
-                                        {filteredLogs.map((line, idx) => (
-                                            <div
-                                                key={idx}
-                                                className={`flex items-start gap-2 py-0.5 px-1 rounded hover:bg-surface-800 ${line.includes('[error]') ? 'text-red-300' :
-                                                    line.includes('[warn]') ? 'text-yellow-300' :
-                                                        'text-surface-300'
-                                                    }`}
-                                            >
-                                                {getLogLevelIcon(line)}
-                                                <span className="break-all">{line}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <p className="text-xs text-surface-500">
-                                最新300行を表示。ログファイルは日付ごとに自動ローテーションされます。共有時は個人情報やパス情報が含まれていないか確認してください。
-                            </p>
-                        </div>
+                        <LogsSettingsTab
+                            logFilter={logFilter}
+                            onLogFilterChange={setLogFilter}
+                            isLoadingLogs={isLoadingLogs}
+                            onReloadLogs={loadLogs}
+                            onCopyVisibleLogs={() => { void handleCopyVisibleLogs(); }}
+                            onOpenLogFolder={() => { void handleOpenLogFolder(); }}
+                            filteredLogs={filteredLogs}
+                            logs={logs}
+                            logLoadError={logLoadError}
+                            logActionMessage={logActionMessage}
+                        />
                     )}
 
                     {activeTab === 'backup' && (
-                        <div className="px-4 py-4 space-y-6">
-                            <div>
-                                <h3 className="text-sm font-semibold text-white mb-3">データベースバックアップ</h3>
-
-                                {/* 手動バックアップボタン */}
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            const profileId = await window.electronAPI.getActiveProfileId();
-                                            const result = await window.electronAPI.createBackup(profileId);
-                                            if (result.success) {
-                                                alert('バックアップが作成されました');
-                                                // 履歴を再読み込み（簡易実装）
-                                            } else {
-                                                alert(`バックアップ失敗: ${result.error}`);
-                                            }
-                                        } catch (e: any) {
-                                            alert(`エラー: ${e.message}`);
-                                        }
-                                    }}
-                                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded transition-colors"
-                                >
-                                    今すぐバックアップを作成
-                                </button>
-
-                                <p className="text-xs text-surface-500 mt-2">
-                                    現在のデータベースを安全にバックアップします（VACUUM INTO使用）
-                                </p>
-                            </div>
-
-                            <div className="text-xs text-surface-400 bg-surface-800 p-3 rounded">
-                                <p className="font-semibold mb-1">⚠️ 注意事項</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                    <li>バックアップにはDBサイズの1.5倍のディスク容量が必要です</li>
-                                    <li>リストアを実行するとアプリが再起動されます</li>
-                                    <li>バックアップファイルは自動的に世代管理されます（最大5世代）</li>
-                                </ul>
-                            </div>
-
-                            <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">
-                                <div className="flex items-center justify-between gap-3 mb-2">
-                                    <div>
-                                        <h3 className="text-sm font-medium text-surface-200">一覧エクスポート（CSV / HTML）</h3>
-                                        <p className="text-xs text-surface-500 mt-0.5">
-                                            利用頻度が低い操作のためバックアップ系タブに集約。タグ色も出力に含めます。
-                                        </p>
-                                        <p className="text-xs text-surface-500">
-                                            ※ インポート対応は現在 `CSV` のみです（`HTML` は閲覧用）。
-                                        </p>
-                                    </div>
-                                    <span className="text-xs text-surface-400 whitespace-nowrap">現在読込 {currentLoadedExportRows.length} 件</span>
-                                </div>
-
-                                <div className="space-y-2 text-xs mb-3">
-                                    <div className="text-surface-400">
-                                        プロファイル: <span className="text-surface-300">{activeProfileLabel}</span>
-                                    </div>
-                                    <div className="text-surface-400">
-                                        現在選択: <span className="text-surface-300">{exportScopeLabel}</span>
-                                    </div>
-                                    <div className="text-surface-400">
-                                        タグ色: <span className="text-surface-300">含める（CSV列 / HTMLタグチップ）</span>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 mb-3">
-                                    <label className="flex items-start gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="exportScope"
-                                            value="profile"
-                                            checked={exportScope === 'profile'}
-                                            onChange={() => setExportScope('profile')}
-                                            className="mt-0.5 w-4 h-4 accent-primary-500"
-                                        />
-                                        <div>
-                                            <span className="text-sm text-surface-200">プロファイル全体</span>
-                                            <span className="block text-xs text-surface-500">現在のアクティブプロファイルに登録されている全ファイルを出力</span>
-                                        </div>
-                                    </label>
-                                    <label className={`flex items-start gap-2 ${canExportCurrentFolderScope ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}>
-                                        <input
-                                            type="radio"
-                                            name="exportScope"
-                                            value="folder"
-                                            checked={exportScope === 'folder'}
-                                            onChange={() => canExportCurrentFolderScope && setExportScope('folder')}
-                                            disabled={!canExportCurrentFolderScope}
-                                            className="mt-0.5 w-4 h-4 accent-primary-500"
-                                        />
-                                        <div>
-                                            <span className="text-sm text-surface-200">現在選択フォルダ全体</span>
-                                            <span className="block text-xs text-surface-500">
-                                                {canExportCurrentFolderScope
-                                                    ? '現在選択しているフォルダ配下を再帰的に出力'
-                                                    : 'フォルダを選択している時のみ使用できます（全ファイル/ドライブ選択中は不可）'}
-                                            </span>
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
-                                    <button
-                                        onClick={() => { void handleExportFromSettings('csv'); }}
-                                        disabled={isExporting !== null || (exportScope === 'folder' && !canExportCurrentFolderScope)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
-                                    >
-                                        <FileSpreadsheet size={15} />
-                                        {isExporting === 'csv' ? 'CSV出力中...' : 'CSV出力'}
-                                    </button>
-                                    <button
-                                        onClick={() => { void handleExportFromSettings('html'); }}
-                                        disabled={isExporting !== null || (exportScope === 'folder' && !canExportCurrentFolderScope)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
-                                    >
-                                        <FileCode2 size={15} />
-                                        {isExporting === 'html' ? 'HTML出力中...' : 'HTML出力'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">
-                                <div className="flex items-center justify-between gap-3 mb-2">
-                                    <div>
-                                        <h3 className="text-sm font-medium text-surface-200">CSVインポート（このアプリ形式 / 旧アプリ互換）</h3>
-                                        <p className="text-xs text-surface-500 mt-0.5">
-                                            `path` をキーにタグを復元します（追記型）。旧アプリCSV（Shift_JIS / 可変列）は互換モードで解析します。
-                                        </p>
-                                        <p className="text-xs text-surface-500">
-                                            旧アプリCSVは `コメント１` をメモへ追記し、末尾の追加列をタグ/星評価として解釈します。
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-wrap gap-2 mb-3">
-                                    <button
-                                        onClick={() => { void handleSelectImportCsv(); }}
-                                        disabled={isImportingCsv}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
-                                    >
-                                        <FolderOpen size={15} />
-                                        このアプリCSVを解析
-                                    </button>
-                                    <button
-                                        onClick={() => { void handleSelectLegacyImportCsv(); }}
-                                        disabled={isImportingCsv}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
-                                    >
-                                        <FolderOpen size={15} />
-                                        旧アプリCSVを解析（互換）
-                                    </button>
-                                    <button
-                                        onClick={() => { void handleApplyCsvImport(); }}
-                                        disabled={isImportingCsv || !parsedImportRows || parsedImportRows.length === 0}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary-700 hover:bg-primary-600 disabled:bg-surface-800/60 disabled:text-surface-600 text-white border border-primary-700 text-sm transition-colors"
-                                    >
-                                        <FileSpreadsheet size={15} />
-                                        {isImportingCsv ? 'インポート中...' : 'インポート実行（タグ）'}
-                                    </button>
-                                </div>
-
-                                {selectedImportCsvPath && (
-                                    <div className="mb-3 text-xs text-surface-400">
-                                        {importSourceLabel && <div>形式: <span className="text-surface-300">{importSourceLabel}</span></div>}
-                                        CSV: <span className="text-surface-300 break-all">{selectedImportCsvPath}</span>
-                                    </div>
-                                )}
-
-                                {importDryRun && (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs mb-3">
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">行数: {importDryRun.totalRows}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">一致: {importDryRun.matchedRows}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">未一致: {importDryRun.unmatchedRows}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">タグ行: {importDryRun.rowsWithTags}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">追加予定タグ付与: {importDryRun.tagLinksToAdd}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">新規タグ作成予定: {importDryRun.newTagsToCreate}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">評価行: {importDryRun.rowsWithRating}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">評価更新予定: {importDryRun.ratingUpdates}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">メモ行: {importDryRun.rowsWithMemo}</div>
-                                        <div className="bg-surface-800 rounded px-2 py-1 text-surface-300">メモ追記予定: {importDryRun.memoUpdates}</div>
-                                    </div>
-                                )}
-
-                                {(importWarnings.length > 0 || (importDryRun?.unmatchedPaths.length ?? 0) > 0 || (importDryRun?.missingTagNames.length ?? 0) > 0) && (
-                                    <div className="space-y-2">
-                                        {importWarnings.length > 0 && (
-                                            <div className="text-xs text-yellow-300 bg-yellow-900/20 border border-yellow-800/40 rounded p-2">
-                                                <div className="font-semibold mb-1">解析警告（先頭{Math.min(importWarnings.length, 5)}件）</div>
-                                                {importWarnings.slice(0, 5).map((w, i) => (
-                                                    <div key={`${w}-${i}`}>{w}</div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {(importDryRun?.unmatchedPaths.length ?? 0) > 0 && (
-                                            <div className="text-xs text-surface-300 bg-surface-800 border border-surface-700 rounded p-2">
-                                                <div className="font-semibold mb-1">未一致パス（先頭{importDryRun!.unmatchedPaths.length}件）</div>
-                                                {importDryRun!.unmatchedPaths.map((p) => (
-                                                    <div key={p} className="break-all text-surface-400">{p}</div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {(importDryRun?.missingTagNames.length ?? 0) > 0 && (
-                                            <div className="text-xs text-surface-300 bg-surface-800 border border-surface-700 rounded p-2">
-                                                <div className="font-semibold mb-1">新規作成されるタグ（先頭{importDryRun!.missingTagNames.length}件）</div>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {importDryRun!.missingTagNames.map((name) => (
-                                                        <span key={name} className="px-2 py-0.5 rounded bg-surface-700 text-surface-200">#{name}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        <BackupSettingsTab
+                            currentLoadedExportRowsCount={currentLoadedExportRows.length}
+                            activeProfileLabel={activeProfileLabel}
+                            exportScopeLabel={exportScopeLabel}
+                            exportScope={exportScope}
+                            canExportCurrentFolderScope={canExportCurrentFolderScope}
+                            onExportScopeChange={setExportScope}
+                            isExporting={isExporting}
+                            onExport={(format) => { void handleExportFromSettings(format); }}
+                            isImportingCsv={isImportingCsv}
+                            onSelectImportCsv={() => { void handleSelectImportCsv(); }}
+                            onSelectLegacyImportCsv={() => { void handleSelectLegacyImportCsv(); }}
+                            onApplyCsvImport={() => { void handleApplyCsvImport(); }}
+                            parsedImportRows={parsedImportRows}
+                            selectedImportCsvPath={selectedImportCsvPath}
+                            importSourceLabel={importSourceLabel}
+                            importDryRun={importDryRun}
+                            importWarnings={importWarnings}
+                            onCreateBackup={() => { void handleCreateBackup(); }}
+                        />
                     )}
 
                     {activeTab === 'ratings' && (
