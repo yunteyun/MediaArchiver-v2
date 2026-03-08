@@ -24,8 +24,11 @@ description: セッション開始時のオンボーディング
 
 ```bash
 git status
+git branch --show-current
 git log -n 5 --oneline
 ```
+
+- 通常作業では `main` にいることを確認し、大きい試作や隔離したい変更だけ `codex/*` ブランチを使う
 
 ## 3. 作業開始前の確認事項
 

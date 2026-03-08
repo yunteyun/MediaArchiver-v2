@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - ドキュメント配置を整理し、`docs/project` `docs/dev/operations` `docs/dev/specs` `docs/dev/investigations` `docs/dev/notes` `docs/archive` に役割別で再編した（表示への変更なし）。
 - `docs/project/Glossary.md` を現行 UI / 設定 / サムネイル / 検索用語に合わせて改訂し、古い呼称と現行呼称の対応を追いやすくした（表示への変更なし）。
+- 開発ブランチ運用を整理し、通常作業は `main`、大きい試作や隔離したい変更だけ `codex/*` を使う方針を運用文書へ反映した（表示への変更なし）。
 - `AGENTS.md` にマルチエージェント運用ガイドへの参照を追加し、運用ルールからプレイブックへ辿りやすくした（表示への変更なし）。
 - 表示プリセット読込時の値検証を強化し、無効な項目は警告付きで読み飛ばしたうえで設定画面に警告一覧を表示できるようにした。
 - `標準（XS/高密度）` の要約タグをさらに小さく詰め、一覧密度を保ったままタグが主張しすぎない表示へ調整した。

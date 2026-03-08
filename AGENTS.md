@@ -12,6 +12,7 @@
 - 読み込み: `Get-Content -Encoding UTF8`
 - 書き込み: `Set-Content -Encoding utf8`
 - .NET API で書く場合は `UTF8Encoding($false)` を使い、BOM有無を明示する
+- 通常の開発作業と push は `main` を基準にし、`codex/*` ブランチは大きい試作や隔離したい作業だけで使う
 - マルチエージェント運用を行う場合は `docs/dev/operations/multi-agent-playbook.md` を参照する
 
 ## 追記・置換の注意
