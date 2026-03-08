@@ -13,6 +13,7 @@ import type { DuplicateProgress } from './services/duplicateService';
 import type { BackupSettings } from './services/backupService';
 import type { ActivityAction } from './services/activityLogService';
 import type { StorageMode } from './services/storageConfig';
+import type { ExternalDisplayPresetListResult } from '../src/components/fileCard/displayModes';
 
 type ScanBatchCommittedPayload = {
     rootFolderId: string;
@@ -142,6 +143,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setPerfDebugEnabled: (enabled: boolean) => ipcRenderer.invoke('app:setPerfDebugEnabled', enabled),
     setExternalApps: (apps: ExternalApp[]) => ipcRenderer.invoke('app:setExternalApps', apps),
     openWithApp: (filePath: string, appPath: string, fileId?: string) => ipcRenderer.invoke('app:openWithApp', filePath, appPath, fileId),
+    getDisplayPresets: () => ipcRenderer.invoke('displayPreset:list') as Promise<ExternalDisplayPresetListResult>,
+    openDisplayPresetFolder: () => ipcRenderer.invoke('displayPreset:openFolder') as Promise<{ success: boolean; directory: string; error?: string }>,
 
     // === File Operations ===
     updateFileNotes: (fileId: string, notes: string) =>

@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { DisplayMode, LayoutPreset } from '../../../stores/useSettingsStore';
 import {
     FILE_CARD_DISPLAY_MODE_DEFINITIONS,
+    getDisplayPresetById,
+    getDisplayPresetMenuOptions,
     getDetailedInfoUiPreset,
     getDisplayModeDefinition,
     getDisplayModeFromLayoutPreset,
     getDisplayModeMenuOptions,
     getLayoutPresetFromDisplayMode,
     getTagSummaryUiPreset,
+    resolveExternalDisplayPresets,
 } from '../displayModes';
 
 const DISPLAY_MODES: DisplayMode[] = [
@@ -65,5 +68,33 @@ describe('displayModes registry', () => {
             'mangaDetailed',
             'manga',
         ]);
+    });
+
+    it('resolves external presets on top of built-in presets', () => {
+        const externalPresets = resolveExternalDisplayPresets([
+            {
+                id: 'custom-whitebrowser',
+                extends: 'whiteBrowser',
+                label: 'Custom WhiteBrowser',
+                menuOrder: 47,
+                thumbnailPresentation: 'contain',
+                layout: {
+                    cardWidth: 500,
+                },
+                tagSummaryUi: {
+                    visibleCount: 11,
+                },
+            },
+        ]);
+
+        const resolved = getDisplayPresetById('custom-whitebrowser', externalPresets, 'standard');
+        const menuOptions = getDisplayPresetMenuOptions(externalPresets);
+
+        expect(resolved.id).toBe('custom-whitebrowser');
+        expect(resolved.baseDisplayMode).toBe('whiteBrowser');
+        expect(resolved.thumbnailPresentation).toBe('contain');
+        expect(resolved.definition.layout.cardWidth).toBe(500);
+        expect(resolved.tagSummaryUi.visibleCount).toBe(11);
+        expect(menuOptions.some((preset) => preset.id === 'custom-whitebrowser')).toBe(true);
     });
 });

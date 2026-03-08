@@ -4,6 +4,7 @@ import {
     LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
     clampOverlayOpacity,
 } from '../features/lightbox-clean/constants';
+import type { DisplayPresetSelection } from '../components/fileCard/displayModes';
 
 export type CardLayout = 'grid' | 'list';
 
@@ -246,6 +247,7 @@ interface SettingsState {
     showFileSize: boolean;
 
     // 表示モード設定（Phase 14）
+    activeDisplayPresetId: string;
     displayMode: DisplayMode;
     layoutPreset: LayoutPreset;
     thumbnailPresentation: ThumbnailPresentation;
@@ -306,6 +308,7 @@ interface SettingsState {
     setShowTags: (show: boolean) => void;
     setShowFileSize: (show: boolean) => void;
     // 表示モードアクション（Phase 14）
+    setActiveDisplayPreset: (selection: DisplayPresetSelection) => void;
     setDisplayMode: (mode: DisplayMode) => void;
     setLayoutPreset: (preset: LayoutPreset) => void;
     setThumbnailPresentation: (presentation: ThumbnailPresentation) => void;
@@ -367,6 +370,7 @@ export const useSettingsStore = create<SettingsState>()(
             showFileSize: true,
 
             // 表示モード設定デフォルト値（Phase 14）
+            activeDisplayPresetId: 'standard',
             displayMode: 'standard',
             layoutPreset: 'standard',
             thumbnailPresentation: 'modeDefault',
@@ -437,13 +441,28 @@ export const useSettingsStore = create<SettingsState>()(
             setShowTags: (showTags) => set({ showTags }),
             setShowFileSize: (showFileSize) => set({ showFileSize }),
             // 表示モード設定セッター（Phase 14）
+            setActiveDisplayPreset: (selection) => {
+                const { layoutPreset } = mapDisplayModeToPresentationAxes(selection.baseDisplayMode);
+                set({
+                    activeDisplayPresetId: selection.id,
+                    displayMode: selection.baseDisplayMode,
+                    layoutPreset,
+                    thumbnailPresentation: selection.thumbnailPresentation,
+                });
+            },
             setDisplayMode: (displayMode) => {
                 const { layoutPreset, thumbnailPresentation } = mapDisplayModeToPresentationAxes(displayMode);
-                set({ displayMode, layoutPreset, thumbnailPresentation });
+                set({
+                    activeDisplayPresetId: displayMode,
+                    displayMode,
+                    layoutPreset,
+                    thumbnailPresentation,
+                });
             },
             setLayoutPreset: (layoutPreset) => set({
                 layoutPreset,
                 displayMode: mapLayoutPresetToLegacyDisplayMode(layoutPreset),
+                activeDisplayPresetId: mapLayoutPresetToLegacyDisplayMode(layoutPreset),
             }),
             setThumbnailPresentation: (thumbnailPresentation) => set({ thumbnailPresentation }),
             // 外部アプリアクション（Phase 12-7）
@@ -623,6 +642,9 @@ export const useSettingsStore = create<SettingsState>()(
                     )
                     : currentState.searchDestinations;
                 const fallbackDisplayMode = typedPersisted?.displayMode ?? currentState.displayMode;
+                const fallbackActiveDisplayPresetId = typeof typedPersisted?.activeDisplayPresetId === 'string' && typedPersisted.activeDisplayPresetId
+                    ? typedPersisted.activeDisplayPresetId
+                    : fallbackDisplayMode;
                 const mappedAxes = mapDisplayModeToPresentationAxes(fallbackDisplayMode);
                 const persistedLayoutPreset = normalizeLayoutPreset(typedPersisted?.layoutPreset);
                 const persistedThumbnailPresentation = normalizeThumbnailPresentation(typedPersisted?.thumbnailPresentation);
@@ -630,6 +652,7 @@ export const useSettingsStore = create<SettingsState>()(
                 return {
                     ...currentState,
                     ...typedPersisted,
+                    activeDisplayPresetId: fallbackActiveDisplayPresetId,
                     searchDestinations: persistedDestinations,
                     layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,
                     thumbnailPresentation: persistedThumbnailPresentation ?? mappedAxes.thumbnailPresentation,

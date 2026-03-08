@@ -31,4 +31,5 @@ export const videoDisplayPreset: FileCardDisplayPreset = {
         folderBadgeMaxWidthClass: 'max-w-[96px]',
         tagSummaryVisibleCount: 3,
     },
+    thumbnailPresentation: 'modeDefault',
 };

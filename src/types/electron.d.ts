@@ -2,6 +2,7 @@ import type { MediaFile, MediaFolder } from './file';
 import type { ExternalApp as SettingsExternalApp } from '../stores/useSettingsStore';
 import type { ScanProgress as UiScanProgress } from '../stores/useUIStore';
 import type { SmartFolderConditionV1, SmartFolderV1 } from '../stores/useSmartFolderStore';
+import type { ExternalDisplayPresetListResult } from '../components/fileCard/displayModes';
 import type {
     Tag as RendererTagDefinition,
     TagCategory as RendererTagCategory,
@@ -173,6 +174,8 @@ declare global {
                 externalOpenCount?: number;
                 lastExternalOpenedAt?: number;
             }>;
+            getDisplayPresets: () => Promise<ExternalDisplayPresetListResult>;
+            openDisplayPresetFolder: () => Promise<{ success: boolean; directory: string; error?: string }>;
 
             // File Operations
             updateFileNotes: (fileId: string, notes: string) => Promise<{ success: boolean }>;

@@ -13,6 +13,7 @@ import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, useSettingsStore } from './stores/us
 import { useToastStore } from './stores/useToastStore';
 import { useRatingStore } from './stores/useRatingStore';
 import { useDuplicateStore } from './stores/useDuplicateStore';
+import { useDisplayPresetStore } from './stores/useDisplayPresetStore';
 import {
     loadAndApplyProfileScopedSettings,
     resetStateForProfileSwitch,
@@ -82,6 +83,7 @@ function App() {
     // Phase 23: 右サイドパネル
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
+    const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const profileSettingsLoadSeqRef = useRef(0);
 
     useEffect(() => {
@@ -94,7 +96,8 @@ function App() {
         // サムネイル解像度をメインプロセスに同期
         window.electronAPI.setThumbnailResolution(settings.thumbnailResolution);
         window.electronAPI.setScanFileTypeCategories(settings.profileFileTypeFilters).catch(console.error);
-    }, []);
+        void loadDisplayPresets();
+    }, [loadDisplayPresets]);
 
     const syncProfileScopedSettingsToScanner = useCallback(async (settings: {
         previewFrameCount: number;

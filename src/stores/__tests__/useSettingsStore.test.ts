@@ -30,6 +30,7 @@ function resetSettingsStore() {
         showDuration: true,
         showTags: true,
         showFileSize: true,
+        activeDisplayPresetId: 'standard',
         displayMode: 'standard',
         layoutPreset: 'standard',
         thumbnailPresentation: 'modeDefault',
@@ -106,10 +107,12 @@ describe('useSettingsStore', () => {
 
     it('keeps display mode and layout axes in sync', () => {
         useSettingsStore.getState().setDisplayMode('whiteBrowser');
+        expect(useSettingsStore.getState().activeDisplayPresetId).toBe('whiteBrowser');
         expect(useSettingsStore.getState().layoutPreset).toBe('detailed');
         expect(useSettingsStore.getState().thumbnailPresentation).toBe('square');
 
         useSettingsStore.getState().setLayoutPreset('mangaDetailed');
+        expect(useSettingsStore.getState().activeDisplayPresetId).toBe('mangaDetailed');
         expect(useSettingsStore.getState().displayMode).toBe('mangaDetailed');
     });
 

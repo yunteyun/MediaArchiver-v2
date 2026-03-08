@@ -20,6 +20,7 @@ import { BackupSettingsTab } from './settings/BackupSettingsTab';
 import { StorageSettingsTab } from './settings/StorageSettingsTab';
 import { useSettingsMaintenance } from './settings/useSettingsMaintenance';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
+import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 
 type TabType = SettingsModalTab;
 
@@ -76,6 +77,9 @@ export const SettingsModal = React.memo(() => {
     const playMode = useSettingsStore((s) => s.playMode);
     const setPlayModeJumpType = useSettingsStore((s) => s.setPlayModeJumpType);
     const setPlayModeJumpInterval = useSettingsStore((s) => s.setPlayModeJumpInterval);
+    const displayPresetDirectory = useDisplayPresetStore((s) => s.directory);
+    const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
+    const isReloadingDisplayPresets = useDisplayPresetStore((s) => s.isLoading);
 
     const [activeTab, setActiveTab] = useState<TabType>('general');
     const [logs, setLogs] = useState<string[]>([]);
@@ -260,6 +264,29 @@ export const SettingsModal = React.memo(() => {
         }
     }, []);
 
+    const handleOpenDisplayPresetFolder = useCallback(async () => {
+        try {
+            const result = await window.electronAPI.openDisplayPresetFolder();
+            if (!result.success) {
+                throw new Error(result.error || 'unknown error');
+            }
+            setLogActionMessage({ type: 'info', text: '表示プリセットフォルダを開きました。JSON を追加したら「再読込」で一覧へ反映できます。' });
+        } catch (e) {
+            console.error('Failed to open display preset folder:', e);
+            setLogActionMessage({ type: 'error', text: '表示プリセットフォルダを開けませんでした。' });
+        }
+    }, []);
+
+    const handleReloadDisplayPresets = useCallback(async () => {
+        try {
+            await loadDisplayPresets({ force: true });
+            setLogActionMessage({ type: 'info', text: '表示プリセットを再読込しました。' });
+        } catch (e) {
+            console.error('Failed to reload display presets:', e);
+            setLogActionMessage({ type: 'error', text: '表示プリセットの再読込に失敗しました。' });
+        }
+    }, [loadDisplayPresets]);
+
     if (!isOpen) return null;
 
     return (
@@ -319,6 +346,10 @@ export const SettingsModal = React.memo(() => {
                             onFileCardTagOrderModeChange={setFileCardTagOrderMode}
                             showFileSize={showFileSize}
                             onShowFileSizeChange={setShowFileSize}
+                            displayPresetDirectory={displayPresetDirectory}
+                            onOpenDisplayPresetFolder={handleOpenDisplayPresetFolder}
+                            isReloadingDisplayPresets={isReloadingDisplayPresets}
+                            onReloadDisplayPresets={handleReloadDisplayPresets}
                         />
                     )}
 

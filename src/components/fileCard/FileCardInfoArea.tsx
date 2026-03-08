@@ -1,7 +1,6 @@
 import React from 'react';
 import type { MediaFile } from '../../types/file';
-import type { DisplayMode } from '../../stores/useSettingsStore';
-import type { FileCardInfoVariant } from './displayModeTypes';
+import type { ResolvedFileCardDisplayPreset } from './displayModes';
 import { FileCardInfoCompact } from './FileCardInfoCompact';
 import { FileCardInfoDetailed } from './FileCardInfoDetailed';
 
@@ -11,18 +10,14 @@ export interface FileCardTagSummaryRendererProps {
 
 export interface FileCardInfoCommonProps {
     file: MediaFile;
-    displayMode: DisplayMode;
+    displayPreset: ResolvedFileCardDisplayPreset;
     infoAreaHeight: number;
     showFileSize: boolean;
     TagSummaryRenderer: React.ComponentType<FileCardTagSummaryRendererProps>;
 }
 
-export interface FileCardInfoAreaProps extends FileCardInfoCommonProps {
-    infoVariant: FileCardInfoVariant;
-}
-
-export const FileCardInfoArea = React.memo((props: FileCardInfoAreaProps) => {
-    if (props.infoVariant === 'compact') {
+export const FileCardInfoArea = React.memo((props: FileCardInfoCommonProps) => {
+    if (props.displayPreset.definition.infoVariant === 'compact') {
         return <FileCardInfoCompact {...props} />;
     }
 

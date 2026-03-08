@@ -44,6 +44,10 @@ interface GeneralSettingsTabProps {
     onFileCardTagOrderModeChange: (value: FileCardTagOrderMode) => void;
     showFileSize: boolean;
     onShowFileSizeChange: (checked: boolean) => void;
+    displayPresetDirectory: string | null;
+    onOpenDisplayPresetFolder: () => void;
+    isReloadingDisplayPresets: boolean;
+    onReloadDisplayPresets: () => void;
 }
 
 export const GeneralSettingsTab = React.memo(({
@@ -78,6 +82,10 @@ export const GeneralSettingsTab = React.memo(({
     onFileCardTagOrderModeChange,
     showFileSize,
     onShowFileSizeChange,
+    displayPresetDirectory,
+    onOpenDisplayPresetFolder,
+    isReloadingDisplayPresets,
+    onReloadDisplayPresets,
 }: GeneralSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
         <div>
@@ -155,6 +163,41 @@ export const GeneralSettingsTab = React.memo(({
                     className="w-5 h-5 accent-primary-500 rounded"
                 />
             </label>
+        </div>
+
+        <div className="rounded border border-surface-700 bg-surface-900/50 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <div className="text-sm font-medium text-surface-200">表示プリセット</div>
+                    <p className="text-xs text-surface-500 mt-0.5">
+                        外部 JSON を配置して、一覧カードの表示プリセットを追加できます。
+                    </p>
+                    {displayPresetDirectory && (
+                        <p className="mt-1 break-all text-[11px] text-surface-500">
+                            保存先: {displayPresetDirectory}
+                        </p>
+                    )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        onClick={onReloadDisplayPresets}
+                        disabled={isReloadingDisplayPresets}
+                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <RefreshCw size={14} className={isReloadingDisplayPresets ? 'animate-spin' : ''} />
+                        {isReloadingDisplayPresets ? '再読込中...' : '再読込'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onOpenDisplayPresetFolder}
+                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700"
+                    >
+                        <FolderOpen size={14} />
+                        表示プリセットフォルダを開く
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div className="rounded border border-surface-700 bg-surface-900/50 p-3">

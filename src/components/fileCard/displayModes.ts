@@ -1,9 +1,23 @@
 import type { DisplayMode, LayoutPreset } from '../../stores/useSettingsStore';
 import type { FileCardDisplayModeDefinition, FileCardLayoutConfig } from './displayModeTypes';
 import { FILE_CARD_DISPLAY_PRESETS } from './presets';
-import type { DetailedInfoUiPreset, DetailedPanelBadgeKey, TagSummaryUiPreset } from './presets/types';
+import type {
+    DetailedInfoUiPreset,
+    DetailedPanelBadgeKey,
+    ExternalDisplayPresetManifest,
+    ResolvedFileCardDisplayPreset,
+    TagSummaryUiPreset,
+} from './presets/types';
 
-export type { DetailedInfoUiPreset, DetailedPanelBadgeKey, TagSummaryUiPreset } from './presets/types';
+export type {
+    DetailedInfoUiPreset,
+    DetailedPanelBadgeKey,
+    DisplayPresetSelection,
+    ExternalDisplayPresetListResult,
+    ExternalDisplayPresetManifest,
+    ResolvedFileCardDisplayPreset,
+    TagSummaryUiPreset,
+} from './presets/types';
 
 const LAYOUT_PRESET_TO_DISPLAY_MODE: Record<LayoutPreset, DisplayMode> = {
     standard: 'standard',
@@ -35,6 +49,51 @@ export const FILE_CARD_DISPLAY_MODE_DEFINITIONS: Record<DisplayMode, FileCardDis
     compact: FILE_CARD_DISPLAY_PRESETS.compact.definition,
 };
 
+export const BUILTIN_DISPLAY_PRESETS: Record<DisplayMode, ResolvedFileCardDisplayPreset> = {
+    standard: {
+        id: 'standard',
+        source: 'builtin',
+        baseDisplayMode: 'standard',
+        ...FILE_CARD_DISPLAY_PRESETS.standard,
+    },
+    standardLarge: {
+        id: 'standardLarge',
+        source: 'builtin',
+        baseDisplayMode: 'standardLarge',
+        ...FILE_CARD_DISPLAY_PRESETS.standardLarge,
+    },
+    manga: {
+        id: 'manga',
+        source: 'builtin',
+        baseDisplayMode: 'manga',
+        ...FILE_CARD_DISPLAY_PRESETS.manga,
+    },
+    video: {
+        id: 'video',
+        source: 'builtin',
+        baseDisplayMode: 'video',
+        ...FILE_CARD_DISPLAY_PRESETS.video,
+    },
+    whiteBrowser: {
+        id: 'whiteBrowser',
+        source: 'builtin',
+        baseDisplayMode: 'whiteBrowser',
+        ...FILE_CARD_DISPLAY_PRESETS.whiteBrowser,
+    },
+    mangaDetailed: {
+        id: 'mangaDetailed',
+        source: 'builtin',
+        baseDisplayMode: 'mangaDetailed',
+        ...FILE_CARD_DISPLAY_PRESETS.mangaDetailed,
+    },
+    compact: {
+        id: 'compact',
+        source: 'builtin',
+        baseDisplayMode: 'compact',
+        ...FILE_CARD_DISPLAY_PRESETS.compact,
+    },
+};
+
 export const DISPLAY_MODE_LAYOUT_CONFIGS: Record<DisplayMode, FileCardLayoutConfig> = {
     standard: FILE_CARD_DISPLAY_PRESETS.standard.definition.layout,
     standardLarge: FILE_CARD_DISPLAY_PRESETS.standardLarge.definition.layout,
@@ -45,28 +104,110 @@ export const DISPLAY_MODE_LAYOUT_CONFIGS: Record<DisplayMode, FileCardLayoutConf
     compact: FILE_CARD_DISPLAY_PRESETS.compact.definition.layout,
 };
 
-const TAG_SUMMARY_UI_PRESETS: Record<DisplayMode, TagSummaryUiPreset> = {
-    standard: FILE_CARD_DISPLAY_PRESETS.standard.tagSummaryUi,
-    standardLarge: FILE_CARD_DISPLAY_PRESETS.standardLarge.tagSummaryUi,
-    manga: FILE_CARD_DISPLAY_PRESETS.manga.tagSummaryUi,
-    video: FILE_CARD_DISPLAY_PRESETS.video.tagSummaryUi,
-    whiteBrowser: FILE_CARD_DISPLAY_PRESETS.whiteBrowser.tagSummaryUi,
-    mangaDetailed: FILE_CARD_DISPLAY_PRESETS.mangaDetailed.tagSummaryUi,
-    compact: FILE_CARD_DISPLAY_PRESETS.compact.tagSummaryUi,
-};
+function mergeTagSummaryUiPreset(
+    base: TagSummaryUiPreset,
+    override?: Partial<TagSummaryUiPreset>
+): TagSummaryUiPreset {
+    if (!override) return base;
+    return {
+        ...base,
+        ...override,
+    };
+}
 
-const DETAILED_INFO_UI_PRESETS: Record<DisplayMode, DetailedInfoUiPreset> = {
-    standard: FILE_CARD_DISPLAY_PRESETS.standard.detailedInfoUi,
-    standardLarge: FILE_CARD_DISPLAY_PRESETS.standardLarge.detailedInfoUi,
-    manga: FILE_CARD_DISPLAY_PRESETS.manga.detailedInfoUi,
-    video: FILE_CARD_DISPLAY_PRESETS.video.detailedInfoUi,
-    whiteBrowser: FILE_CARD_DISPLAY_PRESETS.whiteBrowser.detailedInfoUi,
-    mangaDetailed: FILE_CARD_DISPLAY_PRESETS.mangaDetailed.detailedInfoUi,
-    compact: FILE_CARD_DISPLAY_PRESETS.compact.detailedInfoUi,
-};
+function mergeDetailedInfoUiPreset(
+    base: DetailedInfoUiPreset,
+    override?: Partial<DetailedInfoUiPreset>
+): DetailedInfoUiPreset {
+    if (!override) return base;
+    return {
+        ...base,
+        ...override,
+        detailedPanelBadgeKeys: Array.isArray(override.detailedPanelBadgeKeys)
+            ? override.detailedPanelBadgeKeys
+            : base.detailedPanelBadgeKeys,
+    };
+}
+
+export function resolveExternalDisplayPresets(
+    manifests: ExternalDisplayPresetManifest[]
+): ResolvedFileCardDisplayPreset[] {
+    const resolved: ResolvedFileCardDisplayPreset[] = [];
+    const seenIds = new Set<string>();
+
+    for (const manifest of manifests) {
+        const id = manifest.id.trim();
+        if (!id || seenIds.has(id)) continue;
+        if (id in BUILTIN_DISPLAY_PRESETS) continue;
+
+        const base = BUILTIN_DISPLAY_PRESETS[manifest.extends];
+        if (!base) continue;
+
+        seenIds.add(id);
+
+        resolved.push({
+            id,
+            source: 'external',
+            baseDisplayMode: base.baseDisplayMode,
+            definition: {
+                ...base.definition,
+                label: manifest.label ?? base.definition.label,
+                menuOrder: manifest.menuOrder ?? base.definition.menuOrder,
+                iconKey: manifest.iconKey ?? base.definition.iconKey,
+                layout: {
+                    ...base.definition.layout,
+                    ...(manifest.layout ?? {}),
+                },
+                cardGrowMax: manifest.cardGrowMax ?? base.definition.cardGrowMax,
+                infoVariant: manifest.infoVariant ?? base.definition.infoVariant,
+                cardDirection: manifest.cardDirection ?? base.definition.cardDirection,
+                horizontalThumbnailAspectRatio: manifest.horizontalThumbnailAspectRatio ?? base.definition.horizontalThumbnailAspectRatio,
+                hideThumbnailBadges: manifest.hideThumbnailBadges ?? base.definition.hideThumbnailBadges,
+            },
+            tagSummaryUi: mergeTagSummaryUiPreset(base.tagSummaryUi, manifest.tagSummaryUi),
+            detailedInfoUi: mergeDetailedInfoUiPreset(base.detailedInfoUi, manifest.detailedInfoUi),
+            thumbnailPresentation: manifest.thumbnailPresentation ?? base.thumbnailPresentation,
+        });
+    }
+
+    return resolved.sort((a, b) => {
+        if (a.definition.menuOrder !== b.definition.menuOrder) {
+            return a.definition.menuOrder - b.definition.menuOrder;
+        }
+        return a.definition.label.localeCompare(b.definition.label, 'ja');
+    });
+}
+
+export function getDisplayPresetById(
+    presetId: string | null | undefined,
+    externalPresets: ResolvedFileCardDisplayPreset[],
+    fallbackDisplayMode: DisplayMode
+): ResolvedFileCardDisplayPreset {
+    if (presetId) {
+        const builtin = BUILTIN_DISPLAY_PRESETS[presetId as DisplayMode];
+        if (builtin) return builtin;
+        const external = externalPresets.find((preset) => preset.id === presetId);
+        if (external) return external;
+    }
+
+    return BUILTIN_DISPLAY_PRESETS[fallbackDisplayMode];
+}
+
+export function getDisplayPresetMenuOptions(
+    externalPresets: ResolvedFileCardDisplayPreset[]
+): ResolvedFileCardDisplayPreset[] {
+    return [...Object.values(BUILTIN_DISPLAY_PRESETS), ...externalPresets]
+        .slice()
+        .sort((a, b) => {
+            if (a.definition.menuOrder !== b.definition.menuOrder) {
+                return a.definition.menuOrder - b.definition.menuOrder;
+            }
+            return a.definition.label.localeCompare(b.definition.label, 'ja');
+        });
+}
 
 export const getDisplayModeDefinition = (mode: DisplayMode): FileCardDisplayModeDefinition => {
-    return FILE_CARD_DISPLAY_MODE_DEFINITIONS[mode];
+    return BUILTIN_DISPLAY_PRESETS[mode].definition;
 };
 
 export const isHorizontalDisplayMode = (mode: DisplayMode): boolean => {
@@ -78,11 +219,11 @@ export const getHorizontalThumbnailAspectRatio = (mode: DisplayMode): string => 
 };
 
 export const getTagSummaryUiPreset = (mode: DisplayMode): TagSummaryUiPreset => {
-    return TAG_SUMMARY_UI_PRESETS[mode];
+    return BUILTIN_DISPLAY_PRESETS[mode].tagSummaryUi;
 };
 
 export const getDetailedInfoUiPreset = (mode: DisplayMode): DetailedInfoUiPreset => {
-    return DETAILED_INFO_UI_PRESETS[mode];
+    return BUILTIN_DISPLAY_PRESETS[mode].detailedInfoUi;
 };
 
 export const getDisplayModeFromLayoutPreset = (layoutPreset: LayoutPreset): DisplayMode => {
@@ -98,7 +239,8 @@ export const getDisplayModeDefinitionByLayoutPreset = (layoutPreset: LayoutPrese
 };
 
 export const getDisplayModeMenuOptions = (): FileCardDisplayModeDefinition[] => {
-    return Object.values(FILE_CARD_DISPLAY_MODE_DEFINITIONS)
+    return Object.values(BUILTIN_DISPLAY_PRESETS)
+        .map((preset) => preset.definition)
         .slice()
         .sort((a, b) => a.menuOrder - b.menuOrder);
 };

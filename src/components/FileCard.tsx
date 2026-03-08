@@ -18,14 +18,12 @@ import {
 } from '../utils/videoPreview';
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import {
-    getDisplayModeDefinition,
-    getDisplayModeFromLayoutPreset,
-    getTagSummaryUiPreset,
-    getHorizontalThumbnailAspectRatio,
-    isHorizontalDisplayMode,
+    getDisplayPresetById,
+    type ResolvedFileCardDisplayPreset,
 } from './fileCard/displayModes';
-import type { DisplayMode, FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
+import type { FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
 import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
+import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 
 // 明るい背景色のタグで暗い文字色を使うためのヘルパー
 function getTagTextColor(bgColor: string): string {
@@ -92,7 +90,7 @@ type FileCardTagSummaryProps = {
     showTags: boolean;
     sortedTags: Tag[];
     fileCardTagOrderMode: FileCardTagOrderMode;
-    displayMode: DisplayMode;
+    displayPreset: ResolvedFileCardDisplayPreset;
     isTagBorderMode: boolean;
     triggerRef: React.RefObject<HTMLButtonElement | null>;
     tagPopoverTrigger: TagPopoverTrigger;
@@ -102,8 +100,8 @@ type FileCardTagSummaryProps = {
     closePopoverWithDelay: () => void;
 };
 
-function getTagSummaryUiConfig(displayMode: DisplayMode): TagSummaryUiConfig {
-    const preset = getTagSummaryUiPreset(displayMode);
+function getTagSummaryUiConfig(displayPreset: ResolvedFileCardDisplayPreset): TagSummaryUiConfig {
+    const preset = displayPreset.tagSummaryUi;
     return {
         tagChipPaddingClass: preset.chipPaddingClass,
         tagChipTextClass: preset.chipTextClass,
@@ -166,7 +164,7 @@ const FileCardTagSummary = React.memo(({
     showTags,
     sortedTags,
     fileCardTagOrderMode,
-    displayMode,
+    displayPreset,
     isTagBorderMode,
     triggerRef,
     tagPopoverTrigger,
@@ -177,7 +175,7 @@ const FileCardTagSummary = React.memo(({
 }: FileCardTagSummaryProps) => {
     if (!showTags || sortedTags.length === 0) return null;
 
-    const tagSummaryUi = getTagSummaryUiConfig(displayMode);
+    const tagSummaryUi = getTagSummaryUiConfig(displayPreset);
     const visibleTags = fileCardTagOrderMode === 'strict'
         ? sortedTags.slice(0, visibleCount)
         : getBalancedSummaryTags(sortedTags, visibleCount);
@@ -328,13 +326,17 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const showDuration = useSettingsStore((s) => s.showDuration);
     const showTags = useSettingsStore((s) => s.showTags);
     const showFileSize = useSettingsStore((s) => s.showFileSize);
-    const layoutPreset = useSettingsStore((s) => s.layoutPreset);
+    const displayMode = useSettingsStore((s) => s.displayMode);
+    const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
     const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
-    const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
-    const displayModeDefinition = getDisplayModeDefinition(displayMode);
-    const config = displayModeDefinition.layout;
-    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
-    const detailedThumbnailAspectRatio = getHorizontalThumbnailAspectRatio(displayMode);
+    const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
+    const displayPreset = useMemo(
+        () => getDisplayPresetById(activeDisplayPresetId, externalDisplayPresets, displayMode),
+        [activeDisplayPresetId, externalDisplayPresets, displayMode]
+    );
+    const config = displayPreset.definition.layout;
+    const isDetailedHorizontalMode = displayPreset.definition.cardDirection === 'horizontal';
+    const detailedThumbnailAspectRatio = displayPreset.definition.horizontalThumbnailAspectRatio ?? '1 / 1';
     const thumbnailObjectFitClass = thumbnailPresentation === 'contain' ? 'object-contain' : 'object-cover';
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
@@ -349,7 +351,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const thumbnailBadges = useMemo(() => {
         const badges = { attributes: [] as Array<{ label: string; color: string }>, extension: '' };
 
-        if (displayModeDefinition.hideThumbnailBadges) return badges;
+        if (displayPreset.definition.hideThumbnailBadges) return badges;
 
         // 拡張子バッジ（右上）
         const ext = file.name.split('.').pop()?.toUpperCase() || '';
@@ -372,7 +374,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }
 
         return badges;
-    }, [file.name, file.metadata, displayModeDefinition.hideThumbnailBadges]);
+    }, [file.name, file.metadata, displayPreset.definition.hideThumbnailBadges]);
 
     // 拡張子の色分け（半透明ダーク系で洗練された印象に）
     const extensionColor = useMemo(() => {
@@ -728,7 +730,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 showTags={showTags}
                 sortedTags={sortedTags}
                 fileCardTagOrderMode={fileCardTagOrderMode}
-                displayMode={displayMode}
+                displayPreset={displayPreset}
                 isTagBorderMode={isTagBorderMode}
                 triggerRef={triggerRef}
                 tagPopoverTrigger={tagPopoverTrigger}
@@ -745,7 +747,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         fileCardTagOrderMode,
         tagPopoverTrigger,
         showTagPopover,
-        displayMode,
+        displayPreset,
         openPopover,
         closePopoverWithDelay,
     ]);
@@ -1235,8 +1237,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                 <div className={isDetailedHorizontalMode ? 'h-full flex-1 min-w-0 border-l border-surface-700/60' : ''}>
                     <FileCardInfoArea
                         file={file}
-                        displayMode={displayMode}
-                        infoVariant={displayModeDefinition.infoVariant}
+                        displayPreset={displayPreset}
                         infoAreaHeight={config.infoAreaHeight}
                         showFileSize={showFileSize}
                         TagSummaryRenderer={TagSummaryRenderer}

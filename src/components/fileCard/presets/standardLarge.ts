@@ -31,4 +31,5 @@ export const standardLargeDisplayPreset: FileCardDisplayPreset = {
         folderBadgeMaxWidthClass: 'max-w-[110px]',
         tagSummaryVisibleCount: 3,
     },
+    thumbnailPresentation: 'modeDefault',
 };

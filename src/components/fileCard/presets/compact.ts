@@ -33,4 +33,5 @@ export const compactDisplayPreset: FileCardDisplayPreset = {
         folderBadgeMaxWidthClass: 'max-w-[110px]',
         tagSummaryVisibleCount: 2,
     },
+    thumbnailPresentation: 'modeDefault',
 };

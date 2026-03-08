@@ -9,11 +9,11 @@ import { useSettingsStore, type GroupBy, type ThumbnailPresentation } from '../s
 import { useFileStore } from '../stores/useFileStore';
 import { SearchBar } from './SearchBar';
 import {
-    getDisplayModeDefinitionByLayoutPreset,
-    getDisplayModeMenuOptions,
-    getLayoutPresetFromDisplayMode,
+    getDisplayPresetById,
+    getDisplayPresetMenuOptions,
 } from './fileCard/displayModes';
 import type { DisplayModeIconKey } from './fileCard/displayModeTypes';
+import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 
 const ICON_BY_KEY: Record<DisplayModeIconKey, React.ComponentType<{ size?: number; className?: string }>> = {
     grid: Grid,
@@ -23,7 +23,6 @@ const ICON_BY_KEY: Record<DisplayModeIconKey, React.ComponentType<{ size?: numbe
     minimize: Minimize2,
 };
 
-const DISPLAY_MODE_MENU_OPTIONS = getDisplayModeMenuOptions();
 const THUMBNAIL_PRESENTATION_OPTIONS: Array<{ value: ThumbnailPresentation; label: string }> = [
     { value: 'modeDefault', label: 'モード既定' },
     { value: 'cover', label: 'Cover（切り取り）' },
@@ -63,14 +62,23 @@ export const Header = React.memo(() => {
 
     const groupBy = useSettingsStore((s) => s.groupBy);
     const setGroupBy = useSettingsStore((s) => s.setGroupBy);
-    const layoutPreset = useSettingsStore((s) => s.layoutPreset);
-    const setLayoutPreset = useSettingsStore((s) => s.setLayoutPreset);
+    const displayMode = useSettingsStore((s) => s.displayMode);
+    const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
+    const setActiveDisplayPreset = useSettingsStore((s) => s.setActiveDisplayPreset);
     const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
     const setThumbnailPresentation = useSettingsStore((s) => s.setThumbnailPresentation);
+    const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
     const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
     const modeMenuRef = useRef<HTMLDivElement>(null);
-    const selectedDisplayModeOption = getDisplayModeDefinitionByLayoutPreset(layoutPreset);
-    const SelectedDisplayModeIcon = ICON_BY_KEY[selectedDisplayModeOption.iconKey];
+    const displayPresetMenuOptions = React.useMemo(
+        () => getDisplayPresetMenuOptions(externalDisplayPresets),
+        [externalDisplayPresets]
+    );
+    const selectedDisplayPreset = React.useMemo(
+        () => getDisplayPresetById(activeDisplayPresetId, externalDisplayPresets, displayMode),
+        [activeDisplayPresetId, externalDisplayPresets, displayMode]
+    );
+    const SelectedDisplayModeIcon = ICON_BY_KEY[selectedDisplayPreset.definition.iconKey];
 
     // ドロップダウンのクリックアウトサイドハンドラー
     useEffect(() => {
@@ -190,26 +198,29 @@ export const Header = React.memo(() => {
                                 title="表示モードを切り替え"
                             >
                                 <SelectedDisplayModeIcon size={14} />
-                                <span>{selectedDisplayModeOption.label}</span>
+                                <span>{selectedDisplayPreset.definition.label}</span>
                             </button>
 
                             {isModeMenuOpen && (
                                 <div className="absolute top-full mt-1 right-0 bg-surface-800 rounded shadow-lg border border-surface-700 py-1 z-50 min-w-[160px]">
-                                    {DISPLAY_MODE_MENU_OPTIONS.map((option) => {
-                                        const Icon = ICON_BY_KEY[option.iconKey];
-                                        const optionLayoutPreset = getLayoutPresetFromDisplayMode(option.mode);
-                                        const isActive = layoutPreset === optionLayoutPreset;
+                                    {displayPresetMenuOptions.map((option) => {
+                                        const Icon = ICON_BY_KEY[option.definition.iconKey];
+                                        const isActive = selectedDisplayPreset.id === option.id;
                                         return (
                                             <button
-                                                key={option.mode}
+                                                key={option.id}
                                                 onClick={() => {
-                                                    setLayoutPreset(optionLayoutPreset);
+                                                    setActiveDisplayPreset({
+                                                        id: option.id,
+                                                        baseDisplayMode: option.baseDisplayMode,
+                                                        thumbnailPresentation: option.thumbnailPresentation,
+                                                    });
                                                     setIsModeMenuOpen(false);
                                                 }}
                                                 className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${isActive ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'}`}
                                             >
                                                 <Icon size={16} />
-                                                <span>{option.label}</span>
+                                                <span>{option.definition.label}</span>
                                             </button>
                                         );
                                     })}

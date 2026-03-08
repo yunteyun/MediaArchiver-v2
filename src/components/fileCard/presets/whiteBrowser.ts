@@ -32,4 +32,5 @@ export const whiteBrowserDisplayPreset: FileCardDisplayPreset = {
         folderBadgeMaxWidthClass: 'max-w-[140px]',
         tagSummaryVisibleCount: 15,
     },
+    thumbnailPresentation: 'square',
 };

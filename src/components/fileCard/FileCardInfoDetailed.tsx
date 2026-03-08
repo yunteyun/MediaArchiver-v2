@@ -2,7 +2,7 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import { formatFileSize } from '../../utils/groupFiles';
 import { getDisplayFolderName } from '../../utils/path';
-import { getDetailedInfoUiPreset, isHorizontalDisplayMode, type DetailedPanelBadgeKey } from './displayModes';
+import type { DetailedPanelBadgeKey } from './displayModes';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
 type DetailedInfoUiConfig = {
@@ -34,9 +34,9 @@ type DetailedBottomRowProps = {
     TagSummaryRenderer: FileCardInfoCommonProps['TagSummaryRenderer'];
 };
 
-function getDetailedInfoUiConfig(displayMode: FileCardInfoCommonProps['displayMode']): DetailedInfoUiConfig {
-    const detailedUiPreset = getDetailedInfoUiPreset(displayMode);
-    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
+function getDetailedInfoUiConfig(displayPreset: FileCardInfoCommonProps['displayPreset']): DetailedInfoUiConfig {
+    const detailedUiPreset = displayPreset.detailedInfoUi;
+    const isDetailedHorizontalMode = displayPreset.definition.cardDirection === 'horizontal';
 
     return {
         isDetailedHorizontalMode,
@@ -120,12 +120,12 @@ DetailedBottomRow.displayName = 'DetailedBottomRow';
 
 export const FileCardInfoDetailed = React.memo(({
     file,
-    displayMode,
+    displayPreset,
     infoAreaHeight,
     showFileSize,
     TagSummaryRenderer,
 }: FileCardInfoCommonProps) => {
-    const ui = getDetailedInfoUiConfig(displayMode);
+    const ui = getDetailedInfoUiConfig(displayPreset);
     const showMetaLine = !ui.isBadgeMetaMode;
     const showSecondLineSizeBadge = ui.isBadgeMetaMode && showFileSize && !!file.size;
     const folderName = getDisplayFolderName(file.path);

@@ -9,9 +9,7 @@ import { useToastStore } from '../stores/useToastStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
 import {
-    getDisplayModeDefinition,
-    getDisplayModeFromLayoutPreset,
-    isHorizontalDisplayMode,
+    getDisplayPresetById,
 } from './fileCard/displayModes';
 import { FolderCard } from './FolderCard';
 import { Header } from './SortMenu';
@@ -19,6 +17,7 @@ import { GroupHeader } from './GroupHeader';
 import type { GridItem } from '../types/grid';
 import { groupFiles } from '../utils/groupFiles';
 import { buildVisibleFiles } from '../utils/fileListQuery';
+import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 
 const CARD_GAP = 8;
 const GROUP_HEADER_HEIGHT = 40;
@@ -56,10 +55,15 @@ export const FileGrid = React.memo(() => {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const sortBy = useSettingsStore((s) => s.sortBy);
     const sortOrder = useSettingsStore((s) => s.sortOrder);
-    const layoutPreset = useSettingsStore((s) => s.layoutPreset);
-    const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
-    const displayModeDefinition = getDisplayModeDefinition(displayMode);
-    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayMode);
+    const displayMode = useSettingsStore((s) => s.displayMode);
+    const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
+    const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
+    const activeDisplayPreset = useMemo(
+        () => getDisplayPresetById(activeDisplayPresetId, externalDisplayPresets, displayMode),
+        [activeDisplayPresetId, externalDisplayPresets, displayMode]
+    );
+    const displayModeDefinition = activeDisplayPreset.definition;
+    const isDetailedHorizontalMode = displayModeDefinition.cardDirection === 'horizontal';
     const config = displayModeDefinition.layout;
     const groupBy = useSettingsStore((s) => s.groupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
@@ -452,7 +456,7 @@ export const FileGrid = React.memo(() => {
             groupRowVirtualizer.measure();
         });
         return () => window.cancelAnimationFrame(rafId);
-    }, [rowVirtualizer, groupRowVirtualizer, cardHeight, columns, rows, groupedVirtualRows.length, displayMode, groupBy]);
+    }, [rowVirtualizer, groupRowVirtualizer, cardHeight, columns, rows, groupedVirtualRows.length, activeDisplayPreset.id, groupBy]);
 
     // 現在のフォーカスインデックスを計算（Phase 12-4: gridItems対応）
     const focusedIndex = useMemo(() => {

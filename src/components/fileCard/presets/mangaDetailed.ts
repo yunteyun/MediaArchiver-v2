@@ -32,4 +32,5 @@ export const mangaDetailedDisplayPreset: FileCardDisplayPreset = {
         folderBadgeMaxWidthClass: 'max-w-[110px]',
         tagSummaryVisibleCount: 10,
     },
+    thumbnailPresentation: 'square',
 };
