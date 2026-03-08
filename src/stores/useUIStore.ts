@@ -15,7 +15,7 @@ export interface ScanProgress {
     };
 }
 
-export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings';
+export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings' | 'maintenance';
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
 export type SearchTarget = 'fileName' | 'folderName';
 export interface SearchCondition {

@@ -18,6 +18,7 @@ import { ThumbnailsSettingsTab } from './settings/ThumbnailsSettingsTab';
 import { LogsSettingsTab } from './settings/LogsSettingsTab';
 import { BackupSettingsTab } from './settings/BackupSettingsTab';
 import { StorageSettingsTab } from './settings/StorageSettingsTab';
+import { MaintenanceSettingsTab } from './settings/MaintenanceSettingsTab';
 import { useSettingsMaintenance } from './settings/useSettingsMaintenance';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
@@ -336,15 +337,6 @@ export const SettingsModal = React.memo(() => {
                                 onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
                                 performanceMode={performanceMode}
                                 onPerformanceModeChange={setPerformanceMode}
-                                isCheckingForUpdates={isCheckingForUpdates}
-                                updateCheckState={updateCheckState}
-                                onCheckForUpdates={() => { void handleCheckForUpdates(); }}
-                                isDownloadingUpdateZip={isDownloadingUpdateZip}
-                                updateDownloadState={updateDownloadState}
-                                onDownloadLatestUpdateZip={() => { void handleDownloadLatestUpdateZip(); }}
-                                isApplyingUpdate={isApplyingUpdate}
-                                onApplyUpdateFromZip={() => { void handleApplyUpdateFromZip(); }}
-                                onApplyUpdateViaZipDialog={() => { void handleApplyUpdateViaZipDialog(); }}
                                 showFileName={showFileName}
                                 onShowFileNameChange={setShowFileName}
                                 showDuration={showDuration}
@@ -418,6 +410,20 @@ export const SettingsModal = React.memo(() => {
 
                         {activeTab === 'apps' && (
                             <ExternalAppsTab />
+                        )}
+
+                        {activeTab === 'maintenance' && (
+                            <MaintenanceSettingsTab
+                                isCheckingForUpdates={isCheckingForUpdates}
+                                updateCheckState={updateCheckState}
+                                onCheckForUpdates={() => { void handleCheckForUpdates(); }}
+                                isDownloadingUpdateZip={isDownloadingUpdateZip}
+                                updateDownloadState={updateDownloadState}
+                                onDownloadLatestUpdateZip={() => { void handleDownloadLatestUpdateZip(); }}
+                                isApplyingUpdate={isApplyingUpdate}
+                                onApplyUpdateFromZip={() => { void handleApplyUpdateFromZip(); }}
+                                onApplyUpdateViaZipDialog={() => { void handleApplyUpdateViaZipDialog(); }}
+                            />
                         )}
 
                         {activeTab === 'logs' && (
