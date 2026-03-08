@@ -5,6 +5,7 @@ import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
+import { useToastStore } from '../stores/useToastStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
 import {
@@ -275,10 +276,8 @@ export const FileGrid = React.memo(() => {
                 // Bug 3修正: 移動したファイルを即座にstoreから削除
                 removeFile(data.fileId);
 
-                const { useToastStore } = await import('../stores/useToastStore');
                 useToastStore.getState().success('ファイルを移動しました');
             } else {
-                const { useToastStore } = await import('../stores/useToastStore');
                 useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
             }
         };

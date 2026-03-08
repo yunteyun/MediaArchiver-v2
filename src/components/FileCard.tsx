@@ -5,6 +5,7 @@ import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useToastStore } from '../stores/useToastStore';
 import { useTagStore, type Tag } from '../stores/useTagStore';
 
 import { toMediaUrl } from '../utils/mediaPath';
@@ -988,7 +989,6 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         const syncExternalOpenCount = async () => {
             const result = await window.electronAPI.incrementExternalOpenCount(file.id);
             if (result.success && result.externalOpenCount !== undefined) {
-                const { useFileStore } = await import('../stores/useFileStore');
                 useFileStore.getState().updateFileExternalOpenCount(
                     file.id,
                     result.externalOpenCount,
@@ -1011,13 +1011,11 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
 
                 if (!result.success) {
                     // エラー時: トースト表示 + OS標準で開く
-                    const { useToastStore } = await import('../stores/useToastStore');
                     useToastStore.getState().error(result.error || '外部アプリで開けませんでした');
                     await window.electronAPI.openExternal(file.path);
                     await syncExternalOpenCount();
                 } else if (result.externalOpenCount !== undefined) {
                     // 成功時: カウント更新
-                    const { useFileStore } = await import('../stores/useFileStore');
                     useFileStore.getState().updateFileExternalOpenCount(
                         file.id,
                         result.externalOpenCount,

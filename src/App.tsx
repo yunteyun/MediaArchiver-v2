@@ -1,15 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { Suspense, lazy, useEffect, useState, useCallback, useRef } from 'react';
 import { Toaster } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
-import { SettingsModal } from './components/SettingsModal';
 import { ProfileSwitcher } from './components/ProfileSwitcher';
-import { ProfileModal } from './components/ProfileModal';
 import { ScanProgressBar } from './components/ScanProgressBar';
 import { ToastContainer } from './components/Toast';
-import { DuplicateView } from './components/DuplicateView';
-import { StatisticsView } from './components/StatisticsView';
-import { RightPanel } from './components/RightPanel';
 import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
@@ -17,11 +12,25 @@ import { useUIStore } from './stores/useUIStore';
 import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, useSettingsStore } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
 import { useRatingStore } from './stores/useRatingStore';
-import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
-import { MoveFolderDialog } from './components/MoveFolderDialog';
-import { RenameFileDialog } from './components/RenameFileDialog';
 import { useDuplicateStore } from './stores/useDuplicateStore';
 import { CenterViewerRoot } from './features/center-viewer/CenterViewerRoot';
+
+const StatisticsView = lazy(() => import('./components/StatisticsView').then((module) => ({ default: module.StatisticsView })));
+const DuplicateView = lazy(() => import('./components/DuplicateView').then((module) => ({ default: module.DuplicateView })));
+const RightPanel = lazy(() => import('./components/RightPanel').then((module) => ({ default: module.RightPanel })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then((module) => ({ default: module.SettingsModal })));
+const ProfileModal = lazy(() => import('./components/ProfileModal').then((module) => ({ default: module.ProfileModal })));
+const DeleteConfirmDialog = lazy(() => import('./components/DeleteConfirmDialog').then((module) => ({ default: module.DeleteConfirmDialog })));
+const RenameFileDialog = lazy(() => import('./components/RenameFileDialog').then((module) => ({ default: module.RenameFileDialog })));
+const MoveFolderDialog = lazy(() => import('./components/MoveFolderDialog').then((module) => ({ default: module.MoveFolderDialog })));
+
+function MainViewLoading({ label }: { label: string }) {
+    return (
+        <div className="flex h-full items-center justify-center bg-surface-950 text-surface-400">
+            <p className="text-sm">{label}</p>
+        </div>
+    );
+}
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
@@ -41,6 +50,7 @@ function App() {
     const removeToast = useToastStore((s) => s.removeToast);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
+    const settingsModalOpen = useUIStore((s) => s.settingsModalOpen);
     const externalApps = useSettingsStore((s) => s.externalApps);
     const deleteDialogOpen = useUIStore((s) => s.deleteDialogOpen);
     const deleteDialogFilePath = useUIStore((s) => s.deleteDialogFilePath);
@@ -354,9 +364,13 @@ function App() {
                 {/* メインコンテンツ: 統計 / 重複ビュー / ファイルグリッド */}
                 <div className="relative flex-1 min-h-0">
                     {mainView === 'statistics' ? (
-                        <StatisticsView />
+                        <Suspense fallback={<MainViewLoading label="統計を読み込み中..." />}>
+                            <StatisticsView />
+                        </Suspense>
                     ) : duplicateViewOpen ? (
-                        <DuplicateView />
+                        <Suspense fallback={<MainViewLoading label="重複チェックを読み込み中..." />}>
+                            <DuplicateView />
+                        </Suspense>
                     ) : (
                         <FileGrid key={`grid-${refreshKey}`} />
                     )}
@@ -364,57 +378,81 @@ function App() {
                 </div>
             </main>
             {/* Phase 23: 右サイドパネル（transform で開閉、レイアウトシフト回避） */}
-            {isRightPanelOpen && <RightPanel />}
-            <SettingsModal />
-            <ProfileModal
-                isOpen={profileModalOpen}
-                onClose={() => setProfileModalOpen(false)}
-            />
+            {isRightPanelOpen && (
+                <Suspense fallback={null}>
+                    <RightPanel />
+                </Suspense>
+            )}
+            {settingsModalOpen && (
+                <Suspense fallback={null}>
+                    <SettingsModal />
+                </Suspense>
+            )}
+            {profileModalOpen && (
+                <Suspense fallback={null}>
+                    <ProfileModal
+                        isOpen={profileModalOpen}
+                        onClose={() => setProfileModalOpen(false)}
+                    />
+                </Suspense>
+            )}
             <ScanProgressBar onCancel={handleCancelScan} />
             <ToastContainer toasts={toasts} onClose={removeToast} />
             <Toaster position="bottom-right" richColors />
-            <DeleteConfirmDialog
-                isOpen={deleteDialogOpen}
-                filePath={deleteDialogFilePath || ''}
-                onConfirm={handleDeleteConfirm}
-                onCancel={closeDeleteDialog}
-            />
-            <RenameFileDialog
-                isOpen={renameDialogFileId !== null}
-                currentName={renameDialogCurrentName}
-                currentPath={renameDialogCurrentPath}
-                suggestedName={renameDialogSuggestedName}
-                onConfirm={handleRenameConfirm}
-                onCancel={handleRenameCancel}
-            />
+            {deleteDialogOpen && (
+                <Suspense fallback={null}>
+                    <DeleteConfirmDialog
+                        isOpen={deleteDialogOpen}
+                        filePath={deleteDialogFilePath || ''}
+                        onConfirm={handleDeleteConfirm}
+                        onCancel={closeDeleteDialog}
+                    />
+                </Suspense>
+            )}
+            {renameDialogFileId !== null && (
+                <Suspense fallback={null}>
+                    <RenameFileDialog
+                        isOpen={renameDialogFileId !== null}
+                        currentName={renameDialogCurrentName}
+                        currentPath={renameDialogCurrentPath}
+                        suggestedName={renameDialogSuggestedName}
+                        onConfirm={handleRenameConfirm}
+                        onCancel={handleRenameCancel}
+                    />
+                </Suspense>
+            )}
             {/* Phase 22-C-2: ファイル移動ダイアログ */}
-            <MoveFolderDialog
-                isOpen={moveDialogOpen}
-                onClose={closeMoveDialog}
-                onMove={async (targetFolderId) => {
-                    if (moveFileIds.length === 0) return;
+            {moveDialogOpen && (
+                <Suspense fallback={null}>
+                    <MoveFolderDialog
+                        isOpen={moveDialogOpen}
+                        onClose={closeMoveDialog}
+                        onMove={async (targetFolderId) => {
+                            if (moveFileIds.length === 0) return;
 
-                    try {
-                        // 現在は単一ファイルのみ対応
-                        const fileId = moveFileIds[0];
-                        const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId);
+                            try {
+                                // 現在は単一ファイルのみ対応
+                                const fileId = moveFileIds[0];
+                                const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId);
 
-                        if (result.success) {
-                            // Bug 3修正: 移動したファイルを即座にstoreから削除
-                            const { removeFile } = useFileStore.getState();
-                            removeFile(fileId);
+                                if (result.success) {
+                                    // Bug 3修正: 移動したファイルを即座にstoreから削除
+                                    const { removeFile } = useFileStore.getState();
+                                    removeFile(fileId);
 
-                            useToastStore.getState().success('ファイルを移動しました');
-                        } else {
-                            useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
-                        }
-                    } catch (error) {
-                        console.error('Move file error:', error);
-                        useToastStore.getState().error('ファイル移動に失敗しました');
-                    }
-                }}
-                currentFolderId={moveCurrentFolderId || undefined}
-            />
+                                    useToastStore.getState().success('ファイルを移動しました');
+                                } else {
+                                    useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
+                                }
+                            } catch (error) {
+                                console.error('Move file error:', error);
+                                useToastStore.getState().error('ファイル移動に失敗しました');
+                            }
+                        }}
+                        currentFolderId={moveCurrentFolderId || undefined}
+                    />
+                </Suspense>
+            )}
         </div>
     );
 }
