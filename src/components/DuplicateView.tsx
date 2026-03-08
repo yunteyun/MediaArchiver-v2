@@ -164,9 +164,9 @@ export const DuplicateView: React.FC = () => {
 
     // 重複グループ一覧
     return (
-        <div className="flex-1 flex flex-col bg-surface-900 overflow-hidden">
+        <div className="h-full min-h-0 flex flex-col bg-surface-900 overflow-hidden">
             {/* ヘッダー */}
-            <div className="flex items-center justify-between p-4 border-b border-surface-700">
+            <div className="flex flex-shrink-0 items-center justify-between p-4 border-b border-surface-700">
                 <div className="flex items-center gap-4">
                     <h2 className="text-lg font-medium text-surface-100 flex items-center gap-2">
                         <Copy className="w-5 h-5 text-primary-400" />
@@ -215,7 +215,7 @@ export const DuplicateView: React.FC = () => {
             </div>
 
             {/* グループ一覧 */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
                 {groups.map((group) => (
                     <div key={group.hash} className="bg-surface-800 rounded-lg overflow-hidden">
                         {/* グループヘッダー */}

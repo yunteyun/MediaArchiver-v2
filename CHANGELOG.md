@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - 0.5 刻みの評価軸で最小値や最大値を途中値にした場合に、範囲外の半星を選べてしまう問題を修正した。
+- 重複ファイルチェックの結果一覧で縦スクロールバーが出ず、下方の結果へ辿りにくい問題を修正した。
 
 ---
 
