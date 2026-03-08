@@ -5,7 +5,7 @@
 
 ## 予定 (Planned)
 ### 直近
-- Electron database / IPC の `any` 削減（プロセス境界の型安全と変更検知を強化する）
+- Electron service 層の `any` 削減（rating/tag/search 周辺の型安全をさらに強化する）
 - Sidebar のデータ取得・イベント購読切り出し（責務混在を減らして保守しやすくする）
 - SettingsModal の更新導線 / CSV / ストレージ処理分離（非同期処理の見通しを改善する）
 

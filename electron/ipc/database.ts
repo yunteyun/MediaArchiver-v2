@@ -1,7 +1,16 @@
 import { ipcMain } from 'electron';
-import { getFiles, findFileById, updateFileNotes, getFilesByFolderPathDirect, getFilesByFolderPathRecursive, getFolderTreePaths } from '../services/database';
+import type { MediaFile as RendererMediaFile } from '../../src/types/file';
+import {
+    getFiles,
+    findFileById,
+    updateFileNotes,
+    getFilesByFolderPathDirect,
+    getFilesByFolderPathRecursive,
+    getFolderTreePaths,
+    type MediaFile as DatabaseMediaFile,
+} from '../services/database';
 
-function mapFileForRenderer(f: any) {
+function mapFileForRenderer(f: DatabaseMediaFile): RendererMediaFile {
     return {
         id: f.id,
         name: f.name,
@@ -29,15 +38,15 @@ function mapFileForRenderer(f: any) {
 export function registerDatabaseHandlers() {
     ipcMain.handle('db:getFiles', async (_event, folderId?: string) => {
         const files = getFiles(folderId);
-        return files.map((f: any) => mapFileForRenderer(f));
+        return files.map((file) => mapFileForRenderer(file));
     });
 
     ipcMain.handle('db:getFilesByFolderPathDirect', async (_event, folderPath: string) => {
-        return getFilesByFolderPathDirect(folderPath).map((f: any) => mapFileForRenderer(f));
+        return getFilesByFolderPathDirect(folderPath).map((file) => mapFileForRenderer(file));
     });
 
     ipcMain.handle('db:getFilesByFolderPathRecursive', async (_event, folderPath: string) => {
-        return getFilesByFolderPathRecursive(folderPath).map((f: any) => mapFileForRenderer(f));
+        return getFilesByFolderPathRecursive(folderPath).map((file) => mapFileForRenderer(file));
     });
 
     ipcMain.handle('folder:getTreePaths', async () => {

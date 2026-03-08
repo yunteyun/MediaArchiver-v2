@@ -48,6 +48,28 @@ export interface MediaFile {
     lastExternalOpenedAt?: number | null;
 }
 
+interface FileRow {
+    id: string;
+    name: string;
+    path: string;
+    size: number;
+    type: 'video' | 'image' | 'archive' | 'audio';
+    created_at: number;
+    duration?: string;
+    thumbnail_path?: string;
+    preview_frames?: string;
+    root_folder_id?: string;
+    content_hash?: string;
+    metadata?: string;
+    mtime_ms?: number;
+    notes?: string;
+    is_animated?: number;
+    access_count?: number;
+    last_accessed_at?: number | null;
+    external_open_count?: number;
+    last_external_opened_at?: number | null;
+}
+
 export interface ScannerFileRecord {
     id: string;
     path: string;
@@ -166,7 +188,7 @@ function serializeFolderScanSettings(settings: FolderScanSettings): string | nul
 }
 
 // snake_case DB row → camelCase MediaFile 変換ヘルパー
-function mapRow(f: any): MediaFile {
+function mapRow(f: FileRow): MediaFile {
     return {
         id: f.id,
         name: f.name,
@@ -224,7 +246,7 @@ export function incrementExternalOpenCount(id: string): { externalOpenCount: num
 export function getFiles(rootFolderId?: string): MediaFile[] {
     const db = getDb();
     let query = 'SELECT * FROM files';
-    let params: any[] = [];
+    const params: string[] = [];
 
     if (rootFolderId) {
         query += ' WHERE root_folder_id = ?';
@@ -233,7 +255,7 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
 
     query += ' ORDER BY created_at DESC';
 
-    const files = db.prepare(query).all(...params) as any[];
+    const files = db.prepare(query).all(...params) as FileRow[];
 
     return files.map(f => ({
         ...mapRow(f),
@@ -270,7 +292,7 @@ export function getFilesByFolderIds(folderIds: string[]): MediaFile[] {
     const db = getDb();
     const placeholders = folderIds.map(() => '?').join(',');
     const query = `SELECT * FROM files WHERE root_folder_id IN (${placeholders}) ORDER BY created_at DESC`;
-    const files = db.prepare(query).all(...folderIds) as any[];
+    const files = db.prepare(query).all(...folderIds) as FileRow[];
 
     return files.map(f => ({
         ...mapRow(f),
@@ -281,7 +303,7 @@ export function getFilesByFolderIds(folderIds: string[]): MediaFile[] {
 
 export function findFileByPath(filePath: string): MediaFile | undefined {
     const db = getDb();
-    const file = db.prepare('SELECT * FROM files WHERE path = ?').get(filePath) as any;
+    const file = db.prepare('SELECT * FROM files WHERE path = ?').get(filePath) as FileRow | undefined;
     if (file) {
         return { ...mapRow(file), tags: getTags(file.id) };
     }
@@ -294,7 +316,7 @@ export function findFileScanRecordByPath(filePath: string): ScannerFileRecord | 
         SELECT id, path, size, type, duration, thumbnail_path, preview_frames, root_folder_id, content_hash, metadata, mtime_ms, is_animated
         FROM files
         WHERE path = ?
-    `).get(filePath) as any;
+    `).get(filePath) as ScannerFileRecord | undefined;
     if (!row) return undefined;
     return {
         id: row.id,
@@ -314,7 +336,7 @@ export function findFileScanRecordByPath(filePath: string): ScannerFileRecord | 
 
 export function findFileByHash(hash: string): MediaFile | undefined {
     const db = getDb();
-    const file = db.prepare('SELECT * FROM files WHERE content_hash = ?').get(hash) as any;
+    const file = db.prepare('SELECT * FROM files WHERE content_hash = ?').get(hash) as FileRow | undefined;
     if (file) {
         return { ...mapRow(file), tags: getTags(file.id) };
     }
@@ -534,7 +556,7 @@ export function updateFileNotes(id: string, notes: string) {
 
 export function findFileById(id: string): MediaFile | undefined {
     const db = getDb();
-    const row = db.prepare('SELECT * FROM files WHERE id = ?').get(id) as any;
+    const row = db.prepare('SELECT * FROM files WHERE id = ?').get(id) as FileRow | undefined;
     if (!row) return undefined;
     return {
         ...mapRow(row),
