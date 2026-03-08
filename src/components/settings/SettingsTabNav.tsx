@@ -16,14 +16,14 @@ interface TabItem {
 }
 
 export const SETTINGS_TAB_ITEMS: TabItem[] = [
-    { id: 'general', label: '一般', description: '表示や更新導線などの基本設定', icon: Settings },
-    { id: 'thumbnails', label: 'サムネイル', description: 'プレビューやカード表示の見え方', icon: Image },
-    { id: 'scan', label: 'スキャン', description: '対応形式とフォルダ別の読込設定', icon: RefreshCw },
-    { id: 'storage', label: 'ストレージ', description: '保存場所とデータ移行', icon: HardDrive },
-    { id: 'apps', label: '外部アプリ', description: '検索先や連携アプリの管理', icon: AppWindow },
-    { id: 'logs', label: 'ログ', description: 'トラブル調査用のログ確認', icon: FileText },
-    { id: 'backup', label: 'バックアップ', description: 'バックアップと入出力', icon: Database },
-    { id: 'ratings', label: '評価', description: '評価軸の追加や並び替え', icon: Star },
+    { id: 'general', label: '一般', description: '基本表示と更新確認の設定', icon: Settings },
+    { id: 'thumbnails', label: 'サムネイル', description: 'プレビューとカード表示の設定', icon: Image },
+    { id: 'scan', label: 'スキャン', description: '対応形式と読込動作の設定', icon: RefreshCw },
+    { id: 'ratings', label: '評価', description: '評価軸と並び順の設定', icon: Star },
+    { id: 'storage', label: 'ストレージ', description: '保存場所とデータ移行の設定', icon: HardDrive },
+    { id: 'apps', label: '外部アプリ', description: '検索先と外部連携の設定', icon: AppWindow },
+    { id: 'logs', label: 'ログ', description: 'ログ確認と共有の設定', icon: FileText },
+    { id: 'backup', label: 'バックアップ', description: 'バックアップと入出力の設定', icon: Database },
 ];
 
 export function getSettingsTabMeta(tab: SettingsModalTab) {
@@ -31,10 +31,10 @@ export function getSettingsTabMeta(tab: SettingsModalTab) {
 }
 
 export const SettingsTabNav = React.memo(({ activeTab, onSelectTab }: SettingsTabNavProps) => (
-    <aside className="flex h-full w-56 shrink-0 flex-col border-r border-surface-700 bg-surface-950/35">
+    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-surface-700 bg-surface-950/35">
         <div className="border-b border-surface-800 px-4 py-4">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-500">
-                Category
+            <div className="text-[11px] font-semibold tracking-[0.14em] text-surface-500">
+                カテゴリ
             </div>
             <p className="mt-1 text-xs leading-relaxed text-surface-500">
                 設定項目を分類して表示します。
