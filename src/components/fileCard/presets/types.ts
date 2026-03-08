@@ -31,10 +31,18 @@ export type DetailedInfoUiPreset = {
     tagSummaryVisibleCount: number;
 };
 
+export type CompactInfoUiPreset = {
+    containerClass: string;
+    titleClass: string;
+    metaRowClass: string;
+    fileSizeClass: string;
+};
+
 export interface FileCardDisplayPreset {
     definition: FileCardDisplayModeDefinition;
     tagSummaryUi: TagSummaryUiPreset;
     detailedInfoUi: DetailedInfoUiPreset;
+    compactInfoUi: CompactInfoUiPreset;
     thumbnailPresentation: ThumbnailPresentation;
 }
 
@@ -52,6 +60,7 @@ export interface ExternalDisplayPresetManifest {
     hideThumbnailBadges?: boolean;
     tagSummaryUi?: Partial<TagSummaryUiPreset>;
     detailedInfoUi?: Partial<DetailedInfoUiPreset>;
+    compactInfoUi?: Partial<CompactInfoUiPreset>;
     thumbnailPresentation?: ThumbnailPresentation;
 }
 

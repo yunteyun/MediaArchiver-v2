@@ -84,6 +84,9 @@ describe('displayModes registry', () => {
                 tagSummaryUi: {
                     visibleCount: 11,
                 },
+                compactInfoUi: {
+                    titleClass: 'text-[10px]',
+                },
             },
         ]);
 
@@ -95,6 +98,7 @@ describe('displayModes registry', () => {
         expect(resolved.thumbnailPresentation).toBe('contain');
         expect(resolved.definition.layout.cardWidth).toBe(500);
         expect(resolved.tagSummaryUi.visibleCount).toBe(11);
+        expect(resolved.compactInfoUi.titleClass).toBe('text-[10px]');
         expect(menuOptions.some((preset) => preset.id === 'custom-whitebrowser')).toBe(true);
     });
 });

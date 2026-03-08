@@ -2,6 +2,7 @@ import type { DisplayMode, LayoutPreset } from '../../stores/useSettingsStore';
 import type { FileCardDisplayModeDefinition, FileCardLayoutConfig } from './displayModeTypes';
 import { FILE_CARD_DISPLAY_PRESETS } from './presets';
 import type {
+    CompactInfoUiPreset,
     DetailedInfoUiPreset,
     DetailedPanelBadgeKey,
     ExternalDisplayPresetManifest,
@@ -10,6 +11,7 @@ import type {
 } from './presets/types';
 
 export type {
+    CompactInfoUiPreset,
     DetailedInfoUiPreset,
     DetailedPanelBadgeKey,
     DisplayPresetSelection,
@@ -129,6 +131,17 @@ function mergeDetailedInfoUiPreset(
     };
 }
 
+function mergeCompactInfoUiPreset(
+    base: CompactInfoUiPreset,
+    override?: Partial<CompactInfoUiPreset>
+): CompactInfoUiPreset {
+    if (!override) return base;
+    return {
+        ...base,
+        ...override,
+    };
+}
+
 export function resolveExternalDisplayPresets(
     manifests: ExternalDisplayPresetManifest[]
 ): ResolvedFileCardDisplayPreset[] {
@@ -166,6 +179,7 @@ export function resolveExternalDisplayPresets(
             },
             tagSummaryUi: mergeTagSummaryUiPreset(base.tagSummaryUi, manifest.tagSummaryUi),
             detailedInfoUi: mergeDetailedInfoUiPreset(base.detailedInfoUi, manifest.detailedInfoUi),
+            compactInfoUi: mergeCompactInfoUiPreset(base.compactInfoUi, manifest.compactInfoUi),
             thumbnailPresentation: manifest.thumbnailPresentation ?? base.thumbnailPresentation,
         });
     }

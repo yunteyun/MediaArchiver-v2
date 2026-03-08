@@ -45,6 +45,13 @@ const VALID_BADGE_KEYS = new Set([
     'folder',
 ]);
 
+const VALID_COMPACT_INFO_UI_KEYS = new Set([
+    'containerClass',
+    'titleClass',
+    'metaRowClass',
+    'fileSizeClass',
+]);
+
 const LAYOUT_RANGES = {
     cardWidth: { min: 140, max: 720 },
     thumbnailHeight: { min: 96, max: 720 },
@@ -104,6 +111,36 @@ function getWhiteBrowserBalancedPresetManifest(): ExternalDisplayPresetManifest 
         detailedInfoUi: {
             folderBadgeMaxWidthClass: 'max-w-[176px]',
             tagSummaryVisibleCount: 10,
+        },
+    };
+}
+
+function getCompactDensePresetManifest(): ExternalDisplayPresetManifest {
+    return {
+        id: 'compact-dense',
+        extends: 'compact',
+        label: '標準（XS/高密度）',
+        menuOrder: 5,
+        thumbnailPresentation: 'modeDefault',
+        layout: {
+            aspectRatio: '1/1',
+            cardWidth: 156,
+            thumbnailHeight: 156,
+            infoAreaHeight: 40,
+            totalHeight: 196,
+        },
+        tagSummaryUi: {
+            visibleCount: 1,
+            chipPaddingClass: 'px-1 py-0.5',
+            chipTextClass: 'text-[7px] leading-none',
+            chipRadiusClass: 'rounded-sm',
+            chipMaxWidthClass: 'max-w-[50px]',
+        },
+        compactInfoUi: {
+            containerClass: 'px-1.5 py-1 flex flex-col justify-start bg-surface-800 gap-0',
+            titleClass: 'text-[11px] text-white truncate leading-tight font-semibold mb-0.5',
+            metaRowClass: 'flex items-start justify-between gap-1',
+            fileSizeClass: 'text-[9px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1 py-0.5 rounded-sm',
         },
     };
 }
@@ -246,6 +283,20 @@ function normalizeManifest(raw: unknown): NormalizeManifestResult {
         if (normalizedTagSummaryVisibleCount !== undefined) normalized.detailedInfoUi.tagSummaryVisibleCount = normalizedTagSummaryVisibleCount;
     }
 
+    if (isRecord(raw.compactInfoUi)) {
+        normalized.compactInfoUi = {};
+        if (typeof raw.compactInfoUi.containerClass === 'string') normalized.compactInfoUi.containerClass = raw.compactInfoUi.containerClass;
+        if (typeof raw.compactInfoUi.titleClass === 'string') normalized.compactInfoUi.titleClass = raw.compactInfoUi.titleClass;
+        if (typeof raw.compactInfoUi.metaRowClass === 'string') normalized.compactInfoUi.metaRowClass = raw.compactInfoUi.metaRowClass;
+        if (typeof raw.compactInfoUi.fileSizeClass === 'string') normalized.compactInfoUi.fileSizeClass = raw.compactInfoUi.fileSizeClass;
+
+        Object.keys(raw.compactInfoUi).forEach((key) => {
+            if (!VALID_COMPACT_INFO_UI_KEYS.has(key)) {
+                warnings.push(`compactInfoUi.${key} は未対応のため無視しました`);
+            }
+        });
+    }
+
     return { manifest: normalized, warnings };
 }
 
@@ -265,6 +316,10 @@ function ensureDisplayPresetDirectory(): string {
         {
             fileName: 'whitebrowser-balanced.json',
             manifest: getWhiteBrowserBalancedPresetManifest(),
+        },
+        {
+            fileName: 'compact-dense.json',
+            manifest: getCompactDensePresetManifest(),
         },
     ];
 

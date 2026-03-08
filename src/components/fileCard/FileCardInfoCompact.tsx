@@ -10,18 +10,19 @@ export const FileCardInfoCompact = React.memo(({
     TagSummaryRenderer,
 }: FileCardInfoCommonProps) => {
     const tagSummaryVisibleCount = displayPreset.tagSummaryUi.visibleCount;
+    const compactUi = displayPreset.compactInfoUi;
 
     return (
         <div
-            className="px-2 py-1 flex flex-col justify-start bg-surface-800 gap-0"
+            className={compactUi.containerClass}
             style={{ height: `${infoAreaHeight}px` }}
         >
-            <div className="text-xs text-white truncate leading-tight font-semibold mb-0.5" title={file.name}>
+            <div className={compactUi.titleClass} title={file.name}>
                 {file.name}
             </div>
-            <div className="flex items-start justify-between gap-1">
+            <div className={compactUi.metaRowClass}>
                 {showFileSize && file.size && (
-                    <span className="text-[11px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1.5 py-0.5 rounded">
+                    <span className={compactUi.fileSizeClass}>
                         {formatFileSize(file.size)}
                     </span>
                 )}
