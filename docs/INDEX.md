@@ -57,6 +57,8 @@
   - 表示プリセット JSON の仕様
 - `docs/dev/specs/display-thumbnail-separation-v1.md`
   - 表示レイアウトとサムネイル表現の分離方針
+- `docs/dev/specs/settings-redesign-v1.md`
+  - 設定項目の棚卸しと保存スコープ、設定再編の方針
 
 ## docs/dev/investigations
 
