@@ -34,6 +34,45 @@ export interface TagDefinition {
     description: string;
 }
 
+interface TagCategoryRow {
+    id: string;
+    name: string;
+    color: string;
+    sort_order: number;
+    created_at: number;
+}
+
+interface TagDefinitionRow {
+    id: string;
+    name: string;
+    color: string;
+    category_id: string | null;
+    sort_order: number;
+    created_at: number;
+    icon?: string | null;
+    description?: string | null;
+}
+
+interface TagDefinitionWithCategoryRow extends TagDefinitionRow {
+    category_color?: string | null;
+}
+
+interface SortOrderMaxRow {
+    max: number | null;
+}
+
+interface NameRow {
+    name: string;
+}
+
+interface TagIdRow {
+    tag_id: string;
+}
+
+interface FileIdRow {
+    file_id: string;
+}
+
 // --- Category Operations ---
 
 export function getAllCategories(): TagCategory[] {
@@ -41,7 +80,7 @@ export function getAllCategories(): TagCategory[] {
         SELECT id, name, color, sort_order, created_at 
         FROM tag_categories 
         ORDER BY sort_order ASC, name ASC
-    `).all() as any[];
+    `).all() as TagCategoryRow[];
 
     return rows.map(row => ({
         id: row.id,
@@ -55,7 +94,7 @@ export function getAllCategories(): TagCategory[] {
 export function createCategory(name: string, color: string = 'gray'): TagCategory {
     const id = uuidv4();
     const now = Date.now();
-    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM tag_categories').get() as any)?.max || 0;
+    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM tag_categories').get() as SortOrderMaxRow | undefined)?.max || 0;
 
     db().prepare(`
         INSERT INTO tag_categories (id, name, color, sort_order, created_at)
@@ -66,7 +105,7 @@ export function createCategory(name: string, color: string = 'gray'): TagCategor
 }
 
 export function updateCategory(id: string, updates: { name?: string; color?: string; sortOrder?: number }): TagCategory | null {
-    const existing = db().prepare('SELECT * FROM tag_categories WHERE id = ?').get(id) as any;
+    const existing = db().prepare('SELECT * FROM tag_categories WHERE id = ?').get(id) as TagCategoryRow | undefined;
     if (!existing) return null;
 
     const newName = updates.name ?? existing.name;
@@ -93,7 +132,7 @@ export function getAllTags(): TagDefinition[] {
         FROM tag_definitions td
         LEFT JOIN tag_categories tc ON td.category_id = tc.id
         ORDER BY td.sort_order ASC, td.name ASC
-    `).all() as any[];
+    `).all() as TagDefinitionWithCategoryRow[];
 
     return rows.map(row => ({
         id: row.id,
@@ -117,7 +156,7 @@ export function createTag(
 ): TagDefinition {
     const id = uuidv4();
     const now = Date.now();
-    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM tag_definitions').get() as any)?.max || 0;
+    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM tag_definitions').get() as SortOrderMaxRow | undefined)?.max || 0;
 
     db().prepare(`
         INSERT INTO tag_definitions (id, name, color, category_id, sort_order, created_at, icon, description)
@@ -138,7 +177,7 @@ export function updateTag(
         description?: string;
     }
 ): TagDefinition | null {
-    const existing = db().prepare('SELECT * FROM tag_definitions WHERE id = ?').get(id) as any;
+    const existing = db().prepare('SELECT * FROM tag_definitions WHERE id = ?').get(id) as TagDefinitionRow | undefined;
     if (!existing) return null;
 
     const newName = updates.name ?? existing.name;
@@ -171,7 +210,7 @@ export function deleteTag(id: string): void {
 }
 
 export function getTagByName(name: string): TagDefinition | null {
-    const row = db().prepare('SELECT * FROM tag_definitions WHERE name = ?').get(name) as any;
+    const row = db().prepare('SELECT * FROM tag_definitions WHERE name = ?').get(name) as TagDefinitionRow | undefined;
     if (!row) return null;
 
     return {
@@ -227,7 +266,7 @@ export function getFileTags(fileId: string): TagDefinition[] {
         LEFT JOIN tag_categories tc ON td.category_id = tc.id
         WHERE ft.file_id = ?
         ORDER BY td.sort_order ASC, td.name ASC
-    `).all(fileId) as any[];
+    `).all(fileId) as TagDefinitionWithCategoryRow[];
 
     return rows.map(row => ({
         id: row.id,
@@ -243,7 +282,7 @@ export function getFileTags(fileId: string): TagDefinition[] {
 }
 
 export function getFileTagIds(fileId: string): string[] {
-    const rows = db().prepare('SELECT tag_id FROM file_tags WHERE file_id = ?').all(fileId) as { tag_id: string }[];
+    const rows = db().prepare('SELECT tag_id FROM file_tags WHERE file_id = ?').all(fileId) as TagIdRow[];
     return rows.map(r => r.tag_id);
 }
 
@@ -254,7 +293,7 @@ export function getFilesByTagIds(tagIds: string[], mode: 'AND' | 'OR' = 'OR'): s
         const placeholders = tagIds.map(() => '?').join(', ');
         const rows = db().prepare(`
             SELECT DISTINCT file_id FROM file_tags WHERE tag_id IN (${placeholders})
-        `).all(...tagIds) as { file_id: string }[];
+        `).all(...tagIds) as FileIdRow[];
         return rows.map(r => r.file_id);
     } else {
         // AND mode: files that have ALL specified tags
@@ -264,7 +303,7 @@ export function getFilesByTagIds(tagIds: string[], mode: 'AND' | 'OR' = 'OR'): s
             WHERE tag_id IN (${placeholders})
             GROUP BY file_id
             HAVING COUNT(DISTINCT tag_id) = ?
-        `).all(...tagIds, tagIds.length) as { file_id: string }[];
+        `).all(...tagIds, tagIds.length) as FileIdRow[];
         return rows.map(r => r.file_id);
     }
 }

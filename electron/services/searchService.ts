@@ -50,11 +50,26 @@ export interface SearchResult {
     thumbnailPath: string | null;
 }
 
+interface SearchResultRow {
+    id: string;
+    name: string;
+    path: string;
+    type: string;
+    size: number;
+    duration: number | null;
+    width: number | null;
+    height: number | null;
+    created_at: number;
+    thumbnail_path: string | null;
+}
+
+type SearchQueryParam = string | number;
+
 // --- Search ---
 
 export function searchFiles(condition: SearchCondition): SearchResult[] {
     const whereClauses: string[] = [];
-    const params: any[] = [];
+    const params: SearchQueryParam[] = [];
 
     // テキスト検索（ファイル名）
     if (condition.text && condition.text.trim().length > 0) {
@@ -124,7 +139,7 @@ export function searchFiles(condition: SearchCondition): SearchResult[] {
     `;
 
     try {
-        const rows = db().prepare(sql).all(...params) as any[];
+        const rows = db().prepare(sql).all(...params) as SearchResultRow[];
         return rows.map(row => ({
             id: row.id,
             name: row.name,
@@ -137,9 +152,10 @@ export function searchFiles(condition: SearchCondition): SearchResult[] {
             createdAt: row.created_at,
             thumbnailPath: row.thumbnail_path,
         }));
-    } catch (e: any) {
-        log.error(`searchFiles failed: ${e.message}`);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        log.error(`searchFiles failed: ${message}`);
         log.error(`SQL: ${sql}`);
-        throw e;
+        throw error;
     }
 }

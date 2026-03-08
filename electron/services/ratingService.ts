@@ -33,9 +33,44 @@ export interface FileRating {
     updatedAt: number;
 }
 
+interface RatingAxisRow {
+    id: string;
+    name: string;
+    min_value: number;
+    max_value: number;
+    step: number;
+    is_system: number;
+    sort_order: number;
+    created_at: number;
+}
+
+interface FileRatingRow {
+    file_id: string;
+    axis_id: string;
+    value: number;
+    updated_at: number;
+}
+
+interface MaxOrderRow {
+    m: number | null;
+}
+
+interface SystemAxisRow {
+    is_system: number;
+}
+
+interface CountRow {
+    count: number;
+}
+
+interface RatingDistributionRow {
+    value: number;
+    count: number;
+}
+
 // --- Row mapper ---
 
-function mapAxisRow(row: any): RatingAxis {
+function mapAxisRow(row: RatingAxisRow): RatingAxis {
     return {
         id: row.id,
         name: row.name,
@@ -56,7 +91,7 @@ export function getAllAxes(): RatingAxis[] {
         SELECT id, name, min_value, max_value, step, is_system, sort_order, created_at
         FROM rating_axes
         ORDER BY sort_order ASC, created_at ASC
-    `).all() as any[];
+    `).all() as RatingAxisRow[];
 
     return rows.map(mapAxisRow);
 }
@@ -73,7 +108,7 @@ export function createAxis(
     const now = Date.now();
 
     // sortOrder: 既存の最大値 + 1
-    const maxOrder = (db().prepare('SELECT MAX(sort_order) as m FROM rating_axes').get() as any)?.m ?? -1;
+    const maxOrder = (db().prepare('SELECT MAX(sort_order) as m FROM rating_axes').get() as MaxOrderRow | undefined)?.m ?? -1;
 
     db().prepare(`
         INSERT INTO rating_axes (id, name, min_value, max_value, step, is_system, sort_order, created_at)
@@ -82,7 +117,7 @@ export function createAxis(
 
     log.info(`Created axis: ${name} (id=${id})`);
     return mapAxisRow(
-        db().prepare('SELECT * FROM rating_axes WHERE id = ?').get(id)
+        db().prepare('SELECT * FROM rating_axes WHERE id = ?').get(id) as RatingAxisRow
     );
 }
 
@@ -91,7 +126,7 @@ export function updateAxis(
     id: string,
     updates: { name?: string; minValue?: number; maxValue?: number; step?: number; sortOrder?: number }
 ): RatingAxis | null {
-    const existing = db().prepare('SELECT * FROM rating_axes WHERE id = ?').get(id) as any;
+    const existing = db().prepare('SELECT * FROM rating_axes WHERE id = ?').get(id) as RatingAxisRow | undefined;
     if (!existing) return null;
 
     const name = updates.name ?? existing.name;
@@ -107,13 +142,13 @@ export function updateAxis(
     `).run(name, minValue, maxValue, step, sortOrder, id);
 
     return mapAxisRow(
-        db().prepare('SELECT * FROM rating_axes WHERE id = ?').get(id)
+        db().prepare('SELECT * FROM rating_axes WHERE id = ?').get(id) as RatingAxisRow
     );
 }
 
 /** 評価軸を削除（is_system=1は削除不可） */
 export function deleteAxis(id: string): { success: boolean; reason?: string } {
-    const axis = db().prepare('SELECT is_system FROM rating_axes WHERE id = ?').get(id) as any;
+    const axis = db().prepare('SELECT is_system FROM rating_axes WHERE id = ?').get(id) as SystemAxisRow | undefined;
     if (!axis) return { success: false, reason: 'not_found' };
     if (axis.is_system === 1) return { success: false, reason: 'system_axis' };
 
@@ -131,7 +166,7 @@ export function getFileRatings(fileId: string): FileRating[] {
         SELECT file_id, axis_id, value, updated_at
         FROM file_ratings
         WHERE file_id = ?
-    `).all(fileId) as any[];
+    `).all(fileId) as FileRatingRow[];
 
     return rows.map(row => ({
         fileId: row.file_id,
@@ -158,7 +193,7 @@ export function removeFileRating(fileId: string, axisId: string): void {
 
 /** 全ファイルの評価を一括取得（Store初期化用） */
 export function getAllFileRatings(): Record<string, Record<string, number>> {
-    const rows = db().prepare('SELECT file_id, axis_id, value FROM file_ratings').all() as any[];
+    const rows = db().prepare('SELECT file_id, axis_id, value, updated_at FROM file_ratings').all() as FileRatingRow[];
 
     const result: Record<string, Record<string, number>> = {};
     for (const row of rows) {
@@ -176,14 +211,14 @@ export function getRatingDistribution(axisId: string): { value: number; count: n
         WHERE axis_id = ?
         GROUP BY value
         ORDER BY value DESC
-    `).all(axisId) as any[];
+    `).all(axisId) as RatingDistributionRow[];
 }
 
 // --- Initialization ---
 
 /** 初回起動時にデフォルト評価軸（overall）を作成 */
 export function initDefaultAxes(): void {
-    const existing = db().prepare('SELECT COUNT(*) as count FROM rating_axes').get() as any;
+    const existing = db().prepare('SELECT COUNT(*) as count FROM rating_axes').get() as CountRow;
     if (existing.count > 0) return; // 既に初期化済み
 
     createAxis('総合評価', 1, 5, 1, true); // is_system=true: 削除不可
