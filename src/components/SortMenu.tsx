@@ -70,6 +70,7 @@ export const Header = React.memo(() => {
     const resetListDisplayToDefaults = useUIStore((s) => s.applyListDisplayDefaults);
     const defaultSortBy = useSettingsStore((s) => s.sortBy);
     const defaultSortOrder = useSettingsStore((s) => s.sortOrder);
+    const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
     const defaultGroupBy = useSettingsStore((s) => s.groupBy);
     const defaultDisplayMode = useSettingsStore((s) => s.displayMode);
     const defaultActiveDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
@@ -216,6 +217,15 @@ export const Header = React.memo(() => {
                                 className="rounded border border-surface-700 bg-surface-800 px-2.5 py-1 text-xs text-surface-200 transition-colors hover:bg-surface-700"
                             >
                                 既定値に戻す
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    useUIStore.getState().clearSearchConditions(defaultSearchTarget);
+                                }}
+                                className="rounded border border-surface-700 bg-surface-800 px-2.5 py-1 text-xs text-surface-200 transition-colors hover:bg-surface-700"
+                            >
+                                検索対象を既定値へ
                             </button>
                         </div>
 

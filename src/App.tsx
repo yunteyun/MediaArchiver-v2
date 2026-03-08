@@ -84,6 +84,7 @@ function App() {
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
     const applyListDisplayDefaults = useUIStore((s) => s.applyListDisplayDefaults);
+    const clearSearchConditions = useUIStore((s) => s.clearSearchConditions);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const profileSettingsLoadSeqRef = useRef(0);
 
@@ -106,8 +107,9 @@ function App() {
             activeDisplayPresetId: settings.activeDisplayPresetId,
             thumbnailPresentation: settings.thumbnailPresentation,
         });
+        clearSearchConditions(settings.defaultSearchTarget);
         void loadDisplayPresets();
-    }, [applyListDisplayDefaults, loadDisplayPresets]);
+    }, [applyListDisplayDefaults, clearSearchConditions, loadDisplayPresets]);
 
     const syncProfileScopedSettingsToScanner = useCallback(async (settings: {
         previewFrameCount: number;

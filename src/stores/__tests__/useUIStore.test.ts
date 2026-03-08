@@ -62,6 +62,30 @@ describe('useUIStore', () => {
         ]);
     });
 
+    it('clears search conditions while preserving or overriding the target', () => {
+        useUIStore.setState({
+            searchQuery: 'hero',
+            searchTarget: 'folderName',
+            searchExtraConditions: [{ text: 'team', target: 'fileName' }],
+        });
+
+        useUIStore.getState().clearSearchConditions();
+        expect(useUIStore.getState().searchTarget).toBe('folderName');
+        expect(useUIStore.getState().searchQuery).toBe('');
+        expect(useUIStore.getState().searchExtraConditions).toEqual([]);
+
+        useUIStore.setState({
+            searchQuery: 'hero',
+            searchTarget: 'folderName',
+            searchExtraConditions: [{ text: 'team', target: 'fileName' }],
+        });
+
+        useUIStore.getState().clearSearchConditions('fileName');
+        expect(useUIStore.getState().searchTarget).toBe('fileName');
+        expect(useUIStore.getState().searchQuery).toBe('');
+        expect(useUIStore.getState().searchExtraConditions).toEqual([]);
+    });
+
     it('shows scan progress when counting starts and keeps it visible through scanning', () => {
         useUIStore.getState().setScanProgress({
             phase: 'counting',

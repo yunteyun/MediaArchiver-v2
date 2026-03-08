@@ -1,6 +1,5 @@
 import type {
     AnimatedImagePreviewMode,
-    CardLayout,
     ExternalApp,
     FileCardTagOrderMode,
     FlipbookSpeed,
@@ -11,6 +10,7 @@ import type {
     ProfileScopedSettingsV1,
     RightPanelVideoPreviewMode,
     ScanExclusionRules,
+    SearchTarget,
     SearchDestination,
     StorageMaintenanceSettings,
     TagDisplayStyle,
@@ -26,18 +26,17 @@ export interface GlobalSettingsExportV1 {
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
-    rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
     sortBy: SortBy;
     sortOrder: SortOrder;
+    defaultSearchTarget: SearchTarget;
     videoVolume: number;
     audioVolume: number;
     lightboxOverlayOpacity: number;
     performanceMode: boolean;
     scanExclusionRules: ScanExclusionRules;
     storageMaintenanceSettings: StorageMaintenanceSettings;
-    cardLayout: CardLayout;
     showFileName: boolean;
     showDuration: boolean;
     showTags: boolean;

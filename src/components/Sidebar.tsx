@@ -4,6 +4,7 @@ import { useFileStore } from '../stores/useFileStore';
 import { useUIStore, type SearchCondition, type SearchTarget } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { useSmartFolderStore } from '../stores/useSmartFolderStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
 import { RatingFilterPanel } from './ratings/RatingFilterPanel';
@@ -286,6 +287,7 @@ export const Sidebar = React.memo(() => {
     const searchTarget = useUIStore((s) => s.searchTarget);
     const searchExtraConditions = useUIStore((s) => s.searchExtraConditions);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
+    const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
     const tags = useTagStore((s) => s.tags);
     const loadTags = useTagStore((s) => s.loadTags);
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -432,7 +434,7 @@ export const Sidebar = React.memo(() => {
     const handleClearSmartFolderConditions = useCallback(async () => {
         try {
             const uiStore = useUIStore.getState();
-            uiStore.clearSearchConditions();
+            uiStore.clearSearchConditions(defaultSearchTarget);
             uiStore.setSelectedFileTypes([...ALL_FILE_TYPES]);
             useTagStore.setState({
                 selectedTagIds: [],
@@ -448,7 +450,7 @@ export const Sidebar = React.memo(() => {
             console.error('Failed to clear smart folder conditions:', error);
             window.alert('スマートフォルダ条件の解除に失敗しました');
         }
-    }, [handleSelectFolder, setActiveSmartFolderId]);
+    }, [defaultSearchTarget, handleSelectFolder, setActiveSmartFolderId]);
 
     const handleOpenEditSmartFolderEditor = useCallback((id: string) => {
         setSmartFolderEditorState({

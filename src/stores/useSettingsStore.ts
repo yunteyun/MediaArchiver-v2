@@ -14,12 +14,11 @@ import {
 export type { ScanExclusionRules } from '../shared/scanExclusionRules';
 export { DEFAULT_SCAN_EXCLUSION_RULES } from '../shared/scanExclusionRules';
 
-export type CardLayout = 'grid' | 'list';
-
 // 表示モード型定義（Phase 14）
 export type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
 export type LayoutPreset = 'standard' | 'standardLarge' | 'manga' | 'video' | 'detailed' | 'mangaDetailed' | 'compact';
 export type ThumbnailPresentation = 'modeDefault' | 'contain' | 'cover' | 'square';
+export type SearchTarget = 'fileName' | 'folderName';
 
 // グループ化型定義（Phase 12-10）
 export type GroupBy = 'none' | 'date' | 'size' | 'type';
@@ -254,11 +253,11 @@ interface SettingsState {
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
-    rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
+    defaultSearchTarget: SearchTarget;
     videoVolume: number; // 0.0 - 1.0
     audioVolume: number; // 0.0 - 1.0 (音声ファイル専用)
     lightboxOverlayOpacity: number; // 70 - 100
@@ -273,8 +272,6 @@ interface SettingsState {
     // サムネイル生成解像度（Phase 14整理）
     thumbnailResolution: number; // 生成時の幅px（160〜480）
 
-    // カード表示設定（Phase 12-3）
-    cardLayout: CardLayout;
     showFileName: boolean;
     showDuration: boolean;
     showTags: boolean;
@@ -315,11 +312,11 @@ interface SettingsState {
     setThumbnailAction: (action: 'scrub' | 'flipbook' | 'play') => void;
     setFlipbookSpeed: (speed: FlipbookSpeed) => void;
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
-    setRightPanelVideoMuted: (muted: boolean) => void;
     setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
     setRightPanelVideoJumpInterval: (interval: PlayModeJumpInterval) => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
+    setDefaultSearchTarget: (target: SearchTarget) => void;
     setVideoVolume: (volume: number) => void;
     setAudioVolume: (volume: number) => void;
     setLightboxOverlayOpacity: (opacity: number) => void;
@@ -336,8 +333,6 @@ interface SettingsState {
     setProfileScanThrottleMs: (ms: number) => void;
     setProfileThumbnailResolution: (resolution: number) => void;
     setProfileSettingsMigrationV1Done: (done: boolean) => void;
-    // カード設定アクション
-    setCardLayout: (layout: CardLayout) => void;
     setShowFileName: (show: boolean) => void;
     setShowDuration: (show: boolean) => void;
     setShowTags: (show: boolean) => void;
@@ -372,17 +367,24 @@ interface SettingsState {
     setPlayModeJumpInterval: (interval: PlayModeJumpInterval) => void;
 }
 
+type PersistedSettingsState = Partial<SettingsState> & {
+    activeProfileId?: string;
+    autoScanOnStartup?: boolean;
+    rightPanelVideoMuted?: boolean;
+    cardLayout?: string;
+};
+
 export const useSettingsStore = create<SettingsState>()(
     persist(
         (set, get) => ({
             thumbnailAction: 'scrub',
             flipbookSpeed: 'normal',
             animatedImagePreviewMode: 'hover',
-            rightPanelVideoMuted: true,
             rightPanelVideoPreviewMode: 'loop',
             rightPanelVideoJumpInterval: 2000,
             sortBy: 'date',
             sortOrder: 'desc',
+            defaultSearchTarget: 'fileName',
             videoVolume: 0.5,
             audioVolume: 0.5,
             lightboxOverlayOpacity: LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
@@ -397,8 +399,6 @@ export const useSettingsStore = create<SettingsState>()(
             // サムネイル生成解像度（Phase 14整理）
             thumbnailResolution: 320,
 
-            // カード表示設定デフォルト値
-            cardLayout: 'grid',
             showFileName: true,
             showDuration: true,
             showTags: true,
@@ -437,11 +437,11 @@ export const useSettingsStore = create<SettingsState>()(
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),
             setAnimatedImagePreviewMode: (animatedImagePreviewMode) => set({ animatedImagePreviewMode }),
-            setRightPanelVideoMuted: (rightPanelVideoMuted) => set({ rightPanelVideoMuted }),
             setRightPanelVideoPreviewMode: (rightPanelVideoPreviewMode) => set({ rightPanelVideoPreviewMode }),
             setRightPanelVideoJumpInterval: (rightPanelVideoJumpInterval) => set({ rightPanelVideoJumpInterval }),
             setSortBy: (sortBy) => set({ sortBy }),
             setSortOrder: (sortOrder) => set({ sortOrder }),
+            setDefaultSearchTarget: (defaultSearchTarget) => set({ defaultSearchTarget }),
             setVideoVolume: (volume) => set({ videoVolume: volume }),
             setAudioVolume: (volume) => set({ audioVolume: volume }),
             setLightboxOverlayOpacity: (opacity) => set({ lightboxOverlayOpacity: clampOverlayOpacity(opacity) }),
@@ -474,8 +474,6 @@ export const useSettingsStore = create<SettingsState>()(
             setProfileScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             setProfileThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
             setProfileSettingsMigrationV1Done: (profileSettingsMigrationV1Done) => set({ profileSettingsMigrationV1Done }),
-            // カード設定セッター
-            setCardLayout: (cardLayout) => set({ cardLayout }),
             setShowFileName: (showFileName) => set({ showFileName }),
             setShowDuration: (showDuration) => set({ showDuration }),
             setShowTags: (showTags) => set({ showTags }),
@@ -675,10 +673,12 @@ export const useSettingsStore = create<SettingsState>()(
         {
             name: 'settings-storage',
             merge: (persistedState, currentState) => {
-                const typedPersisted = persistedState as Partial<SettingsState> | undefined;
+                const typedPersisted = persistedState as PersistedSettingsState | undefined;
                 const {
                     activeProfileId: _legacyActiveProfileId,
                     autoScanOnStartup: _legacyAutoScanOnStartup,
+                    rightPanelVideoMuted: _legacyRightPanelVideoMuted,
+                    cardLayout: _legacyCardLayout,
                     ...persistedWithoutLegacyKeys
                 } = typedPersisted ?? {};
                 const persistedDestinations = Array.isArray(typedPersisted?.searchDestinations)

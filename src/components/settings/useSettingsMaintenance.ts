@@ -383,18 +383,17 @@ export function useSettingsMaintenance({
                     thumbnailAction: settings.thumbnailAction,
                     flipbookSpeed: settings.flipbookSpeed,
                     animatedImagePreviewMode: settings.animatedImagePreviewMode,
-                    rightPanelVideoMuted: settings.rightPanelVideoMuted,
                     rightPanelVideoPreviewMode: settings.rightPanelVideoPreviewMode,
                     rightPanelVideoJumpInterval: settings.rightPanelVideoJumpInterval,
                     sortBy: settings.sortBy,
                     sortOrder: settings.sortOrder,
+                    defaultSearchTarget: settings.defaultSearchTarget,
                     videoVolume: settings.videoVolume,
                     audioVolume: settings.audioVolume,
                     lightboxOverlayOpacity: settings.lightboxOverlayOpacity,
                     performanceMode: settings.performanceMode,
                     scanExclusionRules: settings.scanExclusionRules,
                     storageMaintenanceSettings: settings.storageMaintenanceSettings,
-                    cardLayout: settings.cardLayout,
                     showFileName: settings.showFileName,
                     showDuration: settings.showDuration,
                     showTags: settings.showTags,
@@ -458,11 +457,17 @@ export function useSettingsMaintenance({
             if (result.canceled || !result.content) return;
 
             const payload = parseSettingsImportPayload(result.content);
+            const importedGlobalSettings = payload.globalSettings as typeof payload.globalSettings & {
+                rightPanelVideoMuted?: boolean;
+                cardLayout?: string;
+            };
             const {
                 scanExclusionRules,
                 storageMaintenanceSettings,
+                rightPanelVideoMuted: _legacyRightPanelVideoMuted,
+                cardLayout: _legacyCardLayout,
                 ...globalSettings
-            } = payload.globalSettings;
+            } = importedGlobalSettings;
 
             useSettingsStore.setState((state) => ({
                 ...state,
@@ -479,6 +484,7 @@ export function useSettingsMaintenance({
                 activeDisplayPresetId: payload.globalSettings.activeDisplayPresetId,
                 thumbnailPresentation: payload.globalSettings.thumbnailPresentation,
             });
+            useUIStore.getState().clearSearchConditions(payload.globalSettings.defaultSearchTarget);
 
             await window.electronAPI.setScanExclusionRules(scanExclusionRules);
             await window.electronAPI.replaceProfileScopedSettings(payload.profileSettings);

@@ -87,6 +87,8 @@ export const SettingsModal = React.memo(() => {
     const setSortBy = useSettingsStore((s) => s.setSortBy);
     const sortOrder = useSettingsStore((s) => s.sortOrder);
     const setSortOrder = useSettingsStore((s) => s.setSortOrder);
+    const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
+    const setDefaultSearchTarget = useSettingsStore((s) => s.setDefaultSearchTarget);
     const groupBy = useSettingsStore((s) => s.groupBy);
     const setGroupBy = useSettingsStore((s) => s.setGroupBy);
     const displayMode = useSettingsStore((s) => s.displayMode);
@@ -373,6 +375,7 @@ export const SettingsModal = React.memo(() => {
                                 defaultSortBy={sortBy}
                                 defaultSortOrder={sortOrder}
                                 defaultGroupBy={groupBy}
+                                defaultSearchTarget={defaultSearchTarget}
                                 displayPresetOptions={displayPresetMenuOptions.map((option) => ({
                                     id: option.id,
                                     label: option.definition.label,
@@ -384,6 +387,7 @@ export const SettingsModal = React.memo(() => {
                                 onDefaultSortByChange={setSortBy}
                                 onDefaultSortOrderChange={setSortOrder}
                                 onDefaultGroupByChange={setGroupBy}
+                                onDefaultSearchTargetChange={setDefaultSearchTarget}
                                 videoVolume={videoVolume}
                                 onVideoVolumeChange={setVideoVolume}
                                 audioVolume={audioVolume}

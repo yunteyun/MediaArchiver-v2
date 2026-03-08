@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
 import type { ToastData } from '../components/Toast';
-import type { DisplayMode, GroupBy, ThumbnailPresentation } from './useSettingsStore';
+import type { DisplayMode, GroupBy, SearchTarget, ThumbnailPresentation } from './useSettingsStore';
 
 export interface ScanProgress {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
@@ -18,7 +18,6 @@ export interface ScanProgress {
 
 export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings' | 'maintenance';
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
-export type SearchTarget = 'fileName' | 'folderName';
 export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed';
 export type FileSortOrder = 'asc' | 'desc';
 export interface SearchCondition {
@@ -79,7 +78,7 @@ interface UIState {
     setSearchQuery: (query: string) => void;
     setSearchTarget: (target: SearchTarget) => void;
     setSearchConditions: (conditions: SearchCondition[]) => void;
-    clearSearchConditions: () => void;
+    clearSearchConditions: (target?: SearchTarget) => void;
     applyListDisplayDefaults: (defaults: ListDisplayDefaults) => void;
     setCurrentSortBy: (sortBy: FileSortBy) => void;
     setCurrentSortOrder: (order: FileSortOrder) => void;
@@ -176,11 +175,11 @@ export const useUIStore = create<UIState>((set) => ({
             searchExtraConditions: normalized.slice(1),
         };
     }),
-    clearSearchConditions: () => set({
+    clearSearchConditions: (target) => set((state) => ({
         searchQuery: '',
-        searchTarget: 'fileName',
+        searchTarget: target ?? state.searchTarget,
         searchExtraConditions: [],
-    }),
+    })),
     applyListDisplayDefaults: (defaults) => set({
         currentSortBy: defaults.sortBy,
         currentSortOrder: defaults.sortOrder,
