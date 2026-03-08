@@ -10,15 +10,15 @@ description: セッション開始時のオンボーディング
 
 以下のファイルを**必ず順番に**確認してください：
 
-1. **AGENT.md** - 🚨 **最優先** AI実装者向け行動規範（禁止事項・停止条件）
-2. **ARCHITECTURE.md** - プロジェクト構成の理解
-3. **CONVENTIONS.md** - コーディング規約の確認
-4. **Glossary.md** - 用語の統一
+1. **AGENTS.md** - 🚨 **最優先** AI実装者向け行動規範（禁止事項・停止条件）
+2. **docs/project/ARCHITECTURE.md** - プロジェクト構成の理解
+3. **docs/project/CONVENTIONS.md** - コーディング規約の確認
+4. **docs/project/Glossary.md** - 用語の統一
 5. **ROADMAP.md** - 現在の開発状況と次のタスク
 
 > [!IMPORTANT]
-> **AGENT.md は全ドキュメントより優先されます。**  
-> 他のドキュメントと矛盾する場合は AGENT.md の内容に従ってください。
+> **AGENTS.md は全ドキュメントより優先されます。**
+> 他のドキュメントと矛盾する場合は AGENTS.md の内容に従ってください。
 
 ## 2. 現在の状態確認
 
@@ -29,10 +29,10 @@ git log -n 5 --oneline
 
 ## 3. 作業開始前の確認事項
 
-- [ ] AGENT.md の禁止事項を理解したか？
+- [ ] AGENTS.md の禁止事項を理解したか？
 - [ ] 現在取り組むべきタスクは何か？（ROADMAP.md参照）
-- [ ] 関連するコードはどこにあるか？（ARCHITECTURE.md参照）
-- [ ] 命名規則やコード構造は正しいか？（CONVENTIONS.md参照）
+- [ ] 関連するコードはどこにあるか？（docs/project/ARCHITECTURE.md参照）
+- [ ] 命名規則やコード構造は正しいか？（docs/project/CONVENTIONS.md参照）
 - [ ] ファイルの記述やユーザーへの応対は応対は日本語で対応する事は理解したか？
 
 ## 4. 作業開始

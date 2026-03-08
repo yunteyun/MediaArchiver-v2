@@ -83,14 +83,15 @@ npm run build:electron
 
 - `ROADMAP.md` : 今後の計画 / 進行中（未完了中心） / 直近リリース対象
 - `CHANGELOG.md` : リリース単位の変更履歴（完了済み変更の詳細）
-- `ROADMAP_legacy.md` : 旧ロードマップ（過去フェーズ詳細）
+- `docs/archive/ROADMAP_legacy.md` : 旧ロードマップ（過去フェーズ詳細）
 - `.agent/devlog/YYYY-MM-DD.md` : 日次作業記録
 
 ### メモ類
 
 - `docs/user/アプリ使用メモ.md` : 利用者向けの使い方・更新手順
-- `docs/dev/不具合・要望リスト.md` : 未解決の不具合・要望
-- `docs/dev/思考メモ.md` : 検討中のアイデア・比較メモ
+- `docs/dev/operations/不具合・要望リスト.md` : 未解決の不具合・要望
+- `docs/dev/notes/思考メモ.md` : 検討中のアイデア・比較メモ
+- `docs/project/ARCHITECTURE.md` / `docs/project/CONVENTIONS.md` : 開発時の基本設計と規約
 
 ## 注意
 

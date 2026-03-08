@@ -32,7 +32,7 @@
   - 依頼単位を切る
   - 担当ごとの触る範囲を決める
   - 競合が出た場合に優先順位を決める
-  - 最終差分を統合し、`ROADMAP.md` `CHANGELOG.md` `docs/dev/不具合・要望リスト.md` の更新要否を判断する
+  - 最終差分を統合し、`ROADMAP.md` `CHANGELOG.md` `docs/dev/operations/不具合・要望リスト.md` の更新要否を判断する
 - やらないこと:
   - 仕様が固まる前に複数役へ同時実装させる
   - 同じファイルを複数役へ編集依頼する
@@ -75,11 +75,11 @@
 ## このリポジトリで参照する基準文書
 - `AGENTS.md`
   - 文字コード、PowerShell、ドキュメント更新、コミット運用
-- `docs/dev/lightbox-redesign-v2.md`
+- `docs/dev/specs/lightbox-redesign-v2.md`
   - Lightbox / Center Viewer / RightPanel の責務基準
-- `docs/dev/回帰確認チェックリスト.md`
+- `docs/dev/operations/回帰確認チェックリスト.md`
   - UI 変更時の最低限の確認観点
-- `docs/dev/不具合・要望リスト.md`
+- `docs/dev/operations/不具合・要望リスト.md`
   - 未解決課題と残件管理
 - `ROADMAP.md`
   - 進行中と予定の管理
@@ -149,7 +149,7 @@
 
 制約:
 - findings を優先する
-- UI 変更では docs/dev/回帰確認チェックリスト.md を基準にする
+- UI 変更では `docs/dev/operations/回帰確認チェックリスト.md` を基準にする
 
 出力形式:
 - Findings
@@ -190,7 +190,7 @@
 
 ### Lightbox / Center Viewer 改修
 - 調査役:
-  - `docs/dev/lightbox-redesign-v2.md` と現実装差分の確認
+  - `docs/dev/specs/lightbox-redesign-v2.md` と現実装差分の確認
 - 実装役:
   - `src/features/center-viewer/` と `src/components/RightPanel/` の修正
 - 検証役:
@@ -210,7 +210,7 @@
 - 実装役:
   - `FileGrid` `FileCard` `Header` 周辺の調整
 - 検証役:
-  - `docs/dev/回帰確認チェックリスト.md` のスモーク確認
+  - `docs/dev/operations/回帰確認チェックリスト.md` のスモーク確認
 
 ## 最低限の運用ルール
 - 小さい修正は単独で終わらせる

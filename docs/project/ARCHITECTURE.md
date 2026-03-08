@@ -70,9 +70,12 @@ MediaArchiver-v2/
 │   │   └── modals/
 │   ├── hooks/          # カスタムフック
 │   └── types/          # TypeScript型定義
-├── ARCHITECTURE.md
-├── CONVENTIONS.md
-├── Glossary.md
+├── docs/
+│   ├── project/
+│   │   ├── ARCHITECTURE.md
+│   │   ├── CONVENTIONS.md
+│   │   └── Glossary.md
+│   └── ...
 └── ROADMAP.md
 ```
 

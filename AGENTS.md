@@ -12,7 +12,7 @@
 - 読み込み: `Get-Content -Encoding UTF8`
 - 書き込み: `Set-Content -Encoding utf8`
 - .NET API で書く場合は `UTF8Encoding($false)` を使い、BOM有無を明示する
-- マルチエージェント運用を行う場合は `docs/dev/multi-agent-playbook.md` を参照する
+- マルチエージェント運用を行う場合は `docs/dev/operations/multi-agent-playbook.md` を参照する
 
 ## 追記・置換の注意
 
@@ -229,4 +229,4 @@ update FileCard
 - 「とりあえずコミットして後で直す」という運用はしない
 - 作業が中断になる場合は、その時点の状態をコミットしてから中断し、コミットメッセージに「（作業中断）」と明記する
 
-- ライトボックスの設計方針は `docs/dev/lightbox-redesign-v2.md` に従うこと
+- ライトボックスの設計方針は `docs/dev/specs/lightbox-redesign-v2.md` に従うこと

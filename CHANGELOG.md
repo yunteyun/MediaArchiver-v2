@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-> 古い履歴（文字化けを含む旧版保管）は `CHANGELOG_legacy.md` を参照してください。
+> 古い履歴（文字化けを含む旧版保管）は `docs/archive/CHANGELOG_legacy.md` を参照してください。
 
 ---
 
@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 開発ドキュメントにマルチエージェント運用ガイドを追加し、親 / 調査 / 実装 / 検証の役割分担と依頼テンプレートを整理した（表示への変更なし）。
 
 ### Changed
+- ドキュメント配置を整理し、`docs/project` `docs/dev/operations` `docs/dev/specs` `docs/dev/investigations` `docs/dev/notes` `docs/archive` に役割別で再編した（表示への変更なし）。
 - `AGENTS.md` にマルチエージェント運用ガイドへの参照を追加し、運用ルールからプレイブックへ辿りやすくした（表示への変更なし）。
 - 表示プリセット読込時の値検証を強化し、無効な項目は警告付きで読み飛ばしたうえで設定画面に警告一覧を表示できるようにした。
 - `標準（XS/高密度）` の要約タグをさらに小さく詰め、一覧密度を保ったままタグが主張しすぎない表示へ調整した。
@@ -328,7 +329,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 設定画面のバックアップタブに「このアプリ形式CSV」のインポート（タグ復元・追記型）を追加し、CSV選択→Dry Run（一致件数/未一致/新規タグ作成予定）→適用の流れで `path` キーによりタグを復元できるようにした。
 - エクスポート欄に「インポート対応はCSVのみ（HTMLは閲覧用）」の注記を追加し、CSVインポート欄を旧アプリ互換モード（Shift_JIS / 可変列）にも対応。旧CSVは `コメント１` をメモへ追記し、末尾の追加列をタグ/星評価候補として解釈するルールを採用。Dry Run で一致/未一致・タグ付与予定・評価更新予定・メモ追記予定を確認でき、適用時はタグ追記に加えて星評価を総合評価軸へ取り込めるようにした。
 #### ドキュメント / 開発運用
-- `docs/dev/回帰確認チェックリスト.md` を追加し、表示モード（標準 S/M/L・漫画・動画）中心の最低限の回帰確認観点を整理。
+- `docs/dev/operations/回帰確認チェックリスト.md` を追加し、表示モード（標準 S/M/L・漫画・動画）中心の最低限の回帰確認観点を整理。
 - Electron 起動ログにビルド識別情報（`version / runtime(dev|release) / exe更新時刻 / Electron/Chrome/Node 版`）を出力する `build marker` を追加。
 - 開発版/リリース版でアイコンを分離する設定を追加（開発版は `BrowserWindow` アイコン、リリース版は `electron-builder` の Windows アイコン設定）。
 - `README.md` / `docs/user/アプリ使用メモ.md` の更新手順とリリース手順を整理し、`update.bat` 更新後の最小確認項目・失敗時の簡易切り分けを追記。
@@ -390,10 +391,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [1.1.2] - 2026-02-19
 ### Note
-- この版以前の詳細履歴は `CHANGELOG_legacy.md` を参照してください（旧ファイルに文字化けを含みます）。
+- この版以前の詳細履歴は `docs/archive/CHANGELOG_legacy.md` を参照してください（旧ファイルに文字化けを含みます）。
 
 ---
 
 ## [1.1.0] - 2026-02-18
 ### Note
-- 初期の詳細履歴は `CHANGELOG_legacy.md` を参照してください。
+- 初期の詳細履歴は `docs/archive/CHANGELOG_legacy.md` を参照してください。

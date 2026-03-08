@@ -1,75 +1,110 @@
 # Docs Index
 
-どの情報をどこに書くかをまとめた「ドキュメント地図」です。
+どの情報をどこに書くかをまとめたドキュメント地図です。普段参照する文書と、履歴として保管する文書を分けて管理します。
 
 ## 入口
 
 - `README.md`
-  - 利用者向けの概要・起動方法・更新方法
+  - 利用者向けの概要、起動方法、更新方法
   - 開発者向けの基本コマンド
-
-## 開発・運用ドキュメント
-
 - `ROADMAP.md`
-  - 今後の計画
-  - 進行中の計画（未完了 / 継続中）
-  - 直近リリース対象
-  - 完了済み項目は要約中心（詳細は `CHANGELOG.md`）
-
+  - 進行中と予定のみを管理
+  - 完了項目は残さず `CHANGELOG.md` へ移す
 - `CHANGELOG.md`
-  - リリース単位の変更履歴
-  - 完了済み変更の詳細（調整内容 / 修正内容）
+  - 完了した変更の記録
+  - リリース単位で整理する
 
-- `ROADMAP_legacy.md`
-  - 旧ロードマップ（過去フェーズの詳細履歴）
-
-- `.agent/devlog/YYYY-MM-DD.md`
-  - その日の作業記録
-  - 問題 / 対応 / 次にやること
-
-## メモ類（用途別）
+## docs/user
 
 - `docs/user/アプリ使用メモ.md`
   - 利用者向けの使い方
-  - 更新手順（`update.bat`）
-  - 注意点 / よくある困りごと
+  - `update.bat` を使った更新手順
+  - 注意点と切り分け
 
-- `docs/dev/不具合・要望リスト.md`
-  - 未解決の不具合・要望
-  - 優先度 / 状態 / 備考
+## docs/project
 
-- `docs/dev/思考メモ.md`
-  - 検討中のアイデア
-  - 比較案
-  - 未確定の方針
+- `docs/project/ARCHITECTURE.md`
+  - 全体構成
+  - ディレクトリ構成
+  - 設計原則
+- `docs/project/CONVENTIONS.md`
+  - コーディング規約
+  - UI 実装時の基準
+  - コミット運用
+- `docs/project/Glossary.md`
+  - 用語の定義
+  - ドキュメント内の呼称統一
 
-- `docs/dev/回帰確認チェックリスト.md`
-  - UI調整後の最低限の確認観点
-  - 表示モード別チェック（標準S/M/L・漫画・動画）
-  - リリース前の簡易確認にも使用
+## docs/dev/operations
 
-- `docs/dev/multi-agent-playbook.md`
+- `docs/dev/operations/不具合・要望リスト.md`
+  - 未解決の不具合と要望のみを置く
+  - 解決済みは `CHANGELOG.md` へ移し、ここには残さない
+- `docs/dev/operations/回帰確認チェックリスト.md`
+  - UI 変更時の最低限の確認観点
+  - リリース前のスモーク確認
+- `docs/dev/operations/multi-agent-playbook.md`
   - マルチエージェント運用時の役割分担
-  - 親 / 調査 / 実装 / 検証の責務
   - 依頼テンプレートと競合防止ルール
 
-- `docs/dev/smart-folder-v1-spec.md`
-  - スマートフォルダ v1 の実装範囲と条件モデル
-  - Sidebar 導線と保存/適用フロー
+## docs/dev/specs
 
+- `docs/dev/specs/lightbox-redesign-v2.md`
+  - Lightbox / Center Viewer の設計方針
+- `docs/dev/specs/smart-folder-v1-spec.md`
+  - スマートフォルダ v1 の仕様
+- `docs/dev/specs/display-presets.md`
+  - 表示プリセット JSON の仕様
+- `docs/dev/specs/display-thumbnail-separation-v1.md`
+  - 表示レイアウトとサムネイル表現の分離方針
+
+## docs/dev/investigations
+
+- `docs/dev/investigations/auto-update-investigation-v1.md`
+  - 更新導線の棚卸しと PoC 方針
+- `docs/dev/investigations/perf-baseline-ffmpeg-worker.md`
+  - ffmpeg Worker 化の比較記録
+
+## docs/dev/notes
+
+- `docs/dev/notes/思考メモ.md`
+  - 未確定のアイデア
+  - 比較案
+  - 方針化前のメモ
+
+## docs/archive
+
+- `docs/archive/CHANGELOG_legacy.md`
+  - 旧変更履歴の保管
+- `docs/archive/ROADMAP_legacy.md`
+  - 旧ロードマップの保管
+- `docs/archive/DEV_LOG.md`
+  - 過去の開発日誌
+- `docs/archive/ui-ux-improvement-plan-v1.md`
+  - 時限的だった UI/UX 計画の保管
+- `docs/archive/file_card_表示設計に関する将来要望まとめ.md`
+  - 旧検討メモの保管
+
+## 参考扱い
+
+- `.agent/devlog/YYYY-MM-DD.md`
+  - セッション単位の内部作業ログ
+  - 正式なプロジェクト文書というより運用メモ
 - `個人的メモ（参照不要）.md`
-  - 個人メモ（正式ドキュメントとして扱わない）
+  - 正式ドキュメントとして扱わない
 
-## 更新ルール（簡易）
+## 更新ルール
 
 1. 実装完了後に `CHANGELOG.md` と `ROADMAP.md` を更新する
-   - `ROADMAP.md` は未完了 / 直近優先を中心に保つ（完了詳細は `CHANGELOG.md`）
-2. 不具合は `docs/dev/不具合・要望リスト.md`、検討中は `docs/dev/思考メモ.md` に分ける
-3. 使い方変更は `docs/user/アプリ使用メモ.md` を更新する
-4. セッション終わりに `.agent/devlog/YYYY-MM-DD.md` を記録する
+2. `ROADMAP.md` には未完了の項目だけを書く
+3. 不具合や要望は `docs/dev/operations/不具合・要望リスト.md` に集約する
+4. 使い方変更は `docs/user/アプリ使用メモ.md` を更新する
+5. 新規文書はまず `docs/` 配下のどこへ置くかを決めてから作成する
 
-## docs/ への集約方針（段階的）
+## 配置判断の目安
 
-- 新規ドキュメントは `docs/` 配下を優先
-- 既存ファイルは一気に移動せず、必要なものから順に移動
-- `CHANGELOG.md` / `ROADMAP.md` / `README.md` は当面ルート維持（見つけやすさ優先）
+- 日常的に参照するルールや仕様は `docs/project` か `docs/dev/specs`
+- 運用手順や確認手順は `docs/dev/operations`
+- 調査結果やベースライン記録は `docs/dev/investigations`
+- 未確定の検討は `docs/dev/notes`
+- 参照頻度が低い履歴は `docs/archive`
