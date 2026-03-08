@@ -55,18 +55,25 @@ function readInitialToggleOpen(storageKey: string, defaultValue: boolean): boole
 }
 
 export const Header = React.memo(() => {
-    const sortBy = useSettingsStore((s) => s.sortBy);
-    const sortOrder = useSettingsStore((s) => s.sortOrder);
-    const setSortBy = useSettingsStore((s) => s.setSortBy);
-    const setSortOrder = useSettingsStore((s) => s.setSortOrder);
+    const sortBy = useUIStore((s) => s.currentSortBy);
+    const sortOrder = useUIStore((s) => s.currentSortOrder);
+    const setSortBy = useUIStore((s) => s.setCurrentSortBy);
+    const setSortOrder = useUIStore((s) => s.setCurrentSortOrder);
 
-    const groupBy = useSettingsStore((s) => s.groupBy);
-    const setGroupBy = useSettingsStore((s) => s.setGroupBy);
-    const displayMode = useSettingsStore((s) => s.displayMode);
-    const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
-    const setActiveDisplayPreset = useSettingsStore((s) => s.setActiveDisplayPreset);
-    const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
-    const setThumbnailPresentation = useSettingsStore((s) => s.setThumbnailPresentation);
+    const groupBy = useUIStore((s) => s.currentGroupBy);
+    const setGroupBy = useUIStore((s) => s.setCurrentGroupBy);
+    const displayMode = useUIStore((s) => s.currentDisplayMode);
+    const activeDisplayPresetId = useUIStore((s) => s.currentActiveDisplayPresetId);
+    const setActiveDisplayPreset = useUIStore((s) => s.setCurrentDisplayPreset);
+    const thumbnailPresentation = useUIStore((s) => s.currentThumbnailPresentation);
+    const setThumbnailPresentation = useUIStore((s) => s.setCurrentThumbnailPresentation);
+    const resetListDisplayToDefaults = useUIStore((s) => s.applyListDisplayDefaults);
+    const defaultSortBy = useSettingsStore((s) => s.sortBy);
+    const defaultSortOrder = useSettingsStore((s) => s.sortOrder);
+    const defaultGroupBy = useSettingsStore((s) => s.groupBy);
+    const defaultDisplayMode = useSettingsStore((s) => s.displayMode);
+    const defaultActiveDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
+    const defaultThumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
     const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
     const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
     const modeMenuRef = useRef<HTMLDivElement>(null);
@@ -188,7 +195,31 @@ export const Header = React.memo(() => {
 
             {isDisplayControlsOpen && (
                 <div className="flex flex-wrap items-start gap-2">
-                    <div className="flex flex-wrap items-center gap-3 rounded border border-surface-700 bg-surface-900/50 px-2 py-2">
+                    <div className="flex flex-col gap-2 rounded border border-surface-700 bg-surface-900/50 px-2 py-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-800 px-1 pb-2">
+                            <div>
+                                <div className="text-xs font-medium text-surface-300">現在の一覧表示</div>
+                                <div className="text-[11px] text-surface-500">
+                                    ここでの変更は一時的です。既定値は設定画面の「一般 / 表示」で変更します。
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => resetListDisplayToDefaults({
+                                    sortBy: defaultSortBy,
+                                    sortOrder: defaultSortOrder,
+                                    groupBy: defaultGroupBy,
+                                    displayMode: defaultDisplayMode,
+                                    activeDisplayPresetId: defaultActiveDisplayPresetId,
+                                    thumbnailPresentation: defaultThumbnailPresentation,
+                                })}
+                                className="rounded border border-surface-700 bg-surface-800 px-2.5 py-1 text-xs text-surface-200 transition-colors hover:bg-surface-700"
+                            >
+                                既定値に戻す
+                            </button>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
                         {/* Layout Preset Controls */}
                         <div ref={modeMenuRef} className="relative flex gap-1 items-center">
                             <span className="text-surface-400 text-sm whitespace-nowrap mr-1">表示:</span>
@@ -281,6 +312,7 @@ export const Header = React.memo(() => {
                                 <option value="size">サイズ別</option>
                                 <option value="type">タイプ別</option>
                             </select>
+                        </div>
                         </div>
                     </div>
                 </div>

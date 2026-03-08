@@ -12,6 +12,12 @@ function resetUiStore() {
         searchQuery: '',
         searchTarget: 'fileName',
         searchExtraConditions: [],
+        currentSortBy: 'date',
+        currentSortOrder: 'desc',
+        currentGroupBy: 'none',
+        currentDisplayMode: 'standard',
+        currentActiveDisplayPresetId: 'standard',
+        currentThumbnailPresentation: 'modeDefault',
         selectedFileTypes: ['video', 'image', 'archive', 'audio'],
         settingsModalOpen: false,
         settingsModalRequestedTab: null,
@@ -95,5 +101,24 @@ describe('useUIStore', () => {
         useUIStore.getState().setSelectedFileTypes(['image', 'audio', 'image', 'invalid']);
 
         expect(useUIStore.getState().selectedFileTypes).toEqual(['image', 'audio']);
+    });
+
+    it('applies display defaults for the current list state', () => {
+        useUIStore.getState().applyListDisplayDefaults({
+            sortBy: 'name',
+            sortOrder: 'asc',
+            groupBy: 'date',
+            displayMode: 'whiteBrowser',
+            activeDisplayPresetId: 'whiteBrowser',
+            thumbnailPresentation: 'square',
+        });
+
+        const state = useUIStore.getState();
+        expect(state.currentSortBy).toBe('name');
+        expect(state.currentSortOrder).toBe('asc');
+        expect(state.currentGroupBy).toBe('date');
+        expect(state.currentDisplayMode).toBe('whiteBrowser');
+        expect(state.currentActiveDisplayPresetId).toBe('whiteBrowser');
+        expect(state.currentThumbnailPresentation).toBe('square');
     });
 });

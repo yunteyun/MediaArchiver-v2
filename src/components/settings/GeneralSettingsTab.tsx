@@ -1,13 +1,35 @@
 import React from 'react';
 import { FolderOpen, RefreshCw } from 'lucide-react';
-import type { FileCardTagOrderMode, TagDisplayStyle, TagPopoverTrigger } from '../../stores/useSettingsStore';
+import type { FileCardTagOrderMode, GroupBy, TagDisplayStyle, TagPopoverTrigger, ThumbnailPresentation } from '../../stores/useSettingsStore';
+import type { DisplayMode } from '../../stores/useSettingsStore';
 import {
     LIGHTBOX_OVERLAY_OPACITY_MAX,
     LIGHTBOX_OVERLAY_OPACITY_MIN,
     LIGHTBOX_OVERLAY_OPACITY_STEP,
 } from '../../features/lightbox-clean/constants';
+import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
 
 interface GeneralSettingsTabProps {
+    defaultDisplayPresetId: string;
+    defaultThumbnailPresentation: ThumbnailPresentation;
+    defaultSortBy: FileSortBy;
+    defaultSortOrder: FileSortOrder;
+    defaultGroupBy: GroupBy;
+    displayPresetOptions: Array<{
+        id: string;
+        label: string;
+        baseDisplayMode: DisplayMode;
+        thumbnailPresentation: ThumbnailPresentation;
+    }>;
+    onDefaultDisplayPresetChange: (selection: {
+        id: string;
+        baseDisplayMode: DisplayMode;
+        thumbnailPresentation: ThumbnailPresentation;
+    }) => void;
+    onDefaultThumbnailPresentationChange: (value: ThumbnailPresentation) => void;
+    onDefaultSortByChange: (value: FileSortBy) => void;
+    onDefaultSortOrderChange: (value: FileSortOrder) => void;
+    onDefaultGroupByChange: (value: GroupBy) => void;
     videoVolume: number;
     onVideoVolumeChange: (value: number) => void;
     audioVolume: number;
@@ -39,6 +61,17 @@ interface GeneralSettingsTabProps {
 }
 
 export const GeneralSettingsTab = React.memo(({
+    defaultDisplayPresetId,
+    defaultThumbnailPresentation,
+    defaultSortBy,
+    defaultSortOrder,
+    defaultGroupBy,
+    displayPresetOptions,
+    onDefaultDisplayPresetChange,
+    onDefaultThumbnailPresentationChange,
+    onDefaultSortByChange,
+    onDefaultSortOrderChange,
+    onDefaultGroupByChange,
     videoVolume,
     onVideoVolumeChange,
     audioVolume,
@@ -69,6 +102,103 @@ export const GeneralSettingsTab = React.memo(({
     onReloadDisplayPresets,
 }: GeneralSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
+        <div className="rounded border border-primary-900/40 bg-primary-950/10 p-4">
+            <div>
+                <h4 className="text-sm font-semibold text-primary-200">既定の一覧表示</h4>
+                <p className="mt-1 text-xs text-surface-400">
+                    ここで変更する内容は次回起動時や「既定値に戻す」で使われます。ヘッダーでの変更は現在の一覧だけに適用されます。
+                </p>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        既定の表示プリセット
+                    </label>
+                    <select
+                        value={defaultDisplayPresetId}
+                        onChange={(e) => {
+                            const selected = displayPresetOptions.find((option) => option.id === e.target.value);
+                            if (selected) {
+                                onDefaultDisplayPresetChange(selected);
+                            }
+                        }}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        {displayPresetOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        既定のサムネイル表示方式
+                    </label>
+                    <select
+                        value={defaultThumbnailPresentation}
+                        onChange={(e) => onDefaultThumbnailPresentationChange(e.target.value as ThumbnailPresentation)}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="modeDefault">モード既定</option>
+                        <option value="cover">Cover（切り取り）</option>
+                        <option value="contain">Contain（全体表示）</option>
+                        <option value="square">Square（固定）</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        既定の並び替え
+                    </label>
+                    <select
+                        value={defaultSortBy}
+                        onChange={(e) => onDefaultSortByChange(e.target.value as FileSortBy)}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="name">名前</option>
+                        <option value="date">日付</option>
+                        <option value="size">サイズ</option>
+                        <option value="type">種類</option>
+                        <option value="accessCount">アクセス回数</option>
+                        <option value="lastAccessed">直近アクセス</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        既定の並び順
+                    </label>
+                    <select
+                        value={defaultSortOrder}
+                        onChange={(e) => onDefaultSortOrderChange(e.target.value as FileSortOrder)}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="asc">昇順</option>
+                        <option value="desc">降順</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        既定のグループ化
+                    </label>
+                    <select
+                        value={defaultGroupBy}
+                        onChange={(e) => onDefaultGroupByChange(e.target.value as GroupBy)}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="none">なし</option>
+                        <option value="date">年月別</option>
+                        <option value="size">サイズ別</option>
+                        <option value="type">タイプ別</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <div>
             <label className="block text-sm font-medium text-surface-300 mb-2">
                 動画再生時の音量: {Math.round(videoVolume * 100)}%

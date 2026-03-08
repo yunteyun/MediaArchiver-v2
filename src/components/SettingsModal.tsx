@@ -22,6 +22,7 @@ import { MaintenanceSettingsTab } from './settings/MaintenanceSettingsTab';
 import { useSettingsMaintenance } from './settings/useSettingsMaintenance';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
+import { getDisplayPresetMenuOptions } from './fileCard/displayModes';
 
 type TabType = SettingsModalTab;
 
@@ -78,11 +79,23 @@ export const SettingsModal = React.memo(() => {
     const playMode = useSettingsStore((s) => s.playMode);
     const setPlayModeJumpType = useSettingsStore((s) => s.setPlayModeJumpType);
     const setPlayModeJumpInterval = useSettingsStore((s) => s.setPlayModeJumpInterval);
+    const sortBy = useSettingsStore((s) => s.sortBy);
+    const setSortBy = useSettingsStore((s) => s.setSortBy);
+    const sortOrder = useSettingsStore((s) => s.sortOrder);
+    const setSortOrder = useSettingsStore((s) => s.setSortOrder);
+    const groupBy = useSettingsStore((s) => s.groupBy);
+    const setGroupBy = useSettingsStore((s) => s.setGroupBy);
+    const displayMode = useSettingsStore((s) => s.displayMode);
+    const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
+    const setActiveDisplayPreset = useSettingsStore((s) => s.setActiveDisplayPreset);
+    const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
+    const setThumbnailPresentation = useSettingsStore((s) => s.setThumbnailPresentation);
     const displayPresetDirectory = useDisplayPresetStore((s) => s.directory);
     const displayPresetCount = useDisplayPresetStore((s) => s.presets.length);
     const displayPresetWarnings = useDisplayPresetStore((s) => s.warnings);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const isReloadingDisplayPresets = useDisplayPresetStore((s) => s.isLoading);
+    const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
 
     const [activeTab, setActiveTab] = useState<TabType>('general');
     const [logs, setLogs] = useState<string[]>([]);
@@ -105,6 +118,10 @@ export const SettingsModal = React.memo(() => {
         return profile ? `${profile.name} (${profile.id})` : activeProfileId;
     }, [profiles, activeProfileId]);
     const activeTabMeta = React.useMemo(() => getSettingsTabMeta(activeTab), [activeTab]);
+    const displayPresetMenuOptions = React.useMemo(
+        () => getDisplayPresetMenuOptions(externalDisplayPresets),
+        [externalDisplayPresets]
+    );
     const {
         appVersion,
         currentLoadedExportRows,
@@ -329,6 +346,22 @@ export const SettingsModal = React.memo(() => {
 
                         {activeTab === 'general' && (
                             <GeneralSettingsTab
+                                defaultDisplayPresetId={activeDisplayPresetId}
+                                defaultThumbnailPresentation={thumbnailPresentation}
+                                defaultSortBy={sortBy}
+                                defaultSortOrder={sortOrder}
+                                defaultGroupBy={groupBy}
+                                displayPresetOptions={displayPresetMenuOptions.map((option) => ({
+                                    id: option.id,
+                                    label: option.definition.label,
+                                    baseDisplayMode: option.baseDisplayMode,
+                                    thumbnailPresentation: option.thumbnailPresentation,
+                                }))}
+                                onDefaultDisplayPresetChange={setActiveDisplayPreset}
+                                onDefaultThumbnailPresentationChange={setThumbnailPresentation}
+                                onDefaultSortByChange={setSortBy}
+                                onDefaultSortOrderChange={setSortOrder}
+                                onDefaultGroupByChange={setGroupBy}
                                 videoVolume={videoVolume}
                                 onVideoVolumeChange={setVideoVolume}
                                 audioVolume={audioVolume}

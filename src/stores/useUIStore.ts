@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
 import type { ToastData } from '../components/Toast';
+import type { DisplayMode, GroupBy, ThumbnailPresentation } from './useSettingsStore';
 
 export interface ScanProgress {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
@@ -18,9 +19,20 @@ export interface ScanProgress {
 export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings' | 'maintenance';
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
 export type SearchTarget = 'fileName' | 'folderName';
+export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed';
+export type FileSortOrder = 'asc' | 'desc';
 export interface SearchCondition {
     text: string;
     target: SearchTarget;
+}
+
+export interface ListDisplayDefaults {
+    sortBy: FileSortBy;
+    sortOrder: FileSortOrder;
+    groupBy: GroupBy;
+    displayMode: DisplayMode;
+    activeDisplayPresetId: string;
+    thumbnailPresentation: ThumbnailPresentation;
 }
 
 interface UIState {
@@ -33,6 +45,12 @@ interface UIState {
     searchQuery: string;
     searchTarget: SearchTarget;
     searchExtraConditions: SearchCondition[];
+    currentSortBy: FileSortBy;
+    currentSortOrder: FileSortOrder;
+    currentGroupBy: GroupBy;
+    currentDisplayMode: DisplayMode;
+    currentActiveDisplayPresetId: string;
+    currentThumbnailPresentation: ThumbnailPresentation;
     selectedFileTypes: MediaFile['type'][];
     settingsModalOpen: boolean;
     settingsModalRequestedTab: SettingsModalTab | null;
@@ -62,6 +80,16 @@ interface UIState {
     setSearchTarget: (target: SearchTarget) => void;
     setSearchConditions: (conditions: SearchCondition[]) => void;
     clearSearchConditions: () => void;
+    applyListDisplayDefaults: (defaults: ListDisplayDefaults) => void;
+    setCurrentSortBy: (sortBy: FileSortBy) => void;
+    setCurrentSortOrder: (order: FileSortOrder) => void;
+    setCurrentGroupBy: (groupBy: GroupBy) => void;
+    setCurrentDisplayPreset: (selection: {
+        id: string;
+        baseDisplayMode: DisplayMode;
+        thumbnailPresentation: ThumbnailPresentation;
+    }) => void;
+    setCurrentThumbnailPresentation: (presentation: ThumbnailPresentation) => void;
     toggleFileTypeFilter: (fileType: MediaFile['type']) => void;
     clearFileTypeFilter: () => void;
     setSelectedFileTypes: (types: MediaFile['type'][]) => void;
@@ -99,6 +127,12 @@ export const useUIStore = create<UIState>((set) => ({
     searchQuery: '',
     searchTarget: 'fileName',
     searchExtraConditions: [],
+    currentSortBy: 'date',
+    currentSortOrder: 'desc',
+    currentGroupBy: 'none',
+    currentDisplayMode: 'standard',
+    currentActiveDisplayPresetId: 'standard',
+    currentThumbnailPresentation: 'modeDefault',
     selectedFileTypes: ['video', 'image', 'archive', 'audio'],
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
@@ -147,6 +181,23 @@ export const useUIStore = create<UIState>((set) => ({
         searchTarget: 'fileName',
         searchExtraConditions: [],
     }),
+    applyListDisplayDefaults: (defaults) => set({
+        currentSortBy: defaults.sortBy,
+        currentSortOrder: defaults.sortOrder,
+        currentGroupBy: defaults.groupBy,
+        currentDisplayMode: defaults.displayMode,
+        currentActiveDisplayPresetId: defaults.activeDisplayPresetId,
+        currentThumbnailPresentation: defaults.thumbnailPresentation,
+    }),
+    setCurrentSortBy: (currentSortBy) => set({ currentSortBy }),
+    setCurrentSortOrder: (currentSortOrder) => set({ currentSortOrder }),
+    setCurrentGroupBy: (currentGroupBy) => set({ currentGroupBy }),
+    setCurrentDisplayPreset: (selection) => set({
+        currentDisplayMode: selection.baseDisplayMode,
+        currentActiveDisplayPresetId: selection.id,
+        currentThumbnailPresentation: selection.thumbnailPresentation,
+    }),
+    setCurrentThumbnailPresentation: (currentThumbnailPresentation) => set({ currentThumbnailPresentation }),
     toggleFileTypeFilter: (fileType) => set((state) => ({
         selectedFileTypes: state.selectedFileTypes.includes(fileType)
             ? state.selectedFileTypes.filter((type) => type !== fileType)

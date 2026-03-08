@@ -83,6 +83,7 @@ function App() {
     // Phase 23: 右サイドパネル
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
+    const applyListDisplayDefaults = useUIStore((s) => s.applyListDisplayDefaults);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const profileSettingsLoadSeqRef = useRef(0);
 
@@ -96,8 +97,16 @@ function App() {
         // サムネイル解像度をメインプロセスに同期
         window.electronAPI.setThumbnailResolution(settings.thumbnailResolution);
         window.electronAPI.setScanFileTypeCategories(settings.profileFileTypeFilters).catch(console.error);
+        applyListDisplayDefaults({
+            sortBy: settings.sortBy,
+            sortOrder: settings.sortOrder,
+            groupBy: settings.groupBy,
+            displayMode: settings.displayMode,
+            activeDisplayPresetId: settings.activeDisplayPresetId,
+            thumbnailPresentation: settings.thumbnailPresentation,
+        });
         void loadDisplayPresets();
-    }, [loadDisplayPresets]);
+    }, [applyListDisplayDefaults, loadDisplayPresets]);
 
     const syncProfileScopedSettingsToScanner = useCallback(async (settings: {
         previewFrameCount: number;

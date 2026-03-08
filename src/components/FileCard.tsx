@@ -330,9 +330,9 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
     const showDuration = useSettingsStore((s) => s.showDuration);
     const showTags = useSettingsStore((s) => s.showTags);
     const showFileSize = useSettingsStore((s) => s.showFileSize);
-    const displayMode = useSettingsStore((s) => s.displayMode);
-    const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
-    const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
+    const displayMode = useUIStore((s) => s.currentDisplayMode);
+    const activeDisplayPresetId = useUIStore((s) => s.currentActiveDisplayPresetId);
+    const thumbnailPresentation = useUIStore((s) => s.currentThumbnailPresentation);
     const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
     const displayPreset = useMemo(
         () => getDisplayPresetById(activeDisplayPresetId, externalDisplayPresets, displayMode),

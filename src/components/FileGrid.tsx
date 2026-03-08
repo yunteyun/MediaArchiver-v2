@@ -53,10 +53,10 @@ export const FileGrid = React.memo(() => {
     const currentFolderId = useFileStore((s) => s.currentFolderId);
     const setFolderMetadata = useFileStore((s) => s.setFolderMetadata);
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
-    const sortBy = useSettingsStore((s) => s.sortBy);
-    const sortOrder = useSettingsStore((s) => s.sortOrder);
-    const displayMode = useSettingsStore((s) => s.displayMode);
-    const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
+    const sortBy = useUIStore((s) => s.currentSortBy);
+    const sortOrder = useUIStore((s) => s.currentSortOrder);
+    const displayMode = useUIStore((s) => s.currentDisplayMode);
+    const activeDisplayPresetId = useUIStore((s) => s.currentActiveDisplayPresetId);
     const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
     const activeDisplayPreset = useMemo(
         () => getDisplayPresetById(activeDisplayPresetId, externalDisplayPresets, displayMode),
@@ -65,7 +65,7 @@ export const FileGrid = React.memo(() => {
     const displayModeDefinition = activeDisplayPreset.definition;
     const isDetailedHorizontalMode = displayModeDefinition.cardDirection === 'horizontal';
     const config = displayModeDefinition.layout;
-    const groupBy = useSettingsStore((s) => s.groupBy);
+    const groupBy = useUIStore((s) => s.currentGroupBy);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
     const searchExtraConditions = useUIStore((s) => s.searchExtraConditions);
