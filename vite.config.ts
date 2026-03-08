@@ -43,6 +43,40 @@ export default defineConfig(async () => ({
             '@': path.resolve(__dirname, './src'),
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return undefined;
+
+                    if (id.includes('lucide-react')) {
+                        return 'vendor-icons';
+                    }
+
+                    if (id.includes('@tanstack/react-virtual')) {
+                        return 'vendor-virtual';
+                    }
+
+                    if (id.includes('zustand') || id.includes('sonner')) {
+                        return 'vendor-state';
+                    }
+
+                    if (
+                        id.includes('/react/') ||
+                        id.includes('\\react\\') ||
+                        id.includes('/react-dom/') ||
+                        id.includes('\\react-dom\\') ||
+                        id.includes('/scheduler/') ||
+                        id.includes('\\scheduler\\')
+                    ) {
+                        return 'vendor-react';
+                    }
+
+                    return 'vendor-misc';
+                },
+            },
+        },
+    },
     test: {
         environment: 'node',
         include: ['src/**/*.test.ts'],

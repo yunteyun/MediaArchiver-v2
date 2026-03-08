@@ -13,7 +13,6 @@ import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, useSettingsStore } from './stores/us
 import { useToastStore } from './stores/useToastStore';
 import { useRatingStore } from './stores/useRatingStore';
 import { useDuplicateStore } from './stores/useDuplicateStore';
-import { CenterViewerRoot } from './features/center-viewer/CenterViewerRoot';
 
 const StatisticsView = lazy(() => import('./components/StatisticsView').then((module) => ({ default: module.StatisticsView })));
 const DuplicateView = lazy(() => import('./components/DuplicateView').then((module) => ({ default: module.DuplicateView })));
@@ -23,11 +22,22 @@ const ProfileModal = lazy(() => import('./components/ProfileModal').then((module
 const DeleteConfirmDialog = lazy(() => import('./components/DeleteConfirmDialog').then((module) => ({ default: module.DeleteConfirmDialog })));
 const RenameFileDialog = lazy(() => import('./components/RenameFileDialog').then((module) => ({ default: module.RenameFileDialog })));
 const MoveFolderDialog = lazy(() => import('./components/MoveFolderDialog').then((module) => ({ default: module.MoveFolderDialog })));
+const CenterViewerRoot = lazy(() => import('./features/center-viewer/CenterViewerRoot').then((module) => ({ default: module.CenterViewerRoot })));
 
 function MainViewLoading({ label }: { label: string }) {
     return (
         <div className="flex h-full items-center justify-center bg-surface-950 text-surface-400">
             <p className="text-sm">{label}</p>
+        </div>
+    );
+}
+
+function OverlayLoading({ label }: { label: string }) {
+    return (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 text-surface-200">
+            <p className="rounded-md border border-surface-600 bg-surface-900/85 px-4 py-2 text-sm shadow-lg">
+                {label}
+            </p>
         </div>
     );
 }
@@ -51,6 +61,7 @@ function App() {
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
     const mainView = useUIStore((s) => s.mainView);
     const settingsModalOpen = useUIStore((s) => s.settingsModalOpen);
+    const lightboxFile = useUIStore((s) => s.lightboxFile);
     const externalApps = useSettingsStore((s) => s.externalApps);
     const deleteDialogOpen = useUIStore((s) => s.deleteDialogOpen);
     const deleteDialogFilePath = useUIStore((s) => s.deleteDialogFilePath);
@@ -374,7 +385,11 @@ function App() {
                     ) : (
                         <FileGrid key={`grid-${refreshKey}`} />
                     )}
-                    <CenterViewerRoot />
+                    {lightboxFile && (
+                        <Suspense fallback={<OverlayLoading label="ビューアを読み込み中..." />}>
+                            <CenterViewerRoot />
+                        </Suspense>
+                    )}
                 </div>
             </main>
             {/* Phase 23: 右サイドパネル（transform で開閉、レイアウトシフト回避） */}
