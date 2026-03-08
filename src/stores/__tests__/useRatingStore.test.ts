@@ -67,4 +67,33 @@ describe('useRatingStore', () => {
         expect(axes.find((axis) => axis.id === 'story')?.isSystem).toBe(true);
         expect(axes.filter((axis) => axis.isSystem)).toHaveLength(1);
     });
+
+    it('replaces an updated axis with the renderer response', async () => {
+        const updatedAxis: RatingAxis = {
+            ...baseAxes[0],
+            name: '総合評価(10点)',
+            minValue: 1,
+            maxValue: 10,
+            step: 1,
+        };
+
+        useRatingStore.setState({
+            axes: baseAxes,
+            isLoaded: true,
+        });
+
+        vi.stubGlobal('window', {
+            electronAPI: {
+                updateRatingAxis: vi.fn().mockResolvedValue(updatedAxis),
+            },
+        });
+
+        await useRatingStore.getState().updateAxis('overall', {
+            name: updatedAxis.name,
+            maxValue: updatedAxis.maxValue,
+        });
+
+        const axes = useRatingStore.getState().axes;
+        expect(axes.find((axis) => axis.id === 'overall')).toEqual(updatedAxis);
+    });
 });

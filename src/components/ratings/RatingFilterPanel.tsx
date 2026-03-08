@@ -99,14 +99,18 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                     // ─ ハーフスターモード ─
                     (() => {
                         const positions: number[] = [];
-                        for (let i = Math.ceil(minValue); i <= maxValue; i++) positions.push(i);
+                        for (let i = Math.ceil(minValue); i <= Math.ceil(maxValue); i++) positions.push(i);
                         return positions.map((pos) => {
-                            const halfVal = Math.round((pos - step) * 100) / 100;
+                            const leftValue = Math.round((pos - step) * 100) / 100;
+                            const rightValue = pos;
+                            const resolvedLeft = leftValue >= minValue && leftValue <= maxValue ? leftValue : undefined;
+                            const resolvedRight = rightValue >= minValue && rightValue <= maxValue ? rightValue : undefined;
+                            if (resolvedLeft === undefined && resolvedRight === undefined) return null;
                             // 表示状態
                             const dispVal = hoverValue ?? currentMin ?? 0;
                             const state: 'full' | 'half' | 'empty' =
-                                dispVal >= pos ? 'full' :
-                                    dispVal >= halfVal ? 'half' : 'empty';
+                                resolvedRight !== undefined && dispVal >= resolvedRight ? 'full' :
+                                    resolvedLeft !== undefined && dispVal >= resolvedLeft ? 'half' : 'empty';
                             const fillColor = state !== 'empty'
                                 ? (hoverValue !== null ? COLOR_HOVER : COLOR_FILLED)
                                 : 'transparent';
@@ -128,17 +132,19 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                                     <button
                                         type="button"
                                         style={{ position: 'absolute', top: 0, left: 0, width: '50%', height: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                                        title={`★${halfVal}以上`}
-                                        onClick={() => handleClick(halfVal)}
-                                        onMouseEnter={() => setHoverValue(halfVal)}
+                                        title={resolvedLeft !== undefined ? `★${resolvedLeft}以上` : undefined}
+                                        disabled={resolvedLeft === undefined}
+                                        onClick={() => resolvedLeft !== undefined && handleClick(resolvedLeft)}
+                                        onMouseEnter={() => resolvedLeft !== undefined && setHoverValue(resolvedLeft)}
                                     />
                                     {/* 右半ボタン */}
                                     <button
                                         type="button"
                                         style={{ position: 'absolute', top: 0, left: '50%', width: '50%', height: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                                        title={`★${pos}以上`}
-                                        onClick={() => handleClick(pos)}
-                                        onMouseEnter={() => setHoverValue(pos)}
+                                        title={resolvedRight !== undefined ? `★${resolvedRight}以上` : undefined}
+                                        disabled={resolvedRight === undefined}
+                                        onClick={() => resolvedRight !== undefined && handleClick(resolvedRight)}
+                                        onMouseEnter={() => resolvedRight !== undefined && setHoverValue(resolvedRight)}
                                     />
                                 </div>
                             );

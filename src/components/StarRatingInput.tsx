@@ -40,25 +40,25 @@ interface StarRatingInputProps {
 interface HalfStarProps {
     /** 整数の星の位置 (1〜maxValue) */
     position: number;
-    step: number;
+    leftValue?: number;
+    rightValue?: number;
     displayValue: number;
     readOnly: boolean;
     disabled: boolean;
     size: number;
-    onClickHalf: (v: number) => void;
-    onHoverHalf: (v: number) => void;
+    onClickValue: (v: number) => void;
+    onHoverValue: (v: number) => void;
     onLeave: () => void;
 }
 
 const HalfStar = React.memo<HalfStarProps>(({
-    position, step, displayValue, readOnly, disabled, size,
-    onClickHalf, onHoverHalf, onLeave,
+    position, leftValue, rightValue, displayValue, readOnly, disabled, size,
+    onClickValue, onHoverValue, onLeave,
 }) => {
     // この星の表示状態
-    const halfVal = Math.round((position - step) * 100) / 100;
     const state: 'full' | 'half' | 'empty' =
-        displayValue >= position ? 'full' :
-            displayValue >= halfVal ? 'half' : 'empty';
+        rightValue !== undefined && displayValue >= rightValue ? 'full' :
+            leftValue !== undefined && displayValue >= leftValue ? 'half' : 'empty';
 
     const fillColor = state !== 'empty' ? C_FILLED : 'transparent';
     const baseStyle: React.CSSProperties = {
@@ -101,9 +101,10 @@ const HalfStar = React.memo<HalfStarProps>(({
                             width: '50%', height: '100%',
                             background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                         }}
-                        title={`${halfVal}に評価`}
-                        onClick={() => onClickHalf(halfVal)}
-                        onMouseEnter={() => onHoverHalf(halfVal)}
+                        title={leftValue !== undefined ? `${leftValue}に評価` : undefined}
+                        disabled={leftValue === undefined}
+                        onClick={() => leftValue !== undefined && onClickValue(leftValue)}
+                        onMouseEnter={() => leftValue !== undefined && onHoverValue(leftValue)}
                     />
                     {/* 右半分（= position） */}
                     <button
@@ -113,9 +114,10 @@ const HalfStar = React.memo<HalfStarProps>(({
                             width: '50%', height: '100%',
                             background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                         }}
-                        title={`${position}に評価`}
-                        onClick={() => onClickHalf(position)}
-                        onMouseEnter={() => onHoverHalf(position)}
+                        title={rightValue !== undefined ? `${rightValue}に評価` : undefined}
+                        disabled={rightValue === undefined}
+                        onClick={() => rightValue !== undefined && onClickValue(rightValue)}
+                        onMouseEnter={() => rightValue !== undefined && onHoverValue(rightValue)}
                     />
                 </>
             )}
@@ -154,7 +156,7 @@ export const StarRatingInput = React.memo<StarRatingInputProps>((({
     // ─ ハーフスターモード ─
     if (isHalfMode) {
         const positions: number[] = [];
-        for (let i = Math.ceil(minValue); i <= maxValue; i++) {
+        for (let i = Math.ceil(minValue); i <= Math.ceil(maxValue); i++) {
             positions.push(i);
         }
 
@@ -163,20 +165,29 @@ export const StarRatingInput = React.memo<StarRatingInputProps>((({
                 className={`flex items-center gap-0.5 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onMouseLeave={handleLeave}
             >
-                {positions.map((pos) => (
-                    <HalfStar
-                        key={pos}
-                        position={pos}
-                        step={step}
-                        displayValue={displayValue}
-                        readOnly={readOnly}
-                        disabled={disabled}
-                        size={size}
-                        onClickHalf={handleClick}
-                        onHoverHalf={(v) => { if (!readOnly && !disabled) setHoverValue(v); }}
-                        onLeave={() => {/* 親のonMouseLeaveに委ねる */ }}
-                    />
-                ))}
+                {positions.map((pos) => {
+                    const leftValue = Math.round((pos - step) * 100) / 100;
+                    const rightValue = pos;
+                    const resolvedLeft = leftValue >= minValue && leftValue <= maxValue ? leftValue : undefined;
+                    const resolvedRight = rightValue >= minValue && rightValue <= maxValue ? rightValue : undefined;
+                    if (resolvedLeft === undefined && resolvedRight === undefined) return null;
+
+                    return (
+                        <HalfStar
+                            key={pos}
+                            position={pos}
+                            leftValue={resolvedLeft}
+                            rightValue={resolvedRight}
+                            displayValue={displayValue}
+                            readOnly={readOnly}
+                            disabled={disabled}
+                            size={size}
+                            onClickValue={handleClick}
+                            onHoverValue={(v) => { if (!readOnly && !disabled) setHoverValue(v); }}
+                            onLeave={() => {/* 親のonMouseLeaveに委ねる */ }}
+                        />
+                    );
+                })}
                 {value !== undefined && !readOnly && (
                     <span className="ml-1 text-xs text-surface-500">
                         {value}/{maxValue}

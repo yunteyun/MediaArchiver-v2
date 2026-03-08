@@ -87,10 +87,13 @@ export const useRatingStore = create<RatingState>((set, get) => ({
     },
 
     updateAxis: async (id, updates) => {
-        await window.electronAPI.updateRatingAxis(id, updates);
+        const updatedAxis = await window.electronAPI.updateRatingAxis(id, updates);
+        if (!updatedAxis) {
+            throw new Error('評価軸の更新に失敗しました');
+        }
         set((state) => ({
             axes: state.axes.map(axis =>
-                axis.id === id ? { ...axis, ...updates } : axis
+                axis.id === id ? updatedAxis : axis
             )
         }));
     },

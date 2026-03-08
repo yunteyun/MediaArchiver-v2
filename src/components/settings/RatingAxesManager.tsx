@@ -7,6 +7,61 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, Shield, Check, X, Star } from 'lucide-react';
 import { useRatingStore, RatingAxis } from '../../stores/useRatingStore';
 
+interface AxisFormState {
+    name: string;
+    min: string;
+    max: string;
+    step: string;
+}
+
+function createAxisFormState(axis?: RatingAxis): AxisFormState {
+    return {
+        name: axis?.name ?? '',
+        min: axis ? String(axis.minValue) : '1',
+        max: axis ? String(axis.maxValue) : '5',
+        step: axis ? String(axis.step) : '1',
+    };
+}
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof Error && error.message.trim()) return error.message;
+    if (typeof error === 'string' && error.trim()) return error;
+    return fallback;
+}
+
+function parseAxisForm(form: AxisFormState): {
+    name: string;
+    minValue: number;
+    maxValue: number;
+    step: number;
+} | null {
+    const name = form.name.trim();
+    const minValue = Number(form.min);
+    const maxValue = Number(form.max);
+    const step = Number(form.step);
+
+    if (!name) {
+        throw new Error('評価軸名を入力してください');
+    }
+    if (!Number.isFinite(minValue) || !Number.isFinite(maxValue) || !Number.isFinite(step)) {
+        throw new Error('最小値・最大値・刻み幅は数値で入力してください');
+    }
+    if (minValue <= 0 || maxValue <= 0) {
+        throw new Error('最小値と最大値は 0 より大きい値にしてください');
+    }
+    if (maxValue < minValue) {
+        throw new Error('最大値は最小値以上にしてください');
+    }
+    if (step <= 0) {
+        throw new Error('刻み幅は 0 より大きい値にしてください');
+    }
+    if (step < 1 && Math.abs(step - 0.5) > 1e-6) {
+        throw new Error('刻み幅は 0.5 または 1 以上を指定してください');
+    }
+
+    return { name, minValue, maxValue, step };
+}
+
 export const RatingAxesManager: React.FC = () => {
     const {
         axes,
@@ -20,14 +75,13 @@ export const RatingAxesManager: React.FC = () => {
 
     // 新規作成フォーム
     const [showCreateForm, setShowCreateForm] = useState(false);
-    const [newName, setNewName] = useState('');
-    const [newMin, setNewMin] = useState(1);
-    const [newMax, setNewMax] = useState(5);
-    const [newStep, setNewStep] = useState(1);
+    const [createForm, setCreateForm] = useState<AxisFormState>(() => createAxisFormState());
+    const [createError, setCreateError] = useState<string | null>(null);
 
     // 編集状態
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [editName, setEditName] = useState('');
+    const [editForm, setEditForm] = useState<AxisFormState>(() => createAxisFormState());
+    const [editError, setEditError] = useState<string | null>(null);
 
     // 削除確認
     const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -41,24 +95,44 @@ export const RatingAxesManager: React.FC = () => {
     }, [isLoaded, loadAxes]);
 
     const handleCreate = async () => {
-        if (!newName.trim()) return;
-        await createAxis(newName.trim(), newMin, newMax, newStep);
-        setNewName('');
-        setNewMin(1);
-        setNewMax(5);
-        setNewStep(1);
-        setShowCreateForm(false);
+        setCreateError(null);
+        try {
+            const parsed = parseAxisForm(createForm);
+            if (!parsed) return;
+            await createAxis(parsed.name, parsed.minValue, parsed.maxValue, parsed.step);
+            setCreateForm(createAxisFormState());
+            setShowCreateForm(false);
+        } catch (error) {
+            setCreateError(extractErrorMessage(error, '評価軸の追加に失敗しました'));
+        }
     };
 
     const handleEditStart = (axis: RatingAxis) => {
         setEditingId(axis.id);
-        setEditName(axis.name);
+        setEditForm(createAxisFormState(axis));
+        setEditError(null);
     };
 
     const handleEditSave = async (id: string) => {
-        if (!editName.trim()) return;
-        await updateAxis(id, { name: editName.trim() });
+        setEditError(null);
+        try {
+            const parsed = parseAxisForm(editForm);
+            if (!parsed) return;
+            await updateAxis(id, {
+                name: parsed.name,
+                minValue: parsed.minValue,
+                maxValue: parsed.maxValue,
+                step: parsed.step,
+            });
+            setEditingId(null);
+        } catch (error) {
+            setEditError(extractErrorMessage(error, '評価軸の更新に失敗しました'));
+        }
+    };
+
+    const handleEditCancel = () => {
         setEditingId(null);
+        setEditError(null);
     };
 
     const handleDelete = async (id: string) => {
@@ -83,6 +157,15 @@ export const RatingAxesManager: React.FC = () => {
         } catch (error) {
             console.error('Failed to update overall rating axis:', error);
             setSetOverallError('総合評価軸の切り替えに失敗しました');
+        }
+    };
+
+    const handleEditKeyDown = (event: React.KeyboardEvent<HTMLInputElement>, id: string) => {
+        if (event.key === 'Enter') {
+            void handleEditSave(id);
+        }
+        if (event.key === 'Escape') {
+            handleEditCancel();
         }
     };
 
@@ -117,17 +200,51 @@ export const RatingAxesManager: React.FC = () => {
                                 {/* 名前 / 編集フォーム */}
                                 <div className="flex-1 min-w-0">
                                     {editingId === axis.id ? (
-                                        <input
-                                            autoFocus
-                                            type="text"
-                                            value={editName}
-                                            onChange={(e) => setEditName(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') handleEditSave(axis.id);
-                                                if (e.key === 'Escape') setEditingId(null);
-                                            }}
-                                            className="w-full px-2 py-0.5 text-sm bg-surface-700 border border-primary-500 rounded text-white focus:outline-none"
-                                        />
+                                        <div className="space-y-2">
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={editForm.name}
+                                                onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                                                onKeyDown={(e) => handleEditKeyDown(e, axis.id)}
+                                                className="w-full px-2 py-1.5 text-sm bg-surface-700 border border-primary-500 rounded text-white focus:outline-none"
+                                            />
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <label className="text-[11px] text-surface-400">
+                                                    <span className="block mb-1">最小値</span>
+                                                    <input
+                                                        type="number"
+                                                        value={editForm.min}
+                                                        step="0.5"
+                                                        onChange={(e) => setEditForm((prev) => ({ ...prev, min: e.target.value }))}
+                                                        onKeyDown={(e) => handleEditKeyDown(e, axis.id)}
+                                                        className="w-full px-2 py-1.5 text-sm bg-surface-700 border border-surface-600 rounded text-white focus:outline-none focus:border-primary-500"
+                                                    />
+                                                </label>
+                                                <label className="text-[11px] text-surface-400">
+                                                    <span className="block mb-1">最大値</span>
+                                                    <input
+                                                        type="number"
+                                                        value={editForm.max}
+                                                        step="0.5"
+                                                        onChange={(e) => setEditForm((prev) => ({ ...prev, max: e.target.value }))}
+                                                        onKeyDown={(e) => handleEditKeyDown(e, axis.id)}
+                                                        className="w-full px-2 py-1.5 text-sm bg-surface-700 border border-surface-600 rounded text-white focus:outline-none focus:border-primary-500"
+                                                    />
+                                                </label>
+                                                <label className="text-[11px] text-surface-400">
+                                                    <span className="block mb-1">刻み幅</span>
+                                                    <input
+                                                        type="number"
+                                                        value={editForm.step}
+                                                        step="0.5"
+                                                        onChange={(e) => setEditForm((prev) => ({ ...prev, step: e.target.value }))}
+                                                        onKeyDown={(e) => handleEditKeyDown(e, axis.id)}
+                                                        className="w-full px-2 py-1.5 text-sm bg-surface-700 border border-surface-600 rounded text-white focus:outline-none focus:border-primary-500"
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div>
                                             <span className="text-sm text-white font-medium">{axis.name}</span>
@@ -156,7 +273,7 @@ export const RatingAxesManager: React.FC = () => {
                                                 <Check size={14} />
                                             </button>
                                             <button
-                                                onClick={() => setEditingId(null)}
+                                                onClick={handleEditCancel}
                                                 className="p-1.5 hover:bg-surface-700 rounded transition-colors text-surface-400"
                                                 title="キャンセル"
                                             >
@@ -225,6 +342,9 @@ export const RatingAxesManager: React.FC = () => {
                 {setOverallError && (
                     <p className="text-xs text-red-400 mt-2">{setOverallError}</p>
                 )}
+                {editError && (
+                    <p className="text-xs text-red-400 mt-2">{editError}</p>
+                )}
 
                 {/* 新規作成フォーム */}
                 {showCreateForm ? (
@@ -234,8 +354,8 @@ export const RatingAxesManager: React.FC = () => {
                             <input
                                 autoFocus
                                 type="text"
-                                value={newName}
-                                onChange={(e) => setNewName(e.target.value)}
+                                value={createForm.name}
+                                onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))}
                                 placeholder="例: 映像品質"
                                 className="w-full px-3 py-1.5 text-sm bg-surface-700 border border-surface-600 rounded text-white focus:outline-none focus:border-primary-500"
                                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -246,8 +366,9 @@ export const RatingAxesManager: React.FC = () => {
                                 <label className="block text-xs text-surface-400 mb-1">最小値</label>
                                 <input
                                     type="number"
-                                    value={newMin}
-                                    onChange={(e) => setNewMin(Number(e.target.value))}
+                                    value={createForm.min}
+                                    step="0.5"
+                                    onChange={(e) => setCreateForm((prev) => ({ ...prev, min: e.target.value }))}
                                     className="w-full px-3 py-1.5 text-sm bg-surface-700 border border-surface-600 rounded text-white focus:outline-none focus:border-primary-500"
                                 />
                             </div>
@@ -255,8 +376,9 @@ export const RatingAxesManager: React.FC = () => {
                                 <label className="block text-xs text-surface-400 mb-1">最大値</label>
                                 <input
                                     type="number"
-                                    value={newMax}
-                                    onChange={(e) => setNewMax(Number(e.target.value))}
+                                    value={createForm.max}
+                                    step="0.5"
+                                    onChange={(e) => setCreateForm((prev) => ({ ...prev, max: e.target.value }))}
                                     className="w-full px-3 py-1.5 text-sm bg-surface-700 border border-surface-600 rounded text-white focus:outline-none focus:border-primary-500"
                                 />
                             </div>
@@ -264,24 +386,31 @@ export const RatingAxesManager: React.FC = () => {
                                 <label className="block text-xs text-surface-400 mb-1">刻み幅</label>
                                 <input
                                     type="number"
-                                    value={newStep}
+                                    value={createForm.step}
                                     step="0.5"
-                                    onChange={(e) => setNewStep(Number(e.target.value))}
+                                    onChange={(e) => setCreateForm((prev) => ({ ...prev, step: e.target.value }))}
                                     className="w-full px-3 py-1.5 text-sm bg-surface-700 border border-surface-600 rounded text-white focus:outline-none focus:border-primary-500"
                                 />
                             </div>
                         </div>
+                        {createError && (
+                            <p className="text-xs text-red-400">{createError}</p>
+                        )}
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleCreate}
-                                disabled={!newName.trim()}
+                                disabled={!createForm.name.trim()}
                                 className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
                             >
                                 <Plus size={14} />
                                 追加
                             </button>
                             <button
-                                onClick={() => setShowCreateForm(false)}
+                                onClick={() => {
+                                    setShowCreateForm(false);
+                                    setCreateForm(createAxisFormState());
+                                    setCreateError(null);
+                                }}
                                 className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-300 text-sm rounded transition-colors"
                             >
                                 キャンセル
@@ -290,7 +419,11 @@ export const RatingAxesManager: React.FC = () => {
                     </div>
                 ) : (
                     <button
-                        onClick={() => setShowCreateForm(true)}
+                        onClick={() => {
+                            setShowCreateForm(true);
+                            setCreateForm(createAxisFormState());
+                            setCreateError(null);
+                        }}
                         className="mt-3 flex items-center gap-1.5 text-sm text-primary-400 hover:text-primary-300 transition-colors"
                     >
                         <Plus size={16} />

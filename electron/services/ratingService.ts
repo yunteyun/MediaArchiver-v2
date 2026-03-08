@@ -68,6 +68,12 @@ interface RatingDistributionRow {
     count: number;
 }
 
+interface FileRatingValueRow {
+    value: number;
+}
+
+const AXIS_EPSILON = 1e-6;
+
 // --- Row mapper ---
 
 function mapAxisRow(row: RatingAxisRow): RatingAxis {
@@ -81,6 +87,59 @@ function mapAxisRow(row: RatingAxisRow): RatingAxis {
         sortOrder: row.sort_order,
         createdAt: row.created_at,
     };
+}
+
+function isAlignedToStep(value: number, minValue: number, step: number): boolean {
+    const offset = (value - minValue) / step;
+    return Math.abs(offset - Math.round(offset)) < AXIS_EPSILON;
+}
+
+function validateAxisConfig(name: string, minValue: number, maxValue: number, step: number): void {
+    if (!name.trim()) {
+        throw new Error('評価軸名を入力してください');
+    }
+    if (!Number.isFinite(minValue) || !Number.isFinite(maxValue) || !Number.isFinite(step)) {
+        throw new Error('最小値・最大値・刻み幅は数値で指定してください');
+    }
+    if (minValue <= 0 || maxValue <= 0) {
+        throw new Error('最小値と最大値は 0 より大きい値にしてください');
+    }
+    if (maxValue < minValue) {
+        throw new Error('最大値は最小値以上にしてください');
+    }
+    if (step <= 0) {
+        throw new Error('刻み幅は 0 より大きい値にしてください');
+    }
+    if (step < 1 && Math.abs(step - 0.5) > AXIS_EPSILON) {
+        throw new Error('刻み幅は 0.5 または 1 以上を指定してください');
+    }
+    if (!isAlignedToStep(maxValue, minValue, step)) {
+        throw new Error('最大値は最小値から刻み幅で到達できる値にしてください');
+    }
+}
+
+function ensureExistingRatingsCompatible(axisId: string, minValue: number, maxValue: number, step: number): void {
+    const rows = db().prepare(`
+        SELECT value
+        FROM file_ratings
+        WHERE axis_id = ?
+    `).all(axisId) as FileRatingValueRow[];
+
+    const invalidValues = rows
+        .map((row) => row.value)
+        .filter((value) => (
+            value < minValue - AXIS_EPSILON
+            || value > maxValue + AXIS_EPSILON
+            || !isAlignedToStep(value, minValue, step)
+        ));
+
+    if (invalidValues.length === 0) return;
+
+    const samples = Array.from(new Set(invalidValues.slice(0, 3))).join(', ');
+    throw new Error(
+        `既存の評価 ${invalidValues.length} 件が新しい範囲または刻み幅に合わないため変更できません`
+        + (samples ? `（例: ${samples}）` : '')
+    );
 }
 
 // --- Axis Operations ---
@@ -104,6 +163,8 @@ export function createAxis(
     step: number = 1,
     isSystem: boolean = false
 ): RatingAxis {
+    validateAxisConfig(name, minValue, maxValue, step);
+
     const id = uuidv4();
     const now = Date.now();
 
@@ -134,6 +195,16 @@ export function updateAxis(
     const maxValue = updates.maxValue ?? existing.max_value;
     const step = updates.step ?? existing.step;
     const sortOrder = updates.sortOrder ?? existing.sort_order;
+
+    validateAxisConfig(name, minValue, maxValue, step);
+
+    if (
+        Math.abs(minValue - existing.min_value) >= AXIS_EPSILON
+        || Math.abs(maxValue - existing.max_value) >= AXIS_EPSILON
+        || Math.abs(step - existing.step) >= AXIS_EPSILON
+    ) {
+        ensureExistingRatingsCompatible(id, minValue, maxValue, step);
+    }
 
     db().prepare(`
         UPDATE rating_axes
