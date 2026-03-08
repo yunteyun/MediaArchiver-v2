@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - (なし)
 
 ### Changed
-- (なし)
+- 設定モーダルを左ナビ + 右コンテンツの2カラム構成へ見直し、項目数が増えてもカテゴリを探しやすいレイアウトに整理した。
 
 ### Fixed
 - (なし)

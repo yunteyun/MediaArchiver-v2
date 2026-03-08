@@ -11,7 +11,7 @@ import { useTagStore } from '../stores/useTagStore';
 import { useProfileStore } from '../stores/useProfileStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { RatingAxesManager } from './settings/RatingAxesManager';
-import { SettingsTabNav } from './settings/SettingsTabNav';
+import { getSettingsTabMeta, SettingsTabNav } from './settings/SettingsTabNav';
 import { GeneralSettingsTab } from './settings/GeneralSettingsTab';
 import { ScanSettingsTab } from './settings/ScanSettingsTab';
 import { ThumbnailsSettingsTab } from './settings/ThumbnailsSettingsTab';
@@ -103,6 +103,7 @@ export const SettingsModal = React.memo(() => {
         const profile = profiles.find((p) => p.id === activeProfileId);
         return profile ? `${profile.name} (${profile.id})` : activeProfileId;
     }, [profiles, activeProfileId]);
+    const activeTabMeta = React.useMemo(() => getSettingsTabMeta(activeTab), [activeTab]);
     const {
         appVersion,
         currentLoadedExportRows,
@@ -294,7 +295,7 @@ export const SettingsModal = React.memo(() => {
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60" style={{ zIndex: 'var(--z-modal)' }}>
             <div
-                className="bg-surface-900 rounded-lg shadow-xl w-full max-w-2xl mx-4 h-[80vh] max-h-[80vh] min-h-[560px] flex flex-col"
+                className="mx-4 flex h-[82vh] min-h-[620px] max-h-[82vh] w-full max-w-5xl flex-col rounded-lg bg-surface-900 shadow-xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -311,145 +312,156 @@ export const SettingsModal = React.memo(() => {
                     </button>
                 </div>
 
-                <SettingsTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
-
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto">
-                    {activeTab === 'general' && (
-                        <GeneralSettingsTab
-                            videoVolume={videoVolume}
-                            onVideoVolumeChange={setVideoVolume}
-                            audioVolume={audioVolume}
-                            onAudioVolumeChange={setAudioVolume}
-                            lightboxOverlayOpacity={lightboxOverlayOpacity}
-                            onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
-                            performanceMode={performanceMode}
-                            onPerformanceModeChange={setPerformanceMode}
-                            isCheckingForUpdates={isCheckingForUpdates}
-                            updateCheckState={updateCheckState}
-                            onCheckForUpdates={() => { void handleCheckForUpdates(); }}
-                            isDownloadingUpdateZip={isDownloadingUpdateZip}
-                            updateDownloadState={updateDownloadState}
-                            onDownloadLatestUpdateZip={() => { void handleDownloadLatestUpdateZip(); }}
-                            isApplyingUpdate={isApplyingUpdate}
-                            onApplyUpdateFromZip={() => { void handleApplyUpdateFromZip(); }}
-                            onApplyUpdateViaZipDialog={() => { void handleApplyUpdateViaZipDialog(); }}
-                            showFileName={showFileName}
-                            onShowFileNameChange={setShowFileName}
-                            showDuration={showDuration}
-                            onShowDurationChange={setShowDuration}
-                            showTags={showTags}
-                            onShowTagsChange={setShowTags}
-                            tagPopoverTrigger={tagPopoverTrigger}
-                            onTagPopoverTriggerChange={setTagPopoverTrigger}
-                            tagDisplayStyle={tagDisplayStyle}
-                            onTagDisplayStyleChange={setTagDisplayStyle}
-                            fileCardTagOrderMode={fileCardTagOrderMode}
-                            onFileCardTagOrderModeChange={setFileCardTagOrderMode}
-                            showFileSize={showFileSize}
-                            onShowFileSizeChange={setShowFileSize}
-                            displayPresetDirectory={displayPresetDirectory}
-                            displayPresetCount={displayPresetCount}
-                            displayPresetWarnings={displayPresetWarnings}
-                            onOpenDisplayPresetFolder={handleOpenDisplayPresetFolder}
-                            isReloadingDisplayPresets={isReloadingDisplayPresets}
-                            onReloadDisplayPresets={handleReloadDisplayPresets}
-                        />
-                    )}
+                <div className="flex min-h-0 flex-1 overflow-hidden">
+                    <SettingsTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
 
-                    {activeTab === 'scan' && (
-                        <ScanSettingsTab
-                            activeProfileLabel={activeProfileLabel}
-                            profileFileTypeFilters={profileFileTypeFilters}
-                            onProfileFileTypeToggle={(category, checked) => { void handleProfileFileTypeToggle(category, checked); }}
-                            onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
-                            scanThrottleMs={scanThrottleMs}
-                            onProfileScanThrottleMsChange={(ms) => { void handleProfileScanThrottleMsChange(ms); }}
-                        />
-                    )}
+                    <div className="min-w-0 flex-1 overflow-y-auto">
+                        <div className="border-b border-surface-800 bg-surface-900/95 px-5 py-4 backdrop-blur-sm">
+                            <h3 className="text-base font-semibold text-surface-100">
+                                {activeTabMeta.label}
+                            </h3>
+                            <p className="mt-1 text-sm text-surface-400">
+                                {activeTabMeta.description}
+                            </p>
+                        </div>
 
-                    {activeTab === 'thumbnails' && (
-                        <ThumbnailsSettingsTab
-                            previewFrameCount={previewFrameCount}
-                            onProfilePreviewFrameCountChange={(count) => { void handleProfilePreviewFrameCountChange(count); }}
-                            thumbnailResolution={thumbnailResolution}
-                            onProfileThumbnailResolutionChange={(resolution) => { void handleProfileThumbnailResolutionChange(resolution); }}
-                            thumbnailAction={thumbnailAction}
-                            onThumbnailActionChange={setThumbnailAction}
-                            flipbookSpeed={flipbookSpeed}
-                            onFlipbookSpeedChange={setFlipbookSpeed}
-                            animatedImagePreviewMode={animatedImagePreviewMode}
-                            onAnimatedImagePreviewModeChange={setAnimatedImagePreviewMode}
-                            playMode={playMode}
-                            onPlayModeJumpTypeChange={setPlayModeJumpType}
-                            onPlayModeJumpIntervalChange={setPlayModeJumpInterval}
-                            rightPanelVideoPreviewMode={rightPanelVideoPreviewMode}
-                            onRightPanelVideoPreviewModeChange={setRightPanelVideoPreviewMode}
-                            rightPanelVideoJumpInterval={rightPanelVideoJumpInterval}
-                            onRightPanelVideoJumpIntervalChange={setRightPanelVideoJumpInterval}
-                        />
-                    )}
+                        {activeTab === 'general' && (
+                            <GeneralSettingsTab
+                                videoVolume={videoVolume}
+                                onVideoVolumeChange={setVideoVolume}
+                                audioVolume={audioVolume}
+                                onAudioVolumeChange={setAudioVolume}
+                                lightboxOverlayOpacity={lightboxOverlayOpacity}
+                                onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
+                                performanceMode={performanceMode}
+                                onPerformanceModeChange={setPerformanceMode}
+                                isCheckingForUpdates={isCheckingForUpdates}
+                                updateCheckState={updateCheckState}
+                                onCheckForUpdates={() => { void handleCheckForUpdates(); }}
+                                isDownloadingUpdateZip={isDownloadingUpdateZip}
+                                updateDownloadState={updateDownloadState}
+                                onDownloadLatestUpdateZip={() => { void handleDownloadLatestUpdateZip(); }}
+                                isApplyingUpdate={isApplyingUpdate}
+                                onApplyUpdateFromZip={() => { void handleApplyUpdateFromZip(); }}
+                                onApplyUpdateViaZipDialog={() => { void handleApplyUpdateViaZipDialog(); }}
+                                showFileName={showFileName}
+                                onShowFileNameChange={setShowFileName}
+                                showDuration={showDuration}
+                                onShowDurationChange={setShowDuration}
+                                showTags={showTags}
+                                onShowTagsChange={setShowTags}
+                                tagPopoverTrigger={tagPopoverTrigger}
+                                onTagPopoverTriggerChange={setTagPopoverTrigger}
+                                tagDisplayStyle={tagDisplayStyle}
+                                onTagDisplayStyleChange={setTagDisplayStyle}
+                                fileCardTagOrderMode={fileCardTagOrderMode}
+                                onFileCardTagOrderModeChange={setFileCardTagOrderMode}
+                                showFileSize={showFileSize}
+                                onShowFileSizeChange={setShowFileSize}
+                                displayPresetDirectory={displayPresetDirectory}
+                                displayPresetCount={displayPresetCount}
+                                displayPresetWarnings={displayPresetWarnings}
+                                onOpenDisplayPresetFolder={handleOpenDisplayPresetFolder}
+                                isReloadingDisplayPresets={isReloadingDisplayPresets}
+                                onReloadDisplayPresets={handleReloadDisplayPresets}
+                            />
+                        )}
 
-                    {activeTab === 'storage' && (
-                        <StorageSettingsTab
-                            storageConfig={storageConfig}
-                            selectedMode={selectedMode}
-                            onSelectedModeChange={setSelectedMode}
-                            customPath={customPath}
-                            onCustomPathChange={setCustomPath}
-                            onBrowseCustomPath={() => { void handleBrowseStorageFolder(); }}
-                            migrationMsg={migrationMsg}
-                            onDeleteOldData={() => { void handleDeleteOldData(); }}
-                            isMigrating={isMigrating}
-                            onMigrate={() => { void handleMigrate(); }}
-                        />
-                    )}
+                        {activeTab === 'scan' && (
+                            <ScanSettingsTab
+                                activeProfileLabel={activeProfileLabel}
+                                profileFileTypeFilters={profileFileTypeFilters}
+                                onProfileFileTypeToggle={(category, checked) => { void handleProfileFileTypeToggle(category, checked); }}
+                                onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
+                                scanThrottleMs={scanThrottleMs}
+                                onProfileScanThrottleMsChange={(ms) => { void handleProfileScanThrottleMsChange(ms); }}
+                            />
+                        )}
 
-                    {activeTab === 'apps' && (
-                        <ExternalAppsTab />
-                    )}
+                        {activeTab === 'thumbnails' && (
+                            <ThumbnailsSettingsTab
+                                previewFrameCount={previewFrameCount}
+                                onProfilePreviewFrameCountChange={(count) => { void handleProfilePreviewFrameCountChange(count); }}
+                                thumbnailResolution={thumbnailResolution}
+                                onProfileThumbnailResolutionChange={(resolution) => { void handleProfileThumbnailResolutionChange(resolution); }}
+                                thumbnailAction={thumbnailAction}
+                                onThumbnailActionChange={setThumbnailAction}
+                                flipbookSpeed={flipbookSpeed}
+                                onFlipbookSpeedChange={setFlipbookSpeed}
+                                animatedImagePreviewMode={animatedImagePreviewMode}
+                                onAnimatedImagePreviewModeChange={setAnimatedImagePreviewMode}
+                                playMode={playMode}
+                                onPlayModeJumpTypeChange={setPlayModeJumpType}
+                                onPlayModeJumpIntervalChange={setPlayModeJumpInterval}
+                                rightPanelVideoPreviewMode={rightPanelVideoPreviewMode}
+                                onRightPanelVideoPreviewModeChange={setRightPanelVideoPreviewMode}
+                                rightPanelVideoJumpInterval={rightPanelVideoJumpInterval}
+                                onRightPanelVideoJumpIntervalChange={setRightPanelVideoJumpInterval}
+                            />
+                        )}
 
-                    {activeTab === 'logs' && (
-                        <LogsSettingsTab
-                            logFilter={logFilter}
-                            onLogFilterChange={setLogFilter}
-                            isLoadingLogs={isLoadingLogs}
-                            onReloadLogs={loadLogs}
-                            onCopyVisibleLogs={() => { void handleCopyVisibleLogs(); }}
-                            onOpenLogFolder={() => { void handleOpenLogFolder(); }}
-                            filteredLogs={filteredLogs}
-                            logs={logs}
-                            logLoadError={logLoadError}
-                            logActionMessage={logActionMessage}
-                        />
-                    )}
+                        {activeTab === 'storage' && (
+                            <StorageSettingsTab
+                                storageConfig={storageConfig}
+                                selectedMode={selectedMode}
+                                onSelectedModeChange={setSelectedMode}
+                                customPath={customPath}
+                                onCustomPathChange={setCustomPath}
+                                onBrowseCustomPath={() => { void handleBrowseStorageFolder(); }}
+                                migrationMsg={migrationMsg}
+                                onDeleteOldData={() => { void handleDeleteOldData(); }}
+                                isMigrating={isMigrating}
+                                onMigrate={() => { void handleMigrate(); }}
+                            />
+                        )}
 
-                    {activeTab === 'backup' && (
-                        <BackupSettingsTab
-                            currentLoadedExportRowsCount={currentLoadedExportRows.length}
-                            activeProfileLabel={activeProfileLabel}
-                            exportScopeLabel={exportScopeLabel}
-                            exportScope={exportScope}
-                            canExportCurrentFolderScope={canExportCurrentFolderScope}
-                            onExportScopeChange={setExportScope}
-                            isExporting={isExporting}
-                            onExport={(format) => { void handleExport(format); }}
-                            isImportingCsv={isImportingCsv}
-                            onSelectImportCsv={() => { void handleSelectImportCsv(); }}
-                            onSelectLegacyImportCsv={() => { void handleSelectLegacyImportCsv(); }}
-                            onApplyCsvImport={() => { void handleApplyCsvImport(); }}
-                            parsedImportRows={parsedImportRows}
-                            selectedImportCsvPath={selectedImportCsvPath}
-                            importSourceLabel={importSourceLabel}
-                            importDryRun={importDryRun}
-                            importWarnings={importWarnings}
-                            onCreateBackup={() => { void handleCreateBackup(); }}
-                        />
-                    )}
+                        {activeTab === 'apps' && (
+                            <ExternalAppsTab />
+                        )}
 
-                    {activeTab === 'ratings' && (
-                        <RatingAxesManager />
-                    )}
+                        {activeTab === 'logs' && (
+                            <LogsSettingsTab
+                                logFilter={logFilter}
+                                onLogFilterChange={setLogFilter}
+                                isLoadingLogs={isLoadingLogs}
+                                onReloadLogs={loadLogs}
+                                onCopyVisibleLogs={() => { void handleCopyVisibleLogs(); }}
+                                onOpenLogFolder={() => { void handleOpenLogFolder(); }}
+                                filteredLogs={filteredLogs}
+                                logs={logs}
+                                logLoadError={logLoadError}
+                                logActionMessage={logActionMessage}
+                            />
+                        )}
+
+                        {activeTab === 'backup' && (
+                            <BackupSettingsTab
+                                currentLoadedExportRowsCount={currentLoadedExportRows.length}
+                                activeProfileLabel={activeProfileLabel}
+                                exportScopeLabel={exportScopeLabel}
+                                exportScope={exportScope}
+                                canExportCurrentFolderScope={canExportCurrentFolderScope}
+                                onExportScopeChange={setExportScope}
+                                isExporting={isExporting}
+                                onExport={(format) => { void handleExport(format); }}
+                                isImportingCsv={isImportingCsv}
+                                onSelectImportCsv={() => { void handleSelectImportCsv(); }}
+                                onSelectLegacyImportCsv={() => { void handleSelectLegacyImportCsv(); }}
+                                onApplyCsvImport={() => { void handleApplyCsvImport(); }}
+                                parsedImportRows={parsedImportRows}
+                                selectedImportCsvPath={selectedImportCsvPath}
+                                importSourceLabel={importSourceLabel}
+                                importDryRun={importDryRun}
+                                importWarnings={importWarnings}
+                                onCreateBackup={() => { void handleCreateBackup(); }}
+                            />
+                        )}
+
+                        {activeTab === 'ratings' && (
+                            <RatingAxesManager />
+                        )}
+                    </div>
                 </div>
 
                 <FolderScanSettingsManagerDialog
