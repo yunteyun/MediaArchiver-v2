@@ -5,12 +5,14 @@
  */
 
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
+import { existsSync } from 'fs';
 import {
     findDuplicates,
     cancelDuplicateSearch,
     getDuplicateStats,
     DuplicateProgress
 } from '../services/duplicateService';
+import { findFileById, deleteFile } from '../services/database';
 
 // 進捗スロットリング用の状態
 let lastProgressTime = 0;
@@ -55,8 +57,6 @@ export function registerDuplicateHandlers() {
      * 重複ファイル削除
      */
     ipcMain.handle('duplicate:deleteFiles', async (_event, fileIds: string[]) => {
-        const fs = await import('fs');
-        const { findFileById, deleteFile } = await import('../services/database');
         const { deleteFileSafe } = await import('../services/fileOperationService');
 
         const results: { id: string; success: boolean; error?: string }[] = [];
@@ -70,7 +70,7 @@ export function registerDuplicateHandlers() {
                 }
 
                 // ファイルシステムから削除（安全のため強制的にゴミ箱へ移動）
-                if (fs.existsSync(file.path)) {
+                if (existsSync(file.path)) {
                     const result = await deleteFileSafe(file.path, true);
                     if (!result.success) {
                         results.push({ id: fileId, success: false, error: result.error });

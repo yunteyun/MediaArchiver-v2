@@ -1,6 +1,14 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
 import { addFolder, deleteFolder, getAutoScanFolders, getFolders } from '../services/database';
-import { scanDirectory, cancelScan, type ScanBatchCommittedPayload } from '../services/scanner';
+import {
+    scanDirectory,
+    cancelScan,
+    setPreviewFrameCount,
+    setScanThrottleMs,
+    setThumbnailResolution,
+    setScanFileTypeCategories,
+    type ScanBatchCommittedPayload,
+} from '../services/scanner';
 import { syncFolderWatchers } from '../services/folderWatchService';
 
 function sendScanBatchCommitted(event: IpcMainInvokeEvent, payload: ScanBatchCommittedPayload) {
@@ -74,28 +82,24 @@ export function registerScannerHandlers() {
 
     // === Set Preview Frame Count ===
     ipcMain.handle('scanner:setPreviewFrameCount', async (_event, count: number) => {
-        const { setPreviewFrameCount } = await import('../services/scanner');
         setPreviewFrameCount(count);
         return;
     });
 
     // === Set Scan Throttle Delay ===
     ipcMain.handle('scanner:setScanThrottleMs', async (_event, ms: number) => {
-        const { setScanThrottleMs } = await import('../services/scanner');
         setScanThrottleMs(ms);
         return;
     });
 
     // === Set Thumbnail Resolution ===
     ipcMain.handle('scanner:setThumbnailResolution', async (_event, resolution: number) => {
-        const { setThumbnailResolution } = await import('../services/scanner');
         setThumbnailResolution(resolution);
         return;
     });
 
     // === Set Scan File Type Categories (profile-scoped) ===
     ipcMain.handle('scanner:setFileTypeCategories', async (_event, filters: { video?: boolean; image?: boolean; archive?: boolean; audio?: boolean }) => {
-        const { setScanFileTypeCategories } = await import('../services/scanner');
         setScanFileTypeCategories(filters || {});
         return;
     });

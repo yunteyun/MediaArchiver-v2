@@ -5,6 +5,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { logActivity } from './activityLogService';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 
@@ -198,10 +199,8 @@ export function addTagToFile(fileId: string, tagId: string): void {
     const file = db().prepare('SELECT name FROM files WHERE id = ?').get(fileId) as { name: string } | undefined;
     const tag = db().prepare('SELECT name FROM tag_definitions WHERE id = ?').get(tagId) as { name: string } | undefined;
     if (file && tag) {
-        import('./activityLogService').then(({ logActivity }) => {
-            logActivity('tag_add', fileId, tag.name, { fileName: file.name })
-                .catch(e => logger.scope('TagService').warn('Activity log failed:', e.message));
-        });
+        void logActivity('tag_add', fileId, tag.name, { fileName: file.name })
+            .catch(e => logger.scope('TagService').warn('Activity log failed:', e.message));
     }
 }
 
@@ -214,10 +213,8 @@ export function removeTagFromFile(fileId: string, tagId: string): void {
 
     // アクティビティログ記録（Fire-and-Forget）
     if (file && tag) {
-        import('./activityLogService').then(({ logActivity }) => {
-            logActivity('tag_remove', fileId, tag.name, { fileName: file.name })
-                .catch(e => logger.scope('TagService').warn('Activity log failed:', e.message));
-        });
+        void logActivity('tag_remove', fileId, tag.name, { fileName: file.name })
+            .catch(e => logger.scope('TagService').warn('Activity log failed:', e.message));
     }
 }
 

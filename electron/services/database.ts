@@ -8,6 +8,7 @@
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { logActivity } from './activityLogService';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 
@@ -431,13 +432,11 @@ export function deleteFile(id: string) {
 
     // アクティビティログ記録（Fire-and-Forget）
     if (file) {
-        import('./activityLogService').then(({ logActivity }) => {
-            logActivity('file_delete', undefined, file.name, {
-                path: file.path,
-                size: file.size,
-                type: file.type
-            }).catch(e => log.warn('Activity log failed:', e.message));
-        });
+        void logActivity('file_delete', undefined, file.name, {
+            path: file.path,
+            size: file.size,
+            type: file.type
+        }).catch(e => log.warn('Activity log failed:', e.message));
     }
 }
 

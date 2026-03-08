@@ -1,5 +1,5 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog, clipboard, nativeImage } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles } from '../services/database';
+import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles, getFilesByFolderIds } from '../services/database';
 import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
@@ -715,7 +715,6 @@ export function registerFileHandlers() {
 
     // Phase 22-C: ドライブ配下の全ファイル取得
     ipcMain.handle('getFilesByDrive', async (_, drive: string) => {
-        const { getFilesByFolderIds } = await import('../services/database');
         const folders = getFolders().filter(f => f.drive === drive);
         const folderIds = folders.map(f => f.id);
 
@@ -726,7 +725,6 @@ export function registerFileHandlers() {
 
     // Phase 22-C: フォルダ配下の全ファイル取得（再帰）
     ipcMain.handle('getFilesByFolderRecursive', async (_, folderId: string) => {
-        const { getFilesByFolderIds } = await import('../services/database');
         const folders = getFolders();
 
         // parentMap構築

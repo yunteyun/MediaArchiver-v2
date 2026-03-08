@@ -26,7 +26,6 @@ export function registerStorageHandlers(): void {
         log.info(`storage:setConfig called: mode=${mode}, customPath=${customPath}`);
 
         // 書き込み権限チェック
-        const { getBasePath } = await import('../services/storageConfig');
         const newBase = mode === 'appdata'
             ? app.getPath('userData')
             : mode === 'install'
