@@ -45,6 +45,8 @@ interface GeneralSettingsTabProps {
     showFileSize: boolean;
     onShowFileSizeChange: (checked: boolean) => void;
     displayPresetDirectory: string | null;
+    displayPresetCount: number;
+    displayPresetWarnings: string[];
     onOpenDisplayPresetFolder: () => void;
     isReloadingDisplayPresets: boolean;
     onReloadDisplayPresets: () => void;
@@ -83,6 +85,8 @@ export const GeneralSettingsTab = React.memo(({
     showFileSize,
     onShowFileSizeChange,
     displayPresetDirectory,
+    displayPresetCount,
+    displayPresetWarnings,
     onOpenDisplayPresetFolder,
     isReloadingDisplayPresets,
     onReloadDisplayPresets,
@@ -172,6 +176,9 @@ export const GeneralSettingsTab = React.memo(({
                     <p className="text-xs text-surface-500 mt-0.5">
                         外部 JSON を配置して、一覧カードの表示プリセットを追加できます。
                     </p>
+                    <p className="mt-1 text-[11px] text-surface-400">
+                        読込済み: {displayPresetCount} 件
+                    </p>
                     {displayPresetDirectory && (
                         <p className="mt-1 break-all text-[11px] text-surface-500">
                             保存先: {displayPresetDirectory}
@@ -198,6 +205,18 @@ export const GeneralSettingsTab = React.memo(({
                     </button>
                 </div>
             </div>
+            {displayPresetWarnings.length > 0 && (
+                <div className="mt-3 rounded border border-amber-700/50 bg-amber-950/20 p-3">
+                    <div className="text-sm font-medium text-amber-200">
+                        読み込み警告 ({displayPresetWarnings.length})
+                    </div>
+                    <div className="mt-2 max-h-32 space-y-1 overflow-y-auto text-xs text-amber-100/90">
+                        {displayPresetWarnings.map((warning) => (
+                            <div key={warning}>{warning}</div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
 
         <div className="rounded border border-surface-700 bg-surface-900/50 p-3">

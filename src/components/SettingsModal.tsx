@@ -78,6 +78,8 @@ export const SettingsModal = React.memo(() => {
     const setPlayModeJumpType = useSettingsStore((s) => s.setPlayModeJumpType);
     const setPlayModeJumpInterval = useSettingsStore((s) => s.setPlayModeJumpInterval);
     const displayPresetDirectory = useDisplayPresetStore((s) => s.directory);
+    const displayPresetCount = useDisplayPresetStore((s) => s.presets.length);
+    const displayPresetWarnings = useDisplayPresetStore((s) => s.warnings);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const isReloadingDisplayPresets = useDisplayPresetStore((s) => s.isLoading);
 
@@ -347,6 +349,8 @@ export const SettingsModal = React.memo(() => {
                             showFileSize={showFileSize}
                             onShowFileSizeChange={setShowFileSize}
                             displayPresetDirectory={displayPresetDirectory}
+                            displayPresetCount={displayPresetCount}
+                            displayPresetWarnings={displayPresetWarnings}
                             onOpenDisplayPresetFolder={handleOpenDisplayPresetFolder}
                             isReloadingDisplayPresets={isReloadingDisplayPresets}
                             onReloadDisplayPresets={handleReloadDisplayPresets}
