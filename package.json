@@ -1,14 +1,16 @@
 {
     "name": "media-archiver-v2",
     "private": true,
-  "version": "1.6.0",
+    "version": "1.6.0",
     "main": "dist-electron/bootstrap.js",
     "scripts": {
         "dev": "vite",
         "build": "vite build",
         "build:electron": "electron-builder",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "dependencies": {
         "@tanstack/react-virtual": "^3.13.18",
@@ -51,7 +53,8 @@
         "typescript": "~5.6.2",
         "typescript-eslint": "^8.18.2",
         "vite": "^6.0.5",
-        "vite-plugin-electron": "^0.29.0"
+        "vite-plugin-electron": "^0.29.0",
+        "vitest": "^4.0.18"
     },
     "build": {
         "appId": "com.yunteyun.mediaarchiver",

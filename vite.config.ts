@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import electron from 'vite-plugin-electron/simple';
 import electronFlat from 'vite-plugin-electron';
@@ -42,5 +42,9 @@ export default defineConfig(async () => ({
         alias: {
             '@': path.resolve(__dirname, './src'),
         },
+    },
+    test: {
+        environment: 'node',
+        include: ['src/**/*.test.ts'],
     },
 }));

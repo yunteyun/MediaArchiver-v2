@@ -59,7 +59,7 @@ export function sortFiles(files: MediaFile[], sortBy: FileSortBy, sortOrder: Fil
                 break;
             case 'lastAccessed':
                 comparison = compareLastAccessed(a, b);
-                if (comparison !== 0 || a.lastAccessedAt === null || b.lastAccessedAt === null) {
+                if (a.lastAccessedAt === null || b.lastAccessedAt === null) {
                     return comparison;
                 }
                 break;
