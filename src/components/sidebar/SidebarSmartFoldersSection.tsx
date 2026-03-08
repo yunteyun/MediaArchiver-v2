@@ -94,40 +94,39 @@ export const SidebarSmartFoldersSection = React.memo(({
                         {smartFolders.map((smartFolder) => {
                             const isActive = activeSmartFolderId === smartFolder.id;
                             return (
-                                <button
+                                <div
                                     key={smartFolder.id}
-                                    type="button"
-                                    onClick={() => {
-                                        if (isActive) {
-                                            onClearSmartFolderConditions();
-                                            return;
-                                        }
-                                        onApplySmartFolder(smartFolder.id);
-                                    }}
                                     className={`w-full flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
                                         isActive
                                             ? 'bg-blue-600 text-white'
                                             : 'text-surface-300 hover:bg-surface-800'
                                     }`}
-                                    title={isActive
-                                        ? `${smartFolder.name}（再クリックで解除）`
-                                        : `${smartFolder.name}（クリックで適用）`}
                                 >
-                                    <span className="min-w-0 flex-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (isActive) {
+                                                onClearSmartFolderConditions();
+                                                return;
+                                            }
+                                            onApplySmartFolder(smartFolder.id);
+                                        }}
+                                        className="min-w-0 flex-1 text-left"
+                                        title={isActive
+                                            ? `${smartFolder.name}（再クリックで解除）`
+                                            : `${smartFolder.name}（クリックで適用）`}
+                                    >
                                         <span className="truncate block">{smartFolder.name}</span>
                                         <span className={`truncate block text-[10px] mt-0.5 ${
                                             isActive ? 'text-blue-100/90' : 'text-surface-500'
                                         }`}>
                                             {smartFolderPreviewMap.get(smartFolder.id)}
                                         </span>
-                                    </span>
-                                    <span className="inline-flex items-center gap-1">
+                                    </button>
+                                    <span className="inline-flex items-center gap-1 flex-shrink-0">
                                         <button
                                             type="button"
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                onOpenEditSmartFolderEditor(smartFolder.id);
-                                            }}
+                                            onClick={() => onOpenEditSmartFolderEditor(smartFolder.id)}
                                             className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
                                             title="条件編集"
                                         >
@@ -135,17 +134,14 @@ export const SidebarSmartFoldersSection = React.memo(({
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                onDeleteSmartFolder(smartFolder.id, smartFolder.name);
-                                            }}
+                                            onClick={() => onDeleteSmartFolder(smartFolder.id, smartFolder.name)}
                                             className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
                                             title="削除"
                                         >
                                             <Trash2 size={11} />
                                         </button>
                                     </span>
-                                </button>
+                                </div>
                             );
                         })}
                     </div>

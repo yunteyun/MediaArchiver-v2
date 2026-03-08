@@ -103,7 +103,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - バージョン命名規則を整理し、通常リリース（`MAJOR.MINOR.PATCH`）と修正版（`d` / `PATCH`）の使い分けを README と運用ルールへ明文化した（表示への変更なし）。
 
 ### Fixed
-- (なし)
+- スマートフォルダ一覧で行全体のボタン内に編集 / 削除ボタンが入ってしまい、DevTools に DOM nesting warning が出る問題を修正した。
 
 ---
 
