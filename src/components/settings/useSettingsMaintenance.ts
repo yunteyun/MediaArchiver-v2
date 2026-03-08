@@ -1,0 +1,595 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFileStore } from '../../stores/useFileStore';
+import { useRatingStore } from '../../stores/useRatingStore';
+import { useTagStore } from '../../stores/useTagStore';
+import { useUIStore, type SettingsModalTab } from '../../stores/useUIStore';
+import { buildCsvContent, buildFileExportRows, buildHtmlContent } from '../../utils/fileExport';
+import {
+    parseLegacyAppCsvFromBytes,
+    parseMediaArchiverExportCsvFromBytes,
+    type CsvImportDryRunSummary,
+    type MediaArchiverCsvImportRow,
+} from '../../utils/fileImport';
+
+type StorageMode = 'appdata' | 'install' | 'custom';
+
+interface StorageConfig {
+    mode: StorageMode;
+    customPath?: string;
+    resolvedPath: string;
+}
+
+export interface UpdateCheckUiState {
+    checkedAt: number;
+    result: AppUpdateCheckResult;
+}
+
+interface UseSettingsMaintenanceParams {
+    isOpen: boolean;
+    activeTab: SettingsModalTab;
+    rawFiles: ReturnType<typeof useFileStore.getState>['files'];
+    fileTagsCache: ReturnType<typeof useFileStore.getState>['fileTagsCache'];
+    currentFolderId: string | null;
+    allTags: ReturnType<typeof useTagStore.getState>['tags'];
+    activeProfileLabel: string;
+}
+
+const ALL_FILES_ID = '__all__';
+const DRIVE_PREFIX = '__drive:';
+const FOLDER_PREFIX = '__folder:';
+
+export function useSettingsMaintenance({
+    isOpen,
+    activeTab,
+    rawFiles,
+    fileTagsCache,
+    currentFolderId,
+    allTags,
+    activeProfileLabel,
+}: UseSettingsMaintenanceParams) {
+    const [appVersion, setAppVersion] = useState('');
+    const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
+    const [updateCheckState, setUpdateCheckState] = useState<UpdateCheckUiState | null>(null);
+    const [isDownloadingUpdateZip, setIsDownloadingUpdateZip] = useState(false);
+    const [updateDownloadState, setUpdateDownloadState] = useState<AppUpdateDownloadResult | null>(null);
+    const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
+    const [isExporting, setIsExporting] = useState<'csv' | 'html' | null>(null);
+    const [exportScope, setExportScope] = useState<'profile' | 'folder'>('profile');
+    const [isImportingCsv, setIsImportingCsv] = useState(false);
+    const [selectedImportCsvPath, setSelectedImportCsvPath] = useState('');
+    const [parsedImportRows, setParsedImportRows] = useState<MediaArchiverCsvImportRow[] | null>(null);
+    const [importWarnings, setImportWarnings] = useState<string[]>([]);
+    const [importDryRun, setImportDryRun] = useState<CsvImportDryRunSummary | null>(null);
+    const [importSourceLabel, setImportSourceLabel] = useState('');
+    const [storageConfig, setStorageConfig] = useState<StorageConfig | null>(null);
+    const [selectedMode, setSelectedMode] = useState<StorageMode>('appdata');
+    const [customPath, setCustomPath] = useState('');
+    const [isMigrating, setIsMigrating] = useState(false);
+    const [migrationMsg, setMigrationMsg] = useState<{ type: 'success' | 'error'; text: string; oldBase?: string } | null>(null);
+
+    const currentLoadedExportRows = useMemo(() => {
+        return buildFileExportRows(rawFiles, fileTagsCache, allTags);
+    }, [allTags, fileTagsCache, rawFiles]);
+
+    const exportScopeLabel = useMemo(() => {
+        if (!currentFolderId || currentFolderId === ALL_FILES_ID) return 'すべてのファイル';
+        if (currentFolderId.startsWith(DRIVE_PREFIX)) {
+            return `ドライブ: ${currentFolderId.slice(DRIVE_PREFIX.length)}`;
+        }
+        if (currentFolderId.startsWith(FOLDER_PREFIX)) {
+            return 'フォルダ（再帰）';
+        }
+        return 'フォルダ（直下）';
+    }, [currentFolderId]);
+
+    const canExportCurrentFolderScope = useMemo(() => {
+        if (!currentFolderId || currentFolderId === ALL_FILES_ID) return false;
+        if (currentFolderId.startsWith(DRIVE_PREFIX)) return false;
+        return true;
+    }, [currentFolderId]);
+
+    const runCsvImportDryRun = useCallback(async (rows: MediaArchiverCsvImportRow[]) => {
+        const profileFiles = await window.electronAPI.getFiles();
+        const fileByPath = new Map(profileFiles.map((file) => [file.path, file]));
+        const existingTags = await window.electronAPI.getAllTags();
+        const existingTagByName = new Map(existingTags.map((tag) => [tag.name, tag]));
+        const fileTagIdsMap = await window.electronAPI.getAllFileTagIds();
+        const ratingAxes = await window.electronAPI.getRatingAxes();
+        const overallAxis = ratingAxes.find((axis) => axis.isSystem) ?? ratingAxes[0] ?? null;
+
+        let matchedRows = 0;
+        let unmatchedRows = 0;
+        let rowsWithTags = 0;
+        let tagLinksToAdd = 0;
+        let rowsWithRating = 0;
+        let ratingUpdates = 0;
+        let rowsWithMemo = 0;
+        let memoUpdates = 0;
+        const unmatchedPaths: string[] = [];
+        const missingTagNames = new Set<string>();
+
+        for (const row of rows) {
+            const file = fileByPath.get(row.path);
+            if (!file) {
+                unmatchedRows += 1;
+                unmatchedPaths.push(row.path);
+                continue;
+            }
+
+            matchedRows += 1;
+            if (row.tags.length > 0) rowsWithTags += 1;
+            if (typeof row.ratingValue === 'number') {
+                rowsWithRating += 1;
+                if (overallAxis) ratingUpdates += 1;
+            }
+            if (row.memoText?.trim()) {
+                rowsWithMemo += 1;
+                memoUpdates += 1;
+            }
+
+            const currentTagIds = new Set(fileTagIdsMap[file.id] ?? []);
+            for (const tagName of row.tags) {
+                const existing = existingTagByName.get(tagName);
+                if (!existing) {
+                    missingTagNames.add(tagName);
+                    tagLinksToAdd += 1;
+                    continue;
+                }
+                if (!currentTagIds.has(existing.id)) {
+                    tagLinksToAdd += 1;
+                }
+            }
+        }
+
+        const summary: CsvImportDryRunSummary = {
+            totalRows: rows.length,
+            matchedRows,
+            unmatchedRows,
+            rowsWithTags,
+            tagLinksToAdd,
+            newTagsToCreate: missingTagNames.size,
+            rowsWithRating,
+            ratingUpdates,
+            rowsWithMemo,
+            memoUpdates,
+            unmatchedPaths: unmatchedPaths.slice(0, 20),
+            missingTagNames: Array.from(missingTagNames).sort().slice(0, 30),
+        };
+        setImportDryRun(summary);
+        return summary;
+    }, []);
+
+    const handleExport = useCallback(async (format: 'csv' | 'html') => {
+        setIsExporting(format);
+        try {
+            let targetFiles = rawFiles;
+            let scopeLabel = exportScopeLabel;
+
+            if (exportScope === 'profile') {
+                targetFiles = await window.electronAPI.getFiles();
+                scopeLabel = 'プロファイル全体';
+            } else {
+                if (!canExportCurrentFolderScope || !currentFolderId) {
+                    useUIStore.getState().showToast('フォルダ全体エクスポートにはフォルダを選択してください', 'info');
+                    return;
+                }
+                if (currentFolderId.startsWith(FOLDER_PREFIX)) {
+                    targetFiles = await window.electronAPI.getFilesByFolderRecursive(currentFolderId.slice(FOLDER_PREFIX.length));
+                    scopeLabel = '現在選択フォルダ全体（再帰）';
+                } else {
+                    targetFiles = await window.electronAPI.getFilesByFolderRecursive(currentFolderId);
+                    scopeLabel = '現在選択フォルダ全体';
+                }
+            }
+
+            const exportRows = buildFileExportRows(targetFiles, fileTagsCache, allTags);
+            if (exportRows.length === 0) {
+                useUIStore.getState().showToast('エクスポート対象のファイルがありません', 'info');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const ext = format === 'csv' ? 'csv' : 'html';
+            const content = format === 'csv'
+                ? buildCsvContent(exportRows)
+                : buildHtmlContent(exportRows, {
+                    profileLabel: activeProfileLabel,
+                    scopeLabel,
+                });
+
+            const result = await window.electronAPI.saveTextFile({
+                title: format === 'csv' ? 'CSVエクスポート' : 'HTMLエクスポート',
+                defaultPath: `mediaarchiver-export-${timestamp}.${ext}`,
+                filters: [
+                    format === 'csv'
+                        ? { name: 'CSV Files', extensions: ['csv'] }
+                        : { name: 'HTML Files', extensions: ['html', 'htm'] },
+                    { name: 'All Files', extensions: ['*'] },
+                ],
+                content,
+            });
+
+            if (!result.canceled) {
+                useUIStore.getState().showToast(`${exportRows.length}件を${format.toUpperCase()}出力しました`, 'success');
+            }
+        } catch (error) {
+            console.error('Export failed:', error);
+            useUIStore.getState().showToast(`${format.toUpperCase()}出力に失敗しました`, 'error');
+        } finally {
+            setIsExporting(null);
+        }
+    }, [activeProfileLabel, allTags, canExportCurrentFolderScope, currentFolderId, exportScope, exportScopeLabel, fileTagsCache, rawFiles]);
+
+    const resetImportState = useCallback(() => {
+        setParsedImportRows(null);
+        setImportDryRun(null);
+        setImportWarnings([]);
+        setImportSourceLabel('');
+    }, []);
+
+    const handleSelectImportCsv = useCallback(async () => {
+        try {
+            const result = await window.electronAPI.openBinaryFile({
+                title: 'このアプリのエクスポートCSVを選択',
+                filters: [
+                    { name: 'CSV Files', extensions: ['csv'] },
+                    { name: 'All Files', extensions: ['*'] },
+                ],
+            });
+
+            if (result.canceled || !result.filePath || !result.bytes) return;
+
+            const parsed = parseMediaArchiverExportCsvFromBytes(result.bytes);
+            setSelectedImportCsvPath(result.filePath);
+            setParsedImportRows(parsed.rows);
+            setImportWarnings(parsed.warnings);
+            setImportSourceLabel('このアプリ形式CSV');
+            await runCsvImportDryRun(parsed.rows);
+            useUIStore.getState().showToast(`CSVを解析しました（${parsed.rows.length}行）`, 'success');
+        } catch (error) {
+            console.error('CSV parse failed:', error);
+            resetImportState();
+            useUIStore.getState().showToast(`CSV解析に失敗しました: ${(error as Error).message}`, 'error', 5000);
+        }
+    }, [resetImportState, runCsvImportDryRun]);
+
+    const handleSelectLegacyImportCsv = useCallback(async () => {
+        try {
+            const result = await window.electronAPI.openBinaryFile({
+                title: '旧アプリのCSVを選択（互換インポート）',
+                filters: [
+                    { name: 'CSV Files', extensions: ['csv'] },
+                    { name: 'All Files', extensions: ['*'] },
+                ],
+            });
+
+            if (result.canceled || !result.filePath || !result.bytes) return;
+
+            const parsed = parseLegacyAppCsvFromBytes(result.bytes);
+            setSelectedImportCsvPath(result.filePath);
+            setParsedImportRows(parsed.rows);
+            setImportWarnings(parsed.warnings);
+            setImportSourceLabel('旧アプリCSV（互換）');
+            await runCsvImportDryRun(parsed.rows);
+            useUIStore.getState().showToast(`旧CSVを解析しました（${parsed.rows.length}行）`, 'success');
+        } catch (error) {
+            console.error('Legacy CSV parse failed:', error);
+            resetImportState();
+            useUIStore.getState().showToast(`旧CSV解析に失敗しました: ${(error as Error).message}`, 'error', 5000);
+        }
+    }, [resetImportState, runCsvImportDryRun]);
+
+    const handleApplyCsvImport = useCallback(async () => {
+        if (!parsedImportRows || parsedImportRows.length === 0) {
+            useUIStore.getState().showToast('先にCSVを選択して解析してください', 'info');
+            return;
+        }
+
+        setIsImportingCsv(true);
+        try {
+            const profileFiles = await window.electronAPI.getFiles();
+            const fileByPath = new Map(profileFiles.map((file) => [file.path, file]));
+            const allTagsLatest = await window.electronAPI.getAllTags();
+            const tagByName = new Map(allTagsLatest.map((tag) => [tag.name, tag]));
+            const allFileTagIds = await window.electronAPI.getAllFileTagIds();
+            const ratingAxes = await window.electronAPI.getRatingAxes();
+            const overallAxis = ratingAxes.find((axis) => axis.isSystem) ?? ratingAxes[0] ?? null;
+
+            let createdTags = 0;
+            let addedLinks = 0;
+            let skippedRows = 0;
+            let updatedRatings = 0;
+            let updatedMemos = 0;
+
+            for (const row of parsedImportRows) {
+                const targetFile = fileByPath.get(row.path);
+                if (!targetFile) {
+                    skippedRows += 1;
+                    continue;
+                }
+
+                const currentTagIds = new Set(allFileTagIds[targetFile.id] ?? []);
+
+                for (const tagName of row.tags) {
+                    if (!tagName) continue;
+
+                    let tag = tagByName.get(tagName);
+                    if (!tag) {
+                        const color = row.tagColorByName.get(tagName) || 'gray';
+                        tag = await window.electronAPI.createTag(tagName, color);
+                        tagByName.set(tagName, tag);
+                        createdTags += 1;
+                    }
+
+                    if (!currentTagIds.has(tag.id)) {
+                        await window.electronAPI.addTagToFile(targetFile.id, tag.id);
+                        currentTagIds.add(tag.id);
+                        addedLinks += 1;
+                    }
+                }
+
+                if (overallAxis && typeof row.ratingValue === 'number') {
+                    await window.electronAPI.setFileRating(targetFile.id, overallAxis.id, row.ratingValue);
+                    updatedRatings += 1;
+                }
+
+                if (row.memoText?.trim()) {
+                    const nextMemo = targetFile.notes?.trim()
+                        ? `${targetFile.notes}\n\n[旧CSVコメント]\n${row.memoText}`
+                        : row.memoText;
+                    await window.electronAPI.updateFileNotes(targetFile.id, nextMemo);
+                    targetFile.notes = nextMemo;
+                    updatedMemos += 1;
+                }
+            }
+
+            await useTagStore.getState().loadTags();
+            await useFileStore.getState().loadFileTagsCache();
+            await useRatingStore.getState().loadAllFileRatings();
+
+            useUIStore.getState().showToast(
+                `CSVインポート完了: タグ作成 ${createdTags}件 / タグ付与 ${addedLinks}件 / 未一致 ${skippedRows}行`,
+                'success',
+                5000
+            );
+            if (updatedRatings > 0) {
+                useUIStore.getState().showToast(`評価を ${updatedRatings} 件更新しました`, 'info', 4000);
+            }
+            if (updatedMemos > 0) {
+                useUIStore.getState().showToast(`メモを ${updatedMemos} 件追記しました`, 'info', 4000);
+            }
+
+            await runCsvImportDryRun(parsedImportRows);
+        } catch (error) {
+            console.error('CSV import failed:', error);
+            useUIStore.getState().showToast(`CSVインポートに失敗しました: ${(error as Error).message}`, 'error', 5000);
+        } finally {
+            setIsImportingCsv(false);
+        }
+    }, [parsedImportRows, runCsvImportDryRun]);
+
+    const loadStorageConfig = useCallback(async () => {
+        try {
+            const config = await window.electronAPI.getStorageConfig();
+            setStorageConfig(config);
+            setSelectedMode(config.mode);
+            setCustomPath(config.customPath ?? '');
+        } catch (error) {
+            console.error('Failed to load storage config:', error);
+        }
+    }, []);
+
+    const handleBrowseStorageFolder = useCallback(async () => {
+        const path = await window.electronAPI.browseStorageFolder();
+        if (path) setCustomPath(path);
+    }, []);
+
+    const handleMigrate = useCallback(async () => {
+        if (isMigrating) return;
+        setIsMigrating(true);
+        setMigrationMsg(null);
+        try {
+            const result = await window.electronAPI.setStorageConfig(
+                selectedMode,
+                selectedMode === 'custom' ? customPath : undefined
+            );
+            if (result.success) {
+                setMigrationMsg({ type: 'success', text: `移行完了: ${result.newBase}`, oldBase: result.oldBase });
+                await loadStorageConfig();
+            } else {
+                setMigrationMsg({ type: 'error', text: result.error ?? '移行に失敗しました' });
+            }
+        } catch (error) {
+            setMigrationMsg({ type: 'error', text: error instanceof Error ? error.message : String(error) });
+        } finally {
+            setIsMigrating(false);
+        }
+    }, [customPath, isMigrating, loadStorageConfig, selectedMode]);
+
+    const handleDeleteOldData = useCallback(async () => {
+        if (!migrationMsg?.oldBase) return;
+        if (!window.confirm(`旧データを削除しますか？\n${migrationMsg.oldBase}\n\nこの操作は元に戻せません。`)) return;
+        const result = await window.electronAPI.deleteOldStorageData(migrationMsg.oldBase);
+        if (result.success) {
+            setMigrationMsg(null);
+            window.alert('旧データを削除しました');
+        } else {
+            window.alert(`削除失敗: ${result.error}`);
+        }
+    }, [migrationMsg?.oldBase]);
+
+    const handleCheckForUpdates = useCallback(async () => {
+        if (isCheckingForUpdates) return;
+        setIsCheckingForUpdates(true);
+        try {
+            const result = await window.electronAPI.checkForAppUpdate();
+            setUpdateCheckState({ checkedAt: Date.now(), result });
+            if (!result.success) {
+                useUIStore.getState().showToast(`更新確認に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            if (result.hasUpdate) {
+                useUIStore.getState().showToast(`更新があります（最新: v${result.latestVersion}）`, 'info', 5000);
+            } else {
+                useUIStore.getState().showToast('最新バージョンです', 'success', 3000);
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setUpdateCheckState({
+                checkedAt: Date.now(),
+                result: {
+                    success: false,
+                    currentVersion: appVersion || 'unknown',
+                    sourceUrl: 'unknown',
+                    error: message,
+                },
+            });
+            useUIStore.getState().showToast(`更新確認に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsCheckingForUpdates(false);
+        }
+    }, [appVersion, isCheckingForUpdates]);
+
+    const handleDownloadLatestUpdateZip = useCallback(async () => {
+        if (isDownloadingUpdateZip) return;
+        setIsDownloadingUpdateZip(true);
+        try {
+            const result = await window.electronAPI.downloadLatestUpdateZip();
+            setUpdateDownloadState(result);
+            if (!result.success) {
+                useUIStore.getState().showToast(`更新ZIPの取得に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            useUIStore.getState().showToast('更新ZIPをダウンロードし、ハッシュ検証が完了しました。', 'success', 5000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setUpdateDownloadState({
+                success: false,
+                sourceUrl: updateCheckState?.result.sourceUrl ?? 'unknown',
+                error: message,
+            });
+            useUIStore.getState().showToast(`更新ZIPの取得に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsDownloadingUpdateZip(false);
+        }
+    }, [isDownloadingUpdateZip, updateCheckState?.result.sourceUrl]);
+
+    const handleApplyUpdateFromZip = useCallback(async () => {
+        if (
+            isApplyingUpdate
+            || !updateDownloadState?.success
+            || !updateDownloadState.filePath
+            || updateDownloadState.verified !== true
+        ) {
+            return;
+        }
+        const confirmed = window.confirm(
+            'update.bat を起動して更新を適用します。実行するとアプリは終了されます。続行しますか？'
+        );
+        if (!confirmed) return;
+
+        setIsApplyingUpdate(true);
+        try {
+            const result = await window.electronAPI.applyUpdateFromZip(updateDownloadState.filePath);
+            if (!result.success) {
+                useUIStore.getState().showToast(`更新適用の起動に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            useUIStore.getState().showToast('update.bat を起動しました。更新処理を実行します。', 'info', 5000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            useUIStore.getState().showToast(`更新適用の起動に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsApplyingUpdate(false);
+        }
+    }, [isApplyingUpdate, updateDownloadState]);
+
+    const handleApplyUpdateViaZipDialog = useCallback(async () => {
+        if (isApplyingUpdate) return;
+        const confirmed = window.confirm(
+            '従来方式で update.bat を起動します。ZIP選択後に更新が始まり、アプリは終了されます。続行しますか？'
+        );
+        if (!confirmed) return;
+
+        setIsApplyingUpdate(true);
+        try {
+            const result = await window.electronAPI.applyUpdateFromZip();
+            if (!result.success) {
+                useUIStore.getState().showToast(`update.bat の起動に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+                return;
+            }
+            useUIStore.getState().showToast('update.bat を起動しました。ZIP選択ダイアログで更新ファイルを指定してください。', 'info', 5000);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            useUIStore.getState().showToast(`update.bat の起動に失敗しました: ${message}`, 'error', 5000);
+        } finally {
+            setIsApplyingUpdate(false);
+        }
+    }, [isApplyingUpdate]);
+
+    const handleCreateBackup = useCallback(async () => {
+        try {
+            const profileId = await window.electronAPI.getActiveProfileId();
+            const result = await window.electronAPI.createBackup(profileId);
+            if (result.success) {
+                window.alert('バックアップが作成されました');
+            } else {
+                window.alert(`バックアップ失敗: ${result.error}`);
+            }
+        } catch (error) {
+            window.alert(`エラー: ${(error as Error).message}`);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isOpen && activeTab === 'storage') {
+            void loadStorageConfig();
+        }
+    }, [activeTab, isOpen, loadStorageConfig]);
+
+    useEffect(() => {
+        if (isOpen && !appVersion) {
+            window.electronAPI.getAppVersion().then((version: string) => setAppVersion(version)).catch(() => { });
+        }
+    }, [appVersion, isOpen]);
+
+    return {
+        appVersion,
+        currentLoadedExportRows,
+        exportScopeLabel,
+        exportScope,
+        setExportScope,
+        canExportCurrentFolderScope,
+        isExporting,
+        handleExport,
+        isImportingCsv,
+        handleSelectImportCsv,
+        handleSelectLegacyImportCsv,
+        handleApplyCsvImport,
+        parsedImportRows,
+        selectedImportCsvPath,
+        importSourceLabel,
+        importDryRun,
+        importWarnings,
+        isCheckingForUpdates,
+        updateCheckState,
+        handleCheckForUpdates,
+        isDownloadingUpdateZip,
+        updateDownloadState,
+        handleDownloadLatestUpdateZip,
+        isApplyingUpdate,
+        handleApplyUpdateFromZip,
+        handleApplyUpdateViaZipDialog,
+        handleCreateBackup,
+        storageConfig,
+        selectedMode,
+        setSelectedMode,
+        customPath,
+        setCustomPath,
+        handleBrowseStorageFolder,
+        isMigrating,
+        handleMigrate,
+        migrationMsg,
+        handleDeleteOldData,
+    };
+}
