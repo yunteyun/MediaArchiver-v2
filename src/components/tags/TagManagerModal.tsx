@@ -9,34 +9,13 @@ import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, Chevr
 import { useTagStore, Tag, TagCategory } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
 import { AutoTagRulesTab } from '../AutoTagRulesTab';
+import { TAG_ICON_NAME_OPTIONS } from '../icons/lucideIconMap';
 
 // Color options for tags
 const COLOR_OPTIONS = [
     'gray', 'red', 'orange', 'amber', 'yellow', 'lime', 'green',
     'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet',
     'purple', 'fuchsia', 'pink', 'rose'
-];
-
-// タグで使いやすい lucide-react アイコン名の候補（入力補助用）
-const COMMON_TAG_ICON_NAMES = [
-    'Tag',
-    'Star',
-    'Heart',
-    'Music',
-    'Image',
-    'Film',
-    'Gamepad2',
-    'BookOpen',
-    'Folder',
-    'Sparkles',
-    'Zap',
-    'Flame',
-    'Palette',
-    'Camera',
-    'Headphones',
-    'Mic',
-    'Bookmark',
-    'Shield',
 ];
 
 /** カテゴリ色→背景CSSクラス */
@@ -631,13 +610,13 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                                                         className="w-full px-2 py-1 bg-surface-900 border border-surface-600 rounded text-xs focus:outline-none focus:border-primary-500"
                                                     />
                                                     <datalist id="tag-icon-name-suggestions">
-                                                        {COMMON_TAG_ICON_NAMES.map((iconName) => (
+                                                        {TAG_ICON_NAME_OPTIONS.map((iconName) => (
                                                             <option key={iconName} value={iconName} />
                                                         ))}
                                                     </datalist>
                                                     <div className="flex flex-wrap items-center gap-1">
                                                         <span className="text-[10px] text-surface-500">候補:</span>
-                                                        {COMMON_TAG_ICON_NAMES.slice(0, 10).map((iconName) => (
+                                                        {TAG_ICON_NAME_OPTIONS.slice(0, 10).map((iconName) => (
                                                             <button
                                                                 key={iconName}
                                                                 type="button"

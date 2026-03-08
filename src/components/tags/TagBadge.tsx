@@ -4,8 +4,8 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import { useSettingsStore } from '../../stores/useSettingsStore';
+import { getLucideIconByName } from '../icons/lucideIconMap';
 
 // Color mapping for tag colors (Phase 13.5: 完全不透明化で視認性向上)
 // filled モード用: フル背景色
@@ -98,7 +98,7 @@ export const TagBadge = React.memo(({
     const selectedClass = selected ? 'ring-2 ring-primary-500 ring-offset-1 ring-offset-surface-900' : '';
 
     // アイコンコンポーネントを動的に取得
-    const IconComponent = icon ? (LucideIcons[icon as keyof typeof LucideIcons] as React.ComponentType<{ size?: number; className?: string }>) : null;
+    const IconComponent = getLucideIconByName(icon);
 
     if (isBorderMode) {
         // border モード: ダーク背景 + 左端色ライン

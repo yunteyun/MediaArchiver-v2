@@ -1,7 +1,7 @@
 import React from 'react';
-import * as LucideIcons from 'lucide-react';
 import type { FileGroup } from '../utils/groupFiles';
 import { formatFileSize } from '../utils/groupFiles';
+import { getLucideIconByName } from './icons/lucideIconMap';
 
 interface GroupHeaderProps {
     group: FileGroup;
@@ -12,7 +12,7 @@ interface GroupHeaderProps {
  * グループヘッダーコンポーネント（Phase 12-10）
  */
 export const GroupHeader: React.FC<GroupHeaderProps> = ({ group, sticky = true }) => {
-    const Icon = group.icon ? (LucideIcons[group.icon as keyof typeof LucideIcons] as React.ComponentType<{ size?: number; className?: string }>) : null;
+    const Icon = getLucideIconByName(group.icon);
 
     // グループ内のファイルの合計サイズを計算
     const totalSize = group.files.reduce((sum, file) => sum + file.size, 0);

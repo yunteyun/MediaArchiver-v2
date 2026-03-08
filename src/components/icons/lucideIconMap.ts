@@ -1,0 +1,76 @@
+import type { LucideIcon } from 'lucide-react';
+import {
+    Archive,
+    BookOpen,
+    Bookmark,
+    Calendar,
+    Camera,
+    File,
+    Film,
+    Flame,
+    Folder,
+    Gamepad2,
+    HardDrive,
+    Headphones,
+    Heart,
+    Image,
+    Mic,
+    Music,
+    Palette,
+    Shield,
+    Sparkles,
+    Star,
+    Tag,
+    Zap,
+} from 'lucide-react';
+
+const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
+    Archive,
+    BookOpen,
+    Bookmark,
+    Calendar,
+    Camera,
+    File,
+    Film,
+    Flame,
+    Folder,
+    Gamepad2,
+    HardDrive,
+    Headphones,
+    Heart,
+    Image,
+    Mic,
+    Music,
+    Palette,
+    Shield,
+    Sparkles,
+    Star,
+    Tag,
+    Zap,
+};
+
+export const TAG_ICON_NAME_OPTIONS = [
+    'Tag',
+    'Star',
+    'Heart',
+    'Music',
+    'Image',
+    'Film',
+    'Gamepad2',
+    'BookOpen',
+    'Folder',
+    'Sparkles',
+    'Zap',
+    'Flame',
+    'Palette',
+    'Camera',
+    'Headphones',
+    'Mic',
+    'Bookmark',
+    'Shield',
+] as const;
+
+export function getLucideIconByName(iconName?: string | null): LucideIcon | null {
+    if (!iconName) return null;
+    return LUCIDE_ICON_MAP[iconName] ?? null;
+}
