@@ -131,11 +131,11 @@ function getCompactDensePresetManifest(): ExternalDisplayPresetManifest {
         },
         tagSummaryUi: {
             visibleCount: 1,
-            chipPaddingClass: 'px-1 py-px',
-            chipTextClass: 'text-[6px] leading-none',
-            chipFontWeightClass: 'font-medium',
+            chipPaddingClass: 'px-1 py-0.5',
+            chipTextClass: 'text-[9px] leading-none',
+            chipFontWeightClass: 'font-semibold',
             chipRadiusClass: 'rounded-sm',
-            chipMaxWidthClass: 'max-w-[44px]',
+            chipMaxWidthClass: 'max-w-[46px]',
             rowGapClass: 'gap-0.5',
         },
         compactInfoUi: {
@@ -167,6 +167,38 @@ function getLegacyCompactDensePresetManifest(): ExternalDisplayPresetManifest {
             chipTextClass: 'text-[7px] leading-none',
             chipRadiusClass: 'rounded-sm',
             chipMaxWidthClass: 'max-w-[50px]',
+        },
+        compactInfoUi: {
+            containerClass: 'px-1.5 py-1 flex flex-col justify-start bg-surface-800 gap-0',
+            titleClass: 'text-[11px] text-white truncate leading-tight font-semibold mb-0.5',
+            metaRowClass: 'flex items-start justify-between gap-1',
+            fileSizeClass: 'text-[9px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1 py-0.5 rounded-sm',
+        },
+    };
+}
+
+function getCompactDensePresetManifestV2(): ExternalDisplayPresetManifest {
+    return {
+        id: 'compact-dense',
+        extends: 'compact',
+        label: '標準（XS/高密度）',
+        menuOrder: 5,
+        thumbnailPresentation: 'modeDefault',
+        layout: {
+            aspectRatio: '1/1',
+            cardWidth: 156,
+            thumbnailHeight: 156,
+            infoAreaHeight: 40,
+            totalHeight: 196,
+        },
+        tagSummaryUi: {
+            visibleCount: 1,
+            chipPaddingClass: 'px-1 py-px',
+            chipTextClass: 'text-[6px] leading-none',
+            chipFontWeightClass: 'font-medium',
+            chipRadiusClass: 'rounded-sm',
+            chipMaxWidthClass: 'max-w-[44px]',
+            rowGapClass: 'gap-0.5',
         },
         compactInfoUi: {
             containerClass: 'px-1.5 py-1 flex flex-col justify-start bg-surface-800 gap-0',
@@ -368,7 +400,11 @@ function ensureDisplayPresetDirectory(): string {
     if (fs.existsSync(compactDensePath)) {
         try {
             const parsed = JSON.parse(fs.readFileSync(compactDensePath, 'utf8')) as unknown;
-            if (JSON.stringify(parsed) === JSON.stringify(getLegacyCompactDensePresetManifest())) {
+            const autoUpdatableCompactDensePresets = [
+                getLegacyCompactDensePresetManifest(),
+                getCompactDensePresetManifestV2(),
+            ];
+            if (autoUpdatableCompactDensePresets.some((manifest) => JSON.stringify(parsed) === JSON.stringify(manifest))) {
                 fs.writeFileSync(compactDensePath, `${JSON.stringify(getCompactDensePresetManifest(), null, 2)}\n`, 'utf8');
             }
         } catch {
