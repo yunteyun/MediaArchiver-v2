@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_SCAN_EXCLUSION_RULES, useSettingsStore } from '../useSettingsStore';
+import {
+    DEFAULT_SCAN_EXCLUSION_RULES,
+    DEFAULT_STORAGE_MAINTENANCE_SETTINGS,
+    useSettingsStore,
+} from '../useSettingsStore';
 
 const originalCrypto = globalThis.crypto;
 const originalLocalStorage = globalThis.localStorage;
@@ -23,6 +27,7 @@ function resetSettingsStore() {
         profileFileTypeFilters: { video: true, image: true, archive: true, audio: true },
         profileSettingsMigrationV1Done: false,
         scanExclusionRules: { ...DEFAULT_SCAN_EXCLUSION_RULES },
+        storageMaintenanceSettings: { ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS },
         thumbnailResolution: 320,
         cardLayout: 'grid',
         showFileName: true,
@@ -126,6 +131,18 @@ describe('useSettingsStore', () => {
             excludedExtensions: ['.tmp', '.part', '.jpg'],
             excludedFolderNames: ['cache', 'temp'],
             skipHiddenFolders: false,
+        });
+    });
+
+    it('normalizes storage maintenance settings', () => {
+        useSettingsStore.getState().setStorageMaintenanceSettings({
+            autoCleanupOrphanedThumbnailsOnStartup: true,
+            autoCleanupThresholdMb: -10,
+        });
+
+        expect(useSettingsStore.getState().storageMaintenanceSettings).toEqual({
+            autoCleanupOrphanedThumbnailsOnStartup: true,
+            autoCleanupThresholdMb: 500,
         });
     });
 

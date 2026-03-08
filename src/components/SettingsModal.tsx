@@ -59,6 +59,8 @@ export const SettingsModal = React.memo(() => {
     const setProfileFileTypeFilters = useSettingsStore((s) => s.setProfileFileTypeFilters);
     const scanExclusionRules = useSettingsStore((s) => s.scanExclusionRules);
     const setScanExclusionRules = useSettingsStore((s) => s.setScanExclusionRules);
+    const storageMaintenanceSettings = useSettingsStore((s) => s.storageMaintenanceSettings);
+    const setStorageMaintenanceSettings = useSettingsStore((s) => s.setStorageMaintenanceSettings);
 
 
     const showFileName = useSettingsStore((s) => s.showFileName);
@@ -134,9 +136,13 @@ export const SettingsModal = React.memo(() => {
         isExporting,
         handleExport,
         isImportingCsv,
+        isExportingSettings,
+        isImportingSettings,
         handleSelectImportCsv,
         handleSelectLegacyImportCsv,
         handleApplyCsvImport,
+        handleExportSettings,
+        handleImportSettings,
         parsedImportRows,
         selectedImportCsvPath,
         importSourceLabel,
@@ -237,6 +243,10 @@ export const SettingsModal = React.memo(() => {
             useUIStore.getState().showToast('スキャン除外ルールの保存に失敗しました', 'error');
         }
     }, [setScanExclusionRules]);
+
+    const handleStorageMaintenanceSettingsChange = useCallback((settings: typeof storageMaintenanceSettings) => {
+        setStorageMaintenanceSettings(settings);
+    }, [setStorageMaintenanceSettings]);
 
 
     const loadLogs = useCallback(async () => {
@@ -452,6 +462,8 @@ export const SettingsModal = React.memo(() => {
                                 onDeleteOldData={() => { void handleDeleteOldData(); }}
                                 isMigrating={isMigrating}
                                 onMigrate={() => { void handleMigrate(); }}
+                                storageMaintenanceSettings={storageMaintenanceSettings}
+                                onStorageMaintenanceSettingsChange={handleStorageMaintenanceSettingsChange}
                             />
                         )}
 
@@ -492,6 +504,10 @@ export const SettingsModal = React.memo(() => {
                             <BackupSettingsTab
                                 currentLoadedExportRowsCount={currentLoadedExportRows.length}
                                 activeProfileLabel={activeProfileLabel}
+                                isExportingSettings={isExportingSettings}
+                                isImportingSettings={isImportingSettings}
+                                onExportSettings={() => { void handleExportSettings(); }}
+                                onImportSettings={() => { void handleImportSettings(); }}
                                 exportScopeLabel={exportScopeLabel}
                                 exportScope={exportScope}
                                 canExportCurrentFolderScope={canExportCurrentFolderScope}

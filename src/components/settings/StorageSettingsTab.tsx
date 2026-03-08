@@ -3,6 +3,10 @@ import { FolderOpen, HardDrive, RefreshCw } from 'lucide-react';
 import { StorageCleanupSection } from './StorageCleanupSection';
 
 type StorageMode = 'appdata' | 'install' | 'custom';
+type StorageMaintenanceSettings = {
+    autoCleanupOrphanedThumbnailsOnStartup: boolean;
+    autoCleanupThresholdMb: number;
+};
 
 interface StorageConfig {
     mode: StorageMode;
@@ -27,6 +31,8 @@ interface StorageSettingsTabProps {
     onDeleteOldData: () => void;
     isMigrating: boolean;
     onMigrate: () => void;
+    storageMaintenanceSettings: StorageMaintenanceSettings;
+    onStorageMaintenanceSettingsChange: (settings: StorageMaintenanceSettings) => void;
 }
 
 export const StorageSettingsTab = React.memo(({
@@ -40,6 +46,8 @@ export const StorageSettingsTab = React.memo(({
     onDeleteOldData,
     isMigrating,
     onMigrate,
+    storageMaintenanceSettings,
+    onStorageMaintenanceSettingsChange,
 }: StorageSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
         <div className="space-y-4">
@@ -127,6 +135,54 @@ export const StorageSettingsTab = React.memo(({
             <p className="text-xs text-surface-500">
                 移行後はアプリの再起動が必要です。旧データは自動削除されません。
             </p>
+        </div>
+
+        <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
+                自動整理
+            </h3>
+
+            <label className="flex items-start gap-3 rounded border border-surface-700 bg-surface-900/50 p-3 cursor-pointer hover:border-surface-600">
+                <input
+                    type="checkbox"
+                    checked={storageMaintenanceSettings.autoCleanupOrphanedThumbnailsOnStartup}
+                    onChange={(event) => onStorageMaintenanceSettingsChange({
+                        ...storageMaintenanceSettings,
+                        autoCleanupOrphanedThumbnailsOnStartup: event.target.checked,
+                    })}
+                    className="mt-0.5 w-4 h-4 accent-primary-500"
+                />
+                <div>
+                    <div className="text-sm text-surface-200">起動時に孤立サムネイルを自動整理</div>
+                    <div className="text-xs text-surface-500 mt-0.5">
+                        DB に参照されていないサムネイルだけを対象にします。通常のサムネイルは削除しません。
+                    </div>
+                </div>
+            </label>
+
+            <div>
+                <label className="block text-sm font-medium text-surface-300 mb-2">
+                    自動整理を実行するしきい値
+                </label>
+                <select
+                    value={storageMaintenanceSettings.autoCleanupThresholdMb}
+                    onChange={(event) => onStorageMaintenanceSettingsChange({
+                        ...storageMaintenanceSettings,
+                        autoCleanupThresholdMb: Number(event.target.value),
+                    })}
+                    disabled={!storageMaintenanceSettings.autoCleanupOrphanedThumbnailsOnStartup}
+                    className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500 disabled:opacity-60"
+                >
+                    <option value="0">0 MB 以上なら実行</option>
+                    <option value="100">100 MB 以上なら実行</option>
+                    <option value="500">500 MB 以上なら実行</option>
+                    <option value="1024">1 GB 以上なら実行</option>
+                    <option value="2048">2 GB 以上なら実行</option>
+                </select>
+                <p className="text-xs text-surface-500 mt-1">
+                    起動時に診断し、無駄な容量がこの値以上のときだけ自動クリーンアップします。
+                </p>
+            </div>
         </div>
 
         <div className="space-y-4">

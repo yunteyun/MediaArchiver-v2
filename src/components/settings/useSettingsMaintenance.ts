@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFileStore } from '../../stores/useFileStore';
 import { useRatingStore } from '../../stores/useRatingStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useTagStore } from '../../stores/useTagStore';
 import { useUIStore, type SettingsModalTab } from '../../stores/useUIStore';
 import { buildCsvContent, buildFileExportRows, buildHtmlContent } from '../../utils/fileExport';
@@ -10,6 +11,7 @@ import {
     type CsvImportDryRunSummary,
     type MediaArchiverCsvImportRow,
 } from '../../utils/fileImport';
+import { buildSettingsExportPayload, parseSettingsImportPayload } from '../../utils/settingsTransfer';
 
 type StorageMode = 'appdata' | 'install' | 'custom';
 
@@ -56,6 +58,8 @@ export function useSettingsMaintenance({
     const [isExporting, setIsExporting] = useState<'csv' | 'html' | null>(null);
     const [exportScope, setExportScope] = useState<'profile' | 'folder'>('profile');
     const [isImportingCsv, setIsImportingCsv] = useState(false);
+    const [isExportingSettings, setIsExportingSettings] = useState(false);
+    const [isImportingSettings, setIsImportingSettings] = useState(false);
     const [selectedImportCsvPath, setSelectedImportCsvPath] = useState('');
     const [parsedImportRows, setParsedImportRows] = useState<MediaArchiverCsvImportRow[] | null>(null);
     const [importWarnings, setImportWarnings] = useState<string[]>([]);
@@ -368,6 +372,133 @@ export function useSettingsMaintenance({
         }
     }, [parsedImportRows, runCsvImportDryRun]);
 
+    const handleExportSettings = useCallback(async () => {
+        if (isExportingSettings) return;
+        setIsExportingSettings(true);
+        try {
+            const settings = useSettingsStore.getState();
+            const profileResponse = await window.electronAPI.getProfileScopedSettings();
+            const payload = buildSettingsExportPayload(
+                {
+                    thumbnailAction: settings.thumbnailAction,
+                    flipbookSpeed: settings.flipbookSpeed,
+                    animatedImagePreviewMode: settings.animatedImagePreviewMode,
+                    rightPanelVideoMuted: settings.rightPanelVideoMuted,
+                    rightPanelVideoPreviewMode: settings.rightPanelVideoPreviewMode,
+                    rightPanelVideoJumpInterval: settings.rightPanelVideoJumpInterval,
+                    sortBy: settings.sortBy,
+                    sortOrder: settings.sortOrder,
+                    videoVolume: settings.videoVolume,
+                    audioVolume: settings.audioVolume,
+                    lightboxOverlayOpacity: settings.lightboxOverlayOpacity,
+                    performanceMode: settings.performanceMode,
+                    scanExclusionRules: settings.scanExclusionRules,
+                    storageMaintenanceSettings: settings.storageMaintenanceSettings,
+                    cardLayout: settings.cardLayout,
+                    showFileName: settings.showFileName,
+                    showDuration: settings.showDuration,
+                    showTags: settings.showTags,
+                    showFileSize: settings.showFileSize,
+                    activeDisplayPresetId: settings.activeDisplayPresetId,
+                    displayMode: settings.displayMode,
+                    layoutPreset: settings.layoutPreset,
+                    thumbnailPresentation: settings.thumbnailPresentation,
+                    externalApps: settings.externalApps,
+                    defaultExternalApps: settings.defaultExternalApps,
+                    searchDestinations: settings.searchDestinations,
+                    groupBy: settings.groupBy,
+                    tagPopoverTrigger: settings.tagPopoverTrigger,
+                    tagDisplayStyle: settings.tagDisplayStyle,
+                    fileCardTagOrderMode: settings.fileCardTagOrderMode,
+                    playMode: settings.playMode,
+                },
+                profileResponse.settings
+            );
+
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const result = await window.electronAPI.saveTextFile({
+                title: '設定を書き出し',
+                defaultPath: `mediaarchiver-settings-${timestamp}.json`,
+                filters: [
+                    { name: 'JSON Files', extensions: ['json'] },
+                    { name: 'All Files', extensions: ['*'] },
+                ],
+                content: JSON.stringify(payload, null, 2),
+            });
+
+            if (!result.canceled) {
+                useUIStore.getState().showToast('設定を書き出しました', 'success');
+            }
+        } catch (error) {
+            console.error('Settings export failed:', error);
+            useUIStore.getState().showToast('設定の書き出しに失敗しました', 'error');
+        } finally {
+            setIsExportingSettings(false);
+        }
+    }, [isExportingSettings]);
+
+    const handleImportSettings = useCallback(async () => {
+        if (isImportingSettings) return;
+
+        const confirmed = window.confirm(
+            '設定ファイルを読み込むと、全体設定と現在のプロファイル設定を上書きします。続行しますか？'
+        );
+        if (!confirmed) return;
+
+        setIsImportingSettings(true);
+        try {
+            const result = await window.electronAPI.openTextFile({
+                title: '設定を読み込む',
+                filters: [
+                    { name: 'JSON Files', extensions: ['json'] },
+                    { name: 'All Files', extensions: ['*'] },
+                ],
+            });
+
+            if (result.canceled || !result.content) return;
+
+            const payload = parseSettingsImportPayload(result.content);
+            const {
+                scanExclusionRules,
+                storageMaintenanceSettings,
+                ...globalSettings
+            } = payload.globalSettings;
+
+            useSettingsStore.setState((state) => ({
+                ...state,
+                ...globalSettings,
+            }));
+            useSettingsStore.getState().setScanExclusionRules(scanExclusionRules);
+            useSettingsStore.getState().setStorageMaintenanceSettings(storageMaintenanceSettings);
+
+            useUIStore.getState().applyListDisplayDefaults({
+                sortBy: payload.globalSettings.sortBy,
+                sortOrder: payload.globalSettings.sortOrder,
+                groupBy: payload.globalSettings.groupBy,
+                displayMode: payload.globalSettings.displayMode,
+                activeDisplayPresetId: payload.globalSettings.activeDisplayPresetId,
+                thumbnailPresentation: payload.globalSettings.thumbnailPresentation,
+            });
+
+            await window.electronAPI.setScanExclusionRules(scanExclusionRules);
+            await window.electronAPI.replaceProfileScopedSettings(payload.profileSettings);
+            useSettingsStore.getState().applyProfileScopedSettings(payload.profileSettings);
+            await Promise.all([
+                window.electronAPI.setPreviewFrameCount(payload.profileSettings.previewFrameCount),
+                window.electronAPI.setScanFileTypeCategories(payload.profileSettings.fileTypeFilters),
+                window.electronAPI.setScanThrottleMs(payload.profileSettings.scanThrottleMs),
+                window.electronAPI.setThumbnailResolution(payload.profileSettings.thumbnailResolution),
+            ]);
+
+            useUIStore.getState().showToast('設定を読み込みました', 'success');
+        } catch (error) {
+            console.error('Settings import failed:', error);
+            useUIStore.getState().showToast(`設定の読み込みに失敗しました: ${(error as Error).message}`, 'error', 5000);
+        } finally {
+            setIsImportingSettings(false);
+        }
+    }, [isImportingSettings]);
+
     const loadStorageConfig = useCallback(async () => {
         try {
             const config = await window.electronAPI.getStorageConfig();
@@ -563,9 +694,13 @@ export function useSettingsMaintenance({
         isExporting,
         handleExport,
         isImportingCsv,
+        isExportingSettings,
+        isImportingSettings,
         handleSelectImportCsv,
         handleSelectLegacyImportCsv,
         handleApplyCsvImport,
+        handleExportSettings,
+        handleImportSettings,
         parsedImportRows,
         selectedImportCsvPath,
         importSourceLabel,

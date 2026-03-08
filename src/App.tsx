@@ -181,6 +181,43 @@ function App() {
         return () => clearTimeout(timer);
     }, []);
 
+    useEffect(() => {
+        const settings = useSettingsStore.getState().storageMaintenanceSettings;
+        if (!settings.autoCleanupOrphanedThumbnailsOnStartup) {
+            return;
+        }
+
+        let cancelled = false;
+        const thresholdBytes = settings.autoCleanupThresholdMb * 1024 * 1024;
+
+        const timer = setTimeout(() => {
+            void (async () => {
+                try {
+                    const diagnostic = await window.electronAPI.diagnoseThumbnails();
+                    if (cancelled || diagnostic.orphanedCount === 0) return;
+                    if (diagnostic.totalOrphanedSize < thresholdBytes) return;
+
+                    const cleanup = await window.electronAPI.cleanupOrphanedThumbnails();
+                    if (cancelled || cleanup.deletedCount === 0) return;
+
+                    const freedMb = (cleanup.freedBytes / 1024 / 1024).toFixed(2);
+                    if (cleanup.success) {
+                        useToastStore.getState().info(`起動時に孤立サムネイルを整理しました（${cleanup.deletedCount}件 / ${freedMb} MB）`, 5000);
+                    } else {
+                        useToastStore.getState().error('起動時のサムネイル自動整理で一部エラーが発生しました', 5000);
+                    }
+                } catch (error) {
+                    console.error('Startup thumbnail cleanup failed:', error);
+                }
+            })();
+        }, 1200);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, []);
+
     // スキャン進捗イベントを監視
     useEffect(() => {
         const success = useToastStore.getState().success;

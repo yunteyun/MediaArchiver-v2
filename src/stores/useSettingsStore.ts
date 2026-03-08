@@ -49,6 +49,32 @@ export interface ProfileScopedSettingsV1 {
     thumbnailResolution: number;
 }
 
+export interface StorageMaintenanceSettings {
+    autoCleanupOrphanedThumbnailsOnStartup: boolean;
+    autoCleanupThresholdMb: number;
+}
+
+export const DEFAULT_STORAGE_MAINTENANCE_SETTINGS: StorageMaintenanceSettings = {
+    autoCleanupOrphanedThumbnailsOnStartup: false,
+    autoCleanupThresholdMb: 500,
+};
+
+function normalizeStorageMaintenanceSettings(input: unknown): StorageMaintenanceSettings {
+    const settings = input && typeof input === 'object'
+        ? input as Partial<StorageMaintenanceSettings>
+        : undefined;
+    const thresholdValue = Number(settings?.autoCleanupThresholdMb);
+
+    return {
+        autoCleanupOrphanedThumbnailsOnStartup: typeof settings?.autoCleanupOrphanedThumbnailsOnStartup === 'boolean'
+            ? settings.autoCleanupOrphanedThumbnailsOnStartup
+            : DEFAULT_STORAGE_MAINTENANCE_SETTINGS.autoCleanupOrphanedThumbnailsOnStartup,
+        autoCleanupThresholdMb: Number.isFinite(thresholdValue) && thresholdValue >= 0
+            ? Math.round(thresholdValue)
+            : DEFAULT_STORAGE_MAINTENANCE_SETTINGS.autoCleanupThresholdMb,
+    };
+}
+
 export const DEFAULT_PROFILE_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
     video: true,
     image: true,
@@ -242,6 +268,7 @@ interface SettingsState {
     profileFileTypeFilters: FileTypeCategoryFilters;
     profileSettingsMigrationV1Done: boolean;
     scanExclusionRules: ScanExclusionRules;
+    storageMaintenanceSettings: StorageMaintenanceSettings;
 
     // サムネイル生成解像度（Phase 14整理）
     thumbnailResolution: number; // 生成時の幅px（160〜480）
@@ -301,6 +328,7 @@ interface SettingsState {
     setScanThrottleMs: (ms: number) => void;
     setThumbnailResolution: (resolution: number) => void;
     setScanExclusionRules: (rules: ScanExclusionRules) => void;
+    setStorageMaintenanceSettings: (settings: StorageMaintenanceSettings) => void;
     applyProfileScopedSettings: (settings: ProfileScopedSettingsV1) => void;
     exportProfileScopedSettings: () => ProfileScopedSettingsV1;
     setProfileFileTypeFilters: (filters: FileTypeCategoryFilters) => void;
@@ -364,6 +392,7 @@ export const useSettingsStore = create<SettingsState>()(
             profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
             profileSettingsMigrationV1Done: false,
             scanExclusionRules: { ...DEFAULT_SCAN_EXCLUSION_RULES },
+            storageMaintenanceSettings: { ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS },
 
             // サムネイル生成解像度（Phase 14整理）
             thumbnailResolution: 320,
@@ -422,6 +451,9 @@ export const useSettingsStore = create<SettingsState>()(
             setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
             setScanExclusionRules: (scanExclusionRules) => set({
                 scanExclusionRules: normalizeScanExclusionRules(scanExclusionRules),
+            }),
+            setStorageMaintenanceSettings: (storageMaintenanceSettings) => set({
+                storageMaintenanceSettings: normalizeStorageMaintenanceSettings(storageMaintenanceSettings),
             }),
             applyProfileScopedSettings: (settings) => set({
                 profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS, ...settings.fileTypeFilters },
@@ -668,6 +700,7 @@ export const useSettingsStore = create<SettingsState>()(
                     activeDisplayPresetId: fallbackActiveDisplayPresetId,
                     searchDestinations: persistedDestinations,
                     scanExclusionRules: normalizeScanExclusionRules(persistedWithoutLegacyKeys.scanExclusionRules),
+                    storageMaintenanceSettings: normalizeStorageMaintenanceSettings(persistedWithoutLegacyKeys.storageMaintenanceSettings),
                     layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,
                     thumbnailPresentation: persistedThumbnailPresentation ?? mappedAxes.thumbnailPresentation,
                 };

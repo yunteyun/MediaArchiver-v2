@@ -5,6 +5,10 @@ import type { CsvImportDryRunSummary, MediaArchiverCsvImportRow } from '../../ut
 interface BackupSettingsTabProps {
     currentLoadedExportRowsCount: number;
     activeProfileLabel: string;
+    isExportingSettings: boolean;
+    isImportingSettings: boolean;
+    onExportSettings: () => void;
+    onImportSettings: () => void;
     exportScopeLabel: string;
     exportScope: 'profile' | 'folder';
     canExportCurrentFolderScope: boolean;
@@ -26,6 +30,10 @@ interface BackupSettingsTabProps {
 export const BackupSettingsTab = React.memo(({
     currentLoadedExportRowsCount,
     activeProfileLabel,
+    isExportingSettings,
+    isImportingSettings,
+    onExportSettings,
+    onImportSettings,
     exportScopeLabel,
     exportScope,
     canExportCurrentFolderScope,
@@ -44,6 +52,37 @@ export const BackupSettingsTab = React.memo(({
     onCreateBackup,
 }: BackupSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
+        <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">
+            <div className="flex items-center justify-between gap-3 mb-2">
+                <div>
+                    <h3 className="text-sm font-medium text-surface-200">設定の書き出し / 読み込み</h3>
+                    <p className="text-xs text-surface-500 mt-0.5">
+                        全体設定と現在のプロファイル設定を JSON で保存・復元します。
+                    </p>
+                </div>
+                <span className="text-xs text-surface-400 whitespace-nowrap">対象: 現在のプロファイル</span>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+                <button
+                    onClick={onExportSettings}
+                    disabled={isExportingSettings || isImportingSettings}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
+                >
+                    <FileCode2 size={15} />
+                    {isExportingSettings ? '書き出し中...' : '設定を書き出し'}
+                </button>
+                <button
+                    onClick={onImportSettings}
+                    disabled={isImportingSettings || isExportingSettings}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface-800 hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-surface-200 border border-surface-700 text-sm transition-colors"
+                >
+                    <FolderOpen size={15} />
+                    {isImportingSettings ? '読み込み中...' : '設定を読み込む'}
+                </button>
+            </div>
+        </div>
+
         <div>
             <h3 className="text-sm font-semibold text-white mb-3">データベースバックアップ</h3>
 
