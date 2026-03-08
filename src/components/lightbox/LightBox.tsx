@@ -13,6 +13,7 @@ const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
 
 export const LightBox = React.memo(() => {
     const lightboxFile = useUIStore((s) => s.lightboxFile);
+    const lightboxFileId = lightboxFile?.id ?? null;
     const lightboxOpenMode = useUIStore((s) => s.lightboxOpenMode);
     const closeLightbox = useUIStore((s) => s.closeLightbox);
     const files = useFileStore((s) => s.files);
@@ -202,17 +203,17 @@ export const LightBox = React.memo(() => {
 
     // Phase 17: Lightbox表示時にアクセスカウント
     useEffect(() => {
-        if (!lightboxFile) return;
+        if (!lightboxFileId) return;
 
         const countAccess = async () => {
-            const result = await window.electronAPI.incrementAccessCount(lightboxFile.id);
+            const result = await window.electronAPI.incrementAccessCount(lightboxFileId);
             if (result.success && result.lastAccessedAt) {
-                incrementAccessCount(lightboxFile.id, result.lastAccessedAt);
+                incrementAccessCount(lightboxFileId, result.lastAccessedAt);
             }
         };
 
-        countAccess();
-    }, [lightboxFile?.id, incrementAccessCount]);
+        void countAccess();
+    }, [lightboxFileId, incrementAccessCount]);
 
     // クリーンアップ
     useEffect(() => {

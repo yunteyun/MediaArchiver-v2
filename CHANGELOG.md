@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 統計画面・重複ビュー・設定系モーダルを遅延読込へ切り出し、起動直後の Renderer 読み込み量を圧縮して初回表示の重さを軽減した。
 - 中央ビューアを必要時のみ遅延読込し、Renderer の共通依存を vendor chunk へ分離して初期アプリ chunk をさらに圧縮した。
 - グループヘッダーとタグ表示のアイコン解決を必要な候補だけのマップへ置き換え、`lucide-react` 共有 chunk の肥大化を大幅に抑えた（表示への変更なし）。
+- ActivityLog / FileCard / MoveFolderDialog / LightBox の Hook 依存関係を整理し、静的チェックの既知警告を解消した（表示への変更なし）。
 
 ### Fixed
 - 一覧の「最終アクセス日時」ソートで降順が正しく効かない問題を修正した。

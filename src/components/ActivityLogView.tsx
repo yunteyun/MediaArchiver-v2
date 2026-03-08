@@ -4,7 +4,7 @@
  * ファイル追加・削除、タグ付け、スキャン履歴をタイムライン形式で表示
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Trash2, Tag, X, FolderSearch, Clock } from 'lucide-react';
 
 interface ActivityLog {
@@ -77,13 +77,11 @@ export const ActivityLogView: React.FC = () => {
     const [hasMore, setHasMore] = useState(true);
     const LIMIT = 50;
 
-    const loadLogs = async (reset: boolean = false) => {
+    const loadLogs = useCallback(async (pageToLoad: number, reset: boolean = false) => {
         setLoading(true);
         try {
-            const currentPage = reset ? 0 : page;
-
             // すべてのログを取得（フィルタはクライアント側で実施）
-            const newLogs = await window.electronAPI.getActivityLogs(LIMIT, currentPage * LIMIT);
+            const newLogs = await window.electronAPI.getActivityLogs(LIMIT, pageToLoad * LIMIT);
 
             if (reset) {
                 setLogs(newLogs);
@@ -97,15 +95,16 @@ export const ActivityLogView: React.FC = () => {
             console.error('Failed to load activity logs:', e);
         }
         setLoading(false);
-    };
+    }, []);
 
     useEffect(() => {
-        loadLogs(true);
-    }, [filter]);
+        void loadLogs(0, true);
+    }, [filter, loadLogs]);
 
     const handleLoadMore = () => {
-        setPage(p => p + 1);
-        loadLogs(false);
+        const nextPage = page + 1;
+        setPage(nextPage);
+        void loadLogs(nextPage, false);
     };
 
     // フィルタリング

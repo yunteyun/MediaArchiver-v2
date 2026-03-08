@@ -20,12 +20,6 @@ export const MoveFolderDialog = React.memo(({
     const [folders, setFolders] = useState<MediaFolder[]>([]);
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (isOpen) {
-            loadFolders();
-        }
-    }, [isOpen, currentFolderId]);
-
     const loadFolders = useCallback(async () => {
         const list = await window.electronAPI.getFolders();
 
@@ -41,6 +35,12 @@ export const MoveFolderDialog = React.memo(({
             setFolders(list);
         }
     }, [currentFolderId]);
+
+    useEffect(() => {
+        if (isOpen) {
+            void loadFolders();
+        }
+    }, [isOpen, loadFolders]);
 
     const handleMove = useCallback(() => {
         if (selectedFolderId) {

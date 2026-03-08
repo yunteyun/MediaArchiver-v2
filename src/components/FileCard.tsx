@@ -308,7 +308,7 @@ interface FileCardProps {
 export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
     const perfDebugEnabled = isPerfDebugEnabled();
     // アイコン選択ロジック
-    const Icon = useMemo(() => {
+    const Icon = (() => {
         if (file.type === 'video') return Play;
         if (file.type === 'image') return ImageIcon;
         if (file.type === 'audio') return Music;
@@ -316,7 +316,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
             return isAudioArchive(file) ? FileMusic : Archive;
         }
         return FileText;
-    }, [file.type, file.metadata]);
+    })();
 
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
@@ -372,7 +372,7 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
         }
 
         return badges;
-    }, [file.name, file.isAnimated, file.metadata, displayModeDefinition.hideThumbnailBadges]);
+    }, [file.name, file.metadata, displayModeDefinition.hideThumbnailBadges]);
 
     // 拡張子の色分け（半透明ダーク系で洗練された印象に）
     const extensionColor = useMemo(() => {
