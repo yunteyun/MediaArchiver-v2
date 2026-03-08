@@ -30,8 +30,6 @@ interface UIState {
     lightboxFile: MediaFile | null;
     lightboxOpenMode: LightboxOpenMode;
     lightboxStartTime: number | null;
-    sortBy: 'name' | 'date' | 'size' | 'type';
-    sortOrder: 'asc' | 'desc';
     searchQuery: string;
     searchTarget: SearchTarget;
     searchExtraConditions: SearchCondition[];
@@ -60,8 +58,6 @@ interface UIState {
     setViewMode: (mode: 'grid' | 'list') => void;
     openLightbox: (file: MediaFile, mode?: LightboxOpenMode, startTime?: number | null) => void;
     closeLightbox: () => void;
-    setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type') => void;
-    setSortOrder: (order: 'asc' | 'desc') => void;
     setSearchQuery: (query: string) => void;
     setSearchTarget: (target: SearchTarget) => void;
     setSearchConditions: (conditions: SearchCondition[]) => void;
@@ -100,8 +96,6 @@ export const useUIStore = create<UIState>((set) => ({
     lightboxFile: null,
     lightboxOpenMode: 'default',
     lightboxStartTime: null,
-    sortBy: 'name',
-    sortOrder: 'asc',
     searchQuery: '',
     searchTarget: 'fileName',
     searchExtraConditions: [],
@@ -131,8 +125,6 @@ export const useUIStore = create<UIState>((set) => ({
     setViewMode: (viewMode) => set({ viewMode }),
     openLightbox: (file, mode = 'default', startTime = null) => set({ lightboxFile: file, lightboxOpenMode: mode, lightboxStartTime: startTime }),
     closeLightbox: () => set({ lightboxFile: null, lightboxOpenMode: 'default', lightboxStartTime: null }),
-    setSortBy: (sortBy) => set({ sortBy }),
-    setSortOrder: (order) => set({ sortOrder: order }),
     setSearchQuery: (query) => set({ searchQuery: query }),
     setSearchTarget: (target) => set({ searchTarget: target }),
     setSearchConditions: (conditions) => set(() => {

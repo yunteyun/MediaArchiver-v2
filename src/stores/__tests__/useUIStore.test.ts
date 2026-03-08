@@ -9,8 +9,6 @@ function resetUiStore() {
         lightboxFile: null,
         lightboxOpenMode: 'default',
         lightboxStartTime: null,
-        sortBy: 'name',
-        sortOrder: 'asc',
         searchQuery: '',
         searchTarget: 'fileName',
         searchExtraConditions: [],

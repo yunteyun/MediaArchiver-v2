@@ -217,7 +217,6 @@ function mapLayoutPresetToLegacyDisplayMode(layoutPreset: LayoutPreset): Display
 }
 
 interface SettingsState {
-    activeProfileId: string;
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
@@ -230,7 +229,6 @@ interface SettingsState {
     audioVolume: number; // 0.0 - 1.0 (音声ファイル専用)
     lightboxOverlayOpacity: number; // 70 - 100
     performanceMode: boolean; // true = アニメーション無効化
-    autoScanOnStartup: boolean; // true = 起動時自動スキャン
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
     scanThrottleMs: number; // スキャン速度抑制（ファイル間待機時間 ms）
     profileFileTypeFilters: FileTypeCategoryFilters;
@@ -290,7 +288,6 @@ interface SettingsState {
     setAudioVolume: (volume: number) => void;
     setLightboxOverlayOpacity: (opacity: number) => void;
     setPerformanceMode: (enabled: boolean) => void;
-    setAutoScanOnStartup: (enabled: boolean) => void;
     setPreviewFrameCount: (count: number) => void;
     setScanThrottleMs: (ms: number) => void;
     setThumbnailResolution: (resolution: number) => void;
@@ -340,7 +337,6 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
     persist(
         (set, get) => ({
-            activeProfileId: 'default',
             thumbnailAction: 'scrub',
             flipbookSpeed: 'normal',
             animatedImagePreviewMode: 'hover',
@@ -353,7 +349,6 @@ export const useSettingsStore = create<SettingsState>()(
             audioVolume: 0.5,
             lightboxOverlayOpacity: LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
             performanceMode: false,
-            autoScanOnStartup: false,
             previewFrameCount: 10,
             scanThrottleMs: 0,
             profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
@@ -411,7 +406,6 @@ export const useSettingsStore = create<SettingsState>()(
             setAudioVolume: (volume) => set({ audioVolume: volume }),
             setLightboxOverlayOpacity: (opacity) => set({ lightboxOverlayOpacity: clampOverlayOpacity(opacity) }),
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
-            setAutoScanOnStartup: (autoScanOnStartup) => set({ autoScanOnStartup }),
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
             setScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
@@ -636,22 +630,27 @@ export const useSettingsStore = create<SettingsState>()(
             name: 'settings-storage',
             merge: (persistedState, currentState) => {
                 const typedPersisted = persistedState as Partial<SettingsState> | undefined;
+                const {
+                    activeProfileId: _legacyActiveProfileId,
+                    autoScanOnStartup: _legacyAutoScanOnStartup,
+                    ...persistedWithoutLegacyKeys
+                } = typedPersisted ?? {};
                 const persistedDestinations = Array.isArray(typedPersisted?.searchDestinations)
                     ? typedPersisted.searchDestinations.map((destination) =>
                         normalizeSearchDestination(destination as SearchDestination)
                     )
                     : currentState.searchDestinations;
-                const fallbackDisplayMode = typedPersisted?.displayMode ?? currentState.displayMode;
-                const fallbackActiveDisplayPresetId = typeof typedPersisted?.activeDisplayPresetId === 'string' && typedPersisted.activeDisplayPresetId
-                    ? typedPersisted.activeDisplayPresetId
+                const fallbackDisplayMode = persistedWithoutLegacyKeys.displayMode ?? currentState.displayMode;
+                const fallbackActiveDisplayPresetId = typeof persistedWithoutLegacyKeys.activeDisplayPresetId === 'string' && persistedWithoutLegacyKeys.activeDisplayPresetId
+                    ? persistedWithoutLegacyKeys.activeDisplayPresetId
                     : fallbackDisplayMode;
                 const mappedAxes = mapDisplayModeToPresentationAxes(fallbackDisplayMode);
-                const persistedLayoutPreset = normalizeLayoutPreset(typedPersisted?.layoutPreset);
-                const persistedThumbnailPresentation = normalizeThumbnailPresentation(typedPersisted?.thumbnailPresentation);
+                const persistedLayoutPreset = normalizeLayoutPreset(persistedWithoutLegacyKeys.layoutPreset);
+                const persistedThumbnailPresentation = normalizeThumbnailPresentation(persistedWithoutLegacyKeys.thumbnailPresentation);
 
                 return {
                     ...currentState,
-                    ...typedPersisted,
+                    ...persistedWithoutLegacyKeys,
                     activeDisplayPresetId: fallbackActiveDisplayPresetId,
                     searchDestinations: persistedDestinations,
                     layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,

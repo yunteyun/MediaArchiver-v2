@@ -6,7 +6,6 @@ const originalLocalStorage = globalThis.localStorage;
 
 function resetSettingsStore() {
     useSettingsStore.setState({
-        activeProfileId: 'default',
         thumbnailAction: 'scrub',
         flipbookSpeed: 'normal',
         animatedImagePreviewMode: 'hover',
@@ -19,7 +18,6 @@ function resetSettingsStore() {
         audioVolume: 0.5,
         lightboxOverlayOpacity: 90,
         performanceMode: false,
-        autoScanOnStartup: false,
         previewFrameCount: 10,
         scanThrottleMs: 0,
         profileFileTypeFilters: { video: true, image: true, archive: true, audio: true },
