@@ -11,6 +11,7 @@ interface HiddenScanIndicator {
 
 interface SidebarUtilityActionsProps {
     sidebarCollapsed: boolean;
+    showTopSeparator?: boolean;
     duplicateViewOpen: boolean;
     mainView: 'grid' | 'statistics';
     onOpenDuplicateView: () => void;
@@ -24,6 +25,7 @@ interface SidebarUtilityActionsProps {
 
 export const SidebarUtilityActions = React.memo(({
     sidebarCollapsed,
+    showTopSeparator = true,
     duplicateViewOpen,
     mainView,
     onOpenDuplicateView,
@@ -35,7 +37,7 @@ export const SidebarUtilityActions = React.memo(({
     onDismissScanIndicator,
 }: SidebarUtilityActionsProps) => (
     <>
-        <div className="border-t border-surface-700 my-2" />
+        {showTopSeparator && <div className="border-t border-surface-700 my-2" />}
         <div
             onClick={onOpenDuplicateView}
             className={`

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { Plus, ChevronLeft, ChevronRight, Loader2, CheckCircle2, AlertCircle, Filter, Wrench, ChevronDown } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore, type SearchCondition, type SearchTarget } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
@@ -293,6 +293,76 @@ type SmartFolderEditorState =
     }
     | null;
 
+const SIDEBAR_SECTION_STATE_STORAGE_KEY = 'sidebar.sectionState.v1';
+
+function readSidebarSectionState(): { filtersOpen: boolean; toolsOpen: boolean } {
+    try {
+        const raw = window.localStorage.getItem(SIDEBAR_SECTION_STATE_STORAGE_KEY);
+        if (!raw) {
+            return { filtersOpen: false, toolsOpen: false };
+        }
+        const parsed = JSON.parse(raw);
+        return {
+            filtersOpen: parsed?.filtersOpen !== false,
+            toolsOpen: parsed?.toolsOpen !== false,
+        };
+    } catch {
+        return { filtersOpen: false, toolsOpen: false };
+    }
+}
+
+function writeSidebarSectionState(state: { filtersOpen: boolean; toolsOpen: boolean }) {
+    try {
+        window.localStorage.setItem(SIDEBAR_SECTION_STATE_STORAGE_KEY, JSON.stringify(state));
+    } catch {
+        // ignore localStorage failures
+    }
+}
+
+interface SidebarToggleSectionProps {
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    title: string;
+    isOpen: boolean;
+    badge?: string | null;
+    onToggle: () => void;
+    children: React.ReactNode;
+}
+
+const SidebarToggleSection = React.memo(({
+    icon: Icon,
+    title,
+    isOpen,
+    badge,
+    onToggle,
+    children,
+}: SidebarToggleSectionProps) => {
+    return (
+        <section className="border-t border-surface-700 mt-2 pt-2">
+            <button
+                type="button"
+                onClick={onToggle}
+                className="flex w-full items-center gap-2 rounded px-2 py-2 text-left text-surface-300 transition-colors hover:bg-surface-800"
+                aria-expanded={isOpen}
+            >
+                <Icon size={18} className="flex-shrink-0" />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">{title}</span>
+                {badge && (
+                    <span className="rounded-full bg-primary-500/15 px-2 py-0.5 text-[10px] font-medium text-primary-300">
+                        {badge}
+                    </span>
+                )}
+                <ChevronDown
+                    size={16}
+                    className={`flex-shrink-0 text-surface-500 transition-transform ${isOpen ? 'rotate-0' : '-rotate-90'}`}
+                />
+            </button>
+            {isOpen && <div>{children}</div>}
+        </section>
+    );
+});
+
+SidebarToggleSection.displayName = 'SidebarToggleSection';
+
 export const Sidebar = React.memo(() => {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
 
@@ -335,6 +405,7 @@ export const Sidebar = React.memo(() => {
     const [addFolderSettingsOpen, setAddFolderSettingsOpen] = useState(false);
     const [pendingAddFolderPath, setPendingAddFolderPath] = useState<string | null>(null);
     const [smartFolderEditorState, setSmartFolderEditorState] = useState<SmartFolderEditorState>(null);
+    const [sectionState, setSectionState] = useState(() => readSidebarSectionState());
     const {
         currentFolderId,
         folders,
@@ -349,6 +420,8 @@ export const Sidebar = React.memo(() => {
         handleSelectAllFiles,
         togglePinnedSelection,
     } = useSidebarData();
+    const previousHasFilterActivityRef = useRef(false);
+    const previousHasToolAlertRef = useRef(false);
 
 
 
@@ -654,6 +727,48 @@ export const Sidebar = React.memo(() => {
         };
     }, [isScanProgressVisible, scanProgress]);
 
+    const activeRatingFilterCount = useMemo(() => (
+        Object.values(ratingFilter).filter((range) => (
+            typeof range.min === 'number' || typeof range.max === 'number'
+        )).length
+    ), [ratingFilter]);
+
+    const hasSidebarFilterActivity = selectedTagIds.length > 0 || activeRatingFilterCount > 0 || ratingQuickFilter !== 'none';
+    const hasToolAlert = !!hiddenScanIndicator;
+
+    useEffect(() => {
+        writeSidebarSectionState(sectionState);
+    }, [sectionState]);
+
+    useEffect(() => {
+        if (hasSidebarFilterActivity && !previousHasFilterActivityRef.current) {
+            setSectionState((prev) => (prev.filtersOpen ? prev : { ...prev, filtersOpen: true }));
+        }
+        previousHasFilterActivityRef.current = hasSidebarFilterActivity;
+    }, [hasSidebarFilterActivity]);
+
+    useEffect(() => {
+        if (hasToolAlert && !previousHasToolAlertRef.current) {
+            setSectionState((prev) => (prev.toolsOpen ? prev : { ...prev, toolsOpen: true }));
+        }
+        previousHasToolAlertRef.current = hasToolAlert;
+    }, [hasToolAlert]);
+
+    const filterSectionBadge = hasSidebarFilterActivity
+        ? `適用中${selectedTagIds.length > 0 || activeRatingFilterCount > 1 || ratingQuickFilter !== 'none'
+            ? ` ${selectedTagIds.length + activeRatingFilterCount + (ratingQuickFilter !== 'none' ? 1 : 0)}`
+            : ''}`
+        : null;
+    const toolsSectionBadge = hasToolAlert ? '通知あり' : null;
+
+    const toggleFiltersSection = useCallback(() => {
+        setSectionState((prev) => ({ ...prev, filtersOpen: !prev.filtersOpen }));
+    }, []);
+
+    const toggleToolsSection = useCallback(() => {
+        setSectionState((prev) => ({ ...prev, toolsOpen: !prev.toolsOpen }));
+    }, []);
+
 
     return (
         <aside
@@ -735,34 +850,74 @@ export const Sidebar = React.memo(() => {
 
                 {/* Tag Filter Panel */}
                 {!sidebarCollapsed && (
-                    <>
+                    <SidebarToggleSection
+                        icon={Filter}
+                        title="フィルタ"
+                        isOpen={sectionState.filtersOpen}
+                        badge={filterSectionBadge}
+                        onToggle={toggleFiltersSection}
+                    >
                         <TagFilterPanel onOpenManager={() => setTagManagerOpen(true)} />
                         <RatingFilterPanel />
-                    </>
+                    </SidebarToggleSection>
                 )}
 
-                <SidebarUtilityActions
-                    sidebarCollapsed={sidebarCollapsed}
-                    duplicateViewOpen={duplicateViewOpen}
-                    mainView={mainView}
-                    onOpenDuplicateView={() => {
-                        setCurrentFolderId(null);
-                        useUIStore.getState().openDuplicateView();
-                        useUIStore.getState().setMainView('grid');
-                    }}
-                    onOpenStatistics={() => {
-                        useUIStore.getState().closeDuplicateView();
-                        useUIStore.getState().setMainView('statistics');
-                    }}
-                    onOpenSettings={() => useUIStore.getState().openSettingsModal()}
-                    hiddenScanIndicator={hiddenScanIndicator}
-                    canDismissScanIndicator={!!scanProgress && (scanProgress.phase === 'complete' || scanProgress.phase === 'error')}
-                    onShowScanProgress={() => {
-                        acknowledgeScanProgress();
-                        useUIStore.getState().setScanProgressVisible(true);
-                    }}
-                    onDismissScanIndicator={clearScanProgress}
-                />
+                {sidebarCollapsed ? (
+                    <SidebarUtilityActions
+                        sidebarCollapsed={sidebarCollapsed}
+                        duplicateViewOpen={duplicateViewOpen}
+                        mainView={mainView}
+                        onOpenDuplicateView={() => {
+                            setCurrentFolderId(null);
+                            useUIStore.getState().openDuplicateView();
+                            useUIStore.getState().setMainView('grid');
+                        }}
+                        onOpenStatistics={() => {
+                            useUIStore.getState().closeDuplicateView();
+                            useUIStore.getState().setMainView('statistics');
+                        }}
+                        onOpenSettings={() => useUIStore.getState().openSettingsModal()}
+                        hiddenScanIndicator={hiddenScanIndicator}
+                        canDismissScanIndicator={!!scanProgress && (scanProgress.phase === 'complete' || scanProgress.phase === 'error')}
+                        onShowScanProgress={() => {
+                            acknowledgeScanProgress();
+                            useUIStore.getState().setScanProgressVisible(true);
+                        }}
+                        onDismissScanIndicator={clearScanProgress}
+                    />
+                ) : (
+                    <SidebarToggleSection
+                        icon={Wrench}
+                        title="ツール"
+                        isOpen={sectionState.toolsOpen}
+                        badge={toolsSectionBadge}
+                        onToggle={toggleToolsSection}
+                    >
+                        <SidebarUtilityActions
+                            sidebarCollapsed={sidebarCollapsed}
+                            showTopSeparator={false}
+                            duplicateViewOpen={duplicateViewOpen}
+                            mainView={mainView}
+                            onOpenDuplicateView={() => {
+                                setCurrentFolderId(null);
+                                useUIStore.getState().openDuplicateView();
+                                useUIStore.getState().setMainView('grid');
+                            }}
+                            onOpenStatistics={() => {
+                                useUIStore.getState().closeDuplicateView();
+                                useUIStore.getState().setMainView('statistics');
+                            }}
+                            onOpenSettings={() => useUIStore.getState().openSettingsModal()}
+                            hiddenScanIndicator={hiddenScanIndicator}
+                            canDismissScanIndicator={!!scanProgress && (scanProgress.phase === 'complete' || scanProgress.phase === 'error')}
+                            onShowScanProgress={() => {
+                                acknowledgeScanProgress();
+                                useUIStore.getState().setScanProgressVisible(true);
+                            }}
+                            onDismissScanIndicator={clearScanProgress}
+                        />
+                    </SidebarToggleSection>
+                )}
             </div>
 
             {/* Tag Manager Modal */}
