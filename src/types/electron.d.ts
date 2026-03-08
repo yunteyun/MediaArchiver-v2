@@ -1,5 +1,8 @@
 import type { MediaFile, MediaFolder } from './file';
-import type { ExternalApp as SettingsExternalApp } from '../stores/useSettingsStore';
+import type {
+    ExternalApp as SettingsExternalApp,
+    ScanExclusionRules as SettingsScanExclusionRules,
+} from '../stores/useSettingsStore';
 import type { ScanProgress as UiScanProgress } from '../stores/useUIStore';
 import type { SmartFolderConditionV1, SmartFolderV1 } from '../stores/useSmartFolderStore';
 import type { ExternalDisplayPresetListResult } from '../components/fileCard/displayModes';
@@ -206,6 +209,7 @@ declare global {
             setScanThrottleMs: (ms: number) => Promise<void>;
             setThumbnailResolution: (resolution: number) => Promise<void>;
             setScanFileTypeCategories: (filters: Partial<FileTypeCategoryFilters>) => Promise<void>;
+            setScanExclusionRules: (rules: SettingsScanExclusionRules) => Promise<void>;
             autoScan: () => Promise<void>;
 
             // Context Menu

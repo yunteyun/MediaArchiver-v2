@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSettingsStore } from '../useSettingsStore';
+import { DEFAULT_SCAN_EXCLUSION_RULES, useSettingsStore } from '../useSettingsStore';
 
 const originalCrypto = globalThis.crypto;
 const originalLocalStorage = globalThis.localStorage;
@@ -22,6 +22,7 @@ function resetSettingsStore() {
         scanThrottleMs: 0,
         profileFileTypeFilters: { video: true, image: true, archive: true, audio: true },
         profileSettingsMigrationV1Done: false,
+        scanExclusionRules: { ...DEFAULT_SCAN_EXCLUSION_RULES },
         thumbnailResolution: 320,
         cardLayout: 'grid',
         showFileName: true,
@@ -112,6 +113,20 @@ describe('useSettingsStore', () => {
         useSettingsStore.getState().setLayoutPreset('mangaDetailed');
         expect(useSettingsStore.getState().activeDisplayPresetId).toBe('mangaDetailed');
         expect(useSettingsStore.getState().displayMode).toBe('mangaDetailed');
+    });
+
+    it('normalizes scan exclusion rules', () => {
+        useSettingsStore.getState().setScanExclusionRules({
+            excludedExtensions: [' TMP ', '.part', 'jpg', '.PART'],
+            excludedFolderNames: [' Cache ', 'temp', 'CACHE'],
+            skipHiddenFolders: false,
+        });
+
+        expect(useSettingsStore.getState().scanExclusionRules).toEqual({
+            excludedExtensions: ['.tmp', '.part', '.jpg'],
+            excludedFolderNames: ['cache', 'temp'],
+            skipHiddenFolders: false,
+        });
     });
 
     it('normalizes search destinations and trims values', () => {

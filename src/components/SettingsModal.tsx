@@ -57,6 +57,8 @@ export const SettingsModal = React.memo(() => {
     const setProfileThumbnailResolution = useSettingsStore((s) => s.setProfileThumbnailResolution);
     const profileFileTypeFilters = useSettingsStore((s) => s.profileFileTypeFilters);
     const setProfileFileTypeFilters = useSettingsStore((s) => s.setProfileFileTypeFilters);
+    const scanExclusionRules = useSettingsStore((s) => s.scanExclusionRules);
+    const setScanExclusionRules = useSettingsStore((s) => s.setScanExclusionRules);
 
 
     const showFileName = useSettingsStore((s) => s.showFileName);
@@ -225,6 +227,16 @@ export const SettingsModal = React.memo(() => {
             useUIStore.getState().showToast('サムネイル解像度の保存に失敗しました', 'error');
         }
     }, [setProfileThumbnailResolution]);
+
+    const handleScanExclusionRulesChange = useCallback(async (rules: typeof scanExclusionRules) => {
+        setScanExclusionRules(rules);
+        try {
+            await window.electronAPI.setScanExclusionRules(rules);
+        } catch (error) {
+            console.error('Failed to update scan exclusion rules:', error);
+            useUIStore.getState().showToast('スキャン除外ルールの保存に失敗しました', 'error');
+        }
+    }, [setScanExclusionRules]);
 
 
     const loadLogs = useCallback(async () => {
@@ -396,6 +408,8 @@ export const SettingsModal = React.memo(() => {
                         {activeTab === 'scan' && (
                             <ScanSettingsTab
                                 activeProfileLabel={activeProfileLabel}
+                                scanExclusionRules={scanExclusionRules}
+                                onScanExclusionRulesChange={(rules) => { void handleScanExclusionRulesChange(rules); }}
                                 profileFileTypeFilters={profileFileTypeFilters}
                                 onProfileFileTypeToggle={(category, checked) => { void handleProfileFileTypeToggle(category, checked); }}
                                 onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}

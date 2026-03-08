@@ -97,6 +97,7 @@ function App() {
         // サムネイル解像度をメインプロセスに同期
         window.electronAPI.setThumbnailResolution(settings.thumbnailResolution);
         window.electronAPI.setScanFileTypeCategories(settings.profileFileTypeFilters).catch(console.error);
+        window.electronAPI.setScanExclusionRules(settings.scanExclusionRules).catch(console.error);
         applyListDisplayDefaults({
             sortBy: settings.sortBy,
             sortOrder: settings.sortOrder,

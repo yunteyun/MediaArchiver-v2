@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { MediaFile } from '../src/types/file';
-import type { ExternalApp } from '../src/stores/useSettingsStore';
+import type { ExternalApp, ScanExclusionRules } from '../src/stores/useSettingsStore';
 import type { ScanProgress } from '../src/stores/useUIStore';
 import type { SmartFolderConditionV1 } from '../src/stores/useSmartFolderStore';
 import type {
@@ -178,6 +178,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setThumbnailResolution: (resolution: number) => ipcRenderer.invoke('scanner:setThumbnailResolution', resolution),
     setScanFileTypeCategories: (filters: { video?: boolean; image?: boolean; archive?: boolean; audio?: boolean }) =>
         ipcRenderer.invoke('scanner:setFileTypeCategories', filters),
+    setScanExclusionRules: (rules: ScanExclusionRules) =>
+        ipcRenderer.invoke('scanner:setExclusionRules', rules),
     autoScan: () => ipcRenderer.invoke('scanner:autoScan'),
 
     // === Context Menu ===

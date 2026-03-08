@@ -8,6 +8,14 @@ import { generateThumbnail, getVideoDuration, getMediaMetadata, generatePreviewF
 import { validatePathLength, isSkippableError, getErrorCode } from './pathValidator';
 import * as archiveHandler from './archiveHandler';
 import { logPerf, startPerfTimer } from './perfDebug';
+import {
+    DEFAULT_SCAN_EXCLUSION_RULES,
+    normalizeScanExclusionRules,
+    pathHasExcludedDirectory,
+    shouldSkipDirectoryEntry,
+    shouldSkipFileByExtension,
+    type ScanExclusionRules,
+} from '../../src/shared/scanExclusionRules';
 
 const log = logger.scope('Scanner');
 
@@ -32,6 +40,7 @@ let enabledScanCategories: ScanFileTypeCategoryFilters = {
     archive: true,
     audio: true,
 };
+let scanExclusionRules: ScanExclusionRules = { ...DEFAULT_SCAN_EXCLUSION_RULES };
 
 function normalizeScanFileTypeCategories(input: Partial<ScanFileTypeCategoryFilters> | undefined): ScanFileTypeCategoryFilters {
     return {
@@ -60,6 +69,14 @@ export function setScanFileTypeCategories(filters: Partial<ScanFileTypeCategoryF
 
 export function getScanFileTypeCategories(): ScanFileTypeCategoryFilters {
     return { ...enabledScanCategories };
+}
+
+export function setScanExclusionRules(rules: ScanExclusionRules) {
+    scanExclusionRules = normalizeScanExclusionRules(rules);
+}
+
+export function getScanExclusionRules(): ScanExclusionRules {
+    return { ...scanExclusionRules };
 }
 
 function getMediaTypeFromExtension(ext: string): 'video' | 'image' | 'archive' | 'audio' | null {
@@ -259,10 +276,13 @@ async function countFiles(dirPath: string, scanFilters: ScanFileTypeCategoryFilt
                 }
 
                 if (entry.isDirectory()) {
+                    if (shouldSkipDirectoryEntry(entry.name, scanExclusionRules)) {
+                        continue;
+                    }
                     count += await countFiles(fullPath, scanFilters);
                 } else if (entry.isFile()) {
                     const ext = path.extname(entry.name).toLowerCase();
-                    if (isScannableMediaType(ext, scanFilters)) {
+                    if (!shouldSkipFileByExtension(ext, scanExclusionRules) && isScannableMediaType(ext, scanFilters)) {
                         count++;
                     }
                 }
@@ -337,9 +357,17 @@ async function scanDirectoryInternal(
             }
 
             if (entry.isDirectory()) {
+                if (shouldSkipDirectoryEntry(entry.name, scanExclusionRules)) {
+                    state.stats.skipCount++;
+                    continue;
+                }
                 await scanDirectoryInternal(fullPath, rootFolderId, onProgress, onBatchCommitted, state);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
+                if (shouldSkipFileByExtension(ext, scanExclusionRules)) {
+                    state.stats.skipCount++;
+                    continue;
+                }
                 const type = isScannableMediaType(ext, state.scanFilters);
 
                 if (type) {
@@ -718,8 +746,11 @@ export async function scanDirectory(
                 type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
                     ? !isScanTypeEnabled(type, state.scanFilters)
                     : false;
+            const excludedByRules =
+                shouldSkipFileByExtension(path.extname(file.path).toLowerCase(), scanExclusionRules)
+                || pathHasExcludedDirectory(file.path, dirPath, scanExclusionRules);
 
-            if (isMissingOnDisk || disabledByProfile) {
+            if (isMissingOnDisk || disabledByProfile || excludedByRules) {
                 db.deleteFile(file.id);
                 removedCount++;
             }

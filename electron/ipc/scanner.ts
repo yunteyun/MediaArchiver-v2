@@ -7,6 +7,7 @@ import {
     setScanThrottleMs,
     setThumbnailResolution,
     setScanFileTypeCategories,
+    setScanExclusionRules,
     type ScanBatchCommittedPayload,
 } from '../services/scanner';
 import { syncFolderWatchers } from '../services/folderWatchService';
@@ -101,6 +102,11 @@ export function registerScannerHandlers() {
     // === Set Scan File Type Categories (profile-scoped) ===
     ipcMain.handle('scanner:setFileTypeCategories', async (_event, filters: { video?: boolean; image?: boolean; archive?: boolean; audio?: boolean }) => {
         setScanFileTypeCategories(filters || {});
+        return;
+    });
+
+    ipcMain.handle('scanner:setExclusionRules', async (_event, rules) => {
+        setScanExclusionRules(rules);
         return;
     });
 

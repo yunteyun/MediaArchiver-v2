@@ -5,6 +5,14 @@ import {
     clampOverlayOpacity,
 } from '../features/lightbox-clean/constants';
 import type { DisplayPresetSelection } from '../components/fileCard/displayModes';
+import {
+    DEFAULT_SCAN_EXCLUSION_RULES,
+    normalizeScanExclusionRules,
+    type ScanExclusionRules,
+} from '../shared/scanExclusionRules';
+
+export type { ScanExclusionRules } from '../shared/scanExclusionRules';
+export { DEFAULT_SCAN_EXCLUSION_RULES } from '../shared/scanExclusionRules';
 
 export type CardLayout = 'grid' | 'list';
 
@@ -233,6 +241,7 @@ interface SettingsState {
     scanThrottleMs: number; // スキャン速度抑制（ファイル間待機時間 ms）
     profileFileTypeFilters: FileTypeCategoryFilters;
     profileSettingsMigrationV1Done: boolean;
+    scanExclusionRules: ScanExclusionRules;
 
     // サムネイル生成解像度（Phase 14整理）
     thumbnailResolution: number; // 生成時の幅px（160〜480）
@@ -291,6 +300,7 @@ interface SettingsState {
     setPreviewFrameCount: (count: number) => void;
     setScanThrottleMs: (ms: number) => void;
     setThumbnailResolution: (resolution: number) => void;
+    setScanExclusionRules: (rules: ScanExclusionRules) => void;
     applyProfileScopedSettings: (settings: ProfileScopedSettingsV1) => void;
     exportProfileScopedSettings: () => ProfileScopedSettingsV1;
     setProfileFileTypeFilters: (filters: FileTypeCategoryFilters) => void;
@@ -353,6 +363,7 @@ export const useSettingsStore = create<SettingsState>()(
             scanThrottleMs: 0,
             profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
             profileSettingsMigrationV1Done: false,
+            scanExclusionRules: { ...DEFAULT_SCAN_EXCLUSION_RULES },
 
             // サムネイル生成解像度（Phase 14整理）
             thumbnailResolution: 320,
@@ -409,6 +420,9 @@ export const useSettingsStore = create<SettingsState>()(
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
             setScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
+            setScanExclusionRules: (scanExclusionRules) => set({
+                scanExclusionRules: normalizeScanExclusionRules(scanExclusionRules),
+            }),
             applyProfileScopedSettings: (settings) => set({
                 profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS, ...settings.fileTypeFilters },
                 previewFrameCount: Math.max(0, Math.min(30, Math.round(Number(settings.previewFrameCount) || 0))),
@@ -653,6 +667,7 @@ export const useSettingsStore = create<SettingsState>()(
                     ...persistedWithoutLegacyKeys,
                     activeDisplayPresetId: fallbackActiveDisplayPresetId,
                     searchDestinations: persistedDestinations,
+                    scanExclusionRules: normalizeScanExclusionRules(persistedWithoutLegacyKeys.scanExclusionRules),
                     layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,
                     thumbnailPresentation: persistedThumbnailPresentation ?? mappedAxes.thumbnailPresentation,
                 };
