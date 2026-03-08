@@ -13,6 +13,11 @@ import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, useSettingsStore } from './stores/us
 import { useToastStore } from './stores/useToastStore';
 import { useRatingStore } from './stores/useRatingStore';
 import { useDuplicateStore } from './stores/useDuplicateStore';
+import {
+    loadAndApplyProfileScopedSettings,
+    resetStateForProfileSwitch,
+    PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE,
+} from './utils/profileLifecycle';
 
 const StatisticsView = lazy(() => import('./components/StatisticsView').then((module) => ({ default: module.StatisticsView })));
 const DuplicateView = lazy(() => import('./components/DuplicateView').then((module) => ({ default: module.DuplicateView })));
@@ -106,45 +111,30 @@ function App() {
     }, []);
 
     const loadAndApplyActiveProfileScopedSettings = useCallback(async () => {
-        if (!activeProfileId || profiles.length === 0) return;
-
-        const seq = ++profileSettingsLoadSeqRef.current;
-        const settingsStore = useSettingsStore.getState();
-
-        try {
-            let response = await window.electronAPI.getProfileScopedSettings();
-
-            if (!response.exists) {
-                let initialSettings = response.settings;
-
-                if (!settingsStore.profileSettingsMigrationV1Done) {
-                    const shouldMigrate = window.confirm(
-                        'プロファイル別スキャン設定の初回移行を行います。\n\n' +
-                        'OK: 現在のプレビューフレーム数を引き継ぐ\n' +
-                        'キャンセル: 既定値で開始する'
-                    );
-
-                    initialSettings = {
-                        fileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
-                        previewFrameCount: shouldMigrate ? settingsStore.previewFrameCount : 10,
-                        scanThrottleMs: shouldMigrate ? settingsStore.scanThrottleMs : 0,
-                        thumbnailResolution: shouldMigrate ? settingsStore.thumbnailResolution : 320,
-                    };
-
-                    response = await window.electronAPI.replaceProfileScopedSettings(initialSettings);
-                    useSettingsStore.getState().setProfileSettingsMigrationV1Done(true);
-                } else {
-                    response = await window.electronAPI.replaceProfileScopedSettings(initialSettings);
-                }
-            }
-
-            if (seq !== profileSettingsLoadSeqRef.current) return;
-
-            useSettingsStore.getState().applyProfileScopedSettings(response.settings);
-            await syncProfileScopedSettingsToScanner(response.settings);
-        } catch (e) {
-            console.error('Failed to load/apply profile scoped settings:', e);
-        }
+        await loadAndApplyProfileScopedSettings({
+            activeProfileId,
+            profilesLength: profiles.length,
+            nextSequence: () => ++profileSettingsLoadSeqRef.current,
+            isCurrentSequence: (sequence) => sequence === profileSettingsLoadSeqRef.current,
+            getSettingsSnapshot: () => {
+                const settings = useSettingsStore.getState();
+                return {
+                    profileSettingsMigrationV1Done: settings.profileSettingsMigrationV1Done,
+                    previewFrameCount: settings.previewFrameCount,
+                    scanThrottleMs: settings.scanThrottleMs,
+                    thumbnailResolution: settings.thumbnailResolution,
+                };
+            },
+            fetchSettings: () => window.electronAPI.getProfileScopedSettings(),
+            replaceSettings: (settings) => window.electronAPI.replaceProfileScopedSettings(settings),
+            markMigrationDone: (done) => useSettingsStore.getState().setProfileSettingsMigrationV1Done(done),
+            confirmMigration: (message) => window.confirm(message || PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE),
+            applySettings: (settings) => useSettingsStore.getState().applyProfileScopedSettings(settings),
+            syncSettings: syncProfileScopedSettingsToScanner,
+            onError: (error) => {
+                console.error('Failed to load/apply profile scoped settings:', error);
+            },
+        });
     }, [activeProfileId, profiles.length, syncProfileScopedSettingsToScanner]);
 
     // 外部アプリ設定を Electron 側に同期（起動時および変更時）
@@ -207,24 +197,19 @@ function App() {
             // プロファイル切替は「DBの切替」ではなく「アプリ状態の完全分離境界」として扱う。
             // Zustand の state はメモリに残るため、明示的にリセットが必要。
             // 将来ストアが増えた場合はここに追加する。
-            const handleProfileSwitch = () => {
-                // ファイル表示をクリア
-                setFiles([]);
-                setCurrentFolderId(null);
-                closeLightbox();
-                clearTagFilter();
-                useRatingStore.getState().clearRatingFilters();
-                // 重複検索ストアをリセット（前プロファイルの結果を残さない）
-                useDuplicateStore.getState().reset();
-                // コンポーネントを再マウント
-                setRefreshKey((k) => k + 1);
-
-                // 新プロファイルの評価キャッシュを再ロード
-                useRatingStore.getState().loadAllFileRatings().catch((e) => {
-                    console.error('Failed to reload rating cache after profile switch:', e);
-                });
-            };
-            handleProfileSwitch();
+            resetStateForProfileSwitch({
+                setFiles,
+                setCurrentFolderId,
+                closeLightbox,
+                clearTagFilter,
+                clearRatingFilters: () => useRatingStore.getState().clearRatingFilters(),
+                resetDuplicates: () => useDuplicateStore.getState().reset(),
+                bumpRefreshKey: () => setRefreshKey((k) => k + 1),
+                reloadRatings: () => useRatingStore.getState().loadAllFileRatings(),
+                onReloadRatingsError: (error) => {
+                    console.error('Failed to reload rating cache after profile switch:', error);
+                },
+            });
         });
         return cleanup;
     }, [setFiles, setCurrentFolderId, closeLightbox, clearTagFilter]);
