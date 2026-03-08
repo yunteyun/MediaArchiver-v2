@@ -6,6 +6,7 @@ interface HiddenScanIndicator {
     title: string;
     icon: React.ReactNode;
     text: string;
+    detail?: string;
 }
 
 interface SidebarUtilityActionsProps {
@@ -97,7 +98,14 @@ export const SidebarUtilityActions = React.memo(({
                 {hiddenScanIndicator.icon}
                 {!sidebarCollapsed && (
                     <>
-                        <span className="truncate text-sm font-medium">{hiddenScanIndicator.text}</span>
+                        <span className="min-w-0 flex-1">
+                            <span className="truncate block text-sm font-medium">{hiddenScanIndicator.text}</span>
+                            {hiddenScanIndicator.detail && (
+                                <span className="truncate block text-[11px] text-surface-500">
+                                    {hiddenScanIndicator.detail}
+                                </span>
+                            )}
+                        </span>
                         {canDismissScanIndicator && (
                             <button
                                 type="button"

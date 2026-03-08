@@ -69,6 +69,7 @@ export const FileGrid = React.memo(() => {
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
     const searchExtraConditions = useUIStore((s) => s.searchExtraConditions);
+    const ratingQuickFilter = useUIStore((s) => s.ratingQuickFilter);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
@@ -99,8 +100,13 @@ export const FileGrid = React.memo(() => {
     }, [setFolderMetadata]);
 
     // Rating filter state
+    const ratingAxes = useRatingStore((s) => s.axes);
     const ratingFilter = useRatingStore((s) => s.ratingFilter);
     const allFileRatings = useRatingStore((s) => s.fileRatings);
+    const overallRatingAxisId = useMemo(
+        () => ratingAxes.find((axis) => axis.isSystem)?.id ?? null,
+        [ratingAxes]
+    );
 
     const activeSearchConditions = useMemo(() => (
         [
@@ -126,6 +132,8 @@ export const FileGrid = React.memo(() => {
             filterMode,
             ratingFilter,
             fileRatings: allFileRatings,
+            overallRatingAxisId,
+            ratingQuickFilter,
             searchConditions: activeSearchConditions,
             selectedFileTypes,
         });
@@ -136,6 +144,7 @@ export const FileGrid = React.memo(() => {
                 resultCount: visibleFiles.length,
                 selectedTagCount: selectedTagIds.length,
                 activeRatingAxisCount,
+                ratingQuickFilter,
                 searchActive: activeSearchConditions.length > 0,
                 searchTarget,
                 searchConditionCount: activeSearchConditions.length,
@@ -156,6 +165,8 @@ export const FileGrid = React.memo(() => {
         filterMode,
         ratingFilter,
         allFileRatings,
+        overallRatingAxisId,
+        ratingQuickFilter,
         activeSearchConditions,
         selectedFileTypes,
         activeRatingAxisCount,

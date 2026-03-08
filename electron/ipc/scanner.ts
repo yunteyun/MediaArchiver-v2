@@ -62,7 +62,10 @@ export function registerScannerHandlers() {
             folderPath,
             rootFolderId,
             (progress) => {
-                event.sender.send('scanner:progress', progress);
+                event.sender.send('scanner:progress', {
+                    ...progress,
+                    folderName: folder?.name || folderPath.split(/[\\/]/).pop(),
+                });
             },
             (payload) => {
                 sendScanBatchCommitted(event, payload);

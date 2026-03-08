@@ -39,6 +39,7 @@ export interface ProfileSwitchResetParams {
     closeLightbox: () => void;
     clearTagFilter: () => void;
     clearRatingFilters: () => void;
+    clearRatingQuickFilter: () => void;
     resetDuplicates: () => void;
     bumpRefreshKey: () => void;
     reloadRatings: () => Promise<void>;
@@ -111,6 +112,7 @@ export function resetStateForProfileSwitch(params: ProfileSwitchResetParams): vo
         closeLightbox,
         clearTagFilter,
         clearRatingFilters,
+        clearRatingQuickFilter,
         resetDuplicates,
         bumpRefreshKey,
         reloadRatings,
@@ -122,6 +124,7 @@ export function resetStateForProfileSwitch(params: ProfileSwitchResetParams): vo
     closeLightbox();
     clearTagFilter();
     clearRatingFilters();
+    clearRatingQuickFilter();
     resetDuplicates();
     bumpRefreshKey();
 

@@ -8,6 +8,7 @@ export type ScanProgressCallback = (progress: {
         newCount: number;
         updateCount: number;
         skipCount: number;
+        removedCount?: number;
     };
 }) => void;
 export interface ScanDirectoryOptions {

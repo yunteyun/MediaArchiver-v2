@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { Folder, FolderOpen, ChevronRight, ChevronDown, HardDrive, Settings2 } from 'lucide-react';
+import { Folder, FolderOpen, ChevronRight, ChevronDown, HardDrive, Pin, Settings2 } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
 import { buildFolderTreeByDrive, type FolderTreeNode } from '../utils/buildFolderTree';
-import { DRIVE_PREFIX, FOLDER_PREFIX, VIRTUAL_FOLDER_PREFIX, VIRTUAL_FOLDER_RECURSIVE_PREFIX } from './sidebar/sidebarShared';
+import { DRIVE_PREFIX, buildFolderSelectionValue, FOLDER_PREFIX, VIRTUAL_FOLDER_PREFIX, VIRTUAL_FOLDER_RECURSIVE_PREFIX } from './sidebar/sidebarShared';
 
 interface FolderTreeProps {
     folders: MediaFolder[];
@@ -11,6 +11,8 @@ interface FolderTreeProps {
     onSelectFolder: (folderId: string) => void;
     collapsed: boolean;  // サイドバー折りたたみ状態
     onOpenFolderSettings?: (folder: MediaFolder) => void;
+    isPinnedSelection?: (selection: string) => boolean;
+    onTogglePinnedSelection?: (selection: string) => void;
 }
 
 const COLLAPSED_FOLDER_IDS_STORAGE_KEY = 'sidebar.folderTree.collapsedFolders.v1';
@@ -95,7 +97,16 @@ function findSelectedNodeLineage(
     return null;
 }
 
-export const FolderTree = React.memo(({ folders, folderRecursiveCountsByPath = {}, currentFolderId, onSelectFolder, collapsed, onOpenFolderSettings }: FolderTreeProps) => {
+export const FolderTree = React.memo(({
+    folders,
+    folderRecursiveCountsByPath = {},
+    currentFolderId,
+    onSelectFolder,
+    collapsed,
+    onOpenFolderSettings,
+    isPinnedSelection,
+    onTogglePinnedSelection,
+}: FolderTreeProps) => {
     // ツリー構築（メモ化）- Phase 22-B: ドライブ別グループ化
     const treeByDrive = useMemo(() => buildFolderTreeByDrive(folders), [folders]);
 
@@ -199,6 +210,7 @@ export const FolderTree = React.memo(({ folders, folderRecursiveCountsByPath = {
         const isCollapsed = collapsedFolders.has(node.id);
         const hasChildren = node.children.length > 0;
         const isVirtual = !!node.sourceFolder.isVirtualFolder;
+        const selectionValue = buildFolderSelectionValue(node.sourceFolder, hasChildren);
         const isSelected = isVirtual
             ? currentFolderId === `${VIRTUAL_FOLDER_PREFIX}${node.path}` || currentFolderId === `${VIRTUAL_FOLDER_RECURSIVE_PREFIX}${node.path}`
             : currentFolderId === node.id || currentFolderId === `${FOLDER_PREFIX}${node.id}`;
@@ -215,10 +227,7 @@ export const FolderTree = React.memo(({ folders, folderRecursiveCountsByPath = {
                     style={{ paddingLeft: `${visualDepth * 16 + 8}px` }}
                     onClick={() => {
                         // Phase 22-C: 子フォルダがある場合は配下全体を選択
-                        const folderId = isVirtual
-                            ? (hasChildren ? `${VIRTUAL_FOLDER_RECURSIVE_PREFIX}${node.path}` : `${VIRTUAL_FOLDER_PREFIX}${node.path}`)
-                            : (hasChildren ? `${FOLDER_PREFIX}${node.id}` : node.id);
-                        onSelectFolder(folderId);
+                        onSelectFolder(selectionValue);
                     }}
                     onContextMenu={(e) => {
                         if (node.sourceFolder.isVirtualFolder) {
@@ -250,6 +259,25 @@ export const FolderTree = React.memo(({ folders, folderRecursiveCountsByPath = {
                         >
                             {recursiveCount}
                         </span>
+                    )}
+                    {!collapsed && onTogglePinnedSelection && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onTogglePinnedSelection(selectionValue);
+                            }}
+                            className={`rounded p-1 transition-colors ${isSelected ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
+                            title={isPinnedSelection?.(selectionValue) ? 'ピン留め解除' : 'ピン留め'}
+                            aria-label={isPinnedSelection?.(selectionValue) ? 'ピン留め解除' : 'ピン留め'}
+                        >
+                            <Pin
+                                size={13}
+                                className={isPinnedSelection?.(selectionValue)
+                                    ? (isSelected ? 'text-blue-100' : 'text-amber-400')
+                                    : (isSelected ? 'text-blue-100/80' : 'text-surface-500')}
+                            />
+                        </button>
                     )}
                     {!collapsed && onOpenFolderSettings && !node.sourceFolder.isVirtualFolder && (
                         <button
@@ -325,6 +353,25 @@ export const FolderTree = React.memo(({ folders, folderRecursiveCountsByPath = {
                                 >
                                     {driveCount}
                                 </span>
+                            )}
+                            {!collapsed && onTogglePinnedSelection && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onTogglePinnedSelection(`${DRIVE_PREFIX}${drive}`);
+                                    }}
+                                    className={`rounded p-1 transition-colors ${isDriveSelected ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
+                                    title={isPinnedSelection?.(`${DRIVE_PREFIX}${drive}`) ? 'ピン留め解除' : 'ピン留め'}
+                                    aria-label={isPinnedSelection?.(`${DRIVE_PREFIX}${drive}`) ? 'ピン留め解除' : 'ピン留め'}
+                                >
+                                    <Pin
+                                        size={13}
+                                        className={isPinnedSelection?.(`${DRIVE_PREFIX}${drive}`)
+                                            ? (isDriveSelected ? 'text-blue-100' : 'text-amber-400')
+                                            : (isDriveSelected ? 'text-blue-100/80' : 'text-surface-500')}
+                                    />
+                                </button>
                             )}
                         </div>
 

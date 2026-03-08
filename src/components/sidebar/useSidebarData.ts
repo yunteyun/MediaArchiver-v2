@@ -7,11 +7,35 @@ import {
     ALL_FILES_ID,
     DRIVE_PREFIX,
     FOLDER_PREFIX,
+    normalizeSidebarSelection,
     VIRTUAL_FOLDER_PREFIX,
     VIRTUAL_FOLDER_RECURSIVE_PREFIX,
 } from './sidebarShared';
 
 const PROGRESSIVE_REFRESH_DEBOUNCE_MS = 1200;
+const PINNED_SELECTIONS_STORAGE_KEY = 'sidebar.pinnedSelections.v1';
+const RECENT_SELECTIONS_STORAGE_KEY = 'sidebar.recentSelections.v1';
+const MAX_RECENT_SELECTIONS = 6;
+
+function readPersistedSelectionList(key: string): string[] {
+    try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.filter((value): value is string => typeof value === 'string');
+    } catch {
+        return [];
+    }
+}
+
+function writePersistedSelectionList(key: string, values: string[]) {
+    try {
+        window.localStorage.setItem(key, JSON.stringify(values));
+    } catch {
+        // ignore localStorage failures
+    }
+}
 
 function normalizeFolderPathForCompare(folderPath: string): string {
     return folderPath.replace(/[\\/]+$/, '').toLowerCase();
@@ -101,9 +125,12 @@ interface UseSidebarDataResult {
     setFolderTreeSearch: Dispatch<SetStateAction<string>>;
     folderTreeRecursiveCountsByPath: Record<string, number>;
     filteredFoldersForTree: MediaFolder[];
+    pinnedSelections: string[];
+    recentSelections: string[];
     loadFolders: () => Promise<void>;
     handleSelectFolder: (folderId: string | null) => Promise<void>;
     handleSelectAllFiles: () => void;
+    togglePinnedSelection: (selection: string) => void;
 }
 
 export function useSidebarData(): UseSidebarDataResult {
@@ -117,6 +144,8 @@ export function useSidebarData(): UseSidebarDataResult {
     const [folders, setFolders] = useState<MediaFolder[]>([]);
     const [folderTreeSearch, setFolderTreeSearch] = useState('');
     const [folderTreeRecursiveCountsByPath, setFolderTreeRecursiveCountsByPath] = useState<Record<string, number>>({});
+    const [pinnedSelections, setPinnedSelections] = useState<string[]>(() => readPersistedSelectionList(PINNED_SELECTIONS_STORAGE_KEY));
+    const [recentSelections, setRecentSelections] = useState<string[]>(() => readPersistedSelectionList(RECENT_SELECTIONS_STORAGE_KEY));
     const perfDebugEnabled = isPerfDebugEnabled();
     const progressiveRefreshStateRef = useRef<{
         timer: ReturnType<typeof setTimeout> | null;
@@ -205,8 +234,13 @@ export function useSidebarData(): UseSidebarDataResult {
 
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
         const start = perfDebugEnabled ? performance.now() : 0;
+        const normalizedSelection = normalizeSidebarSelection(folderId);
         setActiveSmartFolderId(null);
         setCurrentFolderId(folderId);
+        setRecentSelections((prev) => {
+            const next = [normalizedSelection, ...prev.filter((value) => value !== normalizedSelection)].slice(0, MAX_RECENT_SELECTIONS);
+            return next;
+        });
         useUIStore.getState().closeDuplicateView();
         useUIStore.getState().setMainView('grid');
 
@@ -235,6 +269,15 @@ export function useSidebarData(): UseSidebarDataResult {
     const handleSelectAllFiles = useCallback(() => {
         void handleSelectFolder(ALL_FILES_ID);
     }, [handleSelectFolder]);
+
+    const togglePinnedSelection = useCallback((selection: string) => {
+        const normalizedSelection = normalizeSidebarSelection(selection);
+        setPinnedSelections((prev) => (
+            prev.includes(normalizedSelection)
+                ? prev.filter((value) => value !== normalizedSelection)
+                : [...prev, normalizedSelection]
+        ));
+    }, []);
 
     const filteredFoldersForTree = useMemo(() => {
         return filterFoldersForTree(folders, folderTreeSearch);
@@ -360,6 +403,14 @@ export function useSidebarData(): UseSidebarDataResult {
     }, [handleSelectFolder, loadFolders]);
 
     useEffect(() => {
+        writePersistedSelectionList(PINNED_SELECTIONS_STORAGE_KEY, pinnedSelections);
+    }, [pinnedSelections]);
+
+    useEffect(() => {
+        writePersistedSelectionList(RECENT_SELECTIONS_STORAGE_KEY, recentSelections);
+    }, [recentSelections]);
+
+    useEffect(() => {
         const refreshState = progressiveRefreshStateRef.current;
 
         const cleanupDelete = window.electronAPI.onFolderDeleted((folderId) => {
@@ -416,8 +467,11 @@ export function useSidebarData(): UseSidebarDataResult {
         setFolderTreeSearch,
         folderTreeRecursiveCountsByPath,
         filteredFoldersForTree,
+        pinnedSelections,
+        recentSelections,
         loadFolders,
         handleSelectFolder,
         handleSelectAllFiles,
+        togglePinnedSelection,
     };
 }

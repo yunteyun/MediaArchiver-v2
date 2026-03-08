@@ -3,7 +3,7 @@ import { useRatingStore } from './useRatingStore';
 import { useTagStore } from './useTagStore';
 import { useUIStore } from './useUIStore';
 import type { MediaFile } from '../types/file';
-import type { SearchCondition, SearchTarget } from './useUIStore';
+import type { RatingQuickFilter, SearchCondition, SearchTarget } from './useUIStore';
 
 const SMART_FOLDER_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
 
@@ -42,6 +42,7 @@ export interface SmartFolderConditionV1 {
     text: string;
     textMatchTarget: SearchTarget;
     textConditions: SearchCondition[];
+    ratingQuickFilter: RatingQuickFilter;
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';
@@ -110,6 +111,10 @@ function normalizeCondition(input: SmartFolderConditionV1): SmartFolderCondition
             ids: Array.isArray(input.tags?.ids) ? input.tags.ids.filter((id) => typeof id === 'string' && id.length > 0) : [],
             mode: input.tags?.mode === 'AND' ? 'AND' : 'OR',
         },
+        ratingQuickFilter:
+            input.ratingQuickFilter === 'overall4plus' || input.ratingQuickFilter === 'unrated'
+                ? input.ratingQuickFilter
+                : 'none',
         ratings: normalizedRatings,
         types: normalizeFileTypes(input.types),
     };
@@ -210,6 +215,7 @@ export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
 
         const uiStore = useUIStore.getState();
         uiStore.setSearchConditions(normalized.textConditions);
+        uiStore.setRatingQuickFilter(normalized.ratingQuickFilter ?? 'none');
         uiStore.setSelectedFileTypes(normalized.types);
         useTagStore.setState({
             selectedTagIds: [...normalized.tags.ids],

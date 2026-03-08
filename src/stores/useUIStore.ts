@@ -8,18 +8,21 @@ export interface ScanProgress {
     current: number;
     total: number;
     currentFile?: string;
+    folderName?: string;
     message?: string;
     stats?: {
         newCount: number;
         updateCount: number;
         skipCount: number;
+        removedCount?: number;
     };
 }
 
 export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings' | 'maintenance';
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
-export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed';
+export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 export type FileSortOrder = 'asc' | 'desc';
+export type RatingQuickFilter = 'none' | 'overall4plus' | 'unrated';
 export interface SearchCondition {
     text: string;
     target: SearchTarget;
@@ -44,6 +47,7 @@ interface UIState {
     searchQuery: string;
     searchTarget: SearchTarget;
     searchExtraConditions: SearchCondition[];
+    ratingQuickFilter: RatingQuickFilter;
     currentSortBy: FileSortBy;
     currentSortOrder: FileSortOrder;
     currentGroupBy: GroupBy;
@@ -79,6 +83,7 @@ interface UIState {
     setSearchTarget: (target: SearchTarget) => void;
     setSearchConditions: (conditions: SearchCondition[]) => void;
     clearSearchConditions: (target?: SearchTarget) => void;
+    setRatingQuickFilter: (filter: RatingQuickFilter) => void;
     applyListDisplayDefaults: (defaults: ListDisplayDefaults) => void;
     setCurrentSortBy: (sortBy: FileSortBy) => void;
     setCurrentSortOrder: (order: FileSortOrder) => void;
@@ -126,6 +131,7 @@ export const useUIStore = create<UIState>((set) => ({
     searchQuery: '',
     searchTarget: 'fileName',
     searchExtraConditions: [],
+    ratingQuickFilter: 'none',
     currentSortBy: 'date',
     currentSortOrder: 'desc',
     currentGroupBy: 'none',
@@ -180,6 +186,7 @@ export const useUIStore = create<UIState>((set) => ({
         searchTarget: target ?? state.searchTarget,
         searchExtraConditions: [],
     })),
+    setRatingQuickFilter: (ratingQuickFilter) => set({ ratingQuickFilter }),
     applyListDisplayDefaults: (defaults) => set({
         currentSortBy: defaults.sortBy,
         currentSortOrder: defaults.sortOrder,

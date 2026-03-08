@@ -96,6 +96,11 @@ function buildSmartFolderPreviewText(
     if (activeRatingCount > 0) {
         segments.push(`評価: ${activeRatingCount}軸`);
     }
+    if (condition.ratingQuickFilter === 'overall4plus') {
+        segments.push('総合: 4+');
+    } else if (condition.ratingQuickFilter === 'unrated') {
+        segments.push('総合: 未評価');
+    }
 
     const normalizedTypes = condition.types.filter((type): type is MediaFile['type'] => (
         type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
@@ -165,6 +170,9 @@ function isSameSmartFolderCondition(a: SmartFolderConditionV1, b: SmartFolderCon
         return false;
     }
     if (a.tags.mode !== b.tags.mode) {
+        return false;
+    }
+    if ((a.ratingQuickFilter ?? 'none') !== (b.ratingQuickFilter ?? 'none')) {
         return false;
     }
 
@@ -260,6 +268,19 @@ function buildSmartFolderFolderOptions(
     return options;
 }
 
+function createSmartFolderTemplateCondition(templateKey: 'overall4plus' | 'unrated'): SmartFolderConditionV1 {
+    return {
+        folderSelection: ALL_FILES_ID,
+        text: '',
+        textMatchTarget: 'fileName',
+        textConditions: [],
+        ratingQuickFilter: templateKey,
+        tags: { ids: [], mode: 'OR' },
+        ratings: {},
+        types: [...ALL_FILE_TYPES],
+    };
+}
+
 type SmartFolderEditorState =
     | {
         mode: 'create';
@@ -286,6 +307,7 @@ export const Sidebar = React.memo(() => {
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
     const searchExtraConditions = useUIStore((s) => s.searchExtraConditions);
+    const ratingQuickFilter = useUIStore((s) => s.ratingQuickFilter);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
     const tags = useTagStore((s) => s.tags);
@@ -320,9 +342,12 @@ export const Sidebar = React.memo(() => {
         setFolderTreeSearch,
         folderTreeRecursiveCountsByPath,
         filteredFoldersForTree,
+        pinnedSelections,
+        recentSelections,
         loadFolders,
         handleSelectFolder,
         handleSelectAllFiles,
+        togglePinnedSelection,
     } = useSidebarData();
 
 
@@ -398,10 +423,11 @@ export const Sidebar = React.memo(() => {
                 ids: [...selectedTagIds],
                 mode: filterMode,
             },
+            ratingQuickFilter,
             ratings: normalizedRatings,
             types: [...selectedFileTypes],
         };
-    }, [currentFolderId, filterMode, ratingFilter, searchQuery, searchTarget, searchExtraConditions, selectedFileTypes, selectedTagIds]);
+    }, [currentFolderId, filterMode, ratingFilter, ratingQuickFilter, searchQuery, searchTarget, searchExtraConditions, selectedFileTypes, selectedTagIds]);
 
     const createDefaultSmartFolderName = useCallback(() => {
         const now = new Date();
@@ -416,6 +442,15 @@ export const Sidebar = React.memo(() => {
             initialCondition: buildCurrentSmartFolderCondition(),
         });
     }, [buildCurrentSmartFolderCondition, createDefaultSmartFolderName]);
+
+    const handleOpenTemplateSmartFolderEditor = useCallback((templateKey: 'overall4plus' | 'unrated') => {
+        const label = templateKey === 'overall4plus' ? '総合評価 4+' : '未評価のみ';
+        setSmartFolderEditorState({
+            mode: 'create',
+            initialName: `${label} ${createDefaultSmartFolderName()}`,
+            initialCondition: createSmartFolderTemplateCondition(templateKey),
+        });
+    }, [createDefaultSmartFolderName]);
 
     const handleApplySmartFolder = useCallback(async (smartFolderId: string) => {
         try {
@@ -436,6 +471,7 @@ export const Sidebar = React.memo(() => {
             const uiStore = useUIStore.getState();
             uiStore.clearSearchConditions(defaultSearchTarget);
             uiStore.setSelectedFileTypes([...ALL_FILE_TYPES]);
+            uiStore.setRatingQuickFilter('none');
             useTagStore.setState({
                 selectedTagIds: [],
                 filterMode: 'OR',
@@ -458,6 +494,21 @@ export const Sidebar = React.memo(() => {
             smartFolderId: id,
         });
     }, []);
+
+    const handleDuplicateSmartFolder = useCallback(async (id: string) => {
+        const source = smartFolders.find((item) => item.id === id);
+        if (!source) {
+            window.alert('スマートフォルダが見つかりません');
+            return;
+        }
+
+        try {
+            await createSmartFolder(`${source.name} のコピー`, source.condition);
+        } catch (error) {
+            console.error('Failed to duplicate smart folder:', error);
+            window.alert('スマートフォルダの複製に失敗しました');
+        }
+    }, [createSmartFolder, smartFolders]);
 
     const handleSubmitSmartFolderEditor = useCallback(async (
         payload: {
@@ -541,6 +592,7 @@ export const Sidebar = React.memo(() => {
                 text: '',
                 textMatchTarget: 'fileName',
                 textConditions: [],
+                ratingQuickFilter: 'none',
                 tags: { ids: [], mode: 'OR' },
                 ratings: {},
                 types: [...ALL_FILE_TYPES],
@@ -552,6 +604,7 @@ export const Sidebar = React.memo(() => {
             text: '',
             textMatchTarget: 'fileName',
             textConditions: [],
+            ratingQuickFilter: 'none',
             tags: { ids: [], mode: 'OR' },
             ratings: {},
             types: [...ALL_FILE_TYPES],
@@ -561,10 +614,22 @@ export const Sidebar = React.memo(() => {
     const hiddenScanIndicator = useMemo(() => {
         if (!scanProgress || isScanProgressVisible) return null;
 
+        const summary = scanProgress.stats
+            ? `新規 ${scanProgress.stats.newCount} / 更新 ${scanProgress.stats.updateCount} / スキップ ${scanProgress.stats.skipCount}${typeof scanProgress.stats.removedCount === 'number' ? ` / 削除 ${scanProgress.stats.removedCount}` : ''}`
+            : scanProgress.message;
+        const label = scanProgress.folderName
+            ? `${scanProgress.folderName}`
+            : scanProgress.phase === 'error'
+                ? 'スキャンエラー'
+                : scanProgress.phase === 'complete'
+                    ? 'スキャン結果'
+                    : 'スキャン中...';
+
         if (scanProgress.phase === 'complete') {
             return {
                 icon: <CheckCircle2 size={18} className="flex-shrink-0 text-green-400" />,
-                text: 'スキャン結果',
+                text: label,
+                detail: summary,
                 title: 'スキャン結果を表示',
                 className: 'hover:bg-surface-800 text-green-400',
             };
@@ -573,7 +638,8 @@ export const Sidebar = React.memo(() => {
         if (scanProgress.phase === 'error') {
             return {
                 icon: <AlertCircle size={18} className="flex-shrink-0 text-red-400" />,
-                text: 'スキャンエラー',
+                text: label,
+                detail: summary,
                 title: 'スキャン結果を表示',
                 className: 'hover:bg-surface-800 text-red-400',
             };
@@ -581,7 +647,8 @@ export const Sidebar = React.memo(() => {
 
         return {
             icon: <Loader2 size={18} className="flex-shrink-0 animate-spin text-blue-400" />,
-            text: 'スキャン中...',
+            text: label,
+            detail: summary,
             title: 'スキャン中 - クリックで表示',
             className: 'hover:bg-surface-800 text-blue-400',
         };
@@ -634,6 +701,8 @@ export const Sidebar = React.memo(() => {
                     onFolderTreeSearchChange={setFolderTreeSearch}
                     filteredFoldersForTree={filteredFoldersForTree}
                     folderTreeRecursiveCountsByPath={folderTreeRecursiveCountsByPath}
+                    pinnedSelections={pinnedSelections}
+                    recentSelections={recentSelections}
                     onSelectAllFiles={handleSelectAllFiles}
                     onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
                     onSelectFolder={handleSelectFolder}
@@ -641,6 +710,7 @@ export const Sidebar = React.memo(() => {
                         setFolderSettingsTarget(folder);
                         setFolderSettingsOpen(true);
                     }}
+                    onTogglePinnedSelection={togglePinnedSelection}
                 />
 
                 <SidebarSmartFoldersSection
@@ -654,7 +724,9 @@ export const Sidebar = React.memo(() => {
                     smartFolderPreviewMap={smartFolderPreviewMap}
                     onClearSmartFolderConditions={() => { void handleClearSmartFolderConditions(); }}
                     onOpenCreateSmartFolderEditor={handleOpenCreateSmartFolderEditor}
+                    onOpenTemplateSmartFolderEditor={handleOpenTemplateSmartFolderEditor}
                     onApplySmartFolder={(smartFolderId) => { void handleApplySmartFolder(smartFolderId); }}
+                    onDuplicateSmartFolder={(smartFolderId) => { void handleDuplicateSmartFolder(smartFolderId); }}
                     onOpenEditSmartFolderEditor={handleOpenEditSmartFolderEditor}
                     onDeleteSmartFolder={(smartFolderId, smartFolderName) => {
                         void handleDeleteSmartFolder(smartFolderId, smartFolderName);

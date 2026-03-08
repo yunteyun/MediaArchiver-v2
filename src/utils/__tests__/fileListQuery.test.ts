@@ -36,6 +36,8 @@ function createQueryOptions(overrides: Partial<FileListQueryOptions> = {}): File
         filterMode: overrides.filterMode ?? 'OR',
         ratingFilter: overrides.ratingFilter ?? {},
         fileRatings: overrides.fileRatings ?? {},
+        overallRatingAxisId: overrides.overallRatingAxisId ?? null,
+        ratingQuickFilter: overrides.ratingQuickFilter ?? 'none',
         searchConditions: overrides.searchConditions ?? [],
         selectedFileTypes: overrides.selectedFileTypes ?? ['video', 'image', 'archive', 'audio'],
     };
@@ -88,5 +90,45 @@ describe('fileListQuery', () => {
         }));
 
         expect(result.map((file) => file.id)).toEqual(['match']);
+    });
+
+    it('sorts by overall rating and supports quick filters', () => {
+        const files = [
+            createFile({ id: 'unrated', name: 'unrated.png' }),
+            createFile({ id: 'high', name: 'high.png' }),
+            createFile({ id: 'mid', name: 'mid.png' }),
+        ];
+
+        const sorted = sortFiles(
+            files,
+            'overallRating',
+            'desc',
+            {
+                high: { overall: 5 },
+                mid: { overall: 3 },
+            },
+            'overall'
+        );
+        expect(sorted.map((file) => file.id)).toEqual(['high', 'mid', 'unrated']);
+
+        const fourPlus = buildVisibleFiles(files, createQueryOptions({
+            fileRatings: {
+                high: { overall: 5 },
+                mid: { overall: 3 },
+            },
+            overallRatingAxisId: 'overall',
+            ratingQuickFilter: 'overall4plus',
+        }));
+        expect(fourPlus.map((file) => file.id)).toEqual(['high']);
+
+        const unrated = buildVisibleFiles(files, createQueryOptions({
+            fileRatings: {
+                high: { overall: 5 },
+                mid: { overall: 3 },
+            },
+            overallRatingAxisId: 'overall',
+            ratingQuickFilter: 'unrated',
+        }));
+        expect(unrated.map((file) => file.id)).toEqual(['unrated']);
     });
 });

@@ -1,9 +1,10 @@
 import type { MediaFile } from '../types/file';
 
-export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed';
+export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 export type FileSortOrder = 'asc' | 'desc';
 export type FileTagFilterMode = 'AND' | 'OR';
 export type FileSearchTarget = 'fileName' | 'folderName';
+export type RatingQuickFilter = 'none' | 'overall4plus' | 'unrated';
 
 export interface FileSearchCondition {
     text: string;
@@ -18,6 +19,8 @@ export interface FileListQueryOptions {
     filterMode: FileTagFilterMode;
     ratingFilter: Record<string, { min?: number; max?: number }>;
     fileRatings: Record<string, Record<string, number>>;
+    overallRatingAxisId?: string | null;
+    ratingQuickFilter?: RatingQuickFilter;
     searchConditions: FileSearchCondition[];
     selectedFileTypes: MediaFile['type'][];
 }
@@ -37,7 +40,13 @@ function compareLastAccessed(a: MediaFile, b: MediaFile): number {
     return a.lastAccessedAt - b.lastAccessedAt;
 }
 
-export function sortFiles(files: MediaFile[], sortBy: FileSortBy, sortOrder: FileSortOrder): MediaFile[] {
+export function sortFiles(
+    files: MediaFile[],
+    sortBy: FileSortBy,
+    sortOrder: FileSortOrder,
+    fileRatings: Record<string, Record<string, number>> = {},
+    overallRatingAxisId?: string | null,
+): MediaFile[] {
     return [...files].sort((a, b) => {
         let comparison = 0;
 
@@ -63,6 +72,16 @@ export function sortFiles(files: MediaFile[], sortBy: FileSortBy, sortOrder: Fil
                     return comparison;
                 }
                 break;
+            case 'overallRating': {
+                const axisId = overallRatingAxisId ?? '';
+                const aRating = axisId ? (fileRatings[a.id]?.[axisId] ?? Number.NEGATIVE_INFINITY) : Number.NEGATIVE_INFINITY;
+                const bRating = axisId ? (fileRatings[b.id]?.[axisId] ?? Number.NEGATIVE_INFINITY) : Number.NEGATIVE_INFINITY;
+                comparison = aRating - bRating;
+                if (comparison === 0) {
+                    comparison = a.name.localeCompare(b.name);
+                }
+                break;
+            }
         }
 
         return sortOrder === 'asc' ? comparison : -comparison;
@@ -143,6 +162,24 @@ function matchesSearchFilters(file: MediaFile, searchConditions: FileSearchCondi
     return searchConditions.every((condition) => matchesSearchCondition(file, condition));
 }
 
+function matchesRatingQuickFilter(
+    file: MediaFile,
+    quickFilter: RatingQuickFilter,
+    overallRatingAxisId: string | null | undefined,
+    fileRatings: Record<string, Record<string, number>>
+): boolean {
+    if (quickFilter === 'none') {
+        return true;
+    }
+
+    const rating = overallRatingAxisId ? fileRatings[file.id]?.[overallRatingAxisId] : undefined;
+    if (quickFilter === 'overall4plus') {
+        return rating !== undefined && rating >= 4;
+    }
+
+    return rating === undefined;
+}
+
 function matchesFileTypeFilter(file: MediaFile, selectedFileTypes: MediaFile['type'][]): boolean {
     if (selectedFileTypes.length >= ALL_FILE_TYPES.length) {
         return true;
@@ -153,11 +190,18 @@ function matchesFileTypeFilter(file: MediaFile, selectedFileTypes: MediaFile['ty
 }
 
 export function buildVisibleFiles(files: MediaFile[], options: FileListQueryOptions): MediaFile[] {
-    const sortedFiles = sortFiles(files, options.sortBy, options.sortOrder);
+    const sortedFiles = sortFiles(
+        files,
+        options.sortBy,
+        options.sortOrder,
+        options.fileRatings,
+        options.overallRatingAxisId,
+    );
 
     return sortedFiles.filter((file) => (
         matchesTagFilter(file, options.selectedTagIds, options.filterMode, options.fileTagsCache) &&
         matchesRatingFilter(file, options.ratingFilter, options.fileRatings) &&
+        matchesRatingQuickFilter(file, options.ratingQuickFilter ?? 'none', options.overallRatingAxisId, options.fileRatings) &&
         matchesSearchFilters(file, options.searchConditions) &&
         matchesFileTypeFilter(file, options.selectedFileTypes)
     ));

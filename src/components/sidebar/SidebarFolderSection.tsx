@@ -1,8 +1,8 @@
 import React from 'react';
-import { Library, Search, SlidersHorizontal, X } from 'lucide-react';
+import { History, Library, Pin, Search, SlidersHorizontal, X } from 'lucide-react';
 import { FolderTree } from '../FolderTree';
 import type { MediaFolder } from '../../types/file';
-import { ALL_FILES_ID } from './sidebarShared';
+import { ALL_FILES_ID, normalizeSidebarSelection, resolveSidebarSelectionLabel } from './sidebarShared';
 
 interface SidebarFolderSectionProps {
     sidebarCollapsed: boolean;
@@ -12,10 +12,13 @@ interface SidebarFolderSectionProps {
     onFolderTreeSearchChange: (value: string) => void;
     filteredFoldersForTree: MediaFolder[];
     folderTreeRecursiveCountsByPath: Record<string, number>;
+    pinnedSelections: string[];
+    recentSelections: string[];
     onSelectAllFiles: () => void;
     onOpenFolderScanSettingsManager: () => void;
     onSelectFolder: (folderId: string | null) => void;
     onOpenFolderSettings: (folder: MediaFolder) => void;
+    onTogglePinnedSelection: (selection: string) => void;
 }
 
 export const SidebarFolderSection = React.memo(({
@@ -26,10 +29,13 @@ export const SidebarFolderSection = React.memo(({
     onFolderTreeSearchChange,
     filteredFoldersForTree,
     folderTreeRecursiveCountsByPath,
+    pinnedSelections,
+    recentSelections,
     onSelectAllFiles,
     onOpenFolderScanSettingsManager,
     onSelectFolder,
     onOpenFolderSettings,
+    onTogglePinnedSelection,
 }: SidebarFolderSectionProps) => (
     <>
         <div
@@ -53,9 +59,28 @@ export const SidebarFolderSection = React.memo(({
                         type="button"
                         onClick={(event) => {
                             event.stopPropagation();
-                            onOpenFolderScanSettingsManager();
+                            onTogglePinnedSelection(ALL_FILES_ID);
                         }}
                         className={`ml-auto rounded p-1 transition-colors ${(currentFolderId === ALL_FILES_ID || currentFolderId === null)
+                            ? 'hover:bg-blue-500/40'
+                            : 'hover:bg-surface-700'}`}
+                        title={pinnedSelections.includes(ALL_FILES_ID) ? 'ピン留め解除' : 'ピン留め'}
+                        aria-label={pinnedSelections.includes(ALL_FILES_ID) ? 'ピン留め解除' : 'ピン留め'}
+                    >
+                        <Pin
+                            size={14}
+                            className={pinnedSelections.includes(ALL_FILES_ID)
+                                ? ((currentFolderId === ALL_FILES_ID || currentFolderId === null) ? 'text-blue-100' : 'text-amber-400')
+                                : ((currentFolderId === ALL_FILES_ID || currentFolderId === null) ? 'text-blue-100' : 'text-surface-400')}
+                        />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onOpenFolderScanSettingsManager();
+                        }}
+                        className={`rounded p-1 transition-colors ${(currentFolderId === ALL_FILES_ID || currentFolderId === null)
                             ? 'hover:bg-blue-500/40'
                             : 'hover:bg-surface-700'}`}
                         title="フォルダ別スキャン設定（一覧管理）"
@@ -103,6 +128,75 @@ export const SidebarFolderSection = React.memo(({
             </div>
         )}
 
+        {!sidebarCollapsed && pinnedSelections.length > 0 && (
+            <div className="mb-2 px-1">
+                <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-surface-400">
+                    <Pin size={12} />
+                    ピン留め
+                </div>
+                <div className="space-y-1">
+                    {pinnedSelections.map((selection) => {
+                        const normalizedSelection = normalizeSidebarSelection(currentFolderId);
+                        const isSelected = normalizedSelection === selection;
+                        return (
+                            <div
+                                key={selection}
+                                onClick={() => onSelectFolder(selection)}
+                                className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors ${
+                                    isSelected
+                                        ? 'bg-blue-600 text-white'
+                                        : 'cursor-pointer text-surface-300 hover:bg-surface-800'
+                                }`}
+                            >
+                                <Pin size={12} className="flex-shrink-0" />
+                                <span className="min-w-0 flex-1 truncate">{resolveSidebarSelectionLabel(selection, folders)}</span>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        onTogglePinnedSelection(selection);
+                                    }}
+                                    className={`rounded p-1 transition-colors ${isSelected ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
+                                    title="ピン留め解除"
+                                >
+                                    <X size={11} />
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+
+        {!sidebarCollapsed && recentSelections.length > 0 && (
+            <div className="mb-2 px-1">
+                <div className="mb-1 flex items-center gap-1 text-[11px] font-medium text-surface-400">
+                    <History size={12} />
+                    最近開いた場所
+                </div>
+                <div className="space-y-1">
+                    {recentSelections.map((selection) => {
+                        const normalizedSelection = normalizeSidebarSelection(currentFolderId);
+                        const isSelected = normalizedSelection === selection;
+                        return (
+                            <div
+                                key={selection}
+                                onClick={() => onSelectFolder(selection)}
+                                className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors ${
+                                    isSelected
+                                        ? 'bg-blue-600 text-white'
+                                        : 'cursor-pointer text-surface-300 hover:bg-surface-800'
+                                }`}
+                            >
+                                <History size={12} className="flex-shrink-0" />
+                                <span className="truncate">{resolveSidebarSelectionLabel(selection, folders)}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+
         {folders.length === 0 ? (
             !sidebarCollapsed && (
                 <p className="text-surface-500 text-sm text-center py-4">
@@ -123,6 +217,8 @@ export const SidebarFolderSection = React.memo(({
                 onSelectFolder={onSelectFolder}
                 collapsed={sidebarCollapsed}
                 onOpenFolderSettings={onOpenFolderSettings}
+                isPinnedSelection={(selection) => pinnedSelections.includes(selection)}
+                onTogglePinnedSelection={onTogglePinnedSelection}
             />
         )}
     </>

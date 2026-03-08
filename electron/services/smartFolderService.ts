@@ -6,6 +6,7 @@ const log = logger.scope('SmartFolder');
 
 const SMART_FOLDERS_KEY = 'smart_folders_v1';
 type SearchTarget = 'fileName' | 'folderName';
+type RatingQuickFilter = 'none' | 'overall4plus' | 'unrated';
 interface SearchCondition {
     text: string;
     target: SearchTarget;
@@ -16,6 +17,7 @@ export interface SmartFolderConditionV1 {
     text: string;
     textMatchTarget: SearchTarget;
     textConditions: SearchCondition[];
+    ratingQuickFilter: RatingQuickFilter;
     tags: {
         ids: string[];
         mode: 'AND' | 'OR';
@@ -43,6 +45,7 @@ const DEFAULT_CONDITION: SmartFolderConditionV1 = {
     text: '',
     textMatchTarget: 'fileName',
     textConditions: [],
+    ratingQuickFilter: 'none',
     tags: {
         ids: [],
         mode: 'OR',
@@ -121,6 +124,10 @@ function normalizeCondition(input: unknown): SmartFolderConditionV1 {
         text: primaryTextCondition?.text ?? '',
         textMatchTarget: primaryTextCondition?.target ?? 'fileName',
         textConditions,
+        ratingQuickFilter:
+            candidate.ratingQuickFilter === 'overall4plus' || candidate.ratingQuickFilter === 'unrated'
+                ? candidate.ratingQuickFilter
+                : 'none',
         tags: {
             ids: Array.isArray(tagsCandidate.ids)
                 ? tagsCandidate.ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)

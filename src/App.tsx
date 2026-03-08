@@ -171,6 +171,9 @@ function App() {
         useRatingStore.getState().loadAllFileRatings().catch((e) => {
             console.error('Failed to preload rating cache:', e);
         });
+        useRatingStore.getState().loadAxes().catch((e) => {
+            console.error('Failed to preload rating axes:', e);
+        });
     }, []);
 
     // 起動時自動スキャン（初回マウント時のみ）
@@ -226,17 +229,21 @@ function App() {
         const error = useToastStore.getState().error;
         const cleanup = window.electronAPI.onScanProgress((progress) => {
             setScanProgress(progress);
+            const folderPrefix = progress.folderName ? `${progress.folderName}: ` : '';
+            const statsSummary = progress.stats
+                ? `${progress.stats.newCount}件新規 / ${progress.stats.updateCount}件更新 / ${progress.stats.skipCount}件スキップ${typeof progress.stats.removedCount === 'number' ? ` / ${progress.stats.removedCount}件削除` : ''}`
+                : '';
             if (progress?.phase === 'complete' && progress.message === 'サムネイル再生成完了') {
                 success('サムネイルを再生成しました');
             }
             else if (progress?.phase === 'complete') {
-                success('スキャンが完了しました');
+                success(`${folderPrefix}スキャン完了${statsSummary ? `（${statsSummary}）` : ''}`, 4500);
             }
             else if (progress?.phase === 'error' && progress.message?.includes('サムネイル再生成')) {
                 error('サムネイルの再生成に失敗しました');
             }
             else if (progress?.phase === 'error') {
-                error('スキャン中にエラーが発生しました');
+                error(`${folderPrefix}スキャン中にエラーが発生しました`, 4500);
             }
         });
         return cleanup;
@@ -255,6 +262,7 @@ function App() {
                 closeLightbox,
                 clearTagFilter,
                 clearRatingFilters: () => useRatingStore.getState().clearRatingFilters(),
+                clearRatingQuickFilter: () => useUIStore.getState().setRatingQuickFilter('none'),
                 resetDuplicates: () => useDuplicateStore.getState().reset(),
                 bumpRefreshKey: () => setRefreshKey((k) => k + 1),
                 reloadRatings: () => useRatingStore.getState().loadAllFileRatings(),
@@ -452,7 +460,7 @@ function App() {
             )}
             <ScanProgressBar onCancel={handleCancelScan} />
             <ToastContainer toasts={toasts} onClose={removeToast} />
-            <Toaster position="bottom-right" richColors />
+            <Toaster position="bottom-left" richColors />
             {deleteDialogOpen && (
                 <Suspense fallback={null}>
                     <DeleteConfirmDialog

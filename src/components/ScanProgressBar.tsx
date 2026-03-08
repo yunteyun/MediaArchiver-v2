@@ -40,7 +40,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
     // 表示/非表示は transform/opacity で制御
     if (!scanProgress) return null;
 
-    const { phase, current, total, currentFile, message, stats } = scanProgress;
+    const { phase, current, total, currentFile, folderName, message, stats } = scanProgress;
     const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
     const isComplete = phase === 'complete';
     const isError = phase === 'error';
@@ -74,7 +74,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
                     {isComplete && <CheckCircle size={16} className="text-green-400 animate-bounce-once" />}
                     {isError && <AlertCircle size={16} className="text-red-400" />}
                     <span className="text-sm font-medium text-white">
-                        {isCounting ? 'ファイルカウント中...' :
+                        {folderName ? `${folderName} / ` : ''}{isCounting ? 'ファイルカウント中...' :
                             isComplete ? 'スキャン完了' :
                                 isError ? 'エラー' : 'スキャン中'}
                     </span>
@@ -140,7 +140,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
                     </span>
                     {stats && (
                         <span className="font-mono">
-                            N:{stats.newCount} U:{stats.updateCount} S:{stats.skipCount}
+                            N:{stats.newCount} U:{stats.updateCount} S:{stats.skipCount}{typeof stats.removedCount === 'number' ? ` D:${stats.removedCount}` : ''}
                         </span>
                     )}
                 </div>

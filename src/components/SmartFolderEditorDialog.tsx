@@ -4,7 +4,7 @@ import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
 import type { Tag } from '../stores/useTagStore';
 import type { RatingAxis } from '../stores/useRatingStore';
 import type { MediaFile } from '../types/file';
-import type { SearchCondition, SearchTarget } from '../stores/useUIStore';
+import type { RatingQuickFilter, SearchCondition, SearchTarget } from '../stores/useUIStore';
 
 export interface SmartFolderFolderOption {
     value: string;
@@ -41,6 +41,11 @@ const SMART_FOLDER_FILE_TYPE_OPTIONS: Array<{ value: MediaFile['type']; label: s
 const SEARCH_TARGET_OPTIONS: Array<{ value: SearchTarget; label: string }> = [
     { value: 'fileName', label: 'ファイル名' },
     { value: 'folderName', label: 'フォルダ名' },
+];
+const RATING_QUICK_FILTER_OPTIONS: Array<{ value: RatingQuickFilter; label: string }> = [
+    { value: 'none', label: 'なし' },
+    { value: 'overall4plus', label: '総合評価 4+' },
+    { value: 'unrated', label: '未評価のみ' },
 ];
 
 function normalizeConditionTypes(input: unknown): MediaFile['type'][] {
@@ -115,6 +120,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
     });
     const [tagIds, setTagIds] = useState<string[]>([]);
     const [tagMode, setTagMode] = useState<'AND' | 'OR'>('OR');
+    const [ratingQuickFilter, setRatingQuickFilter] = useState<RatingQuickFilter>(initialCondition.ratingQuickFilter ?? 'none');
     const [ratingInputs, setRatingInputs] = useState<RatingInputMap>({});
     const [tagSearch, setTagSearch] = useState('');
     const [types, setTypes] = useState<MediaFile['type'][]>(() => normalizeConditionTypes(initialCondition.types));
@@ -131,6 +137,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
         setTextConditions(normalizedTextConditions.length > 0 ? normalizedTextConditions : [{ text: '', target: 'fileName' }]);
         setTagIds([...initialCondition.tags.ids]);
         setTagMode(initialCondition.tags.mode === 'AND' ? 'AND' : 'OR');
+        setRatingQuickFilter(initialCondition.ratingQuickFilter ?? 'none');
         setRatingInputs(createRatingInputMap(initialCondition));
         setTagSearch('');
         setTypes(normalizeConditionTypes(initialCondition.types));
@@ -371,6 +378,32 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
+                        <label className="block text-xs text-surface-400 mb-2">評価クイック条件</label>
+                        <div className="flex flex-wrap gap-1.5">
+                            {RATING_QUICK_FILTER_OPTIONS.map((option) => {
+                                const active = ratingQuickFilter === option.value;
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => setRatingQuickFilter(option.value)}
+                                        className={`rounded px-2 py-1 text-xs transition-colors ${
+                                            active
+                                                ? 'bg-primary-600 text-white'
+                                                : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <p className="mt-2 text-[11px] text-surface-500">
+                            総合評価を基準にしたクイック条件です。詳細な評価条件と組み合わせることもできます。
+                        </p>
+                    </div>
+
+                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
                         <label className="block text-xs text-surface-400 mb-2">評価条件</label>
                         {ratingAxes.length === 0 ? (
                             <div className="text-xs text-surface-500">評価軸がありません</div>
@@ -476,6 +509,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                                         ids: [...tagIds],
                                         mode: tagMode,
                                     },
+                                    ratingQuickFilter,
                                     ratings: normalizedRatings,
                                     types: normalizedTypes,
                                 },

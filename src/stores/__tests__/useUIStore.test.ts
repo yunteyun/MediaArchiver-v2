@@ -12,6 +12,7 @@ function resetUiStore() {
         searchQuery: '',
         searchTarget: 'fileName',
         searchExtraConditions: [],
+        ratingQuickFilter: 'none',
         currentSortBy: 'date',
         currentSortOrder: 'desc',
         currentGroupBy: 'none',
@@ -144,5 +145,13 @@ describe('useUIStore', () => {
         expect(state.currentDisplayMode).toBe('whiteBrowser');
         expect(state.currentActiveDisplayPresetId).toBe('whiteBrowser');
         expect(state.currentThumbnailPresentation).toBe('square');
+    });
+
+    it('stores rating quick filter separately from axis filters', () => {
+        useUIStore.getState().setRatingQuickFilter('unrated');
+        expect(useUIStore.getState().ratingQuickFilter).toBe('unrated');
+
+        useUIStore.getState().setRatingQuickFilter('overall4plus');
+        expect(useUIStore.getState().ratingQuickFilter).toBe('overall4plus');
     });
 });

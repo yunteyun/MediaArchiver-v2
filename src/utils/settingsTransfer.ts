@@ -18,7 +18,7 @@ import type {
     ThumbnailPresentation,
 } from '../stores/useSettingsStore';
 
-type SortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed';
+type SortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 type SortOrder = 'asc' | 'desc';
 type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
 

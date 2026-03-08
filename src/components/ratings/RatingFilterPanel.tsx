@@ -189,7 +189,10 @@ export const RatingFilterPanel: React.FC = () => {
     const ratingFilter = useRatingStore((s) => s.ratingFilter);
     const setRatingFilter = useRatingStore((s) => s.setRatingFilter);
     const clearRatingFilters = useRatingStore((s) => s.clearRatingFilters);
+    const ratingQuickFilter = useUIStore((s) => s.ratingQuickFilter);
+    const setRatingQuickFilter = useUIStore((s) => s.setRatingQuickFilter);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
+    const overallAxis = axes.find((axis) => axis.isSystem) ?? axes[0];
 
     // 起動時に評価軸をロード。多重実行ガードはストア側が担う。
     useEffect(() => {
@@ -202,6 +205,7 @@ export const RatingFilterPanel: React.FC = () => {
     const hasAnyFilter = Object.values(ratingFilter).some(
         (r) => r.min !== undefined || r.max !== undefined
     );
+    const hasQuickFilter = ratingQuickFilter !== 'none';
 
     if (axes.length === 0) {
         return (
@@ -252,9 +256,48 @@ export const RatingFilterPanel: React.FC = () => {
                                 全解除
                             </button>
                         )}
+                        {hasQuickFilter && (
+                            <button
+                                onClick={() => setRatingQuickFilter('none')}
+                                className="inline-flex items-center gap-1 text-[11px] text-surface-500 hover:text-surface-300 transition-colors"
+                                title="評価クイック条件を解除"
+                            >
+                                条件解除
+                            </button>
+                        )}
                     </>
                 }
             />
+
+            {overallAxis && (
+                <div className="px-1">
+                    <div className="mb-1 text-[11px] text-surface-500">総合評価クイック条件</div>
+                    <div className="flex flex-wrap gap-1">
+                        <button
+                            type="button"
+                            onClick={() => setRatingQuickFilter('overall4plus')}
+                            className={`rounded px-2 py-1 text-[11px] transition-colors ${
+                                ratingQuickFilter === 'overall4plus'
+                                    ? 'bg-primary-600 text-white'
+                                    : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
+                            }`}
+                        >
+                            総合 4+
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setRatingQuickFilter('unrated')}
+                            className={`rounded px-2 py-1 text-[11px] transition-colors ${
+                                ratingQuickFilter === 'unrated'
+                                    ? 'bg-primary-600 text-white'
+                                    : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
+                            }`}
+                        >
+                            未評価のみ
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* 軸ごとのフィルター行 */}
             <div className="px-1 space-y-2">

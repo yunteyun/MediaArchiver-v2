@@ -144,6 +144,7 @@ export type ScanProgressCallback = (progress: {
         newCount: number;
         updateCount: number;
         skipCount: number;
+        removedCount?: number;
     };
 }) => void;
 
@@ -316,7 +317,7 @@ async function scanDirectoryInternal(
         current: number;
         total: number;
         lastProgressTime: number;
-        stats: { newCount: number; updateCount: number; skipCount: number };
+        stats: { newCount: number; updateCount: number; skipCount: number; removedCount?: number };
         pendingWrites: PendingWrite[];
         scanFilters: ScanFileTypeCategoryFilters;
         committedCount: number;
@@ -714,7 +715,7 @@ export async function scanDirectory(
             current: 0,
             total,
             lastProgressTime: 0,
-            stats: { newCount: 0, updateCount: 0, skipCount: 0 },
+            stats: { newCount: 0, updateCount: 0, skipCount: 0, removedCount: 0 },
             pendingWrites: [] as PendingWrite[],
             scanFilters: effectiveScanFilters,
             committedCount: 0,
@@ -788,7 +789,10 @@ export async function scanDirectory(
                     current: state.current,
                     total: finalTotal,
                     message: `キャンセル: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ`,
-                    stats: state.stats
+                    stats: {
+                        ...state.stats,
+                        removedCount,
+                    }
                 });
             }
             return;
@@ -802,7 +806,10 @@ export async function scanDirectory(
                 current: finalTotal,
                 total: finalTotal,
                 message: `完了: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ, ${removedCount}件削除`,
-                stats: state.stats
+                stats: {
+                    ...state.stats,
+                    removedCount,
+                }
             });
         }
         db.updateFolderLastScanStatus(rootFolderId, {

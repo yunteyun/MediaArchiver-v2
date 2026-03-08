@@ -255,7 +255,7 @@ interface SettingsState {
     animatedImagePreviewMode: AnimatedImagePreviewMode;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
-    sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed'; // Phase 17: アクセストラッキング
+    sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     defaultSearchTarget: SearchTarget;
     videoVolume: number; // 0.0 - 1.0
@@ -314,7 +314,7 @@ interface SettingsState {
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
     setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
     setRightPanelVideoJumpInterval: (interval: PlayModeJumpInterval) => void;
-    setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed') => void;
+    setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setDefaultSearchTarget: (target: SearchTarget) => void;
     setVideoVolume: (volume: number) => void;
