@@ -56,6 +56,7 @@ function App() {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
     const setScanProgress = useUIStore((s) => s.setScanProgress);
+    const closeLightbox = useUIStore((s) => s.closeLightbox);
     const toasts = useToastStore((s) => s.toasts);
     const removeToast = useToastStore((s) => s.removeToast);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
@@ -210,6 +211,7 @@ function App() {
                 // ファイル表示をクリア
                 setFiles([]);
                 setCurrentFolderId(null);
+                closeLightbox();
                 clearTagFilter();
                 useRatingStore.getState().clearRatingFilters();
                 // 重複検索ストアをリセット（前プロファイルの結果を残さない）
@@ -225,7 +227,7 @@ function App() {
             handleProfileSwitch();
         });
         return cleanup;
-    }, [setFiles, setCurrentFolderId, clearTagFilter]);
+    }, [setFiles, setCurrentFolderId, closeLightbox, clearTagFilter]);
 
     // Phase 22-C-2: ファイル移動ダイアログ開くイベント
     useEffect(() => {

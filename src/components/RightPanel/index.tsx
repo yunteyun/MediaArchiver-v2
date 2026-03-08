@@ -1,6 +1,6 @@
 import React from 'react';
 import { useFileStore } from '../../stores/useFileStore';
-import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useProfileStore } from '../../stores/useProfileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { FileHeaderSection } from './FileHeaderSection';
 import { PreviewSection } from './PreviewSection';
@@ -13,7 +13,7 @@ import type { MediaFolder } from '../../types/file';
 export const RightPanel: React.FC = () => {
     const focusedId = useFileStore((s) => s.focusedId);
     const fileMap = useFileStore((s) => s.fileMap);
-    const activeProfileId = useSettingsStore((s) => s.activeProfileId);
+    const activeProfileId = useProfileStore((s) => s.activeProfileId);
     const lightboxFile = useUIStore((s) => s.lightboxFile);
     const [folderPathById, setFolderPathById] = React.useState<Map<string, string>>(new Map());
 
@@ -23,6 +23,7 @@ export const RightPanel: React.FC = () => {
 
     React.useEffect(() => {
         let disposed = false;
+        setFolderPathById(new Map());
         window.electronAPI.getFolders()
             .then((folders) => {
                 if (disposed) return;

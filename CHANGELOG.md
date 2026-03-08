@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - 一覧の「最終アクセス日時」ソートで降順が正しく効かない問題を修正した。
+- プロファイル切替後も右パネルと中央ビューアが前プロファイルのファイル情報を引きずることがある問題を修正した。
 
 ---
 
