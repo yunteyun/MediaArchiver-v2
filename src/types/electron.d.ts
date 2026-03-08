@@ -368,6 +368,7 @@ declare global {
             createRatingAxis: (name: string, minValue?: number, maxValue?: number, step?: number) => Promise<RatingAxis>;
             updateRatingAxis: (id: string, updates: { name?: string; minValue?: number; maxValue?: number; step?: number; sortOrder?: number }) => Promise<RatingAxis | null>;
             deleteRatingAxis: (id: string) => Promise<{ success: boolean; reason?: string }>;
+            setOverallRatingAxis: (id: string) => Promise<RatingAxis[] | null>;
             getFileRatings: (fileId: string) => Promise<FileRating[]>;
             setFileRating: (fileId: string, axisId: string, value: number) => Promise<{ success: boolean }>;
             removeFileRating: (fileId: string, axisId: string) => Promise<{ success: boolean }>;

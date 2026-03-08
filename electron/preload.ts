@@ -380,6 +380,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('rating:updateAxis', { id, ...updates }),
     deleteRatingAxis: (id: string) =>
         ipcRenderer.invoke('rating:deleteAxis', { id }),
+    setOverallRatingAxis: (id: string) =>
+        ipcRenderer.invoke('rating:setOverallAxis', { id }),
 
     // File Ratings
     getFileRatings: (fileId: string) =>

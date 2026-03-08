@@ -35,6 +35,7 @@ interface RatingState {
     createAxis: (name: string, minValue?: number, maxValue?: number, step?: number) => Promise<RatingAxis>;
     updateAxis: (id: string, updates: { name?: string; minValue?: number; maxValue?: number; step?: number; sortOrder?: number }) => Promise<void>;
     deleteAxis: (id: string) => Promise<{ success: boolean; reason?: string }>;
+    setOverallAxis: (id: string) => Promise<void>;
     setFileRating: (fileId: string, axisId: string, value: number) => Promise<void>;
     removeFileRating: (fileId: string, axisId: string) => Promise<void>;
     loadFileRatings: (fileId: string) => Promise<void>;
@@ -109,6 +110,14 @@ export const useRatingStore = create<RatingState>((set, get) => ({
             }));
         }
         return result;
+    },
+
+    setOverallAxis: async (id) => {
+        const axes = await window.electronAPI.setOverallRatingAxis(id);
+        if (!axes) {
+            throw new Error('総合評価軸の切り替えに失敗しました');
+        }
+        set({ axes });
     },
 
     setFileRating: async (fileId, axisId, value) => {

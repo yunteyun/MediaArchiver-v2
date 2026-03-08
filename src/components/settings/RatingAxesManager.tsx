@@ -4,11 +4,19 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, Shield, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Shield, Check, X, Star } from 'lucide-react';
 import { useRatingStore, RatingAxis } from '../../stores/useRatingStore';
 
 export const RatingAxesManager: React.FC = () => {
-    const { axes, isLoaded, loadAxes, createAxis, updateAxis, deleteAxis } = useRatingStore();
+    const {
+        axes,
+        isLoaded,
+        loadAxes,
+        createAxis,
+        updateAxis,
+        deleteAxis,
+        setOverallAxis,
+    } = useRatingStore();
 
     // 新規作成フォーム
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -24,6 +32,7 @@ export const RatingAxesManager: React.FC = () => {
     // 削除確認
     const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [setOverallError, setSetOverallError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isLoaded) {
@@ -67,6 +76,16 @@ export const RatingAxesManager: React.FC = () => {
         }
     };
 
+    const handleSetOverall = async (id: string) => {
+        setSetOverallError(null);
+        try {
+            await setOverallAxis(id);
+        } catch (error) {
+            console.error('Failed to update overall rating axis:', error);
+            setSetOverallError('総合評価軸の切り替えに失敗しました');
+        }
+    };
+
     return (
         <div className="px-4 py-4 space-y-4">
             <div>
@@ -75,7 +94,7 @@ export const RatingAxesManager: React.FC = () => {
                 </h3>
                 <p className="text-xs text-surface-500 mb-4">
                     ファイルに対して複数の評価軸（例: 総合評価、演技、映像美）を定義できます。
-                    ⭐マークのある軸はシステム軸で削除できません。
+                    シールドの付いた軸が現在の総合評価で、削除できません。
                 </p>
 
                 {/* 軸一覧 */}
@@ -90,7 +109,7 @@ export const RatingAxesManager: React.FC = () => {
                             >
                                 {/* システム軸バッジ */}
                                 {axis.isSystem && (
-                                    <span title="システム軸">
+                                    <span title="現在の総合評価">
                                         <Shield size={14} className="text-primary-400 flex-shrink-0" />
                                     </span>
                                 )}
@@ -112,6 +131,12 @@ export const RatingAxesManager: React.FC = () => {
                                     ) : (
                                         <div>
                                             <span className="text-sm text-white font-medium">{axis.name}</span>
+                                            {axis.isSystem && (
+                                                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary-500/15 px-2 py-0.5 text-[11px] text-primary-300">
+                                                    <Star size={10} />
+                                                    総合評価
+                                                </span>
+                                            )}
                                             <span className="ml-2 text-xs text-surface-500">
                                                 {axis.minValue}〜{axis.maxValue}（step {axis.step}）
                                             </span>
@@ -147,6 +172,15 @@ export const RatingAxesManager: React.FC = () => {
                                             >
                                                 <Pencil size={14} />
                                             </button>
+                                            {!axis.isSystem && (
+                                                <button
+                                                    onClick={() => { void handleSetOverall(axis.id); }}
+                                                    className="px-2 py-1 text-xs rounded border border-surface-600 text-surface-300 hover:bg-surface-700 hover:text-white transition-colors"
+                                                    title="この軸を総合評価にする"
+                                                >
+                                                    総合評価にする
+                                                </button>
+                                            )}
                                             {!axis.isSystem && (
                                                 deleteTargetId === axis.id ? (
                                                     <>
@@ -187,6 +221,9 @@ export const RatingAxesManager: React.FC = () => {
                 {/* エラー表示 */}
                 {deleteError && (
                     <p className="text-xs text-red-400 mt-2">{deleteError}</p>
+                )}
+                {setOverallError && (
+                    <p className="text-xs text-red-400 mt-2">{setOverallError}</p>
                 )}
 
                 {/* 新規作成フォーム */}

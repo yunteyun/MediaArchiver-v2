@@ -9,6 +9,7 @@ import {
     createAxis,
     updateAxis,
     deleteAxis,
+    setOverallAxis,
     getFileRatings,
     setFileRating,
     removeFileRating,
@@ -40,6 +41,10 @@ export function registerRatingHandlers(): void {
 
     ipcMain.handle('rating:deleteAxis', async (_event, { id }: { id: string }) => {
         return deleteAxis(id);
+    });
+
+    ipcMain.handle('rating:setOverallAxis', async (_event, { id }: { id: string }) => {
+        return setOverallAxis(id);
     });
 
     // === File Rating Operations ===

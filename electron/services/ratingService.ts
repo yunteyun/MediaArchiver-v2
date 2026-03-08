@@ -158,6 +158,21 @@ export function deleteAxis(id: string): { success: boolean; reason?: string } {
     return { success: true };
 }
 
+/** 総合評価軸を切り替える（is_system は常に 1 件だけ維持） */
+export function setOverallAxis(id: string): RatingAxis[] | null {
+    const existing = db().prepare('SELECT id FROM rating_axes WHERE id = ?').get(id) as { id: string } | undefined;
+    if (!existing) return null;
+
+    const tx = db().transaction((targetId: string) => {
+        db().prepare('UPDATE rating_axes SET is_system = 0 WHERE is_system = 1').run();
+        db().prepare('UPDATE rating_axes SET is_system = 1 WHERE id = ?').run(targetId);
+    });
+
+    tx(id);
+    log.info(`Set overall rating axis: ${id}`);
+    return getAllAxes();
+}
+
 // --- File Rating Operations ---
 
 /** ファイルの全評価を取得 */
