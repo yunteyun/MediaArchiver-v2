@@ -13,8 +13,10 @@ export type TagSummaryUiPreset = {
     visibleCount: number;
     chipPaddingClass: string;
     chipTextClass: string;
+    chipFontWeightClass: string;
     chipRadiusClass: string;
     chipMaxWidthClass: string;
+    rowGapClass: string;
     rowLayoutClass: string;
 };
 

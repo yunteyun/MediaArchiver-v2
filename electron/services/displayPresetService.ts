@@ -131,6 +131,38 @@ function getCompactDensePresetManifest(): ExternalDisplayPresetManifest {
         },
         tagSummaryUi: {
             visibleCount: 1,
+            chipPaddingClass: 'px-1 py-px',
+            chipTextClass: 'text-[6px] leading-none',
+            chipFontWeightClass: 'font-medium',
+            chipRadiusClass: 'rounded-sm',
+            chipMaxWidthClass: 'max-w-[44px]',
+            rowGapClass: 'gap-0.5',
+        },
+        compactInfoUi: {
+            containerClass: 'px-1.5 py-1 flex flex-col justify-start bg-surface-800 gap-0',
+            titleClass: 'text-[11px] text-white truncate leading-tight font-semibold mb-0.5',
+            metaRowClass: 'flex items-start justify-between gap-1',
+            fileSizeClass: 'text-[9px] text-surface-200 font-semibold tracking-tight flex-shrink-0 bg-surface-700/60 px-1 py-0.5 rounded-sm',
+        },
+    };
+}
+
+function getLegacyCompactDensePresetManifest(): ExternalDisplayPresetManifest {
+    return {
+        id: 'compact-dense',
+        extends: 'compact',
+        label: '標準（XS/高密度）',
+        menuOrder: 5,
+        thumbnailPresentation: 'modeDefault',
+        layout: {
+            aspectRatio: '1/1',
+            cardWidth: 156,
+            thumbnailHeight: 156,
+            infoAreaHeight: 40,
+            totalHeight: 196,
+        },
+        tagSummaryUi: {
+            visibleCount: 1,
             chipPaddingClass: 'px-1 py-0.5',
             chipTextClass: 'text-[7px] leading-none',
             chipRadiusClass: 'rounded-sm',
@@ -254,8 +286,10 @@ function normalizeManifest(raw: unknown): NormalizeManifestResult {
         if (normalizedVisibleCount !== undefined) normalized.tagSummaryUi.visibleCount = normalizedVisibleCount;
         if (typeof raw.tagSummaryUi.chipPaddingClass === 'string') normalized.tagSummaryUi.chipPaddingClass = raw.tagSummaryUi.chipPaddingClass;
         if (typeof raw.tagSummaryUi.chipTextClass === 'string') normalized.tagSummaryUi.chipTextClass = raw.tagSummaryUi.chipTextClass;
+        if (typeof raw.tagSummaryUi.chipFontWeightClass === 'string') normalized.tagSummaryUi.chipFontWeightClass = raw.tagSummaryUi.chipFontWeightClass;
         if (typeof raw.tagSummaryUi.chipRadiusClass === 'string') normalized.tagSummaryUi.chipRadiusClass = raw.tagSummaryUi.chipRadiusClass;
         if (typeof raw.tagSummaryUi.chipMaxWidthClass === 'string') normalized.tagSummaryUi.chipMaxWidthClass = raw.tagSummaryUi.chipMaxWidthClass;
+        if (typeof raw.tagSummaryUi.rowGapClass === 'string') normalized.tagSummaryUi.rowGapClass = raw.tagSummaryUi.rowGapClass;
         if (typeof raw.tagSummaryUi.rowLayoutClass === 'string') normalized.tagSummaryUi.rowLayoutClass = raw.tagSummaryUi.rowLayoutClass;
     }
 
@@ -327,6 +361,18 @@ function ensureDisplayPresetDirectory(): string {
         const presetPath = path.join(directory, fileName);
         if (!fs.existsSync(presetPath)) {
             fs.writeFileSync(presetPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+        }
+    }
+
+    const compactDensePath = path.join(directory, 'compact-dense.json');
+    if (fs.existsSync(compactDensePath)) {
+        try {
+            const parsed = JSON.parse(fs.readFileSync(compactDensePath, 'utf8')) as unknown;
+            if (JSON.stringify(parsed) === JSON.stringify(getLegacyCompactDensePresetManifest())) {
+                fs.writeFileSync(compactDensePath, `${JSON.stringify(getCompactDensePresetManifest(), null, 2)}\n`, 'utf8');
+            }
+        } catch {
+            // Keep user-edited files untouched; load-time validation will report issues.
         }
     }
 

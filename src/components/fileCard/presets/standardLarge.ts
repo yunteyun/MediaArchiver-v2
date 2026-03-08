@@ -22,8 +22,10 @@ export const standardLargeDisplayPreset: FileCardDisplayPreset = {
         visibleCount: 3,
         chipPaddingClass: 'px-1.5 py-1',
         chipTextClass: 'text-[9px] leading-none',
+        chipFontWeightClass: 'font-bold',
         chipRadiusClass: 'rounded-md',
         chipMaxWidthClass: 'max-w-[90px]',
+        rowGapClass: 'gap-1',
         rowLayoutClass: 'flex-nowrap items-center justify-start',
     },
     detailedInfoUi: {

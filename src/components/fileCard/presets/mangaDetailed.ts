@@ -23,8 +23,10 @@ export const mangaDetailedDisplayPreset: FileCardDisplayPreset = {
         visibleCount: 10,
         chipPaddingClass: 'px-2 py-1',
         chipTextClass: 'text-[9px] leading-none',
+        chipFontWeightClass: 'font-bold',
         chipRadiusClass: 'rounded',
         chipMaxWidthClass: 'max-w-[84px]',
+        rowGapClass: 'gap-1',
         rowLayoutClass: 'flex-wrap items-start justify-start content-start max-h-[72px]',
     },
     detailedInfoUi: {

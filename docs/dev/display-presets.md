@@ -11,6 +11,7 @@
 - 追加後は設定画面の「再読込」で反映できる
 - 初回作成時に `sample-whitebrowser-contain.json` と `whitebrowser-balanced.json` を自動生成する
 - 初回作成時に `compact-dense.json` も自動生成する
+- 未編集の `compact-dense.json` はアプリ更新時に最新サンプルへ自動調整される
 - 無効な値は警告付きで読み飛ばし、設定画面の「表示プリセット」欄に一覧表示する
 
 ## `extends` に指定できる built-in
@@ -73,8 +74,10 @@
   - `visibleCount`
   - `chipPaddingClass`
   - `chipTextClass`
+  - `chipFontWeightClass`
   - `chipRadiusClass`
   - `chipMaxWidthClass`
+  - `rowGapClass`
   - `rowLayoutClass`
 - `compactInfoUi`
   - `containerClass`

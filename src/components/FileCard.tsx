@@ -69,8 +69,10 @@ function isPerfDebugEnabled(): boolean {
 type TagSummaryUiConfig = {
     tagChipPaddingClass: string;
     tagChipTextClass: string;
+    tagChipFontWeightClass: string;
     tagChipRadiusClass: string;
     tagChipMaxWidthClass: string;
+    rowGapClass: string;
     rowLayoutClass: string;
 };
 
@@ -105,8 +107,10 @@ function getTagSummaryUiConfig(displayPreset: ResolvedFileCardDisplayPreset): Ta
     return {
         tagChipPaddingClass: preset.chipPaddingClass,
         tagChipTextClass: preset.chipTextClass,
+        tagChipFontWeightClass: preset.chipFontWeightClass,
         tagChipRadiusClass: preset.chipRadiusClass,
         tagChipMaxWidthClass: preset.chipMaxWidthClass,
+        rowGapClass: preset.rowGapClass,
         rowLayoutClass: preset.rowLayoutClass,
     };
 }
@@ -122,11 +126,11 @@ const FileCardTagSummaryRow = React.memo(({
     onMoreMouseLeave,
 }: FileCardTagSummaryRowProps) => {
     return (
-        <div className={`flex min-w-0 gap-1 overflow-hidden ${tagSummaryUi.rowLayoutClass}`}>
+        <div className={`flex min-w-0 overflow-hidden ${tagSummaryUi.rowGapClass} ${tagSummaryUi.rowLayoutClass}`}>
             {visibleTags.map(tag => (
                 <span
                     key={tag.id}
-                    className={`inline-flex min-w-0 ${tagSummaryUi.tagChipMaxWidthClass} items-center ${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
+                    className={`inline-flex min-w-0 ${tagSummaryUi.tagChipMaxWidthClass} items-center ${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} ${tagSummaryUi.tagChipFontWeightClass} whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
                     style={isTagBorderMode ? {
                         backgroundColor: 'rgba(55, 65, 81, 0.9)',
                         color: '#e5e7eb',
@@ -148,7 +152,7 @@ const FileCardTagSummaryRow = React.memo(({
                     onClick={onMoreClick}
                     onMouseEnter={onMoreMouseEnter}
                     onMouseLeave={onMoreMouseLeave}
-                    className={`${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} font-bold whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
+                    className={`${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} ${tagSummaryUi.tagChipFontWeightClass} whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
                 >
                     +{hiddenCount}
                 </button>

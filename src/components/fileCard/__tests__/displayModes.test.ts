@@ -46,6 +46,8 @@ describe('displayModes registry', () => {
             expect(definition.layout.cardWidth).toBeGreaterThan(0);
             expect(definition.layout.thumbnailHeight).toBeGreaterThan(0);
             expect(tagSummaryUi.visibleCount).toBeGreaterThan(0);
+            expect(tagSummaryUi.chipFontWeightClass).not.toHaveLength(0);
+            expect(tagSummaryUi.rowGapClass).not.toHaveLength(0);
             expect(detailedInfoUi.tagSummaryVisibleCount).toBeGreaterThan(0);
         }
     });
@@ -83,6 +85,8 @@ describe('displayModes registry', () => {
                 },
                 tagSummaryUi: {
                     visibleCount: 11,
+                    chipFontWeightClass: 'font-medium',
+                    rowGapClass: 'gap-0.5',
                 },
                 compactInfoUi: {
                     titleClass: 'text-[10px]',
@@ -98,6 +102,8 @@ describe('displayModes registry', () => {
         expect(resolved.thumbnailPresentation).toBe('contain');
         expect(resolved.definition.layout.cardWidth).toBe(500);
         expect(resolved.tagSummaryUi.visibleCount).toBe(11);
+        expect(resolved.tagSummaryUi.chipFontWeightClass).toBe('font-medium');
+        expect(resolved.tagSummaryUi.rowGapClass).toBe('gap-0.5');
         expect(resolved.compactInfoUi.titleClass).toBe('text-[10px]');
         expect(menuOptions.some((preset) => preset.id === 'custom-whitebrowser')).toBe(true);
     });

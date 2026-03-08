@@ -24,8 +24,10 @@ export const compactDisplayPreset: FileCardDisplayPreset = {
         visibleCount: 2,
         chipPaddingClass: 'px-1.5 py-0.5',
         chipTextClass: 'text-[8px]',
+        chipFontWeightClass: 'font-bold',
         chipRadiusClass: 'rounded',
         chipMaxWidthClass: 'max-w-[60px]',
+        rowGapClass: 'gap-1',
         rowLayoutClass: 'flex-nowrap items-center justify-start',
     },
     detailedInfoUi: {
