@@ -10,6 +10,7 @@ import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, Ale
 import { ActivityLogView } from './ActivityLogView';
 import { useLibraryStats } from '../hooks/useLibraryStats';
 import { toMediaUrl } from '../utils/mediaPath';
+import { resolveTagColorHex } from '../utils/fileExport';
 
 const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -31,6 +32,31 @@ const typeColors: Record<string, string> = {
     video: '#22c55e',   // 緑
     archive: '#f97316', // オレンジ
     audio: '#a855f7',   // 紫
+};
+
+const chartTooltipContentStyle = {
+    backgroundColor: '#0f172a',
+    border: '1px solid #334155',
+    borderRadius: '10px',
+    boxShadow: '0 12px 30px rgba(15, 23, 42, 0.45)',
+};
+
+const chartTooltipLabelStyle = {
+    color: '#f8fafc',
+    fontWeight: 600,
+};
+
+const chartTooltipItemStyle = {
+    color: '#cbd5e1',
+};
+
+const chartTooltipWrapperStyle = {
+    outline: 'none',
+    zIndex: 20,
+};
+
+const chartHoverCursor = {
+    fill: 'rgba(59, 130, 246, 0.12)',
 };
 
 interface MeasuredChartAreaProps {
@@ -258,8 +284,10 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                    labelStyle={{ color: '#f1f5f9' }}
+                                    contentStyle={chartTooltipContentStyle}
+                                    labelStyle={chartTooltipLabelStyle}
+                                    itemStyle={chartTooltipItemStyle}
+                                    wrapperStyle={chartTooltipWrapperStyle}
                                 />
                             </PieChart>
                         )}
@@ -311,12 +339,15 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         width={70}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
+                                        contentStyle={chartTooltipContentStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        wrapperStyle={chartTooltipWrapperStyle}
+                                        cursor={chartHoverCursor}
                                     />
                                     <Bar dataKey="count" name="ファイル数" radius={[0, 4, 4, 0]}>
                                         {stats.byTag.slice(0, 10).map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.tagColor || '#6366f1'} />
+                                            <Cell key={`cell-${index}`} fill={resolveTagColorHex(entry.tagColor)} />
                                         ))}
                                     </Bar>
                             </BarChart>
@@ -355,8 +386,11 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         width={110}
                                     />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
+                                        contentStyle={chartTooltipContentStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        wrapperStyle={chartTooltipWrapperStyle}
+                                        cursor={chartHoverCursor}
                                         formatter={(value: any, name?: string, props?: any) => {
                                             if (name === 'count' && props) {
                                                 return [`${value.toLocaleString()}件 (${formatBytes(props.payload.size)})`, 'ファイル数'];
@@ -385,8 +419,10 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                     <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
                                     <YAxis stroke="#94a3b8" fontSize={12} />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
+                                        contentStyle={chartTooltipContentStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        wrapperStyle={chartTooltipWrapperStyle}
                                     />
                                     <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
                             </LineChart>
@@ -423,8 +459,10 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         <Cell fill="#ef4444" />
                                     </Pie>
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
+                                        contentStyle={chartTooltipContentStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        wrapperStyle={chartTooltipWrapperStyle}
                                     />
                                 </PieChart>
                             )}
@@ -465,8 +503,11 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                     <XAxis dataKey="rating" stroke="#94a3b8" fontSize={12} />
                                     <YAxis stroke="#94a3b8" fontSize={12} />
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
+                                        contentStyle={chartTooltipContentStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        wrapperStyle={chartTooltipWrapperStyle}
+                                        cursor={chartHoverCursor}
                                     />
                                     <Bar dataKey="count" name="ファイル数" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                             </BarChart>
@@ -555,8 +596,10 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         <Cell fill="#64748b" />
                                     </Pie>
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
-                                        labelStyle={{ color: '#f1f5f9' }}
+                                        contentStyle={chartTooltipContentStyle}
+                                        labelStyle={chartTooltipLabelStyle}
+                                        itemStyle={chartTooltipItemStyle}
+                                        wrapperStyle={chartTooltipWrapperStyle}
                                     />
                                 </PieChart>
                             )}
