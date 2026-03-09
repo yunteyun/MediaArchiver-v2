@@ -13,10 +13,8 @@ import { Settings, Star } from 'lucide-react';
 import { useRatingStore } from '../../stores/useRatingStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { SidebarSectionHeader } from '../SidebarSectionHeader';
+import { getRatingDisplayTone } from './ratingDisplayTone';
 
-// Blue 系カラー（アプリ primary-600 系）
-const COLOR_FILLED = '#2563eb';   // 選択済み
-const COLOR_HOVER = '#60a5fa';    // ホバー中
 const COLOR_EMPTY = '#334155';    // 未選択（surface-700）
 
 interface StarButtonProps {
@@ -32,7 +30,8 @@ interface StarButtonProps {
 const StarButton: React.FC<StarButtonProps> = ({
     value, filled, hovered, onClick, onMouseEnter, onMouseLeave, size = 16,
 }) => {
-    const color = filled || hovered ? (hovered ? COLOR_HOVER : COLOR_FILLED) : COLOR_EMPTY;
+    const tone = getRatingDisplayTone(value);
+    const color = filled || hovered ? (hovered ? tone.hoverColor : tone.color) : COLOR_EMPTY;
     return (
         <button
             type="button"
@@ -111,8 +110,12 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                             const state: 'full' | 'half' | 'empty' =
                                 resolvedRight !== undefined && dispVal >= resolvedRight ? 'full' :
                                     resolvedLeft !== undefined && dispVal >= resolvedLeft ? 'half' : 'empty';
-                            const fillColor = state !== 'empty'
-                                ? (hoverValue !== null ? COLOR_HOVER : COLOR_FILLED)
+                            const activeToneValue = state === 'full' ? resolvedRight : resolvedLeft;
+                            const activeTone = activeToneValue !== undefined
+                                ? getRatingDisplayTone(activeToneValue)
+                                : null;
+                            const fillColor = state !== 'empty' && activeTone
+                                ? (hoverValue !== null ? activeTone.hoverColor : activeTone.color)
                                 : 'transparent';
 
                             return (
@@ -175,7 +178,12 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                     })()
                 )}
                 {currentMin !== undefined && (
-                    <span className="ml-1 text-xs text-primary-300">{currentMin}以上</span>
+                    <span
+                        className="ml-1 text-xs"
+                        style={{ color: getRatingDisplayTone(currentMin).color }}
+                    >
+                        {currentMin}以上
+                    </span>
                 )}
             </div>
         </div>

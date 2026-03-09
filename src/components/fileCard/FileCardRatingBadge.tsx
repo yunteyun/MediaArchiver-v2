@@ -1,5 +1,6 @@
 import React from 'react';
 import { Star } from 'lucide-react';
+import { getRatingDisplayTone } from '../ratings/ratingDisplayTone';
 
 interface FileCardRatingBadgeProps {
     value: number;
@@ -10,12 +11,8 @@ interface FileCardRatingBadgeProps {
 }
 
 type RatingTone = {
-    iconClass: string;
-    valueClass: string;
+    color: string;
 };
-
-const RATING_BADGE_MID_THRESHOLD = 3;
-const RATING_BADGE_HIGH_THRESHOLD = 4.5;
 
 function formatRatingValue(value: number): string {
     const rounded = Math.round(value * 10) / 10;
@@ -25,27 +22,12 @@ function formatRatingValue(value: number): string {
 function getRatingTone(value: number, minValue: number, maxValue: number): RatingTone {
     if (maxValue <= minValue) {
         return {
-            iconClass: 'text-surface-200',
-            valueClass: 'text-surface-100',
-        };
-    }
-
-    if (value >= RATING_BADGE_HIGH_THRESHOLD) {
-        return {
-            iconClass: 'text-yellow-200',
-            valueClass: 'text-yellow-100',
-        };
-    }
-    if (value >= RATING_BADGE_MID_THRESHOLD) {
-        return {
-            iconClass: 'text-blue-300',
-            valueClass: 'text-blue-300',
+            color: '#e2e8f0',
         };
     }
 
     return {
-        iconClass: 'text-white',
-        valueClass: 'text-white',
+        color: getRatingDisplayTone(value).color,
     };
 }
 
@@ -67,8 +49,8 @@ export const FileCardRatingBadge = React.memo(({
             className={`inline-flex items-center gap-1 rounded-sm bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-surface-100 shadow-sm backdrop-blur-[1px] ${className}`.trim()}
             title={`${axisName}: ${formattedValue}/${formattedMaxValue}`}
         >
-            <Star size={11} className={tone.iconClass} fill="currentColor" strokeWidth={2.2} />
-            <span className={tone.valueClass}>{formattedValue}</span>
+            <Star size={11} style={{ color: tone.color, fill: tone.color }} strokeWidth={2.2} />
+            <span style={{ color: tone.color }}>{formattedValue}</span>
         </div>
     );
 });
