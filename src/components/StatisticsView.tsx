@@ -4,8 +4,8 @@
  * recharts を使用したグラフ表示
  */
 
-import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
+import React, { useEffect, useRef, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, AlertCircle, Image } from 'lucide-react';
 import { ActivityLogView } from './ActivityLogView';
 import { useLibraryStats } from '../hooks/useLibraryStats';
@@ -31,6 +31,48 @@ const typeColors: Record<string, string> = {
     video: '#22c55e',   // 緑
     archive: '#f97316', // オレンジ
     audio: '#a855f7',   // 紫
+};
+
+interface MeasuredChartAreaProps {
+    className: string;
+    children: (size: { width: number; height: number }) => React.ReactNode;
+}
+
+const MeasuredChartArea: React.FC<MeasuredChartAreaProps> = ({ className, children }) => {
+    const containerRef = useRef<HTMLDivElement | null>(null);
+    const [size, setSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        const element = containerRef.current;
+        if (!element) return;
+
+        const updateSize = () => {
+            const width = Math.round(element.clientWidth);
+            const height = Math.round(element.clientHeight);
+            setSize((prev) => (
+                prev.width === width && prev.height === height
+                    ? prev
+                    : { width, height }
+            ));
+        };
+
+        updateSize();
+
+        const observer = new ResizeObserver(() => {
+            updateSize();
+        });
+        observer.observe(element);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
+    return (
+        <div ref={containerRef} className={className}>
+            {size.width > 0 && size.height > 0 ? children(size) : null}
+        </div>
+    );
 };
 
 interface StatisticsViewProps {
@@ -251,14 +293,15 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                         <Tag size={16} className="text-primary-400" />
                         タグ別統計（上位20件）
                     </h2>
-                    <div className="h-64" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
-                        {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
-                                <BarChart
-                                    data={stats.byTag.slice(0, 10)}
-                                    layout="vertical"
-                                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                                >
+                    <MeasuredChartArea className="h-64 min-w-0 min-h-0">
+                        {(size) => isReady ? (
+                            <BarChart
+                                width={size.width}
+                                height={size.height}
+                                data={stats.byTag.slice(0, 10)}
+                                layout="vertical"
+                                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                            >
                                     <XAxis type="number" stroke="#94a3b8" fontSize={12} />
                                     <YAxis
                                         type="category"
@@ -276,10 +319,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                             <Cell key={`cell-${index}`} fill={entry.tagColor || '#6366f1'} />
                                         ))}
                                     </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
+                            </BarChart>
+                        ) : null}
+                    </MeasuredChartArea>
                 </div>
             )}
 
@@ -290,19 +332,20 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                         <FolderOpen size={16} className="text-primary-400" />
                         フォルダ別統計（ファイル数）
                     </h2>
-                    <div className="h-64" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
-                        {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
-                                <BarChart
-                                    data={stats.byFolder.map(f => ({
-                                        name: f.folderPath.split('\\').pop() || f.folderPath,
-                                        fullPath: f.folderPath,
-                                        count: f.count,
-                                        size: f.size
-                                    }))}
-                                    layout="vertical"
-                                    margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
-                                >
+                    <MeasuredChartArea className="h-64 min-w-0 min-h-0">
+                        {(size) => isReady ? (
+                            <BarChart
+                                width={size.width}
+                                height={size.height}
+                                data={stats.byFolder.map(f => ({
+                                    name: f.folderPath.split('\\').pop() || f.folderPath,
+                                    fullPath: f.folderPath,
+                                    count: f.count,
+                                    size: f.size
+                                }))}
+                                layout="vertical"
+                                margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+                            >
                                     <XAxis type="number" stroke="#94a3b8" fontSize={12} />
                                     <YAxis
                                         type="category"
@@ -322,10 +365,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         }}
                                     />
                                     <Bar dataKey="count" name="ファイル数" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
+                            </BarChart>
+                        ) : null}
+                    </MeasuredChartArea>
                 </div>
             )}
 
@@ -336,10 +378,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                         <TrendingUp size={16} className="text-primary-400" />
                         月別登録推移（過去12ヶ月）
                     </h2>
-                    <div className="h-64 min-w-0 min-h-0" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
-                        {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
-                                <LineChart data={stats.monthlyTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <MeasuredChartArea className="h-64 min-w-0 min-h-0">
+                        {(size) => isReady ? (
+                            <LineChart width={size.width} height={size.height} data={stats.monthlyTrend} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                     <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
                                     <YAxis stroke="#94a3b8" fontSize={12} />
@@ -348,10 +389,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         labelStyle={{ color: '#f1f5f9' }}
                                     />
                                     <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
+                            </LineChart>
+                        ) : null}
+                    </MeasuredChartArea>
                 </div>
             )}
 
@@ -418,10 +458,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                         <Tag size={16} className="text-amber-400" />
                         評価分布（★1-5）
                     </h2>
-                    <div className="h-48 min-w-0 min-h-0" style={{ visibility: isReady ? 'visible' : 'hidden' }}>
-                        {isReady && (
-                            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={100}>
-                                <BarChart data={stats.ratingStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <MeasuredChartArea className="h-48 min-w-0 min-h-0">
+                        {(size) => isReady ? (
+                            <BarChart width={size.width} height={size.height} data={stats.ratingStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                     <XAxis dataKey="rating" stroke="#94a3b8" fontSize={12} />
                                     <YAxis stroke="#94a3b8" fontSize={12} />
@@ -430,10 +469,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         labelStyle={{ color: '#f1f5f9' }}
                                     />
                                     <Bar dataKey="count" name="ファイル数" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
+                            </BarChart>
+                        ) : null}
+                    </MeasuredChartArea>
                 </div>
             )}
 
