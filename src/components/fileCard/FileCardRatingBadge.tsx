@@ -10,7 +10,6 @@ interface FileCardRatingBadgeProps {
 }
 
 type RatingTone = {
-    containerClass: string;
     iconClass: string;
 };
 
@@ -26,7 +25,6 @@ function formatRatingValue(value: number): string {
 function getRatingTone(value: number, minValue: number, maxValue: number): RatingTone {
     if (maxValue <= minValue) {
         return {
-            containerClass: 'border-surface-400/45 bg-surface-900/88 text-surface-100',
             iconClass: 'text-surface-200',
         };
     }
@@ -35,31 +33,26 @@ function getRatingTone(value: number, minValue: number, maxValue: number): Ratin
 
     if (ratio >= 0.999) {
         return {
-            containerClass: 'border-yellow-400/50 bg-yellow-900/80 text-yellow-50',
             iconClass: 'text-yellow-200',
         };
     }
     if (ratio >= 0.75) {
         return {
-            containerClass: 'border-sky-400/45 bg-sky-900/80 text-sky-50',
             iconClass: 'text-sky-200',
         };
     }
     if (ratio >= 0.5) {
         return {
-            containerClass: 'border-amber-400/45 bg-amber-900/80 text-amber-50',
             iconClass: 'text-amber-200',
         };
     }
     if (ratio >= 0.25) {
         return {
-            containerClass: 'border-orange-400/45 bg-orange-900/80 text-orange-50',
             iconClass: 'text-orange-200',
         };
     }
 
     return {
-        containerClass: 'border-rose-400/45 bg-rose-900/80 text-rose-50',
         iconClass: 'text-rose-200',
     };
 }
@@ -79,7 +72,7 @@ export const FileCardRatingBadge = React.memo(({
 
     return (
         <div
-            className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold leading-none shadow-sm backdrop-blur-[1px] ${tone.containerClass} ${className}`.trim()}
+            className={`inline-flex items-center gap-1 rounded-sm bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white shadow-sm backdrop-blur-[1px] ${className}`.trim()}
             title={`${axisName}: ${formattedValue}/${formattedMaxValue}`}
         >
             <Star size={11} className={tone.iconClass} fill="currentColor" strokeWidth={2.2} />
