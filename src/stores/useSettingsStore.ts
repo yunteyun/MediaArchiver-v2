@@ -67,6 +67,8 @@ export interface ProfileScopedSettingsV1 {
         tagDisplayStyle: TagDisplayStyle;
         fileCardTagOrderMode: FileCardTagOrderMode;
     };
+    defaultExternalApps: Record<string, string>;
+    searchDestinations: SearchDestination[];
 }
 
 export interface StorageMaintenanceSettings {
@@ -119,6 +121,15 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
         tagDisplayStyle: 'filled',
         fileCardTagOrderMode: 'balanced',
     },
+    defaultExternalApps: {},
+    searchDestinations: [
+        { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+        { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true, createdAt: 2 },
+        { id: 'filename-bing', name: 'Bing', type: 'filename', url: 'https://www.bing.com/search?q={query}', icon: 'globe', enabled: true, createdAt: 3 },
+        { id: 'image-google-lens', name: 'Google Lens', type: 'image', url: 'https://lens.google.com/', icon: 'camera', enabled: true, createdAt: 4 },
+        { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
+        { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
+    ],
 };
 
 export const DEFAULT_FILE_CARD_SETTINGS = {
@@ -550,6 +561,10 @@ export const useSettingsStore = create<SettingsState>()(
                 tagPopoverTrigger: settings.fileCardSettings?.tagPopoverTrigger ?? DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger,
                 tagDisplayStyle: settings.fileCardSettings?.tagDisplayStyle ?? DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle,
                 fileCardTagOrderMode: settings.fileCardSettings?.fileCardTagOrderMode ?? DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode,
+                defaultExternalApps: settings.defaultExternalApps ?? {},
+                searchDestinations: Array.isArray(settings.searchDestinations)
+                    ? settings.searchDestinations.map((destination) => normalizeSearchDestination(destination))
+                    : DEFAULT_SEARCH_DESTINATIONS,
             }),
             exportProfileScopedSettings: () => ({
                 fileTypeFilters: { ...get().profileFileTypeFilters },
@@ -574,6 +589,8 @@ export const useSettingsStore = create<SettingsState>()(
                     tagDisplayStyle: get().tagDisplayStyle,
                     fileCardTagOrderMode: get().fileCardTagOrderMode,
                 },
+                defaultExternalApps: { ...get().defaultExternalApps },
+                searchDestinations: get().searchDestinations.map((destination) => ({ ...destination })),
             }),
             setProfileFileTypeFilters: (profileFileTypeFilters) => set({ profileFileTypeFilters }),
             setProfilePreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),

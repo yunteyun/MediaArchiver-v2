@@ -66,6 +66,16 @@ interface ProfileScopedSettingsV1 {
         tagDisplayStyle: 'filled' | 'border';
         fileCardTagOrderMode: 'balanced' | 'strict';
     };
+    defaultExternalApps: Record<string, string>;
+    searchDestinations: Array<{
+        id: string;
+        name: string;
+        type: 'filename' | 'image';
+        url: string;
+        icon: 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
+        enabled: boolean;
+        createdAt: number;
+    }>;
 }
 
 interface ProfileScopedSettingsResponse {

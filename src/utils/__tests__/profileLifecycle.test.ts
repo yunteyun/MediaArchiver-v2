@@ -27,6 +27,10 @@ describe('createInitialProfileScopedSettings', () => {
             tagPopoverTrigger: 'hover',
             tagDisplayStyle: 'border',
             fileCardTagOrderMode: 'strict',
+            defaultExternalApps: { mp4: 'player' },
+            searchDestinations: [
+                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+            ],
         }, true)).toEqual({
             fileTypeFilters: {
                 video: true,
@@ -55,6 +59,10 @@ describe('createInitialProfileScopedSettings', () => {
                 tagDisplayStyle: 'border',
                 fileCardTagOrderMode: 'strict',
             },
+            defaultExternalApps: { mp4: 'player' },
+            searchDestinations: [
+                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+            ],
         });
     });
 
@@ -78,6 +86,10 @@ describe('createInitialProfileScopedSettings', () => {
             tagPopoverTrigger: 'hover',
             tagDisplayStyle: 'border',
             fileCardTagOrderMode: 'strict',
+            defaultExternalApps: { mp4: 'player' },
+            searchDestinations: [
+                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+            ],
         }, false)).toEqual({
             fileTypeFilters: {
                 video: true,
@@ -106,6 +118,15 @@ describe('createInitialProfileScopedSettings', () => {
                 tagDisplayStyle: 'filled',
                 fileCardTagOrderMode: 'balanced',
             },
+            defaultExternalApps: {},
+            searchDestinations: [
+                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+                { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true, createdAt: 2 },
+                { id: 'filename-bing', name: 'Bing', type: 'filename', url: 'https://www.bing.com/search?q={query}', icon: 'globe', enabled: true, createdAt: 3 },
+                { id: 'image-google-lens', name: 'Google Lens', type: 'image', url: 'https://lens.google.com/', icon: 'camera', enabled: true, createdAt: 4 },
+                { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
+                { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
+            ],
         });
     });
 });
@@ -137,6 +158,8 @@ describe('loadAndApplyProfileScopedSettings', () => {
                     tagDisplayStyle: 'filled',
                     fileCardTagOrderMode: 'balanced',
                 },
+                defaultExternalApps: {},
+                searchDestinations: [],
             },
         });
         const replaceSettings = vi.fn().mockResolvedValue({
@@ -164,6 +187,10 @@ describe('loadAndApplyProfileScopedSettings', () => {
                     tagDisplayStyle: 'border',
                     fileCardTagOrderMode: 'strict',
                 },
+                defaultExternalApps: { mp4: 'player' },
+                searchDestinations: [
+                    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+                ],
             },
         });
         const applySettings = vi.fn();
@@ -196,6 +223,10 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 tagPopoverTrigger: 'hover',
                 tagDisplayStyle: 'border',
                 fileCardTagOrderMode: 'strict',
+                defaultExternalApps: { mp4: 'player' },
+                searchDestinations: [
+                    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+                ],
             }),
             fetchSettings,
             replaceSettings,
@@ -229,6 +260,10 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 tagDisplayStyle: 'border',
                 fileCardTagOrderMode: 'strict',
             },
+            defaultExternalApps: { mp4: 'player' },
+            searchDestinations: [
+                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+            ],
         });
         expect(markMigrationDone).toHaveBeenCalledWith(true);
         expect(applySettings).toHaveBeenCalledWith({
@@ -254,6 +289,10 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 tagDisplayStyle: 'border',
                 fileCardTagOrderMode: 'strict',
             },
+            defaultExternalApps: { mp4: 'player' },
+            searchDestinations: [
+                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+            ],
         });
         expect(syncSettings).toHaveBeenCalledTimes(1);
     });
@@ -287,6 +326,8 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 tagPopoverTrigger: 'click',
                 tagDisplayStyle: 'filled',
                 fileCardTagOrderMode: 'balanced',
+                defaultExternalApps: {},
+                searchDestinations: [],
             }),
             fetchSettings: async () => ({
                 exists: true,
@@ -313,6 +354,10 @@ describe('loadAndApplyProfileScopedSettings', () => {
                         tagDisplayStyle: 'border',
                         fileCardTagOrderMode: 'strict',
                     },
+                    defaultExternalApps: { mp4: 'player' },
+                    searchDestinations: [
+                        { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+                    ],
                 },
             }),
             replaceSettings: vi.fn(),

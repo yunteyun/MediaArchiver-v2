@@ -35,8 +35,6 @@ describe('settingsTransfer', () => {
                 layoutPreset: 'standard',
                 thumbnailPresentation: 'modeDefault',
                 externalApps: [],
-                defaultExternalApps: {},
-                searchDestinations: [],
                 groupBy: 'none',
                 tagPopoverTrigger: 'click',
                 tagDisplayStyle: 'filled',
@@ -51,6 +49,26 @@ describe('settingsTransfer', () => {
                 previewFrameCount: 10,
                 scanThrottleMs: 0,
                 thumbnailResolution: 320,
+                listDisplayDefaults: {
+                    sortBy: 'date',
+                    sortOrder: 'desc',
+                    groupBy: 'none',
+                    defaultSearchTarget: 'fileName',
+                    activeDisplayPresetId: 'standard',
+                    displayMode: 'standard',
+                    thumbnailPresentation: 'modeDefault',
+                },
+                fileCardSettings: {
+                    showFileName: true,
+                    showDuration: true,
+                    showTags: true,
+                    showFileSize: true,
+                    tagPopoverTrigger: 'click',
+                    tagDisplayStyle: 'filled',
+                    fileCardTagOrderMode: 'balanced',
+                },
+                defaultExternalApps: {},
+                searchDestinations: [],
             }
         );
 

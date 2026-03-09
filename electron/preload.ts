@@ -311,6 +311,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
             tagDisplayStyle?: 'filled' | 'border';
             fileCardTagOrderMode?: 'balanced' | 'strict';
         };
+        defaultExternalApps?: Record<string, string>;
+        searchDestinations?: Array<{
+            id?: string;
+            name: string;
+            type: 'filename' | 'image';
+            url: string;
+            icon?: 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
+            enabled?: boolean;
+            createdAt?: number;
+        }>;
     }) => ipcRenderer.invoke('profileSettings:set', partial),
     replaceProfileScopedSettings: (settings: {
         fileTypeFilters: {
@@ -340,6 +350,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
             tagDisplayStyle: 'filled' | 'border';
             fileCardTagOrderMode: 'balanced' | 'strict';
         };
+        defaultExternalApps: Record<string, string>;
+        searchDestinations: Array<{
+            id: string;
+            name: string;
+            type: 'filename' | 'image';
+            url: string;
+            icon: 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
+            enabled: boolean;
+            createdAt: number;
+        }>;
     }) => ipcRenderer.invoke('profileSettings:replace', settings),
     getSmartFolders: () => ipcRenderer.invoke('smartFolder:getAll'),
     getSmartFolderById: (id: string) => ipcRenderer.invoke('smartFolder:getById', id),

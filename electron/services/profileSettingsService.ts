@@ -37,6 +37,16 @@ export interface ProfileScopedSettingsV1 {
         tagDisplayStyle: 'filled' | 'border';
         fileCardTagOrderMode: 'balanced' | 'strict';
     };
+    defaultExternalApps: Record<string, string>;
+    searchDestinations: Array<{
+        id: string;
+        name: string;
+        type: 'filename' | 'image';
+        url: string;
+        icon: 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
+        enabled: boolean;
+        createdAt: number;
+    }>;
 }
 
 export interface ProfileScopedSettingsResponse {
@@ -74,6 +84,15 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
         tagDisplayStyle: 'filled',
         fileCardTagOrderMode: 'balanced',
     },
+    defaultExternalApps: {},
+    searchDestinations: [
+        { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+        { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true, createdAt: 2 },
+        { id: 'filename-bing', name: 'Bing', type: 'filename', url: 'https://www.bing.com/search?q={query}', icon: 'globe', enabled: true, createdAt: 3 },
+        { id: 'image-google-lens', name: 'Google Lens', type: 'image', url: 'https://lens.google.com/', icon: 'camera', enabled: true, createdAt: 4 },
+        { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
+        { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
+    ],
 };
 
 function ensureProfileSettingsTable(): void {
@@ -127,6 +146,12 @@ function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettings
     const fileCardSettings = candidate.fileCardSettings && typeof candidate.fileCardSettings === 'object'
         ? candidate.fileCardSettings
         : {};
+    const rawDefaultExternalApps = candidate.defaultExternalApps && typeof candidate.defaultExternalApps === 'object'
+        ? candidate.defaultExternalApps
+        : {};
+    const rawSearchDestinations = Array.isArray(candidate.searchDestinations)
+        ? candidate.searchDestinations
+        : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.searchDestinations;
 
     return {
         fileTypeFilters: normalizeFileTypeFilters(candidate.fileTypeFilters),
@@ -169,6 +194,37 @@ function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettings
             tagDisplayStyle: fileCardSettings.tagDisplayStyle === 'border' ? 'border' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.tagDisplayStyle,
             fileCardTagOrderMode: fileCardSettings.fileCardTagOrderMode === 'strict' ? 'strict' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.fileCardTagOrderMode,
         },
+        defaultExternalApps: Object.fromEntries(
+            Object.entries(rawDefaultExternalApps)
+                .filter(([extension, appId]) => typeof extension === 'string' && typeof appId === 'string' && extension.trim().length > 0 && appId.trim().length > 0)
+                .map(([extension, appId]) => [extension.replace(/^\./, '').toLowerCase(), appId.trim()])
+        ),
+        searchDestinations: rawSearchDestinations
+            .map((destination) => {
+                if (!destination || typeof destination !== 'object') return null;
+                const candidateDestination = destination as Partial<ProfileScopedSettingsV1['searchDestinations'][number]>;
+                if ((candidateDestination.type !== 'filename' && candidateDestination.type !== 'image')) return null;
+                const name = typeof candidateDestination.name === 'string' ? candidateDestination.name.trim() : '';
+                const url = typeof candidateDestination.url === 'string' ? candidateDestination.url.trim() : '';
+                if (!name || !url) return null;
+                if (candidateDestination.type === 'filename' && !url.includes('{query}')) return null;
+                return {
+                    id: typeof candidateDestination.id === 'string' && candidateDestination.id.trim().length > 0
+                        ? candidateDestination.id.trim()
+                        : `${candidateDestination.type}-${name.toLowerCase()}`,
+                    name,
+                    type: candidateDestination.type,
+                    url,
+                    icon: ['search', 'globe', 'image', 'camera', 'book', 'sparkles', 'link'].includes(String(candidateDestination.icon))
+                        ? candidateDestination.icon as ProfileScopedSettingsV1['searchDestinations'][number]['icon']
+                        : (candidateDestination.type === 'filename' ? 'search' : 'image'),
+                    enabled: candidateDestination.enabled !== false,
+                    createdAt: typeof candidateDestination.createdAt === 'number' && Number.isFinite(candidateDestination.createdAt)
+                        ? candidateDestination.createdAt
+                        : Date.now(),
+                };
+            })
+            .filter((destination): destination is ProfileScopedSettingsV1['searchDestinations'][number] => destination !== null),
     };
 }
 

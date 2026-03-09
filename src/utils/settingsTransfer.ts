@@ -11,7 +11,6 @@ import type {
     RightPanelVideoPreviewMode,
     ScanExclusionRules,
     SearchTarget,
-    SearchDestination,
     StorageMaintenanceSettings,
     TagDisplayStyle,
     TagPopoverTrigger,
@@ -46,8 +45,6 @@ export interface GlobalSettingsExportV1 {
     layoutPreset: LayoutPreset;
     thumbnailPresentation: ThumbnailPresentation;
     externalApps: ExternalApp[];
-    defaultExternalApps: Record<string, string>;
-    searchDestinations: SearchDestination[];
     groupBy: GroupBy;
     tagPopoverTrigger: TagPopoverTrigger;
     tagDisplayStyle: TagDisplayStyle;

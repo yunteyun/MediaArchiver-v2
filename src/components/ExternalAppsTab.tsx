@@ -7,6 +7,7 @@ import React, { useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2, FolderOpen, Check, X, Search, Image as ImageIcon, ArrowUp, ArrowDown, Globe, Camera, BookImage, Sparkles, Link2, Download, Upload } from 'lucide-react';
 import { useSettingsStore, ExternalApp, type SearchDestination, type SearchDestinationType, type SearchDestinationIcon } from '../stores/useSettingsStore';
 import { useToastStore } from '../stores/useToastStore';
+import { useProfileStore } from '../stores/useProfileStore';
 
 type SearchDestinationExportV1 = {
     version: 1;
@@ -57,8 +58,22 @@ export const ExternalAppsTab = React.memo(() => {
     const resetSearchDestinations = useSettingsStore((s) => s.resetSearchDestinations);
     const toggleSearchDestinationEnabled = useSettingsStore((s) => s.toggleSearchDestinationEnabled);
     const moveSearchDestination = useSettingsStore((s) => s.moveSearchDestination);
+    const profiles = useProfileStore((s) => s.profiles);
+    const activeProfileId = useProfileStore((s) => s.activeProfileId);
     const toastSuccess = useToastStore((s) => s.success);
     const toastError = useToastStore((s) => s.error);
+    const activeProfileLabel = React.useMemo(() => {
+        const profile = profiles.find((item) => item.id === activeProfileId);
+        return profile ? profile.name : activeProfileId;
+    }, [activeProfileId, profiles]);
+
+    const persistProfileExternalPreferences = useCallback(async () => {
+        const state = useSettingsStore.getState();
+        await window.electronAPI.setProfileScopedSettings({
+            defaultExternalApps: state.defaultExternalApps,
+            searchDestinations: state.searchDestinations,
+        });
+    }, []);
 
     // 新規追加フォーム
     const [newAppName, setNewAppName] = useState('');
@@ -173,20 +188,29 @@ export const ExternalAppsTab = React.memo(() => {
     // 削除
     const handleDeleteApp = useCallback((id: string) => {
         deleteExternalApp(id);
+        void persistProfileExternalPreferences().catch(() => {
+            toastError('プロファイル別の既定アプリ設定の保存に失敗しました');
+        });
         toastSuccess('外部アプリを削除しました');
-    }, [deleteExternalApp, toastSuccess]);
+    }, [deleteExternalApp, persistProfileExternalPreferences, toastError, toastSuccess]);
 
     // Phase 18-B: デフォルトアプリ設定
     const handleSetDefault = useCallback((appId: string, extension: string) => {
         if (!extension) return;
         setDefaultExternalApp(extension, appId);
+        void persistProfileExternalPreferences().catch(() => {
+            toastError('既定アプリ設定の保存に失敗しました');
+        });
         toastSuccess(`${extension} のデフォルトアプリを設定しました`);
-    }, [setDefaultExternalApp, toastSuccess]);
+    }, [persistProfileExternalPreferences, setDefaultExternalApp, toastError, toastSuccess]);
 
     const handleRemoveDefault = useCallback((extension: string) => {
         setDefaultExternalApp(extension, null);
+        void persistProfileExternalPreferences().catch(() => {
+            toastError('既定アプリ設定の保存に失敗しました');
+        });
         toastSuccess(`${extension} のデフォルト設定を解除しました`);
-    }, [setDefaultExternalApp, toastSuccess]);
+    }, [persistProfileExternalPreferences, setDefaultExternalApp, toastError, toastSuccess]);
 
     const validateSearchDestination = useCallback((type: SearchDestinationType, name: string, url: string): string | null => {
         const normalizedName = name.trim();
@@ -215,6 +239,9 @@ export const ExternalAppsTab = React.memo(() => {
         setNewSearchDestinationIcon(newSearchDestinationType === 'filename' ? 'search' : 'image');
         setNewSearchDestinationName('');
         setNewSearchDestinationUrl('');
+        void persistProfileExternalPreferences().catch(() => {
+            toastError('検索先の保存に失敗しました');
+        });
         toastSuccess('検索先を追加しました');
     }, [
         addSearchDestination,
@@ -222,6 +249,7 @@ export const ExternalAppsTab = React.memo(() => {
         newSearchDestinationName,
         newSearchDestinationType,
         newSearchDestinationUrl,
+        persistProfileExternalPreferences,
         toastError,
         toastSuccess,
         validateSearchDestination
@@ -257,8 +285,11 @@ export const ExternalAppsTab = React.memo(() => {
             icon: editSearchForm.icon,
         });
         setEditingSearchDestinationId(null);
+        void persistProfileExternalPreferences().catch(() => {
+            toastError('検索先の保存に失敗しました');
+        });
         toastSuccess('検索先を更新しました');
-    }, [editSearchForm, editingSearchDestinationId, toastError, toastSuccess, updateSearchDestination, validateSearchDestination]);
+    }, [editSearchForm, editingSearchDestinationId, persistProfileExternalPreferences, toastError, toastSuccess, updateSearchDestination, validateSearchDestination]);
 
     const handleCancelSearchDestinationEdit = useCallback(() => {
         setEditingSearchDestinationId(null);
@@ -266,8 +297,11 @@ export const ExternalAppsTab = React.memo(() => {
 
     const handleDeleteSearchDestination = useCallback((id: string) => {
         deleteSearchDestination(id);
+        void persistProfileExternalPreferences().catch(() => {
+            toastError('検索先の保存に失敗しました');
+        });
         toastSuccess('検索先を削除しました');
-    }, [deleteSearchDestination, toastSuccess]);
+    }, [deleteSearchDestination, persistProfileExternalPreferences, toastError, toastSuccess]);
 
     const parseImportedSearchDestinations = useCallback((content: string): SearchDestinationExportV1['destinations'] => {
         const parsed = JSON.parse(content) as Partial<SearchDestinationExportV1>;
@@ -359,6 +393,9 @@ export const ExternalAppsTab = React.memo(() => {
                     icon: destination.icon,
                     enabled: destination.enabled !== false,
                 })));
+                void persistProfileExternalPreferences().catch(() => {
+                    toastError('検索先の保存に失敗しました');
+                });
                 toastSuccess(`検索先を ${imported.length} 件で置き換えました`);
                 return;
             }
@@ -388,6 +425,10 @@ export const ExternalAppsTab = React.memo(() => {
                 importedCount += 1;
             }
 
+            void persistProfileExternalPreferences().catch(() => {
+                toastError('検索先の保存に失敗しました');
+            });
+
             if (importedCount === 0) {
                 toastError('新しく追加できる検索先はありませんでした');
                 return;
@@ -397,15 +438,18 @@ export const ExternalAppsTab = React.memo(() => {
         } catch (error) {
             toastError(`インポートに失敗しました: ${(error as Error).message}`);
         }
-    }, [addSearchDestination, parseImportedSearchDestinations, replaceSearchDestinations, searchDestinations, toastError, toastSuccess, toggleSearchDestinationEnabled]);
+    }, [addSearchDestination, parseImportedSearchDestinations, persistProfileExternalPreferences, replaceSearchDestinations, searchDestinations, toastError, toastSuccess, toggleSearchDestinationEnabled]);
 
     const handleResetSearchDestinations = useCallback(() => {
         const confirmed = window.confirm('検索先を初期プリセットへ戻します。現在の検索先は上書きされます。続行しますか？');
         if (!confirmed) return;
 
         resetSearchDestinations();
+        void persistProfileExternalPreferences().catch(() => {
+            toastError('検索先の保存に失敗しました');
+        });
         toastSuccess('検索先を初期プリセットへ戻しました');
-    }, [resetSearchDestinations, toastSuccess]);
+    }, [persistProfileExternalPreferences, resetSearchDestinations, toastError, toastSuccess]);
 
     const renderSearchDestinationTypeLabel = (type: SearchDestinationType) => {
         return type === 'filename' ? 'ファイル名検索' : '画像検索';
@@ -422,6 +466,9 @@ export const ExternalAppsTab = React.memo(() => {
                 </p>
                 <p className="text-sm text-surface-400">
                     あわせて、ファイル名検索と画像検索の検索先も追加できます。画像検索は「開く」と同時に画像をコピーする前提です。
+                </p>
+                <p className="text-xs text-surface-500">
+                    外部アプリ定義はアプリ全体で共有されます。既定アプリと検索先は現在のプロファイル `{activeProfileLabel}` に保存されます。
                 </p>
             </div>
 
@@ -722,7 +769,12 @@ export const ExternalAppsTab = React.memo(() => {
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <button
-                                                        onClick={() => moveSearchDestination(destination.id, 'up')}
+                                                        onClick={() => {
+                                                            moveSearchDestination(destination.id, 'up');
+                                                            void persistProfileExternalPreferences().catch(() => {
+                                                                toastError('検索先の保存に失敗しました');
+                                                            });
+                                                        }}
                                                         className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
                                                         title="上へ"
                                                         disabled={index === 0}
@@ -730,7 +782,12 @@ export const ExternalAppsTab = React.memo(() => {
                                                         <ArrowUp size={14} className="text-surface-400" />
                                                     </button>
                                                     <button
-                                                        onClick={() => moveSearchDestination(destination.id, 'down')}
+                                                        onClick={() => {
+                                                            moveSearchDestination(destination.id, 'down');
+                                                            void persistProfileExternalPreferences().catch(() => {
+                                                                toastError('検索先の保存に失敗しました');
+                                                            });
+                                                        }}
                                                         className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
                                                         title="下へ"
                                                         disabled={index === destinations.length - 1}
@@ -741,7 +798,12 @@ export const ExternalAppsTab = React.memo(() => {
                                                         <input
                                                             type="checkbox"
                                                             checked={destination.enabled}
-                                                            onChange={(e) => toggleSearchDestinationEnabled(destination.id, e.target.checked)}
+                                                            onChange={(e) => {
+                                                                toggleSearchDestinationEnabled(destination.id, e.target.checked);
+                                                                void persistProfileExternalPreferences().catch(() => {
+                                                                    toastError('検索先の保存に失敗しました');
+                                                                });
+                                                            }}
                                                             className="h-4 w-4 accent-primary-500"
                                                         />
                                                         有効

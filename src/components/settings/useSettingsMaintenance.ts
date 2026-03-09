@@ -403,8 +403,6 @@ export function useSettingsMaintenance({
                     layoutPreset: settings.layoutPreset,
                     thumbnailPresentation: settings.thumbnailPresentation,
                     externalApps: settings.externalApps,
-                    defaultExternalApps: settings.defaultExternalApps,
-                    searchDestinations: settings.searchDestinations,
                     groupBy: settings.groupBy,
                     tagPopoverTrigger: settings.tagPopoverTrigger,
                     tagDisplayStyle: settings.tagDisplayStyle,

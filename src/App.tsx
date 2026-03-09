@@ -164,6 +164,8 @@ function App() {
                     tagPopoverTrigger: settings.tagPopoverTrigger,
                     tagDisplayStyle: settings.tagDisplayStyle,
                     fileCardTagOrderMode: settings.fileCardTagOrderMode,
+                    defaultExternalApps: settings.defaultExternalApps,
+                    searchDestinations: settings.searchDestinations,
                 };
             },
             fetchSettings: () => window.electronAPI.getProfileScopedSettings(),

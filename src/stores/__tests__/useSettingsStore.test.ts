@@ -112,6 +112,20 @@ describe('useSettingsStore', () => {
                 tagDisplayStyle: 'border',
                 fileCardTagOrderMode: 'strict',
             },
+            defaultExternalApps: {
+                mp4: 'player',
+            },
+            searchDestinations: [
+                {
+                    id: 'filename-google',
+                    type: 'filename',
+                    name: 'Google',
+                    url: 'https://www.google.com/search?q={query}',
+                    icon: 'search',
+                    enabled: true,
+                    createdAt: 1,
+                },
+            ],
         });
 
         const state = useSettingsStore.getState();
@@ -137,6 +151,8 @@ describe('useSettingsStore', () => {
         expect(state.tagPopoverTrigger).toBe('hover');
         expect(state.tagDisplayStyle).toBe('border');
         expect(state.fileCardTagOrderMode).toBe('strict');
+        expect(state.defaultExternalApps).toEqual({ mp4: 'player' });
+        expect(state.searchDestinations).toHaveLength(1);
     });
 
     it('keeps display mode and layout axes in sync', () => {

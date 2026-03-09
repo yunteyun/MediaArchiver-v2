@@ -25,6 +25,8 @@ export interface ProfileSettingsStoreSnapshot {
     tagPopoverTrigger: ProfileScopedSettingsV1['fileCardSettings']['tagPopoverTrigger'];
     tagDisplayStyle: ProfileScopedSettingsV1['fileCardSettings']['tagDisplayStyle'];
     fileCardTagOrderMode: ProfileScopedSettingsV1['fileCardSettings']['fileCardTagOrderMode'];
+    defaultExternalApps: Record<string, string>;
+    searchDestinations: ProfileScopedSettingsV1['searchDestinations'];
 }
 
 export interface ProfileScopedSettingsResponse {
@@ -103,6 +105,17 @@ export function createInitialProfileScopedSettings(
             tagDisplayStyle: 'filled',
             fileCardTagOrderMode: 'balanced',
         },
+        defaultExternalApps: shouldMigrate ? { ...snapshot.defaultExternalApps } : {},
+        searchDestinations: shouldMigrate
+            ? snapshot.searchDestinations.map((destination) => ({ ...destination }))
+            : [
+                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+                { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true, createdAt: 2 },
+                { id: 'filename-bing', name: 'Bing', type: 'filename', url: 'https://www.bing.com/search?q={query}', icon: 'globe', enabled: true, createdAt: 3 },
+                { id: 'image-google-lens', name: 'Google Lens', type: 'image', url: 'https://lens.google.com/', icon: 'camera', enabled: true, createdAt: 4 },
+                { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
+                { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
+            ],
     };
 }
 
