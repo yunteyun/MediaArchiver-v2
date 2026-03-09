@@ -33,6 +33,9 @@ export type FileTypeCategory = 'video' | 'image' | 'archive' | 'audio';
 export type FlipbookSpeed = 'slow' | 'normal' | 'fast';
 export type AnimatedImagePreviewMode = 'off' | 'hover' | 'visible';
 export type RightPanelVideoPreviewMode = 'loop' | 'long';
+export type ThumbnailAction = 'scrub' | 'flipbook' | 'play';
+export type PlayModeJumpType = 'light' | 'random' | 'sequential';
+export type PlayModeJumpInterval = 1000 | 2000 | 3000 | 5000;
 
 export interface FileTypeCategoryFilters {
     video: boolean;
@@ -58,6 +61,63 @@ export const DEFAULT_STORAGE_MAINTENANCE_SETTINGS: StorageMaintenanceSettings = 
     autoCleanupThresholdMb: 500,
 };
 
+export const DEFAULT_PROFILE_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
+    video: true,
+    image: true,
+    archive: true,
+    audio: true,
+};
+
+export const DEFAULT_LIST_DISPLAY_SETTINGS = {
+    sortBy: 'date' as const,
+    sortOrder: 'desc' as const,
+    defaultSearchTarget: 'fileName' as const,
+    groupBy: 'none' as const,
+    activeDisplayPresetId: 'standard',
+    displayMode: 'standard' as const,
+    layoutPreset: 'standard' as const,
+    thumbnailPresentation: 'modeDefault' as const,
+};
+
+export const DEFAULT_MEDIA_PLAYBACK_SETTINGS = {
+    videoVolume: 0.5,
+    audioVolume: 0.5,
+    lightboxOverlayOpacity: LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
+    performanceMode: false,
+};
+
+export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
+    fileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
+    previewFrameCount: 10,
+    scanThrottleMs: 0,
+    thumbnailResolution: 320,
+};
+
+export const DEFAULT_FILE_CARD_SETTINGS = {
+    showFileName: true,
+    showDuration: true,
+    showTags: true,
+    showFileSize: true,
+    tagPopoverTrigger: 'click' as const,
+    tagDisplayStyle: 'filled' as const,
+    fileCardTagOrderMode: 'balanced' as const,
+};
+
+export const DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS = {
+    thumbnailAction: 'scrub' as ThumbnailAction,
+    flipbookSpeed: 'normal' as FlipbookSpeed,
+    animatedImagePreviewMode: 'hover' as AnimatedImagePreviewMode,
+    playMode: {
+        jumpType: 'random' as PlayModeJumpType,
+        jumpInterval: 2000 as PlayModeJumpInterval,
+    },
+};
+
+export const DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS = {
+    rightPanelVideoPreviewMode: 'loop' as RightPanelVideoPreviewMode,
+    rightPanelVideoJumpInterval: 2000 as PlayModeJumpInterval,
+};
+
 function normalizeStorageMaintenanceSettings(input: unknown): StorageMaintenanceSettings {
     const settings = input && typeof input === 'object'
         ? input as Partial<StorageMaintenanceSettings>
@@ -73,17 +133,6 @@ function normalizeStorageMaintenanceSettings(input: unknown): StorageMaintenance
             : DEFAULT_STORAGE_MAINTENANCE_SETTINGS.autoCleanupThresholdMb,
     };
 }
-
-export const DEFAULT_PROFILE_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
-    video: true,
-    image: true,
-    archive: true,
-    audio: true,
-};
-
-// Phase 17-3: Playモード詳細設定型定義
-export type PlayModeJumpType = 'light' | 'random' | 'sequential';
-export type PlayModeJumpInterval = 1000 | 2000 | 3000 | 5000;
 
 // 外部アプリ型定義（Phase 12-7）
 export interface ExternalApp {
@@ -250,7 +299,7 @@ function mapLayoutPresetToLegacyDisplayMode(layoutPreset: LayoutPreset): Display
 }
 
 interface SettingsState {
-    thumbnailAction: 'scrub' | 'flipbook' | 'play';
+    thumbnailAction: ThumbnailAction;
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
@@ -309,7 +358,7 @@ interface SettingsState {
     };
 
     // アクション
-    setThumbnailAction: (action: 'scrub' | 'flipbook' | 'play') => void;
+    setThumbnailAction: (action: ThumbnailAction) => void;
     setFlipbookSpeed: (speed: FlipbookSpeed) => void;
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
     setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
@@ -378,37 +427,37 @@ export const useSettingsStore = create<SettingsState>()(
     persist(
         (set, get) => ({
             thumbnailAction: 'scrub',
-            flipbookSpeed: 'normal',
-            animatedImagePreviewMode: 'hover',
-            rightPanelVideoPreviewMode: 'loop',
-            rightPanelVideoJumpInterval: 2000,
-            sortBy: 'date',
-            sortOrder: 'desc',
-            defaultSearchTarget: 'fileName',
-            videoVolume: 0.5,
-            audioVolume: 0.5,
-            lightboxOverlayOpacity: LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
-            performanceMode: false,
-            previewFrameCount: 10,
-            scanThrottleMs: 0,
-            profileFileTypeFilters: { ...DEFAULT_PROFILE_FILE_TYPE_FILTERS },
+            flipbookSpeed: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.flipbookSpeed,
+            animatedImagePreviewMode: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.animatedImagePreviewMode,
+            rightPanelVideoPreviewMode: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoPreviewMode,
+            rightPanelVideoJumpInterval: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoJumpInterval,
+            sortBy: DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
+            sortOrder: DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder,
+            defaultSearchTarget: DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget,
+            videoVolume: DEFAULT_MEDIA_PLAYBACK_SETTINGS.videoVolume,
+            audioVolume: DEFAULT_MEDIA_PLAYBACK_SETTINGS.audioVolume,
+            lightboxOverlayOpacity: DEFAULT_MEDIA_PLAYBACK_SETTINGS.lightboxOverlayOpacity,
+            performanceMode: DEFAULT_MEDIA_PLAYBACK_SETTINGS.performanceMode,
+            previewFrameCount: DEFAULT_PROFILE_SCOPED_SETTINGS.previewFrameCount,
+            scanThrottleMs: DEFAULT_PROFILE_SCOPED_SETTINGS.scanThrottleMs,
+            profileFileTypeFilters: { ...DEFAULT_PROFILE_SCOPED_SETTINGS.fileTypeFilters },
             profileSettingsMigrationV1Done: false,
             scanExclusionRules: { ...DEFAULT_SCAN_EXCLUSION_RULES },
             storageMaintenanceSettings: { ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS },
 
             // サムネイル生成解像度（Phase 14整理）
-            thumbnailResolution: 320,
+            thumbnailResolution: DEFAULT_PROFILE_SCOPED_SETTINGS.thumbnailResolution,
 
-            showFileName: true,
-            showDuration: true,
-            showTags: true,
-            showFileSize: true,
+            showFileName: DEFAULT_FILE_CARD_SETTINGS.showFileName,
+            showDuration: DEFAULT_FILE_CARD_SETTINGS.showDuration,
+            showTags: DEFAULT_FILE_CARD_SETTINGS.showTags,
+            showFileSize: DEFAULT_FILE_CARD_SETTINGS.showFileSize,
 
             // 表示モード設定デフォルト値（Phase 14）
-            activeDisplayPresetId: 'standard',
-            displayMode: 'standard',
-            layoutPreset: 'standard',
-            thumbnailPresentation: 'modeDefault',
+            activeDisplayPresetId: DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
+            displayMode: DEFAULT_LIST_DISPLAY_SETTINGS.displayMode,
+            layoutPreset: DEFAULT_LIST_DISPLAY_SETTINGS.layoutPreset,
+            thumbnailPresentation: DEFAULT_LIST_DISPLAY_SETTINGS.thumbnailPresentation,
 
             // 外部アプリ設定（Phase 12-7）
             externalApps: [],
@@ -419,20 +468,17 @@ export const useSettingsStore = create<SettingsState>()(
             searchDestinations: DEFAULT_SEARCH_DESTINATIONS,
 
             // グループ化設定（Phase 12-10）
-            groupBy: 'none',
+            groupBy: DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
 
             // タグポップオーバー設定（Phase 14-8）
-            tagPopoverTrigger: 'click',
+            tagPopoverTrigger: DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger,
 
             // タグ表示スタイル設定
-            tagDisplayStyle: 'filled' as TagDisplayStyle,
-            fileCardTagOrderMode: 'balanced' as FileCardTagOrderMode,
+            tagDisplayStyle: DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle,
+            fileCardTagOrderMode: DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode,
 
             // Phase 17-3: Playモード詳細設定
-            playMode: {
-                jumpType: 'random' as PlayModeJumpType,
-                jumpInterval: 2000 as PlayModeJumpInterval
-            },
+            playMode: { ...DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode },
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),

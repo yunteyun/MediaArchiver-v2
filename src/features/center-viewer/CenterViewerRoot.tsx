@@ -4,6 +4,7 @@ import { useFileStore } from '../../stores/useFileStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { CenterViewerStage } from './CenterViewerStage';
+import { completeUiPerfTrace } from '../../utils/perfDebug';
 
 export const CenterViewerRoot = React.memo(() => {
     const lightboxFile = useUIStore((state) => state.lightboxFile);
@@ -68,6 +69,16 @@ export const CenterViewerRoot = React.memo(() => {
 
         void countAccess();
     }, [incrementAccessCount, lightboxFile]);
+
+    useEffect(() => {
+        if (!lightboxFile) return;
+
+        completeUiPerfTrace('center-viewer-open', {
+            fileId: lightboxFile.id,
+            fileType: lightboxFile.type,
+            openMode: lightboxOpenMode,
+        });
+    }, [lightboxFile, lightboxOpenMode]);
 
     if (!lightboxFile) {
         return null;

@@ -1,5 +1,7 @@
 import React from 'react';
 import { AlertCircle, AlertTriangle, Copy, FolderOpen, Info, RefreshCw } from 'lucide-react';
+import type { PerfDebugFlags } from '../../utils/perfDebug';
+import { SettingsSection } from './SettingsSection';
 
 type LogFilter = 'all' | 'error' | 'warn' | 'info';
 
@@ -19,6 +21,9 @@ interface LogsSettingsTabProps {
     logs: string[];
     logLoadError: string;
     logActionMessage: LogActionMessage | null;
+    perfDebugAvailable: boolean;
+    perfDebugFlags: PerfDebugFlags;
+    onPerfDebugFlagsChange: (patch: Partial<PerfDebugFlags>) => void;
 }
 
 function getLogLevelIcon(line: string) {
@@ -38,6 +43,9 @@ export const LogsSettingsTab = React.memo(({
     logs,
     logLoadError,
     logActionMessage,
+    perfDebugAvailable,
+    perfDebugFlags,
+    onPerfDebugFlagsChange,
 }: LogsSettingsTabProps) => (
     <div className="p-4 space-y-4">
         <div className="flex items-center justify-between gap-4">
@@ -127,6 +135,79 @@ export const LogsSettingsTab = React.memo(({
         <p className="text-xs text-surface-500">
             最新300行を表示。ログファイルは日付ごとに自動ローテーションされます。共有時は個人情報やパス情報が含まれていないか確認してください。
         </p>
+
+        {perfDebugAvailable && (
+            <SettingsSection
+                title="開発用 perf 計測"
+                description="ffmpeg Worker / Utility Process 化の再挑戦前に、UI 応答性と lazy chunk 読込時間を DevTools console と main log へ出します。開発ビルド専用です。"
+                scope="operation"
+            >
+                <label className="flex items-start justify-between gap-3 rounded border border-surface-700 bg-surface-900/50 px-3 py-3 cursor-pointer hover:border-surface-600">
+                    <div>
+                        <div className="text-sm text-surface-200">perf 計測を有効化</div>
+                        <div className="text-xs text-surface-500 mt-0.5">
+                            FileGrid 集計、UI 応答性、chunk load 時間を出力します。
+                        </div>
+                    </div>
+                    <input
+                        type="checkbox"
+                        checked={perfDebugFlags.enabled}
+                        onChange={(event) => onPerfDebugFlagsChange({ enabled: event.target.checked })}
+                        className="mt-0.5 h-4 w-4 accent-primary-500"
+                    />
+                </label>
+
+                <div className="grid gap-2 md:grid-cols-3">
+                    <label className={`flex items-start gap-3 rounded border border-surface-700 bg-surface-900/50 px-3 py-3 ${perfDebugFlags.enabled ? 'cursor-pointer hover:border-surface-600' : 'opacity-60'}`}>
+                        <input
+                            type="checkbox"
+                            checked={perfDebugFlags.groupDetails}
+                            disabled={!perfDebugFlags.enabled}
+                            onChange={(event) => onPerfDebugFlagsChange({ groupDetails: event.target.checked })}
+                            className="mt-0.5 h-4 w-4 accent-primary-500"
+                        />
+                        <div>
+                            <div className="text-sm text-surface-200">グループ詳細</div>
+                            <div className="text-xs text-surface-500 mt-0.5">
+                                grouping と仮想行入力の詳細ログを追加します。
+                            </div>
+                        </div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 rounded border border-surface-700 bg-surface-900/50 px-3 py-3 ${perfDebugFlags.enabled ? 'cursor-pointer hover:border-surface-600' : 'opacity-60'}`}>
+                        <input
+                            type="checkbox"
+                            checked={perfDebugFlags.responsiveness}
+                            disabled={!perfDebugFlags.enabled}
+                            onChange={(event) => onPerfDebugFlagsChange({ responsiveness: event.target.checked })}
+                            className="mt-0.5 h-4 w-4 accent-primary-500"
+                        />
+                        <div>
+                            <div className="text-sm text-surface-200">UI 応答性</div>
+                            <div className="text-xs text-surface-500 mt-0.5">
+                                設定モーダル、右パネル、中央ビューアの応答時間を計測します。
+                            </div>
+                        </div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 rounded border border-surface-700 bg-surface-900/50 px-3 py-3 ${perfDebugFlags.enabled ? 'cursor-pointer hover:border-surface-600' : 'opacity-60'}`}>
+                        <input
+                            type="checkbox"
+                            checked={perfDebugFlags.chunkLoad}
+                            disabled={!perfDebugFlags.enabled}
+                            onChange={(event) => onPerfDebugFlagsChange({ chunkLoad: event.target.checked })}
+                            className="mt-0.5 h-4 w-4 accent-primary-500"
+                        />
+                        <div>
+                            <div className="text-sm text-surface-200">chunk 読込</div>
+                            <div className="text-xs text-surface-500 mt-0.5">
+                                lazy import ごとの読込時間を console に出します。
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </SettingsSection>
+        )}
     </div>
 ));
 

@@ -47,27 +47,45 @@ export default defineConfig(async () => ({
         rollupOptions: {
             output: {
                 manualChunks(id) {
-                    if (!id.includes('node_modules')) return undefined;
+                    const normalizedId = id.replace(/\\/g, '/');
 
-                    if (id.includes('lucide-react')) {
+                    if (normalizedId.includes('/src/components/RightPanel/')) {
+                        return 'feature-right-panel';
+                    }
+
+                    if (
+                        normalizedId.includes('/src/features/center-viewer/') ||
+                        normalizedId.includes('/src/components/lightbox/')
+                    ) {
+                        return 'feature-center-viewer';
+                    }
+
+                    if (normalizedId.endsWith('/src/components/DuplicateView.tsx')) {
+                        return 'feature-duplicates';
+                    }
+
+                    if (!normalizedId.includes('node_modules')) return undefined;
+
+                    if (normalizedId.includes('lucide-react')) {
                         return 'vendor-icons';
                     }
 
-                    if (id.includes('@tanstack/react-virtual')) {
+                    if (normalizedId.includes('recharts')) {
+                        return 'vendor-charts';
+                    }
+
+                    if (normalizedId.includes('@tanstack/react-virtual')) {
                         return 'vendor-virtual';
                     }
 
-                    if (id.includes('zustand') || id.includes('sonner')) {
+                    if (normalizedId.includes('zustand') || normalizedId.includes('sonner')) {
                         return 'vendor-state';
                     }
 
                     if (
-                        id.includes('/react/') ||
-                        id.includes('\\react\\') ||
-                        id.includes('/react-dom/') ||
-                        id.includes('\\react-dom\\') ||
-                        id.includes('/scheduler/') ||
-                        id.includes('\\scheduler\\')
+                        normalizedId.includes('/react/') ||
+                        normalizedId.includes('/react-dom/') ||
+                        normalizedId.includes('/scheduler/')
                     ) {
                         return 'vendor-react';
                     }

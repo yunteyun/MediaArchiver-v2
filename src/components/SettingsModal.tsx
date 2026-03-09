@@ -5,7 +5,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Settings } from 'lucide-react';
 import { useUIStore, type SettingsModalTab } from '../stores/useUIStore';
-import { useSettingsStore } from '../stores/useSettingsStore';
+import {
+    DEFAULT_FILE_CARD_SETTINGS,
+    DEFAULT_LIST_DISPLAY_SETTINGS,
+    DEFAULT_MEDIA_PLAYBACK_SETTINGS,
+    DEFAULT_PROFILE_SCOPED_SETTINGS,
+    DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS,
+    DEFAULT_SCAN_EXCLUSION_RULES,
+    DEFAULT_STORAGE_MAINTENANCE_SETTINGS,
+    DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS,
+    useSettingsStore,
+} from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useProfileStore } from '../stores/useProfileStore';
@@ -23,6 +33,7 @@ import { useSettingsMaintenance } from './settings/useSettingsMaintenance';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 import { getDisplayPresetMenuOptions } from './fileCard/displayModes';
+import { completeUiPerfTrace, getPerfDebugFlags, setPerfDebugFlags, syncPerfDebugToMain, type PerfDebugFlags } from '../utils/perfDebug';
 
 type TabType = SettingsModalTab;
 
@@ -110,6 +121,7 @@ export const SettingsModal = React.memo(() => {
     const [logLoadError, setLogLoadError] = useState<string>('');
     const [logActionMessage, setLogActionMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
     const [folderScanSettingsManagerOpen, setFolderScanSettingsManagerOpen] = useState(false);
+    const [perfDebugFlags, setPerfDebugFlagsState] = useState<PerfDebugFlags>(() => getPerfDebugFlags());
 
     // Export context (current visible list basis)
     const rawFiles = useFileStore((s) => s.files);
@@ -272,6 +284,12 @@ export const SettingsModal = React.memo(() => {
     }, [isOpen, requestedTab]);
 
     useEffect(() => {
+        if (!isOpen) return;
+        setPerfDebugFlagsState(getPerfDebugFlags());
+        completeUiPerfTrace('settings-modal-open', { activeTab: requestedTab ?? activeTab });
+    }, [activeTab, isOpen, requestedTab]);
+
+    useEffect(() => {
         if (isOpen && activeTab === 'logs') {
             loadLogs();
         }
@@ -331,6 +349,121 @@ export const SettingsModal = React.memo(() => {
             setLogActionMessage({ type: 'error', text: '表示プリセットの再読込に失敗しました。' });
         }
     }, [loadDisplayPresets]);
+
+    const handleResetListDisplayDefaults = useCallback(() => {
+        setActiveDisplayPreset({
+            id: DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
+            baseDisplayMode: DEFAULT_LIST_DISPLAY_SETTINGS.displayMode,
+            thumbnailPresentation: DEFAULT_LIST_DISPLAY_SETTINGS.thumbnailPresentation,
+        });
+        setThumbnailPresentation(DEFAULT_LIST_DISPLAY_SETTINGS.thumbnailPresentation);
+        setSortBy(DEFAULT_LIST_DISPLAY_SETTINGS.sortBy);
+        setSortOrder(DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder);
+        setGroupBy(DEFAULT_LIST_DISPLAY_SETTINGS.groupBy);
+        setDefaultSearchTarget(DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget);
+    }, [setActiveDisplayPreset, setDefaultSearchTarget, setGroupBy, setSortBy, setSortOrder, setThumbnailPresentation]);
+
+    const handleResetPlaybackSettings = useCallback(() => {
+        setVideoVolume(DEFAULT_MEDIA_PLAYBACK_SETTINGS.videoVolume);
+        setAudioVolume(DEFAULT_MEDIA_PLAYBACK_SETTINGS.audioVolume);
+        setLightboxOverlayOpacity(DEFAULT_MEDIA_PLAYBACK_SETTINGS.lightboxOverlayOpacity);
+        setPerformanceMode(DEFAULT_MEDIA_PLAYBACK_SETTINGS.performanceMode);
+    }, [setAudioVolume, setLightboxOverlayOpacity, setPerformanceMode, setVideoVolume]);
+
+    const handleResetFileCardSettings = useCallback(() => {
+        setShowFileName(DEFAULT_FILE_CARD_SETTINGS.showFileName);
+        setShowDuration(DEFAULT_FILE_CARD_SETTINGS.showDuration);
+        setShowTags(DEFAULT_FILE_CARD_SETTINGS.showTags);
+        setShowFileSize(DEFAULT_FILE_CARD_SETTINGS.showFileSize);
+        setTagPopoverTrigger(DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger);
+        setTagDisplayStyle(DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle);
+        setFileCardTagOrderMode(DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode);
+    }, [
+        setFileCardTagOrderMode,
+        setShowDuration,
+        setShowFileName,
+        setShowFileSize,
+        setShowTags,
+        setTagDisplayStyle,
+        setTagPopoverTrigger,
+    ]);
+
+    const handleResetScanExclusionRules = useCallback(() => {
+        void handleScanExclusionRulesChange({ ...DEFAULT_SCAN_EXCLUSION_RULES });
+    }, [handleScanExclusionRulesChange]);
+
+    const handleResetProfileScanSettings = useCallback(async () => {
+        const defaults = DEFAULT_PROFILE_SCOPED_SETTINGS;
+        setProfileFileTypeFilters({ ...defaults.fileTypeFilters });
+        setProfileScanThrottleMs(defaults.scanThrottleMs);
+
+        try {
+            await Promise.all([
+                window.electronAPI.setProfileScopedSettings({
+                    fileTypeFilters: defaults.fileTypeFilters,
+                    scanThrottleMs: defaults.scanThrottleMs,
+                }),
+                window.electronAPI.setScanFileTypeCategories(defaults.fileTypeFilters),
+                window.electronAPI.setScanThrottleMs(defaults.scanThrottleMs),
+            ]);
+        } catch (error) {
+            console.error('Failed to reset profile scan settings:', error);
+            useUIStore.getState().showToast('プロファイル別スキャン設定の初期化に失敗しました', 'error');
+        }
+    }, [setProfileFileTypeFilters, setProfileScanThrottleMs]);
+
+    const handleResetProfileThumbnailSettings = useCallback(async () => {
+        const defaults = DEFAULT_PROFILE_SCOPED_SETTINGS;
+        setProfilePreviewFrameCount(defaults.previewFrameCount);
+        setProfileThumbnailResolution(defaults.thumbnailResolution);
+
+        try {
+            await Promise.all([
+                window.electronAPI.setProfileScopedSettings({
+                    previewFrameCount: defaults.previewFrameCount,
+                    thumbnailResolution: defaults.thumbnailResolution,
+                }),
+                window.electronAPI.setPreviewFrameCount(defaults.previewFrameCount),
+                window.electronAPI.setThumbnailResolution(defaults.thumbnailResolution),
+            ]);
+        } catch (error) {
+            console.error('Failed to reset profile thumbnail settings:', error);
+            useUIStore.getState().showToast('プロファイル別サムネイル設定の初期化に失敗しました', 'error');
+        }
+    }, [setProfilePreviewFrameCount, setProfileThumbnailResolution]);
+
+    const handleResetThumbnailBehaviorSettings = useCallback(() => {
+        setThumbnailAction(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.thumbnailAction);
+        setFlipbookSpeed(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.flipbookSpeed);
+        setAnimatedImagePreviewMode(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.animatedImagePreviewMode);
+        setPlayModeJumpType(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode.jumpType);
+        setPlayModeJumpInterval(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode.jumpInterval);
+    }, [
+        setAnimatedImagePreviewMode,
+        setFlipbookSpeed,
+        setPlayModeJumpInterval,
+        setPlayModeJumpType,
+        setThumbnailAction,
+    ]);
+
+    const handleResetRightPanelPreviewSettings = useCallback(() => {
+        setRightPanelVideoPreviewMode(DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoPreviewMode);
+        setRightPanelVideoJumpInterval(DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoJumpInterval);
+    }, [setRightPanelVideoJumpInterval, setRightPanelVideoPreviewMode]);
+
+    const handleResetStorageMaintenanceSettings = useCallback(() => {
+        handleStorageMaintenanceSettingsChange({ ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS });
+    }, [handleStorageMaintenanceSettingsChange]);
+
+    const handlePerfDebugFlagsChange = useCallback(async (patch: Partial<PerfDebugFlags>) => {
+        const nextFlags = setPerfDebugFlags(patch);
+        setPerfDebugFlagsState(nextFlags);
+        await syncPerfDebugToMain(nextFlags.enabled);
+        setLogActionMessage({
+            type: 'info',
+            text: `開発用 perf 計測を${nextFlags.enabled ? '有効化' : '無効化'}しました。詳細ログは DevTools の console と main log を確認してください。`,
+        });
+    }, []);
 
     if (!isOpen) return null;
 
@@ -416,6 +549,9 @@ export const SettingsModal = React.memo(() => {
                                 onOpenDisplayPresetFolder={handleOpenDisplayPresetFolder}
                                 isReloadingDisplayPresets={isReloadingDisplayPresets}
                                 onReloadDisplayPresets={handleReloadDisplayPresets}
+                                onResetListDisplayDefaults={handleResetListDisplayDefaults}
+                                onResetPlaybackSettings={handleResetPlaybackSettings}
+                                onResetFileCardSettings={handleResetFileCardSettings}
                             />
                         )}
 
@@ -429,6 +565,8 @@ export const SettingsModal = React.memo(() => {
                                 onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
                                 scanThrottleMs={scanThrottleMs}
                                 onProfileScanThrottleMsChange={(ms) => { void handleProfileScanThrottleMsChange(ms); }}
+                                onResetScanExclusionRules={handleResetScanExclusionRules}
+                                onResetProfileScanSettings={() => { void handleResetProfileScanSettings(); }}
                             />
                         )}
 
@@ -451,6 +589,9 @@ export const SettingsModal = React.memo(() => {
                                 onRightPanelVideoPreviewModeChange={setRightPanelVideoPreviewMode}
                                 rightPanelVideoJumpInterval={rightPanelVideoJumpInterval}
                                 onRightPanelVideoJumpIntervalChange={setRightPanelVideoJumpInterval}
+                                onResetProfileThumbnailSettings={() => { void handleResetProfileThumbnailSettings(); }}
+                                onResetThumbnailBehaviorSettings={handleResetThumbnailBehaviorSettings}
+                                onResetRightPanelPreviewSettings={handleResetRightPanelPreviewSettings}
                             />
                         )}
 
@@ -468,6 +609,7 @@ export const SettingsModal = React.memo(() => {
                                 onMigrate={() => { void handleMigrate(); }}
                                 storageMaintenanceSettings={storageMaintenanceSettings}
                                 onStorageMaintenanceSettingsChange={handleStorageMaintenanceSettingsChange}
+                                onResetStorageMaintenanceSettings={handleResetStorageMaintenanceSettings}
                             />
                         )}
 
@@ -501,6 +643,9 @@ export const SettingsModal = React.memo(() => {
                                 logs={logs}
                                 logLoadError={logLoadError}
                                 logActionMessage={logActionMessage}
+                                perfDebugAvailable={import.meta.env.DEV}
+                                perfDebugFlags={perfDebugFlags}
+                                onPerfDebugFlagsChange={(patch) => { void handlePerfDebugFlagsChange(patch); }}
                             />
                         )}
 

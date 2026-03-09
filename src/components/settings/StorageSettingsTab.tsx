@@ -1,6 +1,7 @@
 import React from 'react';
 import { FolderOpen, HardDrive, RefreshCw } from 'lucide-react';
 import { StorageCleanupSection } from './StorageCleanupSection';
+import { SettingsSection } from './SettingsSection';
 
 type StorageMode = 'appdata' | 'install' | 'custom';
 type StorageMaintenanceSettings = {
@@ -33,6 +34,7 @@ interface StorageSettingsTabProps {
     onMigrate: () => void;
     storageMaintenanceSettings: StorageMaintenanceSettings;
     onStorageMaintenanceSettingsChange: (settings: StorageMaintenanceSettings) => void;
+    onResetStorageMaintenanceSettings: () => void;
 }
 
 export const StorageSettingsTab = React.memo(({
@@ -48,15 +50,16 @@ export const StorageSettingsTab = React.memo(({
     onMigrate,
     storageMaintenanceSettings,
     onStorageMaintenanceSettingsChange,
+    onResetStorageMaintenanceSettings,
 }: StorageSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
-        <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2 flex items-center gap-2">
-                <HardDrive size={15} />
-                保存場所
-            </h3>
+        <SettingsSection
+            title="保存場所"
+            description="データベース、サムネイル、プレビューキャッシュ、ログなどの保存先をまとめて切り替えます。変更時は移行処理が走るため、ここは reset ではなく明示操作のみです。"
+            scope="global"
+        >
             <p className="text-xs text-surface-500">
-                データベース、サムネイル、プレビューキャッシュ、ログなどの保存先をまとめて切り替えます。
+                変更後はデータ移行と再起動が必要です。保存先変更は運用操作に近いため、現在値を確認してから実行してください。
             </p>
 
             {storageConfig && (
@@ -135,13 +138,14 @@ export const StorageSettingsTab = React.memo(({
             <p className="text-xs text-surface-500">
                 移行後はアプリの再起動が必要です。旧データは自動削除されません。
             </p>
-        </div>
+        </SettingsSection>
 
-        <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
-                自動整理
-            </h3>
-
+        <SettingsSection
+            title="自動整理"
+            description="孤立サムネイルだけを対象にした軽い保守設定です。アプリ全体に適用されます。"
+            scope="global"
+            onReset={onResetStorageMaintenanceSettings}
+        >
             <label className="flex items-start gap-3 rounded border border-surface-700 bg-surface-900/50 p-3 cursor-pointer hover:border-surface-600">
                 <input
                     type="checkbox"
@@ -183,14 +187,15 @@ export const StorageSettingsTab = React.memo(({
                     起動時に診断し、無駄な容量がこの値以上のときだけ自動クリーンアップします。
                 </p>
             </div>
-        </div>
+        </SettingsSection>
 
-        <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
-                サムネイル管理
-            </h3>
+        <SettingsSection
+            title="サムネイル管理"
+            description="手動診断や削除など、低頻度の保守操作をまとめています。"
+            scope="operation"
+        >
             <StorageCleanupSection />
-        </div>
+        </SettingsSection>
     </div>
 ));
 

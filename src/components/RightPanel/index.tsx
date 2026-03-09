@@ -9,6 +9,7 @@ import { MemoSection } from './MemoSection';
 import { BasicInfoSection } from './BasicInfoSection';
 import { ArchivePreviewSection } from './ArchivePreviewSection';
 import type { MediaFolder } from '../../types/file';
+import { completeUiPerfTrace } from '../../utils/perfDebug';
 
 export const RightPanel: React.FC = () => {
     const focusedId = useFileStore((s) => s.focusedId);
@@ -44,6 +45,14 @@ export const RightPanel: React.FC = () => {
             disposed = true;
         };
     }, [activeProfileId]);
+
+    React.useEffect(() => {
+        completeUiPerfTrace('right-panel-toggle', {
+            open: true,
+            hasFile: Boolean(file),
+            fileType: file?.type,
+        });
+    }, [file]);
 
     return (
         <aside className="w-[280px] shrink-0 h-full flex flex-col bg-surface-900 border-l border-surface-700 overflow-hidden">

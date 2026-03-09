@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
 import type { ToastData } from '../components/Toast';
 import type { DisplayMode, GroupBy, SearchTarget, ThumbnailPresentation } from './useSettingsStore';
+import { beginUiPerfTrace } from '../utils/perfDebug';
 
 export interface ScanProgress {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
@@ -162,7 +163,10 @@ export const useUIStore = create<UIState>((set) => ({
     setSidebarWidth: (width) => set({ sidebarWidth: width }),
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
     setViewMode: (viewMode) => set({ viewMode }),
-    openLightbox: (file, mode = 'default', startTime = null) => set({ lightboxFile: file, lightboxOpenMode: mode, lightboxStartTime: startTime }),
+    openLightbox: (file, mode = 'default', startTime = null) => {
+        beginUiPerfTrace('center-viewer-open', { fileId: file.id, fileType: file.type, mode });
+        set({ lightboxFile: file, lightboxOpenMode: mode, lightboxStartTime: startTime });
+    },
     closeLightbox: () => set({ lightboxFile: null, lightboxOpenMode: 'default', lightboxStartTime: null }),
     setSearchQuery: (query) => set({ searchQuery: query }),
     setSearchTarget: (target) => set({ searchTarget: target }),
@@ -215,7 +219,10 @@ export const useUIStore = create<UIState>((set) => ({
             type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
         )))),
     }),
-    openSettingsModal: (tab) => set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null }),
+    openSettingsModal: (tab) => {
+        beginUiPerfTrace('settings-modal-open', { requestedTab: tab ?? 'general' });
+        set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null });
+    },
     closeSettingsModal: () => set({ settingsModalOpen: false }),
     setScanProgress: (progress) => set((state) => ({
         scanProgress: progress,
@@ -259,6 +266,9 @@ export const useUIStore = create<UIState>((set) => ({
     setHoveredPreview: (id) => set({ hoveredPreviewId: id }),
 
     // Phase 23: 右サイドパネル
-    toggleRightPanel: () => set((state) => ({ isRightPanelOpen: !state.isRightPanelOpen })),
+    toggleRightPanel: () => set((state) => {
+        beginUiPerfTrace('right-panel-toggle', { open: !state.isRightPanelOpen });
+        return { isRightPanelOpen: !state.isRightPanelOpen };
+    }),
     setPreviewContext: (ctx) => set({ previewContext: ctx }),
 }));

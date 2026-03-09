@@ -2,6 +2,7 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import type { FileTypeCategoryFilters } from '../../stores/useSettingsStore';
 import type { ScanExclusionRules } from '../../shared/scanExclusionRules';
+import { SettingsSection } from './SettingsSection';
 
 interface ScanSettingsTabProps {
     activeProfileLabel: string;
@@ -15,6 +16,8 @@ interface ScanSettingsTabProps {
     onOpenFolderScanSettingsManager: () => void;
     scanThrottleMs: number;
     onProfileScanThrottleMsChange: (ms: number) => void;
+    onResetScanExclusionRules: () => void;
+    onResetProfileScanSettings: () => void;
 }
 
 const FILE_TYPE_ITEMS: Array<{
@@ -44,6 +47,8 @@ export const ScanSettingsTab = React.memo(({
     onOpenFolderScanSettingsManager,
     scanThrottleMs,
     onProfileScanThrottleMsChange,
+    onResetScanExclusionRules,
+    onResetProfileScanSettings,
 }: ScanSettingsTabProps) => {
     const [excludedExtensionsText, setExcludedExtensionsText] = React.useState(
         scanExclusionRules.excludedExtensions.join('\n')
@@ -76,163 +81,150 @@ export const ScanSettingsTab = React.memo(({
 
     return (
         <div className="px-4 py-4 space-y-6">
-            <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
-                    スキャン設定
-                </h3>
-
-                <div className="space-y-4 rounded-lg border border-surface-700 bg-surface-900/50 p-3">
+            <SettingsSection
+                title="全体の除外ルール"
+                description="すべてのプロファイル / フォルダに共通で適用されます。再スキャン時には条件に一致した既存登録も一覧 / DB から整理されます。"
+                scope="global"
+                onReset={onResetScanExclusionRules}
+            >
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <div>
-                        <h4 className="text-sm font-medium text-surface-200">
-                            全体の除外ルール
-                        </h4>
-                        <p className="text-xs text-surface-400 mt-1">
-                            すべてのプロファイル / フォルダに共通で適用されます。再スキャン時には条件に一致した既存登録も一覧 / DB から整理されます。
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        <div>
-                            <label className="block text-sm font-medium text-surface-300 mb-2">
-                                除外拡張子
-                            </label>
-                            <textarea
-                                value={excludedExtensionsText}
-                                onChange={(e) => setExcludedExtensionsText(e.target.value)}
-                                onBlur={commitExcludedExtensions}
-                                rows={5}
-                                placeholder={['.tmp', '.part', '.bak'].join('\n')}
-                                className="w-full resize-y rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                            />
-                            <p className="text-xs text-surface-500 mt-1">
-                                改行またはカンマ区切り。`.tmp` のように入力します。
-                            </p>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-surface-300 mb-2">
-                                除外フォルダ名
-                            </label>
-                            <textarea
-                                value={excludedFolderNamesText}
-                                onChange={(e) => setExcludedFolderNamesText(e.target.value)}
-                                onBlur={commitExcludedFolderNames}
-                                rows={5}
-                                placeholder={['cache', 'temp', '$recycle.bin'].join('\n')}
-                                className="w-full resize-y rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                            />
-                            <p className="text-xs text-surface-500 mt-1">
-                                フォルダ名単位で一致したものを除外します。パスではなく名前だけを入力してください。
-                            </p>
-                        </div>
-                    </div>
-
-                    <label className="flex items-start gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-3 cursor-pointer hover:border-surface-600">
-                        <input
-                            type="checkbox"
-                            checked={scanExclusionRules.skipHiddenFolders}
-                            onChange={(e) => onScanExclusionRulesChange({
-                                ...scanExclusionRules,
-                                skipHiddenFolders: e.target.checked,
-                            })}
-                            className="mt-0.5 h-4 w-4 shrink-0 rounded accent-primary-500"
+                        <label className="block text-sm font-medium text-surface-300 mb-2">
+                            除外拡張子
+                        </label>
+                        <textarea
+                            value={excludedExtensionsText}
+                            onChange={(e) => setExcludedExtensionsText(e.target.value)}
+                            onBlur={commitExcludedExtensions}
+                            rows={5}
+                            placeholder={['.tmp', '.part', '.bak'].join('\n')}
+                            className="w-full resize-y rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                         />
-                        <div className="min-w-0">
-                            <div className="text-sm text-surface-200">先頭が `.` の隠しフォルダをスキップ</div>
-                            <div className="text-[11px] text-surface-500 mt-0.5">
-                                例: `.git` `.cache` `.thumbnails`。登録済みファイルも再スキャン時に整理されます。
-                            </div>
-                        </div>
-                    </label>
-                </div>
-
-                <div className="space-y-4 rounded-lg border border-primary-900/40 bg-primary-950/10 p-3">
-                    <div>
-                        <h4 className="text-sm font-medium text-primary-200">
-                            プロファイル別スキャン設定
-                        </h4>
-                        <p className="text-xs text-surface-400 mt-1">
-                            この設定は現在のプロファイルにのみ適用されます。
-                        </p>
                         <p className="text-xs text-surface-500 mt-1">
-                            対象: <span className="text-surface-300">{activeProfileLabel}</span>
+                            改行またはカンマ区切り。`.tmp` のように入力します。
                         </p>
-                    </div>
-
-                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <div className="text-sm font-medium text-surface-200">フォルダ別スキャン設定（一覧管理）</div>
-                                <div className="text-xs text-surface-500 mt-0.5">
-                                    起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリを登録フォルダ一覧で確認・編集します。
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={onOpenFolderScanSettingsManager}
-                                className="inline-flex items-center justify-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700"
-                            >
-                                <Settings size={15} />
-                                一覧を開く
-                            </button>
-                        </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-surface-300 mb-2">
-                            対応形式（カテゴリON/OFF）
+                            除外フォルダ名
                         </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {FILE_TYPE_ITEMS.map((item) => (
-                                <label
-                                    key={item.key}
-                                    className="flex items-center justify-between gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-2 cursor-pointer hover:border-surface-600"
-                                >
-                                    <div className="min-w-0">
-                                        <div className="text-sm text-surface-200">{item.label}</div>
-                                        <div className="text-[11px] text-surface-500 truncate">{item.hint}</div>
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        checked={profileFileTypeFilters[item.key]}
-                                        onChange={(e) => onProfileFileTypeToggle(item.key, e.target.checked)}
-                                        className="w-4 h-4 accent-primary-500 rounded shrink-0"
-                                    />
-                                </label>
-                            ))}
-                        </div>
-                        <p className="text-xs text-surface-500 mt-2">
-                            OFFにしたカテゴリは新規スキャン対象外になります。既に登録済みの対象は再スキャン時に一覧/DBから整理されます（元ファイルは削除しません）。
+                        <textarea
+                            value={excludedFolderNamesText}
+                            onChange={(e) => setExcludedFolderNamesText(e.target.value)}
+                            onBlur={commitExcludedFolderNames}
+                            rows={5}
+                            placeholder={['cache', 'temp', '$recycle.bin'].join('\n')}
+                            className="w-full resize-y rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                        />
+                        <p className="text-xs text-surface-500 mt-1">
+                            フォルダ名単位で一致したものを除外します。パスではなく名前だけを入力してください。
                         </p>
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-surface-300 mb-2">
-                            スキャン速度調整（プロファイル別 / コイル鳴き対策）
-                        </label>
-                        <select
-                            value={scanThrottleMs}
-                            onChange={(e) => onProfileScanThrottleMsChange(Number(e.target.value))}
-                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                <label className="flex items-start gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-3 cursor-pointer hover:border-surface-600">
+                    <input
+                        type="checkbox"
+                        checked={scanExclusionRules.skipHiddenFolders}
+                        onChange={(e) => onScanExclusionRulesChange({
+                            ...scanExclusionRules,
+                            skipHiddenFolders: e.target.checked,
+                        })}
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded accent-primary-500"
+                    />
+                    <div className="min-w-0">
+                        <div className="text-sm text-surface-200">先頭が `.` の隠しフォルダをスキップ</div>
+                        <div className="text-[11px] text-surface-500 mt-0.5">
+                            例: `.git` `.cache` `.thumbnails`。登録済みファイルも再スキャン時に整理されます。
+                        </div>
+                    </div>
+                </label>
+            </SettingsSection>
+
+            <SettingsSection
+                title="プロファイル別スキャン設定"
+                description={`この設定は現在のプロファイルにのみ適用されます。対象: ${activeProfileLabel}`}
+                scope="profile"
+                onReset={onResetProfileScanSettings}
+                className="border-primary-900/40 bg-primary-950/10"
+            >
+                <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-surface-200">
+                                <span>フォルダ別スキャン設定（一覧管理）</span>
+                                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-200">
+                                    フォルダ別
+                                </span>
+                            </div>
+                            <div className="text-xs text-surface-500 mt-0.5">
+                                起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリを登録フォルダ一覧で確認・編集します。
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onOpenFolderScanSettingsManager}
+                            className="inline-flex items-center justify-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700"
                         >
-                            <option value="0">通常速度（推奨）</option>
-                            <option value="50">少し遅く（軽度の対策）</option>
-                            <option value="100">遅く（中程度の対策）</option>
-                            <option value="200">かなり遅く（重度の対策）</option>
-                        </select>
-                        <p className="text-xs text-surface-500 mt-1">
-                            プレビュー生成時のファイル間待機時間を調整します。PCから異音がする場合に設定してください。
-                        </p>
+                            <Settings size={15} />
+                            一覧を開く
+                        </button>
                     </div>
                 </div>
 
-                <div className="rounded border border-surface-800 bg-surface-900/50 p-3">
-                    <p className="text-xs text-surface-400">
-                        `プレビューフレーム数` はサムネイルタブにあります（プロファイル別設定）。
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                        対応形式（カテゴリON/OFF）
+                    </label>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {FILE_TYPE_ITEMS.map((item) => (
+                            <label
+                                key={item.key}
+                                className="flex items-center justify-between gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-2 cursor-pointer hover:border-surface-600"
+                            >
+                                <div className="min-w-0">
+                                    <div className="text-sm text-surface-200">{item.label}</div>
+                                    <div className="text-[11px] text-surface-500 truncate">{item.hint}</div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    checked={profileFileTypeFilters[item.key]}
+                                    onChange={(e) => onProfileFileTypeToggle(item.key, e.target.checked)}
+                                    className="w-4 h-4 accent-primary-500 rounded shrink-0"
+                                />
+                            </label>
+                        ))}
+                    </div>
+                    <p className="text-xs text-surface-500 mt-2">
+                        OFFにしたカテゴリは新規スキャン対象外になります。既に登録済みの対象は再スキャン時に一覧/DBから整理されます（元ファイルは削除しません）。
                     </p>
                 </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                        スキャン速度調整（プロファイル別 / コイル鳴き対策）
+                    </label>
+                    <select
+                        value={scanThrottleMs}
+                        onChange={(e) => onProfileScanThrottleMsChange(Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="0">通常速度（推奨）</option>
+                        <option value="50">少し遅く（軽度の対策）</option>
+                        <option value="100">遅く（中程度の対策）</option>
+                        <option value="200">かなり遅く（重度の対策）</option>
+                    </select>
+                    <p className="text-xs text-surface-500 mt-1">
+                        プレビュー生成時のファイル間待機時間を調整します。PCから異音がする場合に設定してください。
+                    </p>
+                </div>
+            </SettingsSection>
+
+            <div className="rounded border border-surface-800 bg-surface-900/50 p-3">
+                <p className="text-xs text-surface-400">
+                    `プレビューフレーム数` と `サムネイル解像度` は `プレビュー / 再生` タブにあります（どちらもプロファイル別設定）。
+                </p>
             </div>
         </div>
     );

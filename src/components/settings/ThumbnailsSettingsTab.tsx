@@ -6,6 +6,7 @@ import type {
     PlayModeJumpType,
     RightPanelVideoPreviewMode,
 } from '../../stores/useSettingsStore';
+import { SettingsSection } from './SettingsSection';
 
 type ThumbnailAction = 'scrub' | 'flipbook' | 'play';
 
@@ -30,6 +31,9 @@ interface ThumbnailsSettingsTabProps {
     onRightPanelVideoPreviewModeChange: (value: RightPanelVideoPreviewMode) => void;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
     onRightPanelVideoJumpIntervalChange: (value: PlayModeJumpInterval) => void;
+    onResetProfileThumbnailSettings: () => void;
+    onResetThumbnailBehaviorSettings: () => void;
+    onResetRightPanelPreviewSettings: () => void;
 }
 
 export const ThumbnailsSettingsTab = React.memo(({
@@ -50,13 +54,17 @@ export const ThumbnailsSettingsTab = React.memo(({
     onRightPanelVideoPreviewModeChange,
     rightPanelVideoJumpInterval,
     onRightPanelVideoJumpIntervalChange,
+    onResetProfileThumbnailSettings,
+    onResetThumbnailBehaviorSettings,
+    onResetRightPanelPreviewSettings,
 }: ThumbnailsSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
-        <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-surface-200 border-b border-surface-700 pb-2">
-                サムネイル設定
-            </h3>
-
+        <SettingsSection
+            title="サムネイル生成"
+            description="スキャン時に生成するプレビュー枚数とサムネイル解像度を、現在のプロファイル単位で管理します。"
+            scope="profile"
+            onReset={onResetProfileThumbnailSettings}
+        >
             <div>
                 <label className="block text-sm font-medium text-surface-300 mb-2">
                     プレビューフレーム数（プロファイル別）: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
@@ -100,23 +108,14 @@ export const ThumbnailsSettingsTab = React.memo(({
                     現在のプロファイルに保存されます。次回スキャンから反映。拡大表示時や高DPI環境で効果が出ます。
                 </p>
             </div>
+        </SettingsSection>
 
-            <div className="pt-1">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-500">
-                    全体設定
-                </h4>
-            </div>
-
-            <div className="space-y-4 rounded-lg border border-surface-700 bg-surface-900/40 p-4">
-                <div>
-                    <h4 className="text-sm font-semibold text-surface-200">
-                        サムネイルホバー設定
-                    </h4>
-                    <p className="mt-1 text-xs text-surface-500">
-                        一覧カード上にマウスを乗せた時のプレビュー動作を設定します。
-                    </p>
-                </div>
-
+        <SettingsSection
+            title="一覧プレビュー動作"
+            description="一覧カード上にマウスを乗せた時のプレビュー動作をアプリ全体の既定値として設定します。"
+            scope="global"
+            onReset={onResetThumbnailBehaviorSettings}
+        >
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">
                         サムネイルホバー時の動作
@@ -240,18 +239,14 @@ export const ThumbnailsSettingsTab = React.memo(({
                         )}
                     </div>
                 )}
-            </div>
+        </SettingsSection>
 
-            <div className="space-y-4 rounded-lg border border-surface-700 bg-surface-900/40 p-4">
-                <div>
-                    <h4 className="text-sm font-semibold text-surface-200">
-                        右サイドバー動画プレビュー
-                    </h4>
-                    <p className="mt-1 text-xs text-surface-500">
-                        右パネル上部に表示される動画プレビューの既定動作を設定します。
-                    </p>
-                </div>
-
+        <SettingsSection
+            title="右サイドバー動画プレビュー"
+            description="右パネル上部に表示される動画プレビューの既定動作をアプリ全体でそろえます。"
+            scope="global"
+            onReset={onResetRightPanelPreviewSettings}
+        >
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         プレビュー方式
@@ -286,8 +281,7 @@ export const ThumbnailsSettingsTab = React.memo(({
                         </select>
                     </div>
                 )}
-            </div>
-        </div>
+        </SettingsSection>
     </div>
 ));
 

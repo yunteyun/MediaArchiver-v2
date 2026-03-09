@@ -152,6 +152,7 @@ describe('resetStateForProfileSwitch', () => {
         const closeLightbox = vi.fn();
         const clearTagFilter = vi.fn();
         const clearRatingFilters = vi.fn();
+        const clearRatingQuickFilter = vi.fn();
         const resetDuplicates = vi.fn();
         const bumpRefreshKey = vi.fn();
         const reloadRatings = vi.fn().mockResolvedValue(undefined);
@@ -162,6 +163,7 @@ describe('resetStateForProfileSwitch', () => {
             closeLightbox,
             clearTagFilter,
             clearRatingFilters,
+            clearRatingQuickFilter,
             resetDuplicates,
             bumpRefreshKey,
             reloadRatings,
@@ -172,6 +174,7 @@ describe('resetStateForProfileSwitch', () => {
         expect(closeLightbox).toHaveBeenCalledTimes(1);
         expect(clearTagFilter).toHaveBeenCalledTimes(1);
         expect(clearRatingFilters).toHaveBeenCalledTimes(1);
+        expect(clearRatingQuickFilter).toHaveBeenCalledTimes(1);
         expect(resetDuplicates).toHaveBeenCalledTimes(1);
         expect(bumpRefreshKey).toHaveBeenCalledTimes(1);
 

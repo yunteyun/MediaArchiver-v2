@@ -8,6 +8,7 @@ import {
     LIGHTBOX_OVERLAY_OPACITY_STEP,
 } from '../../features/lightbox-clean/constants';
 import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
+import { SettingsSection } from './SettingsSection';
 
 interface GeneralSettingsTabProps {
     defaultDisplayPresetId: string;
@@ -60,6 +61,9 @@ interface GeneralSettingsTabProps {
     onOpenDisplayPresetFolder: () => void;
     isReloadingDisplayPresets: boolean;
     onReloadDisplayPresets: () => void;
+    onResetListDisplayDefaults: () => void;
+    onResetPlaybackSettings: () => void;
+    onResetFileCardSettings: () => void;
 }
 
 export const GeneralSettingsTab = React.memo(({
@@ -104,16 +108,17 @@ export const GeneralSettingsTab = React.memo(({
     onOpenDisplayPresetFolder,
     isReloadingDisplayPresets,
     onReloadDisplayPresets,
+    onResetListDisplayDefaults,
+    onResetPlaybackSettings,
+    onResetFileCardSettings,
 }: GeneralSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
-        <div className="rounded border border-primary-900/40 bg-primary-950/10 p-4">
-            <div>
-                <h4 className="text-sm font-semibold text-primary-200">既定の一覧表示</h4>
-                <p className="mt-1 text-xs text-surface-400">
-                    ここで変更する内容は次回起動時や「既定値に戻す」で使われます。ヘッダーでの変更は現在の一覧だけに適用されます。
-                </p>
-            </div>
-
+        <SettingsSection
+            title="既定の一覧表示"
+            description="ここで変更する内容は次回起動時や「既定値に戻す」で使われます。ヘッダーでの変更は現在の一覧だけに適用されます。"
+            scope="global"
+            onReset={onResetListDisplayDefaults}
+        >
             <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
@@ -216,92 +221,99 @@ export const GeneralSettingsTab = React.memo(({
                     </select>
                 </div>
             </div>
-        </div>
+        </SettingsSection>
 
-        <div>
-            <label className="block text-sm font-medium text-surface-300 mb-2">
-                動画再生時の音量: {Math.round(videoVolume * 100)}%
-            </label>
-            <input
-                type="range"
-                min="0"
-                max="100"
-                value={Math.round(videoVolume * 100)}
-                onChange={(e) => onVideoVolumeChange(Number(e.target.value) / 100)}
-                className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-            />
-            <div className="flex justify-between text-xs text-surface-500 mt-1">
-                <span>0%</span>
-                <span>100%</span>
-            </div>
-        </div>
-
-        <div>
-            <label className="block text-sm font-medium text-surface-300 mb-2">
-                音声ファイル再生時の音量: {Math.round(audioVolume * 100)}%
-            </label>
-            <input
-                type="range"
-                min="0"
-                max="100"
-                value={Math.round(audioVolume * 100)}
-                onChange={(e) => onAudioVolumeChange(Number(e.target.value) / 100)}
-                className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-            />
-            <div className="flex justify-between text-xs text-surface-500 mt-1">
-                <span>0%</span>
-                <span>100%</span>
-            </div>
-        </div>
-
-        <div>
-            <label className="block text-sm font-medium text-surface-300 mb-2">
-                ライトボックス背景濃度: {lightboxOverlayOpacity}%
-            </label>
-            <input
-                type="range"
-                min={LIGHTBOX_OVERLAY_OPACITY_MIN}
-                max={LIGHTBOX_OVERLAY_OPACITY_MAX}
-                step={LIGHTBOX_OVERLAY_OPACITY_STEP}
-                value={lightboxOverlayOpacity}
-                onChange={(e) => onLightboxOverlayOpacityChange(Number(e.target.value))}
-                className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-            />
-            <div className="flex justify-between text-xs text-surface-500 mt-1">
-                <span>{LIGHTBOX_OVERLAY_OPACITY_MIN}%</span>
-                <span>{LIGHTBOX_OVERLAY_OPACITY_MAX}%</span>
-            </div>
-            <p className="mt-1 text-xs text-surface-500">
-                画像ライトボックスの背景オーバーレイ濃度を調整します。
-            </p>
-        </div>
-
-        <div>
-            <label className="flex items-center justify-between cursor-pointer">
-                <div>
-                    <span className="block text-sm font-medium text-surface-300">
-                        パフォーマンスモード
-                    </span>
-                    <span className="block text-xs text-surface-500 mt-0.5">
-                        ホバーアニメーションを無効化して軽くする
-                    </span>
-                </div>
+        <SettingsSection
+            title="再生と見た目"
+            description="メディア再生時の音量、ライトボックス背景、軽量化方針をアプリ全体で統一します。"
+            scope="global"
+            onReset={onResetPlaybackSettings}
+        >
+            <div>
+                <label className="block text-sm font-medium text-surface-300 mb-2">
+                    動画再生時の音量: {Math.round(videoVolume * 100)}%
+                </label>
                 <input
-                    type="checkbox"
-                    checked={performanceMode}
-                    onChange={(e) => onPerformanceModeChange(e.target.checked)}
-                    className="w-5 h-5 accent-primary-500 rounded"
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={Math.round(videoVolume * 100)}
+                    onChange={(e) => onVideoVolumeChange(Number(e.target.value) / 100)}
+                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
                 />
-            </label>
-        </div>
+                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                    <span>0%</span>
+                    <span>100%</span>
+                </div>
+            </div>
 
-        <div className="rounded border border-surface-700 bg-surface-900/50 p-3">
+            <div>
+                <label className="block text-sm font-medium text-surface-300 mb-2">
+                    音声ファイル再生時の音量: {Math.round(audioVolume * 100)}%
+                </label>
+                <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={Math.round(audioVolume * 100)}
+                    onChange={(e) => onAudioVolumeChange(Number(e.target.value) / 100)}
+                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                    <span>0%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-surface-300 mb-2">
+                    ライトボックス背景濃度: {lightboxOverlayOpacity}%
+                </label>
+                <input
+                    type="range"
+                    min={LIGHTBOX_OVERLAY_OPACITY_MIN}
+                    max={LIGHTBOX_OVERLAY_OPACITY_MAX}
+                    step={LIGHTBOX_OVERLAY_OPACITY_STEP}
+                    value={lightboxOverlayOpacity}
+                    onChange={(e) => onLightboxOverlayOpacityChange(Number(e.target.value))}
+                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <div className="flex justify-between text-xs text-surface-500 mt-1">
+                    <span>{LIGHTBOX_OVERLAY_OPACITY_MIN}%</span>
+                    <span>{LIGHTBOX_OVERLAY_OPACITY_MAX}%</span>
+                </div>
+                <p className="mt-1 text-xs text-surface-500">
+                    画像ライトボックスの背景オーバーレイ濃度を調整します。
+                </p>
+            </div>
+
+            <div>
+                <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <span className="block text-sm font-medium text-surface-300">
+                            パフォーマンスモード
+                        </span>
+                        <span className="block text-xs text-surface-500 mt-0.5">
+                            ホバーアニメーションを無効化して軽くする
+                        </span>
+                    </div>
+                    <input
+                        type="checkbox"
+                        checked={performanceMode}
+                        onChange={(e) => onPerformanceModeChange(e.target.checked)}
+                        className="w-5 h-5 accent-primary-500 rounded"
+                    />
+                </label>
+            </div>
+        </SettingsSection>
+
+        <SettingsSection
+            title="表示プリセット"
+            description="外部 JSON を配置して、一覧カードの表示プリセットを追加できます。ここにある操作は設定変更ではなく運用補助です。"
+            scope="operation"
+        >
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <div className="text-sm font-medium text-surface-200">表示プリセット</div>
-                    <p className="text-xs text-surface-500 mt-0.5">
-                        外部 JSON を配置して、一覧カードの表示プリセットを追加できます。
-                    </p>
                     <p className="mt-1 text-[11px] text-surface-400">
                         読込済み: {displayPresetCount} 件
                     </p>
@@ -343,9 +355,14 @@ export const GeneralSettingsTab = React.memo(({
                     </div>
                 </div>
             )}
-        </div>
+        </SettingsSection>
 
-        <div>
+        <SettingsSection
+            title="ファイルカード表示"
+            description="一覧カードの表示項目とタグの見せ方をアプリ全体の既定値として整えます。"
+            scope="global"
+            onReset={onResetFileCardSettings}
+        >
             <label className="block text-sm font-medium text-surface-300 mb-2">
                 表示項目
             </label>
@@ -429,7 +446,7 @@ export const GeneralSettingsTab = React.memo(({
                     <span className="text-surface-200 text-sm">ファイルサイズ</span>
                 </label>
             </div>
-        </div>
+        </SettingsSection>
     </div>
 ));
 

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, useCallback, useRef } from 'react';
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import { Toaster } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { FileGrid } from './components/FileGrid';
@@ -19,16 +19,18 @@ import {
     resetStateForProfileSwitch,
     PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE,
 } from './utils/profileLifecycle';
+import { lazyWithPerf } from './utils/lazyWithPerf';
+import { completeUiPerfTrace, initializePerfDebugFlags, syncPerfDebugToMain } from './utils/perfDebug';
 
-const ProfileHomeView = lazy(() => import('./components/ProfileHomeView').then((module) => ({ default: module.ProfileHomeView })));
-const DuplicateView = lazy(() => import('./components/DuplicateView').then((module) => ({ default: module.DuplicateView })));
-const RightPanel = lazy(() => import('./components/RightPanel').then((module) => ({ default: module.RightPanel })));
-const SettingsModal = lazy(() => import('./components/SettingsModal').then((module) => ({ default: module.SettingsModal })));
-const ProfileModal = lazy(() => import('./components/ProfileModal').then((module) => ({ default: module.ProfileModal })));
-const DeleteConfirmDialog = lazy(() => import('./components/DeleteConfirmDialog').then((module) => ({ default: module.DeleteConfirmDialog })));
-const RenameFileDialog = lazy(() => import('./components/RenameFileDialog').then((module) => ({ default: module.RenameFileDialog })));
-const MoveFolderDialog = lazy(() => import('./components/MoveFolderDialog').then((module) => ({ default: module.MoveFolderDialog })));
-const CenterViewerRoot = lazy(() => import('./features/center-viewer/CenterViewerRoot').then((module) => ({ default: module.CenterViewerRoot })));
+const ProfileHomeView = lazyWithPerf('profile-home', () => import('./components/ProfileHomeView').then((module) => ({ default: module.ProfileHomeView })));
+const DuplicateView = lazyWithPerf('duplicate-view', () => import('./components/DuplicateView').then((module) => ({ default: module.DuplicateView })));
+const RightPanel = lazyWithPerf('right-panel', () => import('./components/RightPanel').then((module) => ({ default: module.RightPanel })));
+const SettingsModal = lazyWithPerf('settings-modal', () => import('./components/SettingsModal').then((module) => ({ default: module.SettingsModal })));
+const ProfileModal = lazyWithPerf('profile-modal', () => import('./components/ProfileModal').then((module) => ({ default: module.ProfileModal })));
+const DeleteConfirmDialog = lazyWithPerf('delete-confirm-dialog', () => import('./components/DeleteConfirmDialog').then((module) => ({ default: module.DeleteConfirmDialog })));
+const RenameFileDialog = lazyWithPerf('rename-file-dialog', () => import('./components/RenameFileDialog').then((module) => ({ default: module.RenameFileDialog })));
+const MoveFolderDialog = lazyWithPerf('move-folder-dialog', () => import('./components/MoveFolderDialog').then((module) => ({ default: module.MoveFolderDialog })));
+const CenterViewerRoot = lazyWithPerf('center-viewer', () => import('./features/center-viewer/CenterViewerRoot').then((module) => ({ default: module.CenterViewerRoot })));
 
 function MainViewLoading({ label }: { label: string }) {
     return (
@@ -87,6 +89,11 @@ function App() {
     const clearSearchConditions = useUIStore((s) => s.clearSearchConditions);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const profileSettingsLoadSeqRef = useRef(0);
+
+    useEffect(() => {
+        const flags = initializePerfDebugFlags();
+        void syncPerfDebugToMain(flags.enabled);
+    }, []);
 
     useEffect(() => {
         // 設定は永続化されているので、初回マウント時にstoreから読み取り
@@ -249,6 +256,12 @@ function App() {
         return cleanup;
     }, [setScanProgress]);
 
+    useEffect(() => {
+        if (!isRightPanelOpen) {
+            completeUiPerfTrace('right-panel-toggle', { open: false });
+        }
+    }, [isRightPanelOpen]);
+
     // プロファイル切替イベントを監視
     useEffect(() => {
         const cleanup = window.electronAPI.onProfileSwitched((_profileId) => {
@@ -387,6 +400,9 @@ function App() {
         window.electronAPI.getAppVersion().then((v: string) => setAppVersion(v)).catch(() => { });
     }, []);
 
+    const handleToggleRightPanel = useCallback(() => {
+        toggleRightPanel();
+    }, [toggleRightPanel]);
 
     return (
         <div className="flex h-screen w-screen bg-surface-950 text-white overflow-hidden">
@@ -405,7 +421,7 @@ function App() {
                         <ProfileSwitcher onOpenManageModal={() => setProfileModalOpen(true)} />
                         {/* Phase 23: 右パネルトグル */}
                         <button
-                            onClick={toggleRightPanel}
+                            onClick={handleToggleRightPanel}
                             className={`p-1.5 rounded transition-colors ${isRightPanelOpen
                                 ? 'text-primary-400 bg-primary-900/30 hover:bg-primary-900/50'
                                 : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700'

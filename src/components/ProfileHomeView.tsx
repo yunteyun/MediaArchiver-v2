@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import {
     BarChart3,
     Clock3,
@@ -13,9 +13,10 @@ import {
 import { useProfileStore } from '../stores/useProfileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useLibraryStats } from '../hooks/useLibraryStats';
+import { lazyWithPerf } from '../utils/lazyWithPerf';
 import { toMediaUrl } from '../utils/mediaPath';
 
-const StatisticsView = lazy(() => import('./StatisticsView').then((module) => ({ default: module.StatisticsView })));
+const StatisticsView = lazyWithPerf('statistics-view', () => import('./StatisticsView').then((module) => ({ default: module.StatisticsView })));
 
 const TYPE_LABELS: Record<string, string> = {
     image: '画像',
