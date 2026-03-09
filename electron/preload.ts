@@ -8,7 +8,11 @@ import type {
     AutoOrganizeApplyResult,
     AutoOrganizeConditionV1,
     AutoOrganizeDryRunResult,
+    AutoOrganizeRollbackApplyResult,
+    AutoOrganizeRollbackPreviewResult,
     AutoOrganizeRuleV1,
+    AutoOrganizeRunSummary,
+    AutoOrganizeSettingsV1,
 } from '../src/types/autoOrganize';
 import type {
     AutoTagRule,
@@ -312,11 +316,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ) => ipcRenderer.invoke('smartFolder:update', payload),
     deleteSmartFolder: (id: string) => ipcRenderer.invoke('smartFolder:delete', id),
     getAutoOrganizeRules: () => ipcRenderer.invoke('autoOrganize:getAll') as Promise<AutoOrganizeRuleV1[]>,
+    getAutoOrganizeSettings: () => ipcRenderer.invoke('autoOrganize:getSettings') as Promise<AutoOrganizeSettingsV1>,
+    updateAutoOrganizeSettings: (updates: Partial<AutoOrganizeSettingsV1>) =>
+        ipcRenderer.invoke('autoOrganize:updateSettings', updates) as Promise<AutoOrganizeSettingsV1>,
+    getAutoOrganizeRuns: (limit?: number) =>
+        ipcRenderer.invoke('autoOrganize:getRuns', limit) as Promise<AutoOrganizeRunSummary[]>,
     createAutoOrganizeRule: (payload: {
         name: string;
         enabled?: boolean;
         condition?: Partial<AutoOrganizeConditionV1>;
         action: AutoOrganizeActionV1;
+        automation?: AutoOrganizeRuleV1['automation'];
     }) => ipcRenderer.invoke('autoOrganize:create', payload),
     updateAutoOrganizeRule: (payload: {
         id: string;
@@ -325,12 +335,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
             enabled?: boolean;
             condition?: Partial<AutoOrganizeConditionV1>;
             action?: AutoOrganizeActionV1;
+            automation?: AutoOrganizeRuleV1['automation'];
             sortOrder?: number;
         };
     }) => ipcRenderer.invoke('autoOrganize:update', payload),
     deleteAutoOrganizeRule: (id: string) => ipcRenderer.invoke('autoOrganize:delete', id),
     dryRunAutoOrganize: (ruleIds?: string[]) => ipcRenderer.invoke('autoOrganize:dryRun', ruleIds) as Promise<AutoOrganizeDryRunResult>,
     applyAutoOrganize: (ruleIds?: string[]) => ipcRenderer.invoke('autoOrganize:apply', ruleIds) as Promise<AutoOrganizeApplyResult>,
+    dryRunAutoOrganizeRollback: (runId: string) =>
+        ipcRenderer.invoke('autoOrganize:rollbackDryRun', runId) as Promise<AutoOrganizeRollbackPreviewResult>,
+    applyAutoOrganizeRollback: (runId: string) =>
+        ipcRenderer.invoke('autoOrganize:rollbackApply', runId) as Promise<AutoOrganizeRollbackApplyResult>,
 
     onProfileSwitched: (callback: (profileId: string) => void) => subscribe('profile:switched', callback),
 

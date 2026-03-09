@@ -4,22 +4,34 @@ import type {
     AutoOrganizeApplyResult,
     AutoOrganizeConditionV1,
     AutoOrganizeDryRunResult,
+    AutoOrganizeRollbackApplyResult,
+    AutoOrganizeRollbackPreviewResult,
     AutoOrganizeRuleV1,
+    AutoOrganizeRunSummary,
+    AutoOrganizeSettingsV1,
 } from '../types/autoOrganize';
 
 interface AutoOrganizeState {
     rules: AutoOrganizeRuleV1[];
+    settings: AutoOrganizeSettingsV1;
+    runs: AutoOrganizeRunSummary[];
     lastDryRun: AutoOrganizeDryRunResult | null;
     lastApplyResult: AutoOrganizeApplyResult | null;
+    lastRollbackPreview: AutoOrganizeRollbackPreviewResult | null;
+    lastRollbackApplyResult: AutoOrganizeRollbackApplyResult | null;
     isLoading: boolean;
     isMutating: boolean;
     isRunning: boolean;
     loadRules: () => Promise<void>;
+    loadSettings: () => Promise<void>;
+    updateSettings: (updates: Partial<AutoOrganizeSettingsV1>) => Promise<AutoOrganizeSettingsV1>;
+    loadRuns: (limit?: number) => Promise<void>;
     createRule: (payload: {
         name: string;
         enabled?: boolean;
         condition: AutoOrganizeConditionV1;
         action: AutoOrganizeActionV1;
+        automation?: AutoOrganizeRuleV1['automation'];
     }) => Promise<AutoOrganizeRuleV1>;
     updateRule: (payload: {
         id: string;
@@ -28,6 +40,7 @@ interface AutoOrganizeState {
             enabled?: boolean;
             condition?: AutoOrganizeConditionV1;
             action?: AutoOrganizeActionV1;
+            automation?: AutoOrganizeRuleV1['automation'];
             sortOrder?: number;
         };
     }) => Promise<AutoOrganizeRuleV1>;
@@ -35,14 +48,28 @@ interface AutoOrganizeState {
     duplicateRule: (id: string) => Promise<AutoOrganizeRuleV1>;
     dryRunRules: (ruleIds?: string[]) => Promise<AutoOrganizeDryRunResult>;
     applyRules: (ruleIds?: string[]) => Promise<AutoOrganizeApplyResult>;
+    dryRunRollback: (runId: string) => Promise<AutoOrganizeRollbackPreviewResult>;
+    applyRollback: (runId: string) => Promise<AutoOrganizeRollbackApplyResult>;
     clearLastDryRun: () => void;
     clearLastApplyResult: () => void;
+    clearLastRollbackPreview: () => void;
+    clearLastRollbackApplyResult: () => void;
 }
 
 export const useAutoOrganizeStore = create<AutoOrganizeState>((set, get) => ({
     rules: [],
+    settings: {
+        enabled: false,
+        runOnManualScan: false,
+        runOnStartupScan: false,
+        runOnWatchScan: true,
+        historyLimit: 20,
+    },
+    runs: [],
     lastDryRun: null,
     lastApplyResult: null,
+    lastRollbackPreview: null,
+    lastRollbackApplyResult: null,
     isLoading: false,
     isMutating: false,
     isRunning: false,
@@ -52,6 +79,37 @@ export const useAutoOrganizeStore = create<AutoOrganizeState>((set, get) => ({
         try {
             const rules = await window.electronAPI.getAutoOrganizeRules();
             set({ rules });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    loadSettings: async () => {
+        set({ isLoading: true });
+        try {
+            const settings = await window.electronAPI.getAutoOrganizeSettings();
+            set({ settings });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    updateSettings: async (updates) => {
+        set({ isMutating: true });
+        try {
+            const settings = await window.electronAPI.updateAutoOrganizeSettings(updates);
+            set({ settings });
+            return settings;
+        } finally {
+            set({ isMutating: false });
+        }
+    },
+
+    loadRuns: async (limit) => {
+        set({ isLoading: true });
+        try {
+            const runs = await window.electronAPI.getAutoOrganizeRuns(limit);
+            set({ runs });
         } finally {
             set({ isLoading: false });
         }
@@ -110,6 +168,7 @@ export const useAutoOrganizeStore = create<AutoOrganizeState>((set, get) => ({
             enabled: source.enabled,
             condition: source.condition,
             action: source.action,
+            automation: source.automation,
         });
     },
 
@@ -135,6 +194,30 @@ export const useAutoOrganizeStore = create<AutoOrganizeState>((set, get) => ({
         }
     },
 
+    dryRunRollback: async (runId) => {
+        set({ isRunning: true, lastRollbackApplyResult: null });
+        try {
+            const result = await window.electronAPI.dryRunAutoOrganizeRollback(runId);
+            set({ lastRollbackPreview: result });
+            return result;
+        } finally {
+            set({ isRunning: false });
+        }
+    },
+
+    applyRollback: async (runId) => {
+        set({ isRunning: true });
+        try {
+            const result = await window.electronAPI.applyAutoOrganizeRollback(runId);
+            set({ lastRollbackApplyResult: result });
+            return result;
+        } finally {
+            set({ isRunning: false });
+        }
+    },
+
     clearLastDryRun: () => set({ lastDryRun: null }),
     clearLastApplyResult: () => set({ lastApplyResult: null }),
+    clearLastRollbackPreview: () => set({ lastRollbackPreview: null }),
+    clearLastRollbackApplyResult: () => set({ lastRollbackApplyResult: null }),
 }));

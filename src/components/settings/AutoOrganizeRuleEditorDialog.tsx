@@ -22,6 +22,7 @@ interface SubmitPayload {
     enabled: boolean;
     condition: AutoOrganizeConditionV1;
     action: AutoOrganizeRuleV1['action'];
+    automation: AutoOrganizeRuleV1['automation'];
 }
 
 interface AutoOrganizeRuleEditorDialogProps {
@@ -144,6 +145,7 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
     const [targetFolderId, setTargetFolderId] = useState(initialRule?.action.move.targetFolderId ?? targetFolderOptions[0]?.id ?? '');
     const [renameEnabled, setRenameEnabled] = useState(initialRule?.action.rename.enabled ?? false);
     const [renameTemplate, setRenameTemplate] = useState(initialRule?.action.rename.template ?? '{name}');
+    const [runOnScanComplete, setRunOnScanComplete] = useState(initialRule?.automation.runOnScanComplete ?? false);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -163,6 +165,7 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
         setTargetFolderId(initialRule?.action.move.targetFolderId ?? targetFolderOptions[0]?.id ?? '');
         setRenameEnabled(initialRule?.action.rename.enabled ?? false);
         setRenameTemplate(initialRule?.action.rename.template ?? '{name}');
+        setRunOnScanComplete(initialRule?.automation.runOnScanComplete ?? false);
     }, [initialRule, isOpen, targetFolderOptions]);
 
     const filteredTags = useMemo(() => {
@@ -284,6 +287,21 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
+                        <label className="inline-flex items-center gap-2 text-sm text-surface-200">
+                            <input
+                                type="checkbox"
+                                checked={runOnScanComplete}
+                                onChange={(event) => setRunOnScanComplete(event.target.checked)}
+                                className="h-4 w-4 accent-primary-500"
+                            />
+                            スキャン完了後にも自動実行する
+                        </label>
+                        <div className="mt-2 text-[11px] text-surface-500">
+                            「自動実行」セクションの設定が有効なときだけ動作します。
                         </div>
                     </div>
 
@@ -580,6 +598,9 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                         enabled: renameEnabled,
                                         template: normalizedRenameTemplate || '{name}',
                                     },
+                                },
+                                automation: {
+                                    runOnScanComplete,
                                 },
                             });
                         }}

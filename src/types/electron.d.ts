@@ -10,7 +10,11 @@ import type {
     AutoOrganizeApplyResult,
     AutoOrganizeConditionV1,
     AutoOrganizeDryRunResult,
+    AutoOrganizeRollbackApplyResult,
+    AutoOrganizeRollbackPreviewResult,
     AutoOrganizeRuleV1,
+    AutoOrganizeRunSummary,
+    AutoOrganizeSettingsV1,
 } from './autoOrganize';
 import type { ExternalDisplayPresetListResult } from '../components/fileCard/displayModes';
 import type {
@@ -308,11 +312,15 @@ declare global {
             }) => Promise<SmartFolderV1>;
             deleteSmartFolder: (id: string) => Promise<{ success: boolean }>;
             getAutoOrganizeRules: () => Promise<AutoOrganizeRuleV1[]>;
+            getAutoOrganizeSettings: () => Promise<AutoOrganizeSettingsV1>;
+            updateAutoOrganizeSettings: (updates: Partial<AutoOrganizeSettingsV1>) => Promise<AutoOrganizeSettingsV1>;
+            getAutoOrganizeRuns: (limit?: number) => Promise<AutoOrganizeRunSummary[]>;
             createAutoOrganizeRule: (payload: {
                 name: string;
                 enabled?: boolean;
                 condition?: Partial<AutoOrganizeConditionV1>;
                 action: AutoOrganizeActionV1;
+                automation?: AutoOrganizeRuleV1['automation'];
             }) => Promise<AutoOrganizeRuleV1>;
             updateAutoOrganizeRule: (payload: {
                 id: string;
@@ -321,12 +329,15 @@ declare global {
                     enabled?: boolean;
                     condition?: Partial<AutoOrganizeConditionV1>;
                     action?: AutoOrganizeActionV1;
+                    automation?: AutoOrganizeRuleV1['automation'];
                     sortOrder?: number;
                 };
             }) => Promise<AutoOrganizeRuleV1>;
             deleteAutoOrganizeRule: (id: string) => Promise<{ success: boolean }>;
             dryRunAutoOrganize: (ruleIds?: string[]) => Promise<AutoOrganizeDryRunResult>;
             applyAutoOrganize: (ruleIds?: string[]) => Promise<AutoOrganizeApplyResult>;
+            dryRunAutoOrganizeRollback: (runId: string) => Promise<AutoOrganizeRollbackPreviewResult>;
+            applyAutoOrganizeRollback: (runId: string) => Promise<AutoOrganizeRollbackApplyResult>;
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
 
             // Duplicate Detection

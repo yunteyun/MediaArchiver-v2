@@ -1,11 +1,16 @@
 import { ipcMain } from 'electron';
 import {
     applyAutoOrganize,
+    applyAutoOrganizeRollback,
     createAutoOrganizeRule,
     deleteAutoOrganizeRule,
     dryRunAutoOrganize,
+    dryRunAutoOrganizeRollback,
     getAllAutoOrganizeRules,
+    getAutoOrganizeRuns,
+    getAutoOrganizeSettings,
     updateAutoOrganizeRule,
+    updateAutoOrganizeSettings,
 } from '../services/autoOrganizeService';
 import { logger } from '../services/logger';
 
@@ -16,11 +21,24 @@ export function registerAutoOrganizeHandlers(): void {
         return getAllAutoOrganizeRules();
     });
 
+    ipcMain.handle('autoOrganize:getSettings', async () => {
+        return getAutoOrganizeSettings();
+    });
+
+    ipcMain.handle('autoOrganize:updateSettings', async (_event, updates) => {
+        return updateAutoOrganizeSettings(updates || {});
+    });
+
+    ipcMain.handle('autoOrganize:getRuns', async (_event, limit?: number) => {
+        return getAutoOrganizeRuns(limit);
+    });
+
     ipcMain.handle('autoOrganize:create', async (_event, payload: {
         name: string;
         enabled?: boolean;
         condition?: unknown;
         action?: unknown;
+        automation?: unknown;
     }) => {
         try {
             return createAutoOrganizeRule(payload);
@@ -37,6 +55,7 @@ export function registerAutoOrganizeHandlers(): void {
             enabled?: boolean;
             condition?: unknown;
             action?: unknown;
+            automation?: unknown;
             sortOrder?: number;
         };
     }) => {
@@ -58,5 +77,13 @@ export function registerAutoOrganizeHandlers(): void {
 
     ipcMain.handle('autoOrganize:apply', async (_event, ruleIds?: string[]) => {
         return applyAutoOrganize(ruleIds);
+    });
+
+    ipcMain.handle('autoOrganize:rollbackDryRun', async (_event, runId: string) => {
+        return dryRunAutoOrganizeRollback(runId);
+    });
+
+    ipcMain.handle('autoOrganize:rollbackApply', async (_event, runId: string) => {
+        return applyAutoOrganizeRollback(runId);
     });
 }

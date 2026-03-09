@@ -3,6 +3,7 @@ import path from 'path';
 import { logger } from './logger';
 import { getWatchNewFilesFolders, type MediaFolder } from './database';
 import { scanDirectory } from './scanner';
+import { runAutoOrganizeForScan } from './autoOrganizeService';
 
 const log = logger.scope('FolderWatch');
 
@@ -50,6 +51,16 @@ async function runFolderScan(folder: MediaFolder, reason: string) {
         await scanDirectory(folder.path, folder.id, undefined, undefined, {
             skipInitialCount: true,
         });
+        const autoRunResult = await runAutoOrganizeForScan({
+            triggerSource: 'watch_scan',
+            rootFolderId: folder.id,
+            scanPath: folder.path,
+        });
+        if (autoRunResult?.success && autoRunResult.appliedCount > 0) {
+            log.info(`Auto organize applied after watch scan: ${folder.path} (${autoRunResult.appliedCount} items)`);
+        } else if (autoRunResult && !autoRunResult.success) {
+            log.warn(`Auto organize after watch scan failed: ${folder.path}`, autoRunResult.error);
+        }
     } catch (error) {
         log.warn(`Live rescan failed: ${folder.path}`, error);
     } finally {

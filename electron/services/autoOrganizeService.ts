@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { buildAutoOrganizeRenamePreview } from '../../src/shared/autoOrganizeRename';
@@ -9,8 +10,16 @@ import type {
     AutoOrganizeConditionV1,
     AutoOrganizeDryRunEntry,
     AutoOrganizeDryRunResult,
+    AutoOrganizeRollbackApplyEntry,
+    AutoOrganizeRollbackApplyResult,
+    AutoOrganizeRollbackPreviewEntry,
+    AutoOrganizeRollbackPreviewResult,
     AutoOrganizeRuleSummary,
     AutoOrganizeRuleV1,
+    AutoOrganizeRunEntryV1,
+    AutoOrganizeRunSummary,
+    AutoOrganizeSettingsV1,
+    AutoOrganizeTriggerSource,
 } from '../../src/types/autoOrganize';
 import type { MediaFile } from './database';
 import { dbManager } from './databaseManager';
@@ -24,6 +33,7 @@ import { relocateFile, validateNewFileName } from './fileOperationService';
 const log = logger.scope('AutoOrganize');
 
 const AUTO_ORGANIZE_RULES_KEY = 'auto_organize_rules_v1';
+const AUTO_ORGANIZE_SETTINGS_KEY = 'auto_organize_settings_v1';
 const ALL_FILES_ID = '__all__';
 const DRIVE_PREFIX = '__drive:';
 const FOLDER_PREFIX = '__folder:';
@@ -31,6 +41,16 @@ const VIRTUAL_FOLDER_PREFIX = '__vfolder:';
 const VIRTUAL_FOLDER_RECURSIVE_PREFIX = '__vfolderr:';
 const ALL_FILE_TYPES: AutoOrganizeConditionV1['types'] = ['video', 'image', 'archive', 'audio'];
 const PREVIEW_ENTRY_LIMIT = 200;
+const DEFAULT_HISTORY_LIMIT = 20;
+const MAX_HISTORY_LIMIT = 100;
+
+const DEFAULT_SETTINGS: AutoOrganizeSettingsV1 = {
+    enabled: false,
+    runOnManualScan: false,
+    runOnStartupScan: false,
+    runOnWatchScan: true,
+    historyLimit: DEFAULT_HISTORY_LIMIT,
+};
 
 interface AutoOrganizeRuleStoreV1 {
     version: 1;
@@ -42,17 +62,86 @@ interface SearchConditionLike {
     target: 'fileName' | 'folderName';
 }
 
+interface EvaluateRulesOptions {
+    restrictRootFolderId?: string;
+    onlyAutoRunRules?: boolean;
+}
+
+interface EvaluatedReadyEntry extends AutoOrganizeDryRunEntry {
+    sourceFileName: string;
+    targetFileName: string;
+    sourceRootFolderId: string;
+    targetRootFolderId: string;
+}
+
 interface EvaluatedRuleAssignments {
     generatedAt: number;
     ruleIds: string[];
+    ruleNames: string[];
     summaries: AutoOrganizeRuleSummary[];
     entries: AutoOrganizeDryRunEntry[];
     truncated: boolean;
-    readyEntries: AutoOrganizeDryRunEntry[];
+    readyEntries: EvaluatedReadyEntry[];
     totalMatchedCount: number;
     totalReadyCount: number;
     totalConflictCount: number;
     totalSkippedCount: number;
+    restrictRootFolderId?: string;
+}
+
+interface AutoOrganizeRunRow {
+    id: string;
+    trigger_source: string;
+    root_folder_id: string | null;
+    scan_path: string | null;
+    rule_ids_json: string;
+    rule_names_json: string;
+    applied_count: number;
+    failed_count: number;
+    skipped_count: number;
+    created_at: number;
+}
+
+interface AutoOrganizeRunEntryRow {
+    id: string;
+    run_id: string;
+    created_at: number;
+    file_id: string;
+    file_name: string;
+    source_path: string;
+    target_path: string;
+    source_file_name: string;
+    target_file_name: string;
+    source_root_folder_id: string;
+    target_root_folder_id: string;
+    rule_id: string;
+    rule_name: string;
+    action_kind: string;
+}
+
+interface ApplyAutoOrganizeOptions extends EvaluateRulesOptions {
+    triggerSource: AutoOrganizeTriggerSource;
+    scanPath?: string;
+}
+
+interface RunHistoryRecordInput {
+    triggerSource: AutoOrganizeTriggerSource;
+    rootFolderId?: string;
+    scanPath?: string;
+    ruleIds: string[];
+    ruleNames: string[];
+    appliedCount: number;
+    failedCount: number;
+    skippedCount: number;
+    appliedEntries: EvaluatedReadyEntry[];
+}
+
+let operationQueue: Promise<void> = Promise.resolve();
+
+function queueAutoOrganizeOperation<T>(task: () => Promise<T>): Promise<T> {
+    const next = operationQueue.catch(() => undefined).then(task);
+    operationQueue = next.then(() => undefined, () => undefined);
+    return next;
 }
 
 function ensureProfileSettingsTable(): void {
@@ -63,6 +152,46 @@ function ensureProfileSettingsTable(): void {
             value TEXT NOT NULL,
             updated_at INTEGER NOT NULL
         )
+    `);
+}
+
+function ensureRunHistoryTables(): void {
+    const db = dbManager.getDb();
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS auto_organize_runs (
+            id TEXT PRIMARY KEY,
+            trigger_source TEXT NOT NULL,
+            root_folder_id TEXT,
+            scan_path TEXT,
+            rule_ids_json TEXT NOT NULL,
+            rule_names_json TEXT NOT NULL,
+            applied_count INTEGER NOT NULL,
+            failed_count INTEGER NOT NULL,
+            skipped_count INTEGER NOT NULL,
+            created_at INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS auto_organize_run_entries (
+            id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            file_id TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            source_path TEXT NOT NULL,
+            target_path TEXT NOT NULL,
+            source_file_name TEXT NOT NULL,
+            target_file_name TEXT NOT NULL,
+            source_root_folder_id TEXT NOT NULL,
+            target_root_folder_id TEXT NOT NULL,
+            rule_id TEXT NOT NULL,
+            rule_name TEXT NOT NULL,
+            action_kind TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_auto_organize_runs_created_at
+            ON auto_organize_runs (created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_auto_organize_run_entries_run_id
+            ON auto_organize_run_entries (run_id, created_at DESC);
     `);
 }
 
@@ -163,6 +292,16 @@ function normalizeAction(input: unknown) {
     };
 }
 
+function normalizeAutomation(input: unknown): AutoOrganizeRuleV1['automation'] {
+    const candidate = input && typeof input === 'object'
+        ? (input as Partial<AutoOrganizeRuleV1['automation']>)
+        : {};
+
+    return {
+        runOnScanComplete: candidate.runOnScanComplete === true,
+    };
+}
+
 function normalizeRule(input: unknown, index: number): AutoOrganizeRuleV1 | null {
     if (!input || typeof input !== 'object') return null;
     const candidate = input as Partial<AutoOrganizeRuleV1>;
@@ -186,6 +325,7 @@ function normalizeRule(input: unknown, index: number): AutoOrganizeRuleV1 | null
         enabled: candidate.enabled !== false,
         condition: normalizeCondition(candidate.condition),
         action: normalizeAction(candidate.action),
+        automation: normalizeAutomation(candidate.automation),
         sortOrder,
         createdAt,
         updatedAt,
@@ -202,6 +342,21 @@ function normalizeStore(input: unknown): AutoOrganizeRuleStoreV1 {
         .map((item, index) => ({ ...item, sortOrder: index }));
 
     return { version: 1, items };
+}
+
+function normalizeSettings(input: unknown): AutoOrganizeSettingsV1 {
+    const candidate = input && typeof input === 'object' ? (input as Partial<AutoOrganizeSettingsV1>) : {};
+    const historyLimitCandidate = typeof candidate.historyLimit === 'number' && Number.isFinite(candidate.historyLimit)
+        ? Math.max(1, Math.min(MAX_HISTORY_LIMIT, Math.floor(candidate.historyLimit)))
+        : DEFAULT_HISTORY_LIMIT;
+
+    return {
+        enabled: candidate.enabled === true,
+        runOnManualScan: candidate.runOnManualScan === true,
+        runOnStartupScan: candidate.runOnStartupScan === true,
+        runOnWatchScan: candidate.runOnWatchScan === true,
+        historyLimit: historyLimitCandidate,
+    };
 }
 
 function readStore(): AutoOrganizeRuleStoreV1 {
@@ -227,6 +382,34 @@ function writeStore(store: AutoOrganizeRuleStoreV1): void {
         VALUES (?, ?, ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
     `).run(AUTO_ORGANIZE_RULES_KEY, JSON.stringify(store), now);
+}
+
+function readSettings(): AutoOrganizeSettingsV1 {
+    ensureProfileSettingsTable();
+    const db = dbManager.getDb();
+    const row = db.prepare('SELECT value FROM profile_settings WHERE key = ?').get(AUTO_ORGANIZE_SETTINGS_KEY) as { value: string } | undefined;
+    if (!row) return { ...DEFAULT_SETTINGS };
+
+    try {
+        return normalizeSettings(JSON.parse(row.value));
+    } catch (error) {
+        log.warn('Failed to parse auto organize settings. Fallback to defaults.', error);
+        return { ...DEFAULT_SETTINGS };
+    }
+}
+
+function writeSettings(settings: AutoOrganizeSettingsV1): AutoOrganizeSettingsV1 {
+    ensureProfileSettingsTable();
+    const normalized = normalizeSettings(settings);
+    const db = dbManager.getDb();
+    const now = Date.now();
+    db.prepare(`
+        INSERT INTO profile_settings (key, value, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    `).run(AUTO_ORGANIZE_SETTINGS_KEY, JSON.stringify(normalized), now);
+    pruneRunHistory(normalized.historyLimit);
+    return normalized;
 }
 
 function normalizePathForCompare(value: string): string {
@@ -364,10 +547,16 @@ function buildRuleTarget(
     targetPath: string;
     targetFolderId: string;
     targetFolderName: string;
+    sourceFileName: string;
+    targetFileName: string;
+    sourceRootFolderId: string;
+    targetRootFolderId: string;
     status?: AutoOrganizeDryRunEntry['status'];
     reason?: string;
 } {
     const actionKind = getRuleActionKind(rule.action);
+    const sourceFileName = path.basename(file.path);
+    const sourceRootFolderId = file.root_folder_id ?? '';
 
     if (rule.action.move.enabled && !targetFolder) {
         return {
@@ -375,20 +564,28 @@ function buildRuleTarget(
             targetPath: file.path,
             targetFolderId: rule.action.move.targetFolderId,
             targetFolderName: '未登録フォルダ',
+            sourceFileName,
+            targetFileName: sourceFileName,
+            sourceRootFolderId,
+            targetRootFolderId: rule.action.move.targetFolderId,
             status: 'skipped_missing_target',
             reason: '移動先フォルダが見つかりません',
         };
     }
 
-    let nextFileName = path.basename(file.path);
+    let nextFileName = sourceFileName;
     if (rule.action.rename.enabled) {
         const preview = buildAutoOrganizeRenamePreview(file, rule.action.rename.template);
         if (!preview.baseName.trim()) {
             return {
                 actionKind,
                 targetPath: file.path,
-                targetFolderId: targetFolder?.id ?? file.root_folder_id ?? '',
+                targetFolderId: targetFolder?.id ?? sourceRootFolderId,
                 targetFolderName: targetFolder?.name ?? path.basename(path.dirname(file.path)),
+                sourceFileName,
+                targetFileName: sourceFileName,
+                sourceRootFolderId,
+                targetRootFolderId: targetFolder?.id ?? sourceRootFolderId,
                 status: 'skipped_invalid_name',
                 reason: 'リネーム結果が空になります',
             };
@@ -399,8 +596,12 @@ function buildRuleTarget(
             return {
                 actionKind,
                 targetPath: file.path,
-                targetFolderId: targetFolder?.id ?? file.root_folder_id ?? '',
+                targetFolderId: targetFolder?.id ?? sourceRootFolderId,
                 targetFolderName: targetFolder?.name ?? path.basename(path.dirname(file.path)),
+                sourceFileName,
+                targetFileName: sourceFileName,
+                sourceRootFolderId,
+                targetRootFolderId: targetFolder?.id ?? sourceRootFolderId,
                 status: 'skipped_invalid_name',
                 reason: nameValidationError,
             };
@@ -413,8 +614,12 @@ function buildRuleTarget(
     return {
         actionKind,
         targetPath: path.join(targetDir, nextFileName),
-        targetFolderId: targetFolder?.id ?? file.root_folder_id ?? '',
+        targetFolderId: targetFolder?.id ?? sourceRootFolderId,
         targetFolderName: targetFolder?.name ?? path.basename(targetDir),
+        sourceFileName,
+        targetFileName: nextFileName,
+        sourceRootFolderId,
+        targetRootFolderId: targetFolder?.id ?? sourceRootFolderId,
     };
 }
 
@@ -424,11 +629,56 @@ function findConflictFileByPath(targetPath: string, sourceFileId: string): Media
     return existing ?? null;
 }
 
-function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
+function parseJsonStringArray(input: string): string[] {
+    try {
+        const parsed = JSON.parse(input);
+        return Array.isArray(parsed)
+            ? parsed.filter((item): item is string => typeof item === 'string')
+            : [];
+    } catch {
+        return [];
+    }
+}
+
+function toRunSummary(row: AutoOrganizeRunRow): AutoOrganizeRunSummary {
+    return {
+        id: row.id,
+        createdAt: row.created_at,
+        triggerSource: (row.trigger_source as AutoOrganizeTriggerSource) || 'manual',
+        rootFolderId: row.root_folder_id,
+        scanPath: row.scan_path,
+        ruleIds: parseJsonStringArray(row.rule_ids_json),
+        ruleNames: parseJsonStringArray(row.rule_names_json),
+        appliedCount: row.applied_count,
+        failedCount: row.failed_count,
+        skippedCount: row.skipped_count,
+    };
+}
+
+function toRunEntry(row: AutoOrganizeRunEntryRow): AutoOrganizeRunEntryV1 {
+    return {
+        id: row.id,
+        runId: row.run_id,
+        createdAt: row.created_at,
+        fileId: row.file_id,
+        fileName: row.file_name,
+        sourcePath: row.source_path,
+        targetPath: row.target_path,
+        sourceFileName: row.source_file_name,
+        targetFileName: row.target_file_name,
+        sourceRootFolderId: row.source_root_folder_id,
+        targetRootFolderId: row.target_root_folder_id,
+        ruleId: row.rule_id,
+        ruleName: row.rule_name,
+        actionKind: row.action_kind as AutoOrganizeActionKind,
+    };
+}
+
+function evaluateRules(ruleIds?: string[], options: EvaluateRulesOptions = {}): EvaluatedRuleAssignments {
     const store = readStore();
     const selectedRules = (Array.isArray(ruleIds) && ruleIds.length > 0
         ? store.items.filter((rule) => ruleIds.includes(rule.id))
-        : store.items.filter((rule) => rule.enabled)
+        : store.items.filter((rule) => rule.enabled && (!options.onlyAutoRunRules || rule.automation.runOnScanComplete))
     )
         .sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -436,6 +686,7 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
         return {
             generatedAt: Date.now(),
             ruleIds: [],
+            ruleNames: [],
             summaries: [],
             entries: [],
             truncated: false,
@@ -444,10 +695,13 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
             totalReadyCount: 0,
             totalConflictCount: 0,
             totalSkippedCount: 0,
+            restrictRootFolderId: options.restrictRootFolderId,
         };
     }
 
-    const allFiles = getFiles();
+    const allFiles = options.restrictRootFolderId
+        ? getFiles().filter((file) => file.root_folder_id === options.restrictRootFolderId)
+        : getFiles();
     const allFileTagIds = getAllFileTagIds();
     const fileTagCache = new Map<string, string[]>(Object.entries(allFileTagIds));
     const fileRatings = getAllFileRatings();
@@ -458,7 +712,7 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
     const assignedFileIds = new Set<string>();
     const summariesMap = new Map<string, AutoOrganizeRuleSummary>();
     const entries: AutoOrganizeDryRunEntry[] = [];
-    const readyEntries: AutoOrganizeDryRunEntry[] = [];
+    const readyEntries: EvaluatedReadyEntry[] = [];
     let truncated = false;
     let totalMatchedCount = 0;
     let totalReadyCount = 0;
@@ -567,7 +821,7 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
                 } else {
                     summary.readyCount += 1;
                     totalReadyCount += 1;
-                    entry = {
+                    const readyEntry: EvaluatedReadyEntry = {
                         ruleId: rule.id,
                         ruleName: rule.name,
                         fileId: file.id,
@@ -578,8 +832,13 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
                         targetFolderName: plannedTarget.targetFolderName,
                         actionKind: plannedTarget.actionKind,
                         status: 'ready',
+                        sourceFileName: plannedTarget.sourceFileName,
+                        targetFileName: plannedTarget.targetFileName,
+                        sourceRootFolderId: plannedTarget.sourceRootFolderId,
+                        targetRootFolderId: plannedTarget.targetRootFolderId,
                     };
-                    readyEntries.push(entry);
+                    readyEntries.push(readyEntry);
+                    entry = readyEntry;
                 }
             }
 
@@ -594,6 +853,7 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
     return {
         generatedAt: Date.now(),
         ruleIds: selectedRules.map((rule) => rule.id),
+        ruleNames: selectedRules.map((rule) => rule.name),
         summaries: selectedRules.map((rule) => summariesMap.get(rule.id) ?? createEmptySummary(rule)),
         entries,
         truncated,
@@ -602,6 +862,7 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
         totalReadyCount,
         totalConflictCount,
         totalSkippedCount,
+        restrictRootFolderId: options.restrictRootFolderId,
     };
 }
 
@@ -613,8 +874,116 @@ function requireTargetFolder(targetFolderId: string): MediaFolder {
     return targetFolder;
 }
 
+function pruneRunHistory(limit: number): void {
+    ensureRunHistoryTables();
+    const db = dbManager.getDb();
+    const idsToDelete = (db.prepare(`
+        SELECT id
+        FROM auto_organize_runs
+        ORDER BY created_at DESC
+        LIMIT -1 OFFSET ?
+    `).all(limit) as Array<{ id: string }>).map((row) => row.id);
+
+    if (idsToDelete.length === 0) return;
+
+    const deleteEntryStmt = db.prepare('DELETE FROM auto_organize_run_entries WHERE run_id = ?');
+    const deleteRunStmt = db.prepare('DELETE FROM auto_organize_runs WHERE id = ?');
+    const transaction = db.transaction((runIds: string[]) => {
+        runIds.forEach((runId) => {
+            deleteEntryStmt.run(runId);
+            deleteRunStmt.run(runId);
+        });
+    });
+    transaction(idsToDelete);
+}
+
+function recordRunHistory(input: RunHistoryRecordInput): void {
+    if (input.ruleIds.length === 0) return;
+    if (input.appliedCount === 0 && input.failedCount === 0 && input.skippedCount === 0) return;
+
+    ensureRunHistoryTables();
+    const db = dbManager.getDb();
+    const runId = uuidv4();
+    const now = Date.now();
+
+    const insertRunStmt = db.prepare(`
+        INSERT INTO auto_organize_runs (
+            id, trigger_source, root_folder_id, scan_path, rule_ids_json, rule_names_json,
+            applied_count, failed_count, skipped_count, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const insertEntryStmt = db.prepare(`
+        INSERT INTO auto_organize_run_entries (
+            id, run_id, created_at, file_id, file_name, source_path, target_path,
+            source_file_name, target_file_name, source_root_folder_id, target_root_folder_id,
+            rule_id, rule_name, action_kind
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const transaction = db.transaction(() => {
+        insertRunStmt.run(
+            runId,
+            input.triggerSource,
+            input.rootFolderId ?? null,
+            input.scanPath ?? null,
+            JSON.stringify(input.ruleIds),
+            JSON.stringify(input.ruleNames),
+            input.appliedCount,
+            input.failedCount,
+            input.skippedCount,
+            now
+        );
+
+        input.appliedEntries.forEach((entry, index) => {
+            insertEntryStmt.run(
+                uuidv4(),
+                runId,
+                now + index,
+                entry.fileId,
+                entry.fileName,
+                entry.sourcePath,
+                entry.targetPath,
+                entry.sourceFileName,
+                entry.targetFileName,
+                entry.sourceRootFolderId,
+                entry.targetRootFolderId,
+                entry.ruleId,
+                entry.ruleName,
+                entry.actionKind
+            );
+        });
+    });
+    transaction();
+    pruneRunHistory(readSettings().historyLimit);
+}
+
 export function getAllAutoOrganizeRules(): AutoOrganizeRuleV1[] {
     return readStore().items;
+}
+
+export function getAutoOrganizeSettings(): AutoOrganizeSettingsV1 {
+    return readSettings();
+}
+
+export function updateAutoOrganizeSettings(updates: Partial<AutoOrganizeSettingsV1>): AutoOrganizeSettingsV1 {
+    return writeSettings({
+        ...readSettings(),
+        ...updates,
+    });
+}
+
+export function getAutoOrganizeRuns(limit = DEFAULT_HISTORY_LIMIT): AutoOrganizeRunSummary[] {
+    ensureRunHistoryTables();
+    const db = dbManager.getDb();
+    const normalizedLimit = Math.max(1, Math.min(MAX_HISTORY_LIMIT, Math.floor(limit || DEFAULT_HISTORY_LIMIT)));
+    const rows = db.prepare(`
+        SELECT *
+        FROM auto_organize_runs
+        ORDER BY created_at DESC
+        LIMIT ?
+    `).all(normalizedLimit) as AutoOrganizeRunRow[];
+
+    return rows.map(toRunSummary);
 }
 
 export function createAutoOrganizeRule(input: {
@@ -622,6 +991,7 @@ export function createAutoOrganizeRule(input: {
     enabled?: boolean;
     condition?: unknown;
     action?: unknown;
+    automation?: unknown;
 }): AutoOrganizeRuleV1 {
     const name = typeof input.name === 'string' ? input.name.trim() : '';
     if (!name) {
@@ -642,6 +1012,7 @@ export function createAutoOrganizeRule(input: {
         enabled: input.enabled !== false,
         condition: normalizeCondition(input.condition),
         action,
+        automation: normalizeAutomation(input.automation),
         sortOrder: store.items.length,
         createdAt: now,
         updatedAt: now,
@@ -659,6 +1030,7 @@ export function updateAutoOrganizeRule(input: {
         enabled?: boolean;
         condition?: unknown;
         action?: unknown;
+        automation?: unknown;
         sortOrder?: number;
     };
 }): AutoOrganizeRuleV1 {
@@ -688,6 +1060,7 @@ export function updateAutoOrganizeRule(input: {
         enabled: typeof input.updates.enabled === 'boolean' ? input.updates.enabled : current.enabled,
         condition: input.updates.condition === undefined ? current.condition : normalizeCondition(input.updates.condition),
         action: nextAction,
+        automation: input.updates.automation === undefined ? current.automation : normalizeAutomation(input.updates.automation),
         sortOrder: typeof input.updates.sortOrder === 'number' && Number.isFinite(input.updates.sortOrder)
             ? Math.max(0, Math.floor(input.updates.sortOrder))
             : current.sortOrder,
@@ -755,54 +1128,189 @@ export function dryRunAutoOrganize(ruleIds?: string[]): AutoOrganizeDryRunResult
     }
 }
 
-export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganizeApplyResult> {
-    try {
-        const evaluated = evaluateRules(ruleIds);
-        const entries: AutoOrganizeApplyEntry[] = [];
-        let truncated = false;
-        let appliedCount = 0;
-        let failedCount = 0;
-        let skippedCount = evaluated.totalSkippedCount + evaluated.totalConflictCount;
+function shouldAutoRunForTrigger(settings: AutoOrganizeSettingsV1, triggerSource: AutoOrganizeTriggerSource): boolean {
+    if (!settings.enabled) return false;
+    if (triggerSource === 'manual_scan') return settings.runOnManualScan;
+    if (triggerSource === 'startup_scan') return settings.runOnStartupScan;
+    if (triggerSource === 'watch_scan') return settings.runOnWatchScan;
+    return false;
+}
 
-        for (const readyEntry of evaluated.readyEntries) {
-            const relocateResult = await relocateFile(readyEntry.sourcePath, readyEntry.targetPath);
-            if (relocateResult.success) {
-                const nextFileName = path.basename(readyEntry.targetPath);
-                if (readyEntry.actionKind === 'move') {
-                    updateFileLocation(readyEntry.fileId, readyEntry.targetPath, readyEntry.targetFolderId);
-                } else if (readyEntry.actionKind === 'rename') {
-                    updateFileNameAndPath(readyEntry.fileId, nextFileName, readyEntry.targetPath);
-                } else {
-                    updateFileLocation(readyEntry.fileId, readyEntry.targetPath, readyEntry.targetFolderId);
-                    updateFileNameAndPath(readyEntry.fileId, nextFileName, readyEntry.targetPath);
-                }
+function getRunSummaryOrThrow(runId: string): AutoOrganizeRunSummary {
+    ensureRunHistoryTables();
+    const db = dbManager.getDb();
+    const row = db.prepare(`
+        SELECT *
+        FROM auto_organize_runs
+        WHERE id = ?
+    `).get(runId) as AutoOrganizeRunRow | undefined;
 
-                appliedCount += 1;
-                void logActivity(readyEntry.actionKind === 'rename' ? 'file_rename' : 'file_move', readyEntry.fileId, readyEntry.fileName, {
-                    sourcePath: readyEntry.sourcePath,
-                    targetPath: readyEntry.targetPath,
-                    ruleId: readyEntry.ruleId,
-                    ruleName: readyEntry.ruleName,
-                    actionKind: readyEntry.actionKind,
-                });
-                if (entries.length < PREVIEW_ENTRY_LIMIT) {
-                    entries.push({
-                        ruleId: readyEntry.ruleId,
-                        ruleName: readyEntry.ruleName,
-                        fileId: readyEntry.fileId,
-                        fileName: readyEntry.fileName,
-                        sourcePath: readyEntry.sourcePath,
-                        targetPath: readyEntry.targetPath,
-                        actionKind: readyEntry.actionKind,
-                        status: 'applied',
-                    });
-                } else {
-                    truncated = true;
-                }
-                continue;
+    if (!row) {
+        throw new Error('自動整理の実行履歴が見つかりません');
+    }
+
+    return toRunSummary(row);
+}
+
+function getRunEntries(runId: string): AutoOrganizeRunEntryV1[] {
+    ensureRunHistoryTables();
+    const db = dbManager.getDb();
+    const rows = db.prepare(`
+        SELECT *
+        FROM auto_organize_run_entries
+        WHERE run_id = ?
+        ORDER BY created_at DESC
+    `).all(runId) as AutoOrganizeRunEntryRow[];
+
+    return rows.map(toRunEntry);
+}
+
+function evaluateRollback(runId: string): {
+    generatedAt: number;
+    runId: string;
+    entries: AutoOrganizeRollbackPreviewEntry[];
+    readyEntries: AutoOrganizeRunEntryV1[];
+    truncated: boolean;
+    readyCount: number;
+    conflictCount: number;
+    skippedCount: number;
+} {
+    const historyEntries = getRunEntries(runId);
+    const currentFilesById = new Map(getFiles().map((file) => [file.id, file]));
+    const previewEntries: AutoOrganizeRollbackPreviewEntry[] = [];
+    const readyEntries: AutoOrganizeRunEntryV1[] = [];
+    let truncated = false;
+    let readyCount = 0;
+    let conflictCount = 0;
+    let skippedCount = 0;
+
+    historyEntries.forEach((entry) => {
+        const currentFile = currentFilesById.get(entry.fileId);
+        let previewEntry: AutoOrganizeRollbackPreviewEntry;
+
+        if (!currentFile || normalizePathForCompare(currentFile.path) !== normalizePathForCompare(entry.targetPath)) {
+            conflictCount += 1;
+            previewEntry = {
+                entryId: entry.id,
+                runId,
+                fileId: entry.fileId,
+                fileName: entry.fileName,
+                sourcePath: entry.targetPath,
+                targetPath: entry.sourcePath,
+                actionKind: entry.actionKind,
+                status: 'conflict',
+                reason: '現在のファイル位置が履歴と一致しません',
+            };
+        } else if (!fs.existsSync(entry.targetPath)) {
+            skippedCount += 1;
+            previewEntry = {
+                entryId: entry.id,
+                runId,
+                fileId: entry.fileId,
+                fileName: entry.fileName,
+                sourcePath: entry.targetPath,
+                targetPath: entry.sourcePath,
+                actionKind: entry.actionKind,
+                status: 'skipped_missing_current',
+                reason: '戻し元のファイルが見つかりません',
+            };
+        } else if (!fs.existsSync(path.dirname(entry.sourcePath))) {
+            skippedCount += 1;
+            previewEntry = {
+                entryId: entry.id,
+                runId,
+                fileId: entry.fileId,
+                fileName: entry.fileName,
+                sourcePath: entry.targetPath,
+                targetPath: entry.sourcePath,
+                actionKind: entry.actionKind,
+                status: 'skipped_missing_source_parent',
+                reason: '元のフォルダが見つかりません',
+            };
+        } else if (
+            normalizePathForCompare(entry.sourcePath) !== normalizePathForCompare(entry.targetPath)
+            && fs.existsSync(entry.sourcePath)
+        ) {
+            conflictCount += 1;
+            previewEntry = {
+                entryId: entry.id,
+                runId,
+                fileId: entry.fileId,
+                fileName: entry.fileName,
+                sourcePath: entry.targetPath,
+                targetPath: entry.sourcePath,
+                actionKind: entry.actionKind,
+                status: 'conflict',
+                reason: '元の場所に別ファイルが存在します',
+            };
+        } else {
+            readyCount += 1;
+            readyEntries.push(entry);
+            previewEntry = {
+                entryId: entry.id,
+                runId,
+                fileId: entry.fileId,
+                fileName: entry.fileName,
+                sourcePath: entry.targetPath,
+                targetPath: entry.sourcePath,
+                actionKind: entry.actionKind,
+                status: 'ready',
+            };
+        }
+
+        if (previewEntries.length < PREVIEW_ENTRY_LIMIT) {
+            previewEntries.push(previewEntry);
+        } else {
+            truncated = true;
+        }
+    });
+
+    return {
+        generatedAt: Date.now(),
+        runId,
+        entries: previewEntries,
+        readyEntries,
+        truncated,
+        readyCount,
+        conflictCount,
+        skippedCount,
+    };
+}
+
+async function applyAutoOrganizeInternal(ruleIds: string[] | undefined, options: ApplyAutoOrganizeOptions): Promise<AutoOrganizeApplyResult> {
+    const evaluated = evaluateRules(ruleIds, {
+        restrictRootFolderId: options.restrictRootFolderId,
+        onlyAutoRunRules: false,
+    });
+    const entries: AutoOrganizeApplyEntry[] = [];
+    const appliedEntriesForHistory: EvaluatedReadyEntry[] = [];
+    let truncated = false;
+    let appliedCount = 0;
+    let failedCount = 0;
+    const skippedCount = evaluated.totalSkippedCount + evaluated.totalConflictCount;
+
+    for (const readyEntry of evaluated.readyEntries) {
+        const relocateResult = await relocateFile(readyEntry.sourcePath, readyEntry.targetPath);
+        if (relocateResult.success) {
+            if (readyEntry.actionKind === 'move') {
+                updateFileLocation(readyEntry.fileId, readyEntry.targetPath, readyEntry.targetRootFolderId);
+            } else if (readyEntry.actionKind === 'rename') {
+                updateFileNameAndPath(readyEntry.fileId, readyEntry.targetFileName, readyEntry.targetPath);
+            } else {
+                updateFileLocation(readyEntry.fileId, readyEntry.targetPath, readyEntry.targetRootFolderId);
+                updateFileNameAndPath(readyEntry.fileId, readyEntry.targetFileName, readyEntry.targetPath);
             }
 
-            failedCount += 1;
+            appliedCount += 1;
+            appliedEntriesForHistory.push(readyEntry);
+            void logActivity(readyEntry.actionKind === 'rename' ? 'file_rename' : 'file_move', readyEntry.fileId, readyEntry.fileName, {
+                sourcePath: readyEntry.sourcePath,
+                targetPath: readyEntry.targetPath,
+                ruleId: readyEntry.ruleId,
+                ruleName: readyEntry.ruleName,
+                actionKind: readyEntry.actionKind,
+                triggerSource: options.triggerSource,
+            });
             if (entries.length < PREVIEW_ENTRY_LIMIT) {
                 entries.push({
                     ruleId: readyEntry.ruleId,
@@ -812,56 +1320,287 @@ export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganiz
                     sourcePath: readyEntry.sourcePath,
                     targetPath: readyEntry.targetPath,
                     actionKind: readyEntry.actionKind,
-                    status: 'failed',
-                    reason: relocateResult.error ?? '自動整理の適用に失敗しました',
+                    status: 'applied',
                 });
             } else {
                 truncated = true;
             }
+            continue;
         }
 
-        evaluated.entries.forEach((entry) => {
-            if (entry.status === 'ready') return;
-            if (entries.length < PREVIEW_ENTRY_LIMIT) {
-                entries.push({
-                    ruleId: entry.ruleId,
-                    ruleName: entry.ruleName,
-                    fileId: entry.fileId,
-                    fileName: entry.fileName,
-                    sourcePath: entry.sourcePath,
-                    targetPath: entry.targetPath,
-                    actionKind: entry.actionKind,
-                    status: 'skipped',
-                    reason: entry.reason,
-                });
-            } else {
-                truncated = true;
-            }
-        });
+        failedCount += 1;
+        if (entries.length < PREVIEW_ENTRY_LIMIT) {
+            entries.push({
+                ruleId: readyEntry.ruleId,
+                ruleName: readyEntry.ruleName,
+                fileId: readyEntry.fileId,
+                fileName: readyEntry.fileName,
+                sourcePath: readyEntry.sourcePath,
+                targetPath: readyEntry.targetPath,
+                actionKind: readyEntry.actionKind,
+                status: 'failed',
+                reason: relocateResult.error ?? '自動整理の適用に失敗しました',
+            });
+        } else {
+            truncated = true;
+        }
+    }
 
+    evaluated.entries.forEach((entry) => {
+        if (entry.status === 'ready') return;
+        if (entries.length < PREVIEW_ENTRY_LIMIT) {
+            entries.push({
+                ruleId: entry.ruleId,
+                ruleName: entry.ruleName,
+                fileId: entry.fileId,
+                fileName: entry.fileName,
+                sourcePath: entry.sourcePath,
+                targetPath: entry.targetPath,
+                actionKind: entry.actionKind,
+                status: 'skipped',
+                reason: entry.reason,
+            });
+        } else {
+            truncated = true;
+        }
+    });
+
+    recordRunHistory({
+        triggerSource: options.triggerSource,
+        rootFolderId: options.restrictRootFolderId,
+        scanPath: options.scanPath,
+        ruleIds: evaluated.ruleIds,
+        ruleNames: evaluated.ruleNames,
+        appliedCount,
+        failedCount,
+        skippedCount,
+        appliedEntries: appliedEntriesForHistory,
+    });
+
+    return {
+        success: true,
+        appliedAt: Date.now(),
+        ruleIds: evaluated.ruleIds,
+        appliedCount,
+        failedCount,
+        skippedCount,
+        entries,
+        truncated,
+    };
+}
+
+export function dryRunAutoOrganizeRollback(runId: string): AutoOrganizeRollbackPreviewResult {
+    try {
+        getRunSummaryOrThrow(runId);
+        const evaluated = evaluateRollback(runId);
         return {
             success: true,
-            appliedAt: Date.now(),
-            ruleIds: evaluated.ruleIds,
-            appliedCount,
-            failedCount,
-            skippedCount,
-            entries,
-            truncated,
+            runId,
+            generatedAt: evaluated.generatedAt,
+            totalEntryCount: evaluated.readyCount + evaluated.conflictCount + evaluated.skippedCount,
+            readyCount: evaluated.readyCount,
+            conflictCount: evaluated.conflictCount,
+            skippedCount: evaluated.skippedCount,
+            entries: evaluated.entries,
+            truncated: evaluated.truncated,
         };
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        log.error('Apply failed:', message);
+        log.error('Rollback dry run failed:', message);
         return {
             success: false,
-            appliedAt: Date.now(),
-            ruleIds: [],
-            appliedCount: 0,
-            failedCount: 0,
+            runId,
+            generatedAt: Date.now(),
+            totalEntryCount: 0,
+            readyCount: 0,
+            conflictCount: 0,
             skippedCount: 0,
             entries: [],
             truncated: false,
             error: message,
         };
     }
+}
+
+export function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganizeApplyResult> {
+    return queueAutoOrganizeOperation(async () => {
+        try {
+            return await applyAutoOrganizeInternal(ruleIds, {
+                triggerSource: 'manual',
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            log.error('Apply failed:', message);
+            return {
+                success: false,
+                appliedAt: Date.now(),
+                ruleIds: [],
+                appliedCount: 0,
+                failedCount: 0,
+                skippedCount: 0,
+                entries: [],
+                truncated: false,
+                error: message,
+            };
+        }
+    });
+}
+
+export function applyAutoOrganizeRollback(runId: string): Promise<AutoOrganizeRollbackApplyResult> {
+    return queueAutoOrganizeOperation(async () => {
+        try {
+            getRunSummaryOrThrow(runId);
+            const evaluated = evaluateRollback(runId);
+            const entries: AutoOrganizeRollbackApplyEntry[] = [];
+            let truncated = false;
+            let revertedCount = 0;
+            let failedCount = 0;
+            const skippedCount = evaluated.conflictCount + evaluated.skippedCount;
+
+            for (const historyEntry of evaluated.readyEntries) {
+                const relocateResult = await relocateFile(historyEntry.targetPath, historyEntry.sourcePath);
+                if (relocateResult.success) {
+                    if (historyEntry.actionKind === 'move') {
+                        updateFileLocation(historyEntry.fileId, historyEntry.sourcePath, historyEntry.sourceRootFolderId);
+                    } else if (historyEntry.actionKind === 'rename') {
+                        updateFileNameAndPath(historyEntry.fileId, historyEntry.sourceFileName, historyEntry.sourcePath);
+                    } else {
+                        updateFileLocation(historyEntry.fileId, historyEntry.sourcePath, historyEntry.sourceRootFolderId);
+                        updateFileNameAndPath(historyEntry.fileId, historyEntry.sourceFileName, historyEntry.sourcePath);
+                    }
+
+                    revertedCount += 1;
+                    void logActivity(historyEntry.actionKind === 'rename' ? 'file_rename' : 'file_move', historyEntry.fileId, historyEntry.fileName, {
+                        sourcePath: historyEntry.targetPath,
+                        targetPath: historyEntry.sourcePath,
+                        ruleId: historyEntry.ruleId,
+                        ruleName: historyEntry.ruleName,
+                        actionKind: historyEntry.actionKind,
+                        triggerSource: 'rollback',
+                        rollbackRunId: runId,
+                    });
+                    if (entries.length < PREVIEW_ENTRY_LIMIT) {
+                        entries.push({
+                            entryId: historyEntry.id,
+                            runId,
+                            fileId: historyEntry.fileId,
+                            fileName: historyEntry.fileName,
+                            sourcePath: historyEntry.targetPath,
+                            targetPath: historyEntry.sourcePath,
+                            actionKind: historyEntry.actionKind,
+                            status: 'reverted',
+                        });
+                    } else {
+                        truncated = true;
+                    }
+                    continue;
+                }
+
+                failedCount += 1;
+                if (entries.length < PREVIEW_ENTRY_LIMIT) {
+                    entries.push({
+                        entryId: historyEntry.id,
+                        runId,
+                        fileId: historyEntry.fileId,
+                        fileName: historyEntry.fileName,
+                        sourcePath: historyEntry.targetPath,
+                        targetPath: historyEntry.sourcePath,
+                        actionKind: historyEntry.actionKind,
+                        status: 'failed',
+                        reason: relocateResult.error ?? 'ロールバックに失敗しました',
+                    });
+                } else {
+                    truncated = true;
+                }
+            }
+
+            evaluated.entries.forEach((entry) => {
+                if (entry.status === 'ready') return;
+                if (entries.length < PREVIEW_ENTRY_LIMIT) {
+                    entries.push({
+                        entryId: entry.entryId,
+                        runId,
+                        fileId: entry.fileId,
+                        fileName: entry.fileName,
+                        sourcePath: entry.sourcePath,
+                        targetPath: entry.targetPath,
+                        actionKind: entry.actionKind,
+                        status: 'skipped',
+                        reason: entry.reason,
+                    });
+                } else {
+                    truncated = true;
+                }
+            });
+
+            return {
+                success: true,
+                runId,
+                appliedAt: Date.now(),
+                revertedCount,
+                failedCount,
+                skippedCount,
+                entries,
+                truncated,
+            };
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            log.error('Rollback apply failed:', message);
+            return {
+                success: false,
+                runId,
+                appliedAt: Date.now(),
+                revertedCount: 0,
+                failedCount: 0,
+                skippedCount: 0,
+                entries: [],
+                truncated: false,
+                error: message,
+            };
+        }
+    });
+}
+
+export async function runAutoOrganizeForScan(input: {
+    triggerSource: Extract<AutoOrganizeTriggerSource, 'manual_scan' | 'startup_scan' | 'watch_scan'>;
+    rootFolderId: string;
+    scanPath: string;
+}): Promise<AutoOrganizeApplyResult | null> {
+    const settings = readSettings();
+    if (!shouldAutoRunForTrigger(settings, input.triggerSource)) {
+        return null;
+    }
+
+    const store = readStore();
+    const autoRuleIds = store.items
+        .filter((rule) => rule.enabled && rule.automation.runOnScanComplete)
+        .map((rule) => rule.id);
+
+    if (autoRuleIds.length === 0) {
+        return null;
+    }
+
+    return queueAutoOrganizeOperation(async () => {
+        try {
+            return await applyAutoOrganizeInternal(autoRuleIds, {
+                triggerSource: input.triggerSource,
+                restrictRootFolderId: input.rootFolderId,
+                scanPath: input.scanPath,
+            });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            log.error('Auto run failed:', message);
+            return {
+                success: false,
+                appliedAt: Date.now(),
+                ruleIds: autoRuleIds,
+                appliedCount: 0,
+                failedCount: 0,
+                skippedCount: 0,
+                entries: [],
+                truncated: false,
+                error: message,
+            };
+        }
+    });
 }

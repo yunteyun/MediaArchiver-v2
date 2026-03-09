@@ -11,6 +11,7 @@ import {
     type ScanBatchCommittedPayload,
 } from '../services/scanner';
 import { syncFolderWatchers } from '../services/folderWatchService';
+import { runAutoOrganizeForScan } from '../services/autoOrganizeService';
 
 function sendScanBatchCommitted(event: IpcMainInvokeEvent, payload: ScanBatchCommittedPayload) {
     event.sender.send('scanner:batchCommitted', payload);
@@ -70,7 +71,26 @@ export function registerScannerHandlers() {
             (payload) => {
                 sendScanBatchCommitted(event, payload);
             }
-        ).catch(err => {
+        ).then(async () => {
+            const result = await runAutoOrganizeForScan({
+                triggerSource: 'manual_scan',
+                rootFolderId,
+                scanPath: folderPath,
+            });
+            if (result?.success && result.appliedCount > 0) {
+                event.sender.send('ui:showToast', {
+                    message: `自動整理を自動実行しました（処理 ${result.appliedCount} 件）`,
+                    type: 'success',
+                    duration: 4000,
+                });
+            } else if (result && !result.success) {
+                event.sender.send('ui:showToast', {
+                    message: `自動整理の自動実行に失敗しました: ${result.error ?? 'unknown error'}`,
+                    type: 'error',
+                    duration: 5000,
+                });
+            }
+        }).catch(err => {
             console.error("Scan error:", err);
             event.sender.send('scanner:progress', { phase: 'error', message: String(err) });
         });
@@ -132,7 +152,26 @@ export function registerScannerHandlers() {
                 (payload) => {
                     sendScanBatchCommitted(event, payload);
                 }
-            ).catch(err => {
+            ).then(async () => {
+                const result = await runAutoOrganizeForScan({
+                    triggerSource: 'startup_scan',
+                    rootFolderId: folder.id,
+                    scanPath: folder.path,
+                });
+                if (result?.success && result.appliedCount > 0) {
+                    event.sender.send('ui:showToast', {
+                        message: `${folder.name} の自動整理を実行しました（処理 ${result.appliedCount} 件）`,
+                        type: 'success',
+                        duration: 3500,
+                    });
+                } else if (result && !result.success) {
+                    event.sender.send('ui:showToast', {
+                        message: `${folder.name} の自動整理に失敗しました: ${result.error ?? 'unknown error'}`,
+                        type: 'error',
+                        duration: 5000,
+                    });
+                }
+            }).catch(err => {
                 console.error(`Auto scan error for ${folder.path}:`, err);
             });
         }
