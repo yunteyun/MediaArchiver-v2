@@ -11,11 +11,11 @@ interface FileCardRatingBadgeProps {
 
 type RatingTone = {
     iconClass: string;
+    valueClass: string;
 };
 
-function clamp(value: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, value));
-}
+const RATING_BADGE_MID_THRESHOLD = 3;
+const RATING_BADGE_HIGH_THRESHOLD = 4.5;
 
 function formatRatingValue(value: number): string {
     const rounded = Math.round(value * 10) / 10;
@@ -26,34 +26,26 @@ function getRatingTone(value: number, minValue: number, maxValue: number): Ratin
     if (maxValue <= minValue) {
         return {
             iconClass: 'text-surface-200',
+            valueClass: 'text-surface-100',
         };
     }
 
-    const ratio = clamp((value - minValue) / (maxValue - minValue), 0, 1);
-
-    if (ratio >= 0.999) {
+    if (value >= RATING_BADGE_HIGH_THRESHOLD) {
         return {
             iconClass: 'text-yellow-200',
+            valueClass: 'text-yellow-100',
         };
     }
-    if (ratio >= 0.75) {
+    if (value >= RATING_BADGE_MID_THRESHOLD) {
         return {
-            iconClass: 'text-sky-200',
-        };
-    }
-    if (ratio >= 0.5) {
-        return {
-            iconClass: 'text-amber-200',
-        };
-    }
-    if (ratio >= 0.25) {
-        return {
-            iconClass: 'text-orange-200',
+            iconClass: 'text-primary-300',
+            valueClass: 'text-primary-300',
         };
     }
 
     return {
-        iconClass: 'text-rose-200',
+        iconClass: 'text-white',
+        valueClass: 'text-white',
     };
 }
 
@@ -72,11 +64,11 @@ export const FileCardRatingBadge = React.memo(({
 
     return (
         <div
-            className={`inline-flex items-center gap-1 rounded-sm bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white shadow-sm backdrop-blur-[1px] ${className}`.trim()}
+            className={`inline-flex items-center gap-1 rounded-sm bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-surface-100 shadow-sm backdrop-blur-[1px] ${className}`.trim()}
             title={`${axisName}: ${formattedValue}/${formattedMaxValue}`}
         >
             <Star size={11} className={tone.iconClass} fill="currentColor" strokeWidth={2.2} />
-            <span>{formattedValue}</span>
+            <span className={tone.valueClass}>{formattedValue}</span>
         </div>
     );
 });
