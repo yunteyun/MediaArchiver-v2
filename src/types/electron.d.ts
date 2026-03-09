@@ -514,6 +514,7 @@ type ActivityAction =
     | 'file_add'
     | 'file_delete'
     | 'file_move'
+    | 'file_rename'
     | 'tag_add'
     | 'tag_remove'
     | 'scan_start'

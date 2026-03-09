@@ -1,7 +1,9 @@
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { buildAutoOrganizeRenamePreview } from '../../src/shared/autoOrganizeRename';
 import { buildVisibleFiles, type FileSearchCondition } from '../../src/utils/fileListQuery';
 import type {
+    AutoOrganizeActionKind,
     AutoOrganizeApplyEntry,
     AutoOrganizeApplyResult,
     AutoOrganizeConditionV1,
@@ -12,11 +14,12 @@ import type {
 } from '../../src/types/autoOrganize';
 import type { MediaFile } from './database';
 import { dbManager } from './databaseManager';
-import { getFiles, getFolders, getFolderById, updateFileLocation, type MediaFolder } from './database';
+import { getFiles, getFolders, getFolderById, updateFileLocation, updateFileNameAndPath, type MediaFolder } from './database';
 import { logger } from './logger';
 import { getAllAxes, getAllFileRatings } from './ratingService';
 import { getAllFileTagIds } from './tagService';
 import { logActivity } from './activityLogService';
+import { relocateFile, validateNewFileName } from './fileOperationService';
 
 const log = logger.scope('AutoOrganize');
 
@@ -136,9 +139,27 @@ function normalizeCondition(input: unknown): AutoOrganizeConditionV1 {
 
 function normalizeAction(input: unknown) {
     const candidate = input && typeof input === 'object' ? (input as Partial<AutoOrganizeRuleV1['action']>) : {};
+    const legacyTargetFolderId = typeof (candidate as { targetFolderId?: unknown }).targetFolderId === 'string'
+        ? (candidate as { targetFolderId: string }).targetFolderId
+        : '';
+    const moveCandidate = candidate.move && typeof candidate.move === 'object'
+        ? (candidate.move as Partial<AutoOrganizeRuleV1['action']['move']>)
+        : {};
+    const renameCandidate = candidate.rename && typeof candidate.rename === 'object'
+        ? (candidate.rename as Partial<AutoOrganizeRuleV1['action']['rename']>)
+        : {};
+
     return {
-        type: 'move' as const,
-        targetFolderId: typeof candidate.targetFolderId === 'string' ? candidate.targetFolderId : '',
+        move: {
+            enabled: typeof moveCandidate.enabled === 'boolean' ? moveCandidate.enabled : legacyTargetFolderId.length > 0,
+            targetFolderId: typeof moveCandidate.targetFolderId === 'string' ? moveCandidate.targetFolderId : legacyTargetFolderId,
+        },
+        rename: {
+            enabled: renameCandidate.enabled === true,
+            template: typeof renameCandidate.template === 'string' && renameCandidate.template.trim().length > 0
+                ? renameCandidate.template.trim()
+                : '{name}',
+        },
     };
 }
 
@@ -316,6 +337,87 @@ function createEmptySummary(rule: AutoOrganizeRuleV1): AutoOrganizeRuleSummary {
     };
 }
 
+function getRuleActionKind(action: AutoOrganizeRuleV1['action']): AutoOrganizeActionKind {
+    if (action.move.enabled && action.rename.enabled) return 'move_and_rename';
+    if (action.move.enabled) return 'move';
+    return 'rename';
+}
+
+function validateRuleAction(action: AutoOrganizeRuleV1['action']): void {
+    if (!action.move.enabled && !action.rename.enabled) {
+        throw new Error('移動またはリネームを有効にしてください');
+    }
+    if (action.move.enabled && !action.move.targetFolderId) {
+        throw new Error('移動先フォルダを選択してください');
+    }
+    if (action.rename.enabled && !action.rename.template.trim()) {
+        throw new Error('リネームテンプレートを入力してください');
+    }
+}
+
+function buildRuleTarget(
+    file: MediaFile,
+    rule: AutoOrganizeRuleV1,
+    targetFolder: MediaFolder | undefined
+): {
+    actionKind: AutoOrganizeActionKind;
+    targetPath: string;
+    targetFolderId: string;
+    targetFolderName: string;
+    status?: AutoOrganizeDryRunEntry['status'];
+    reason?: string;
+} {
+    const actionKind = getRuleActionKind(rule.action);
+
+    if (rule.action.move.enabled && !targetFolder) {
+        return {
+            actionKind,
+            targetPath: file.path,
+            targetFolderId: rule.action.move.targetFolderId,
+            targetFolderName: '未登録フォルダ',
+            status: 'skipped_missing_target',
+            reason: '移動先フォルダが見つかりません',
+        };
+    }
+
+    let nextFileName = path.basename(file.path);
+    if (rule.action.rename.enabled) {
+        const preview = buildAutoOrganizeRenamePreview(file, rule.action.rename.template);
+        if (!preview.baseName.trim()) {
+            return {
+                actionKind,
+                targetPath: file.path,
+                targetFolderId: targetFolder?.id ?? file.root_folder_id ?? '',
+                targetFolderName: targetFolder?.name ?? path.basename(path.dirname(file.path)),
+                status: 'skipped_invalid_name',
+                reason: 'リネーム結果が空になります',
+            };
+        }
+
+        const nameValidationError = validateNewFileName(preview.fileName);
+        if (nameValidationError) {
+            return {
+                actionKind,
+                targetPath: file.path,
+                targetFolderId: targetFolder?.id ?? file.root_folder_id ?? '',
+                targetFolderName: targetFolder?.name ?? path.basename(path.dirname(file.path)),
+                status: 'skipped_invalid_name',
+                reason: nameValidationError,
+            };
+        }
+
+        nextFileName = preview.fileName;
+    }
+
+    const targetDir = targetFolder?.path ?? path.dirname(file.path);
+    return {
+        actionKind,
+        targetPath: path.join(targetDir, nextFileName),
+        targetFolderId: targetFolder?.id ?? file.root_folder_id ?? '',
+        targetFolderName: targetFolder?.name ?? path.basename(targetDir),
+    };
+}
+
 function findConflictFileByPath(targetPath: string, sourceFileId: string): MediaFile | null {
     const normalizedTarget = normalizePathForCompare(targetPath);
     const existing = getFiles().find((file) => file.id !== sourceFileId && normalizePathForCompare(file.path) === normalizedTarget);
@@ -382,8 +484,9 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
             selectedFileTypes: rule.condition.types,
         });
 
-        const targetFolder = foldersById.get(rule.action.targetFolderId);
-        const targetFolderName = targetFolder?.name ?? '未登録フォルダ';
+        const targetFolder = rule.action.move.enabled
+            ? foldersById.get(rule.action.move.targetFolderId)
+            : undefined;
 
         matchedFiles.forEach((file) => {
             if (assignedFileIds.has(file.id)) {
@@ -393,9 +496,9 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
             summary.matchedCount += 1;
             totalMatchedCount += 1;
 
-            const targetPath = targetFolder ? path.join(targetFolder.path, path.basename(file.path)) : file.path;
+            const plannedTarget = buildRuleTarget(file, rule, targetFolder);
             let entry: AutoOrganizeDryRunEntry;
-            if (!targetFolder) {
+            if (plannedTarget.status === 'skipped_missing_target') {
                 summary.skippedCount += 1;
                 totalSkippedCount += 1;
                 entry = {
@@ -404,13 +507,14 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
                     fileId: file.id,
                     fileName: file.name,
                     sourcePath: file.path,
-                    targetPath,
-                    targetFolderId: rule.action.targetFolderId,
-                    targetFolderName,
-                    status: 'skipped_missing_target',
-                    reason: '移動先フォルダが見つかりません',
+                    targetPath: plannedTarget.targetPath,
+                    targetFolderId: plannedTarget.targetFolderId,
+                    targetFolderName: plannedTarget.targetFolderName,
+                    actionKind: plannedTarget.actionKind,
+                    status: plannedTarget.status,
+                    reason: plannedTarget.reason,
                 };
-            } else if (normalizePathForCompare(targetPath) === normalizePathForCompare(file.path)) {
+            } else if (plannedTarget.status === 'skipped_invalid_name') {
                 summary.skippedCount += 1;
                 totalSkippedCount += 1;
                 entry = {
@@ -419,14 +523,31 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
                     fileId: file.id,
                     fileName: file.name,
                     sourcePath: file.path,
-                    targetPath,
-                    targetFolderId: targetFolder.id,
-                    targetFolderName,
+                    targetPath: plannedTarget.targetPath,
+                    targetFolderId: plannedTarget.targetFolderId,
+                    targetFolderName: plannedTarget.targetFolderName,
+                    actionKind: plannedTarget.actionKind,
+                    status: plannedTarget.status,
+                    reason: plannedTarget.reason,
+                };
+            } else if (normalizePathForCompare(plannedTarget.targetPath) === normalizePathForCompare(file.path)) {
+                summary.skippedCount += 1;
+                totalSkippedCount += 1;
+                entry = {
+                    ruleId: rule.id,
+                    ruleName: rule.name,
+                    fileId: file.id,
+                    fileName: file.name,
+                    sourcePath: file.path,
+                    targetPath: plannedTarget.targetPath,
+                    targetFolderId: plannedTarget.targetFolderId,
+                    targetFolderName: plannedTarget.targetFolderName,
+                    actionKind: plannedTarget.actionKind,
                     status: 'skipped_same_path',
-                    reason: '既に移動先フォルダにあります',
+                    reason: '既にこの名前と場所です',
                 };
             } else {
-                const conflict = findConflictFileByPath(targetPath, file.id);
+                const conflict = findConflictFileByPath(plannedTarget.targetPath, file.id);
                 if (conflict) {
                     summary.conflictCount += 1;
                     totalConflictCount += 1;
@@ -436,11 +557,12 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
                         fileId: file.id,
                         fileName: file.name,
                         sourcePath: file.path,
-                        targetPath,
-                        targetFolderId: targetFolder.id,
-                        targetFolderName,
+                        targetPath: plannedTarget.targetPath,
+                        targetFolderId: plannedTarget.targetFolderId,
+                        targetFolderName: plannedTarget.targetFolderName,
+                        actionKind: plannedTarget.actionKind,
                         status: 'conflict',
-                        reason: '移動先に同名ファイルが存在します',
+                        reason: '適用後の保存先に同名ファイルが存在します',
                     };
                 } else {
                     summary.readyCount += 1;
@@ -451,9 +573,10 @@ function evaluateRules(ruleIds?: string[]): EvaluatedRuleAssignments {
                         fileId: file.id,
                         fileName: file.name,
                         sourcePath: file.path,
-                        targetPath,
-                        targetFolderId: targetFolder.id,
-                        targetFolderName,
+                        targetPath: plannedTarget.targetPath,
+                        targetFolderId: plannedTarget.targetFolderId,
+                        targetFolderName: plannedTarget.targetFolderName,
+                        actionKind: plannedTarget.actionKind,
                         status: 'ready',
                     };
                     readyEntries.push(entry);
@@ -506,10 +629,10 @@ export function createAutoOrganizeRule(input: {
     }
 
     const action = normalizeAction(input.action);
-    if (!action.targetFolderId) {
-        throw new Error('移動先フォルダを選択してください');
+    validateRuleAction(action);
+    if (action.move.enabled) {
+        requireTargetFolder(action.move.targetFolderId);
     }
-    requireTargetFolder(action.targetFolderId);
 
     const store = readStore();
     const now = Date.now();
@@ -554,10 +677,10 @@ export function updateAutoOrganizeRule(input: {
     const nextAction = input.updates.action === undefined
         ? current.action
         : normalizeAction(input.updates.action);
-    if (!nextAction.targetFolderId) {
-        throw new Error('移動先フォルダを選択してください');
+    validateRuleAction(nextAction);
+    if (nextAction.move.enabled) {
+        requireTargetFolder(nextAction.move.targetFolderId);
     }
-    requireTargetFolder(nextAction.targetFolderId);
 
     const nextRule: AutoOrganizeRuleV1 = {
         ...current,
@@ -637,21 +760,30 @@ export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganiz
         const evaluated = evaluateRules(ruleIds);
         const entries: AutoOrganizeApplyEntry[] = [];
         let truncated = false;
-        let movedCount = 0;
+        let appliedCount = 0;
         let failedCount = 0;
         let skippedCount = evaluated.totalSkippedCount + evaluated.totalConflictCount;
-        const { moveFileToFolder } = await import('./fileOperationService');
 
         for (const readyEntry of evaluated.readyEntries) {
-            const moveResult = await moveFileToFolder(readyEntry.sourcePath, readyEntry.targetPath);
-            if (moveResult.success) {
-                updateFileLocation(readyEntry.fileId, readyEntry.targetPath, readyEntry.targetFolderId);
-                movedCount += 1;
-                void logActivity('file_move', readyEntry.fileId, readyEntry.fileName, {
+            const relocateResult = await relocateFile(readyEntry.sourcePath, readyEntry.targetPath);
+            if (relocateResult.success) {
+                const nextFileName = path.basename(readyEntry.targetPath);
+                if (readyEntry.actionKind === 'move') {
+                    updateFileLocation(readyEntry.fileId, readyEntry.targetPath, readyEntry.targetFolderId);
+                } else if (readyEntry.actionKind === 'rename') {
+                    updateFileNameAndPath(readyEntry.fileId, nextFileName, readyEntry.targetPath);
+                } else {
+                    updateFileLocation(readyEntry.fileId, readyEntry.targetPath, readyEntry.targetFolderId);
+                    updateFileNameAndPath(readyEntry.fileId, nextFileName, readyEntry.targetPath);
+                }
+
+                appliedCount += 1;
+                void logActivity(readyEntry.actionKind === 'rename' ? 'file_rename' : 'file_move', readyEntry.fileId, readyEntry.fileName, {
                     sourcePath: readyEntry.sourcePath,
                     targetPath: readyEntry.targetPath,
                     ruleId: readyEntry.ruleId,
                     ruleName: readyEntry.ruleName,
+                    actionKind: readyEntry.actionKind,
                 });
                 if (entries.length < PREVIEW_ENTRY_LIMIT) {
                     entries.push({
@@ -661,7 +793,8 @@ export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganiz
                         fileName: readyEntry.fileName,
                         sourcePath: readyEntry.sourcePath,
                         targetPath: readyEntry.targetPath,
-                        status: 'moved',
+                        actionKind: readyEntry.actionKind,
+                        status: 'applied',
                     });
                 } else {
                     truncated = true;
@@ -678,8 +811,9 @@ export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganiz
                     fileName: readyEntry.fileName,
                     sourcePath: readyEntry.sourcePath,
                     targetPath: readyEntry.targetPath,
+                    actionKind: readyEntry.actionKind,
                     status: 'failed',
-                    reason: moveResult.error ?? 'ファイル移動に失敗しました',
+                    reason: relocateResult.error ?? '自動整理の適用に失敗しました',
                 });
             } else {
                 truncated = true;
@@ -696,6 +830,7 @@ export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganiz
                     fileName: entry.fileName,
                     sourcePath: entry.sourcePath,
                     targetPath: entry.targetPath,
+                    actionKind: entry.actionKind,
                     status: 'skipped',
                     reason: entry.reason,
                 });
@@ -708,7 +843,7 @@ export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganiz
             success: true,
             appliedAt: Date.now(),
             ruleIds: evaluated.ruleIds,
-            movedCount,
+            appliedCount,
             failedCount,
             skippedCount,
             entries,
@@ -721,7 +856,7 @@ export async function applyAutoOrganize(ruleIds?: string[]): Promise<AutoOrganiz
             success: false,
             appliedAt: Date.now(),
             ruleIds: [],
-            movedCount: 0,
+            appliedCount: 0,
             failedCount: 0,
             skippedCount: 0,
             entries: [],

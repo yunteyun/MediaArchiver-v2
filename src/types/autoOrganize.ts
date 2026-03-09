@@ -20,9 +20,19 @@ export interface AutoOrganizeConditionV1 {
     types: Array<'video' | 'image' | 'archive' | 'audio'>;
 }
 
-export interface AutoOrganizeActionV1 {
-    type: 'move';
+export interface AutoOrganizeMoveActionV1 {
+    enabled: boolean;
     targetFolderId: string;
+}
+
+export interface AutoOrganizeRenameActionV1 {
+    enabled: boolean;
+    template: string;
+}
+
+export interface AutoOrganizeActionV1 {
+    move: AutoOrganizeMoveActionV1;
+    rename: AutoOrganizeRenameActionV1;
 }
 
 export interface AutoOrganizeRuleV1 {
@@ -35,6 +45,8 @@ export interface AutoOrganizeRuleV1 {
     createdAt: number;
     updatedAt: number;
 }
+
+export type AutoOrganizeActionKind = 'move' | 'rename' | 'move_and_rename';
 
 export interface AutoOrganizeRuleSummary {
     ruleId: string;
@@ -54,7 +66,8 @@ export interface AutoOrganizeDryRunEntry {
     targetPath: string;
     targetFolderId: string;
     targetFolderName: string;
-    status: 'ready' | 'conflict' | 'skipped_same_path' | 'skipped_missing_target';
+    actionKind: AutoOrganizeActionKind;
+    status: 'ready' | 'conflict' | 'skipped_same_path' | 'skipped_missing_target' | 'skipped_invalid_name';
     reason?: string;
 }
 
@@ -80,7 +93,8 @@ export interface AutoOrganizeApplyEntry {
     fileName: string;
     sourcePath: string;
     targetPath: string;
-    status: 'moved' | 'failed' | 'skipped';
+    actionKind: AutoOrganizeActionKind;
+    status: 'applied' | 'failed' | 'skipped';
     reason?: string;
 }
 
@@ -88,7 +102,7 @@ export interface AutoOrganizeApplyResult {
     success: boolean;
     appliedAt: number;
     ruleIds: string[];
-    movedCount: number;
+    appliedCount: number;
     failedCount: number;
     skippedCount: number;
     entries: AutoOrganizeApplyEntry[];

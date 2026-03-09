@@ -13,6 +13,7 @@ import {
     DuplicateProgress
 } from '../services/duplicateService';
 import { findFileById, deleteFile } from '../services/database';
+import { deleteFileSafe } from '../services/fileOperationService';
 
 // 進捗スロットリング用の状態
 let lastProgressTime = 0;
@@ -57,8 +58,6 @@ export function registerDuplicateHandlers() {
      * 重複ファイル削除
      */
     ipcMain.handle('duplicate:deleteFiles', async (_event, fileIds: string[]) => {
-        const { deleteFileSafe } = await import('../services/fileOperationService');
-
         const results: { id: string; success: boolean; error?: string }[] = [];
 
         for (const fileId of fileIds) {

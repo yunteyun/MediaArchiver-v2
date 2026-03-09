@@ -73,10 +73,14 @@ function describeSelection(selection: string | null, folders: MediaFolder[]): st
 }
 
 function summarizeRule(rule: AutoOrganizeRuleV1, folders: MediaFolder[]): string[] {
-    const segments: string[] = [
-        `範囲: ${describeSelection(rule.condition.folderSelection, folders)}`,
-        `移動先: ${folders.find((folder) => folder.id === rule.action.targetFolderId)?.path ?? '未登録フォルダ'}`,
-    ];
+    const segments: string[] = [`範囲: ${describeSelection(rule.condition.folderSelection, folders)}`];
+
+    if (rule.action.move.enabled) {
+        segments.push(`移動先: ${folders.find((folder) => folder.id === rule.action.move.targetFolderId)?.path ?? '未登録フォルダ'}`);
+    }
+    if (rule.action.rename.enabled) {
+        segments.push(`リネーム: ${rule.action.rename.template}`);
+    }
 
     const textConditionCount = rule.condition.textConditions.filter((condition) => condition.text.trim().length > 0).length;
     if (textConditionCount > 0) segments.push(`検索 ${textConditionCount}件`);
@@ -168,14 +172,14 @@ export const AutoOrganizeSettingsTab = React.memo(() => {
             return;
         }
         await Promise.all([reloadCurrentView(), loadFolders(), loadRules()]);
-        useUIStore.getState().showToast(`自動整理を適用しました（移動 ${result.movedCount} 件）`, 'success');
+        useUIStore.getState().showToast(`自動整理を適用しました（処理 ${result.appliedCount} 件）`, 'success');
     }, [applyRules, lastDryRun, loadFolders, loadRules]);
 
     return (
         <div className="space-y-6 px-4 py-4">
             <SettingsSection
                 title="自動整理ルール"
-                description="保存済み条件に一致したファイルを登録済みフォルダへ移動します。v1 は手動実行のみで、適用前に Dry Run を必須にしています。"
+                description="保存済み条件に一致したファイルを移動またはリネームします。手動実行のみで、適用前に Dry Run を必須にしています。"
                 scope="profile"
             >
                 <div className="flex flex-wrap items-center gap-2">

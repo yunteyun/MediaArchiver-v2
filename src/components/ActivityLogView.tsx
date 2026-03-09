@@ -5,11 +5,11 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, Trash2, Tag, X, FolderSearch, Clock, FolderInput } from 'lucide-react';
+import { Plus, Trash2, Tag, X, FolderSearch, Clock, FolderInput, Pencil } from 'lucide-react';
 
 interface ActivityLog {
     id: number;
-    action: 'file_add' | 'file_delete' | 'file_move' | 'tag_add' | 'tag_remove' | 'scan_start' | 'scan_end';
+    action: 'file_add' | 'file_delete' | 'file_move' | 'file_rename' | 'tag_add' | 'tag_remove' | 'scan_start' | 'scan_end';
     target_id: string | null;
     target_name: string | null;
     details: string | null;
@@ -22,6 +22,7 @@ const actionIcons: Record<string, React.ReactNode> = {
     file_add: <Plus size={16} className="text-green-400" />,
     file_delete: <Trash2 size={16} className="text-red-400" />,
     file_move: <FolderInput size={16} className="text-sky-400" />,
+    file_rename: <Pencil size={16} className="text-amber-300" />,
     tag_add: <Tag size={16} className="text-blue-400" />,
     tag_remove: <X size={16} className="text-orange-400" />,
     scan_start: <FolderSearch size={16} className="text-purple-400" />,
@@ -32,6 +33,7 @@ const actionLabels: Record<string, string> = {
     file_add: 'ファイル追加',
     file_delete: 'ファイル削除',
     file_move: 'ファイル移動',
+    file_rename: 'ファイル名変更',
     tag_add: 'タグ付け',
     tag_remove: 'タグ削除',
     scan_start: 'スキャン開始',
@@ -112,7 +114,7 @@ export const ActivityLogView: React.FC = () => {
     // フィルタリング
     const filteredLogs = logs.filter(log => {
         if (filter === 'all') return true;
-        if (filter === 'file') return log.action === 'file_add' || log.action === 'file_delete' || log.action === 'file_move';
+        if (filter === 'file') return log.action === 'file_add' || log.action === 'file_delete' || log.action === 'file_move' || log.action === 'file_rename';
         if (filter === 'tag') return log.action === 'tag_add' || log.action === 'tag_remove';
         if (filter === 'scan') return log.action === 'scan_start' || log.action === 'scan_end';
         return true;
@@ -143,11 +145,11 @@ export const ActivityLogView: React.FC = () => {
                 );
             }
 
-            if (log.action === 'file_move') {
+            if (log.action === 'file_move' || log.action === 'file_rename') {
                 return (
                     <div className="text-surface-400 text-xs mt-1">
-                        {details.sourcePath && <div className="truncate">移動元: {details.sourcePath}</div>}
-                        {details.targetPath && <div className="truncate mt-1">移動先: {details.targetPath}</div>}
+                        {details.sourcePath && <div className="truncate">変更前: {details.sourcePath}</div>}
+                        {details.targetPath && <div className="truncate mt-1">変更後: {details.targetPath}</div>}
                         {details.ruleName && <div className="mt-1">ルール: {details.ruleName}</div>}
                     </div>
                 );

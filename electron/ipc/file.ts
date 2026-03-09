@@ -5,12 +5,10 @@ import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanne
 import path from 'path';
 import sharp from 'sharp';
 import { spawn } from 'child_process';
-import { access, rename } from 'fs/promises';
+import { access } from 'fs/promises';
 import { constants as fsConstants } from 'fs';
 import { getCachedExternalApps } from './app';
-
-const INVALID_WINDOWS_FILENAME_RE = /[<>:"/\\|?*\u0000-\u001f]/;
-const RESERVED_WINDOWS_NAME_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
+import { deleteFileSafe, moveFileToFolder, relocateFile, validateNewFileName } from '../services/fileOperationService';
 
 type SearchDestinationType = 'filename' | 'image';
 type SearchDestinationIcon = 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
@@ -187,16 +185,6 @@ async function openFilenameSearch(destination: SearchDestination, filePath: stri
 async function openImageSearch(destination: SearchDestination, imagePaths: string[]): Promise<void> {
     await copyImageToClipboard(imagePaths);
     await shell.openExternal(destination.url);
-}
-
-function validateNewFileName(newName: string): string | null {
-    const trimmed = newName.trim();
-    if (!trimmed) return 'ファイル名を入力してください';
-    if (trimmed === '.' || trimmed === '..') return 'そのファイル名は使用できません';
-    if (INVALID_WINDOWS_FILENAME_RE.test(trimmed)) return 'ファイル名に使用できない文字が含まれています';
-    if (/[.\s]$/.test(trimmed)) return 'ファイル名の末尾に空白やドットは使用できません';
-    if (RESERVED_WINDOWS_NAME_RE.test(trimmed)) return '予約語のファイル名は使用できません';
-    return null;
 }
 
 export function registerFileHandlers() {
@@ -531,8 +519,6 @@ export function registerFileHandlers() {
         }
 
         try {
-            const { deleteFileSafe } = await import('../services/fileOperationService');
-
             // 削除実行
             const moveToTrash = !permanentDelete;
             const result = await deleteFileSafe(filePath, moveToTrash);
@@ -613,7 +599,6 @@ export function registerFileHandlers() {
             console.log('[File Move] New path:', newPath);
 
             // ファイル移動実行
-            const { moveFileToFolder } = await import('../services/fileOperationService');
             const moveResult = await moveFileToFolder(file.path, newPath);
             console.log('[File Move] Move result:', moveResult);
 
@@ -661,38 +646,15 @@ export function registerFileHandlers() {
             }
 
             const sourcePath = file.path;
-            const parentDir = path.dirname(sourcePath);
-            const targetPath = path.join(parentDir, normalizedName);
-
-            try {
-                await access(sourcePath, fsConstants.F_OK);
-            } catch {
-                return { success: false, error: '元ファイルが見つかりません' };
-            }
-
-            const sourceLower = sourcePath.toLowerCase();
-            const targetLower = targetPath.toLowerCase();
-            const caseInsensitiveSamePath = sourceLower === targetLower;
-
-            try {
-                await access(targetPath, fsConstants.F_OK);
-                if (!caseInsensitiveSamePath) {
-                    return { success: false, error: '同じ名前のファイルが既に存在します' };
-                }
-            } catch {
-                // not exists
-            }
+            const targetPath = path.join(path.dirname(sourcePath), normalizedName);
 
             if (sourcePath === targetPath) {
                 return { success: true, newName: file.name, newPath: file.path };
             }
 
-            if (caseInsensitiveSamePath) {
-                const tempPath = path.join(parentDir, `.__rename_tmp__${Date.now()}_${Math.random().toString(16).slice(2)}`);
-                await rename(sourcePath, tempPath);
-                await rename(tempPath, targetPath);
-            } else {
-                await rename(sourcePath, targetPath);
+            const relocateResult = await relocateFile(sourcePath, targetPath);
+            if (!relocateResult.success) {
+                return { success: false, error: relocateResult.error ?? 'ファイル名の変更に失敗しました' };
             }
 
             updateFileNameAndPath(fileId, normalizedName, targetPath);

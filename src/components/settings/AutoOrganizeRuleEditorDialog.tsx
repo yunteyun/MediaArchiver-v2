@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { AUTO_ORGANIZE_RENAME_TOKENS } from '../../shared/autoOrganizeRename';
 import type { AutoOrganizeConditionV1, AutoOrganizeRuleV1 } from '../../types/autoOrganize';
 import type { Tag } from '../../stores/useTagStore';
 import type { RatingAxis } from '../../stores/useRatingStore';
@@ -20,10 +21,7 @@ interface SubmitPayload {
     name: string;
     enabled: boolean;
     condition: AutoOrganizeConditionV1;
-    action: {
-        type: 'move';
-        targetFolderId: string;
-    };
+    action: AutoOrganizeRuleV1['action'];
 }
 
 interface AutoOrganizeRuleEditorDialogProps {
@@ -142,7 +140,10 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
     const [ratingInputs, setRatingInputs] = useState<RatingInputMap>(() => createRatingInputMap(condition));
     const [tagSearch, setTagSearch] = useState('');
     const [types, setTypes] = useState<MediaFile['type'][]>(() => normalizeTypes(condition.types));
-    const [targetFolderId, setTargetFolderId] = useState(initialRule?.action.targetFolderId ?? targetFolderOptions[0]?.id ?? '');
+    const [moveEnabled, setMoveEnabled] = useState(initialRule?.action.move.enabled ?? true);
+    const [targetFolderId, setTargetFolderId] = useState(initialRule?.action.move.targetFolderId ?? targetFolderOptions[0]?.id ?? '');
+    const [renameEnabled, setRenameEnabled] = useState(initialRule?.action.rename.enabled ?? false);
+    const [renameTemplate, setRenameTemplate] = useState(initialRule?.action.rename.template ?? '{name}');
 
     useEffect(() => {
         if (!isOpen) return;
@@ -158,7 +159,10 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
         setRatingInputs(createRatingInputMap(nextCondition));
         setTagSearch('');
         setTypes(normalizeTypes(nextCondition.types));
-        setTargetFolderId(initialRule?.action.targetFolderId ?? targetFolderOptions[0]?.id ?? '');
+        setMoveEnabled(initialRule?.action.move.enabled ?? true);
+        setTargetFolderId(initialRule?.action.move.targetFolderId ?? targetFolderOptions[0]?.id ?? '');
+        setRenameEnabled(initialRule?.action.rename.enabled ?? false);
+        setRenameTemplate(initialRule?.action.rename.template ?? '{name}');
     }, [initialRule, isOpen, targetFolderOptions]);
 
     const filteredTags = useMemo(() => {
@@ -225,16 +229,62 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
-                        <label className="mb-1 block text-xs text-surface-400">移動先フォルダ</label>
-                        <select
-                            value={targetFolderId}
-                            onChange={(event) => setTargetFolderId(event.target.value)}
-                            className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none"
-                        >
-                            {targetFolderOptions.map((option) => (
-                                <option key={option.id} value={option.id}>{option.label}</option>
-                            ))}
-                        </select>
+                        <div className="flex items-center justify-between gap-3">
+                            <label className="block text-xs text-surface-400">実行内容</label>
+                            <div className="text-[11px] text-surface-500">少なくとも 1 つ有効にしてください</div>
+                        </div>
+                        <div className="mt-3 grid gap-3">
+                            <div className="rounded border border-surface-800 bg-surface-950/25 p-3">
+                                <label className="inline-flex items-center gap-2 text-sm text-surface-200">
+                                    <input
+                                        type="checkbox"
+                                        checked={moveEnabled}
+                                        onChange={(event) => setMoveEnabled(event.target.checked)}
+                                        className="h-4 w-4 accent-primary-500"
+                                    />
+                                    移動
+                                </label>
+                                <div className="mt-2">
+                                    <label className="mb-1 block text-xs text-surface-400">移動先フォルダ</label>
+                                    <select
+                                        value={targetFolderId}
+                                        onChange={(event) => setTargetFolderId(event.target.value)}
+                                        disabled={!moveEnabled}
+                                        className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        {targetFolderOptions.map((option) => (
+                                            <option key={option.id} value={option.id}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="rounded border border-surface-800 bg-surface-950/25 p-3">
+                                <label className="inline-flex items-center gap-2 text-sm text-surface-200">
+                                    <input
+                                        type="checkbox"
+                                        checked={renameEnabled}
+                                        onChange={(event) => setRenameEnabled(event.target.checked)}
+                                        className="h-4 w-4 accent-primary-500"
+                                    />
+                                    リネーム
+                                </label>
+                                <div className="mt-2">
+                                    <label className="mb-1 block text-xs text-surface-400">リネームテンプレート</label>
+                                    <input
+                                        type="text"
+                                        value={renameTemplate}
+                                        onChange={(event) => setRenameTemplate(event.target.value)}
+                                        disabled={!renameEnabled}
+                                        className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="{name}"
+                                    />
+                                    <div className="mt-2 text-[11px] text-surface-500">
+                                        拡張子は維持されます。使用可能トークン: {AUTO_ORGANIZE_RENAME_TOKENS.join(' / ')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
@@ -497,7 +547,7 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                             });
 
                             const normalizedName = name.trim();
-                            if (!normalizedName || !targetFolderId) return;
+                            if (!normalizedName || (moveEnabled && !targetFolderId) || (!moveEnabled && !renameEnabled)) return;
                             const normalizedTypes = normalizeTypes(types);
                             const normalizedTextConditions = textConditions
                                 .map((conditionItem) => ({
@@ -506,6 +556,7 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                 }))
                                 .filter((conditionItem) => conditionItem.text.length > 0);
                             const primaryTextCondition = normalizedTextConditions[0];
+                            const normalizedRenameTemplate = renameTemplate.trim();
 
                             void onSubmit({
                                 name: normalizedName,
@@ -521,13 +572,25 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                     types: normalizedTypes,
                                 },
                                 action: {
-                                    type: 'move',
-                                    targetFolderId,
+                                    move: {
+                                        enabled: moveEnabled,
+                                        targetFolderId: moveEnabled ? targetFolderId : '',
+                                    },
+                                    rename: {
+                                        enabled: renameEnabled,
+                                        template: normalizedRenameTemplate || '{name}',
+                                    },
                                 },
                             });
                         }}
                         className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        disabled={isSubmitting || !name.trim() || !targetFolderId}
+                        disabled={
+                            isSubmitting
+                            || !name.trim()
+                            || (!moveEnabled && !renameEnabled)
+                            || (moveEnabled && !targetFolderId)
+                            || (renameEnabled && !renameTemplate.trim())
+                        }
                     >
                         {submitLabel}
                     </button>

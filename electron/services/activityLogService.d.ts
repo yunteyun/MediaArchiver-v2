@@ -4,7 +4,7 @@
  * ファイル追加・削除、タグ付け、スキャン履歴を記録・取得。
  * Fire-and-Forget方式でメイン処理を阻害しない。
  */
-export type ActivityAction = 'file_add' | 'file_delete' | 'file_move' | 'tag_add' | 'tag_remove' | 'scan_start' | 'scan_end';
+export type ActivityAction = 'file_add' | 'file_delete' | 'file_move' | 'file_rename' | 'tag_add' | 'tag_remove' | 'scan_start' | 'scan_end';
 export interface ActivityLog {
     id: number;
     action: ActivityAction;

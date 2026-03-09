@@ -32,12 +32,29 @@ function getStatusLabel(status: string): string {
             return '移動不要';
         case 'skipped_missing_target':
             return '移動先不明';
+        case 'skipped_invalid_name':
+            return '無効な名前';
+        case 'applied':
+            return '適用完了';
         case 'moved':
             return '移動完了';
         case 'failed':
             return '失敗';
         default:
             return 'スキップ';
+    }
+}
+
+function getActionKindLabel(actionKind: string): string {
+    switch (actionKind) {
+        case 'move':
+            return '移動';
+        case 'rename':
+            return 'リネーム';
+        case 'move_and_rename':
+            return '移動 + リネーム';
+        default:
+            return '整理';
     }
 }
 
@@ -142,11 +159,14 @@ export const AutoOrganizeDryRunDialog: React.FC<AutoOrganizeDryRunDialogProps> =
                                                 <span className={`inline-flex rounded border px-2 py-0.5 text-[11px] ${getStatusClass(entry.status)}`}>
                                                     {getStatusLabel(entry.status)}
                                                 </span>
+                                                <span className="rounded border border-surface-700 bg-surface-900/60 px-2 py-0.5 text-[11px] text-surface-300">
+                                                    {getActionKindLabel(entry.actionKind)}
+                                                </span>
                                                 <span className="text-[11px] text-surface-500">{entry.ruleName}</span>
                                             </div>
                                             <div className="mt-2 text-xs text-surface-400 break-all">
-                                                <div>移動元: {entry.sourcePath}</div>
-                                                <div className="mt-1">移動先: {entry.targetPath}</div>
+                                                <div>現在: {entry.sourcePath}</div>
+                                                <div className="mt-1">適用後: {entry.targetPath}</div>
                                                 {entry.reason && <div className="mt-1 text-amber-300">{entry.reason}</div>}
                                             </div>
                                         </div>
@@ -161,7 +181,7 @@ export const AutoOrganizeDryRunDialog: React.FC<AutoOrganizeDryRunDialogProps> =
                                         適用完了
                                     </div>
                                     <p className="mt-1 text-xs text-emerald-100/90">
-                                        移動 {applyResult.movedCount} 件 / 失敗 {applyResult.failedCount} 件 / スキップ {applyResult.skippedCount} 件
+                                        適用 {applyResult.appliedCount} 件 / 失敗 {applyResult.failedCount} 件 / スキップ {applyResult.skippedCount} 件
                                     </p>
                                 </div>
                             )}
