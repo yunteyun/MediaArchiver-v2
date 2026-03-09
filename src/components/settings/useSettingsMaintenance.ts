@@ -611,6 +611,36 @@ export function useSettingsMaintenance({
         }
     }, [isDownloadingUpdateZip, updateCheckState?.result.sourceUrl]);
 
+    const handleOpenReleasePage = useCallback(async () => {
+        const releaseUrl = updateCheckState?.result.releaseUrl;
+        if (!releaseUrl) {
+            useUIStore.getState().showToast('リリースページ URL が取得できていません', 'info');
+            return;
+        }
+
+        try {
+            await window.electronAPI.openUrl(releaseUrl);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            useUIStore.getState().showToast(`リリースページを開けませんでした: ${message}`, 'error', 5000);
+        }
+    }, [updateCheckState?.result.releaseUrl]);
+
+    const handleRevealDownloadedZip = useCallback(async () => {
+        const downloadedZipPath = updateDownloadState?.filePath;
+        if (!downloadedZipPath) {
+            useUIStore.getState().showToast('取得済みの更新ZIPがありません', 'info');
+            return;
+        }
+
+        try {
+            await window.electronAPI.showInExplorer(downloadedZipPath);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            useUIStore.getState().showToast(`更新ZIPの場所を開けませんでした: ${message}`, 'error', 5000);
+        }
+    }, [updateDownloadState?.filePath]);
+
     const handleApplyUpdateFromZip = useCallback(async () => {
         if (
             isApplyingUpdate
@@ -621,7 +651,7 @@ export function useSettingsMaintenance({
             return;
         }
         const confirmed = window.confirm(
-            'update.bat を起動して更新を適用します。実行するとアプリは終了されます。続行しますか？'
+            '検証済みの更新ZIPで update.bat を起動します。実行するとアプリは終了されます。続行しますか？'
         );
         if (!confirmed) return;
 
@@ -632,7 +662,7 @@ export function useSettingsMaintenance({
                 useUIStore.getState().showToast(`更新適用の起動に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
                 return;
             }
-            useUIStore.getState().showToast('update.bat を起動しました。更新処理を実行します。', 'info', 5000);
+            useUIStore.getState().showToast('update.bat を起動しました。更新処理を開始します。', 'info', 5000);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             useUIStore.getState().showToast(`更新適用の起動に失敗しました: ${message}`, 'error', 5000);
@@ -644,7 +674,7 @@ export function useSettingsMaintenance({
     const handleApplyUpdateViaZipDialog = useCallback(async () => {
         if (isApplyingUpdate) return;
         const confirmed = window.confirm(
-            '従来方式で update.bat を起動します。ZIP選択後に更新が始まり、アプリは終了されます。続行しますか？'
+            '手元の ZIP を指定して update.bat を起動します。ZIP選択後に更新が始まり、アプリは終了されます。続行しますか？'
         );
         if (!confirmed) return;
 
@@ -718,6 +748,8 @@ export function useSettingsMaintenance({
         isDownloadingUpdateZip,
         updateDownloadState,
         handleDownloadLatestUpdateZip,
+        handleOpenReleasePage,
+        handleRevealDownloadedZip,
         isApplyingUpdate,
         handleApplyUpdateFromZip,
         handleApplyUpdateViaZipDialog,

@@ -35,6 +35,13 @@ export interface VideoDurationJobRequest {
     filePath: string;
 }
 
+export interface AudioThumbnailJobRequest {
+    type: 'worker:run-audio-thumbnail-job';
+    requestId: string;
+    audioPath: string;
+    outputPath: string;
+}
+
 export interface MediaMetadataJobRequest {
     type: 'worker:read-media-metadata-job';
     requestId: string;
@@ -59,6 +66,12 @@ export interface VideoDurationJobSuccess {
     durationSeconds: number;
 }
 
+export interface AudioThumbnailJobSuccess {
+    type: 'worker:audio-thumbnail-job-success';
+    requestId: string;
+    thumbnailPath: string | null;
+}
+
 export interface MediaMetadataJobSuccess {
     type: 'worker:media-metadata-job-success';
     requestId: string;
@@ -79,10 +92,12 @@ export type PreviewFrameWorkerMessage =
     | PreviewFrameJobRequest
     | VideoThumbnailJobRequest
     | VideoDurationJobRequest
+    | AudioThumbnailJobRequest
     | MediaMetadataJobRequest
     | PreviewFrameJobSuccess
     | VideoThumbnailJobSuccess
     | VideoDurationJobSuccess
+    | AudioThumbnailJobSuccess
     | MediaMetadataJobSuccess
     | WorkerJobFailure
     | PreviewFrameWorkerReady;

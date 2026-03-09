@@ -160,6 +160,7 @@ declare global {
 
             // App
             openExternal: (path: string) => Promise<void>;
+            openUrl: (url: string) => Promise<void>;
             showInExplorer: (path: string) => Promise<void>;
             getAppVersion: () => Promise<string>;  // Phase 26
             checkForAppUpdate: (sourceUrl?: string) => Promise<AppUpdateCheckResult>;

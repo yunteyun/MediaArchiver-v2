@@ -9,8 +9,9 @@ import { logger } from './logger';
 import { createPreviewFramesDir, createThumbnailOutputPath } from './thumbnailPaths';
 import { THUMBNAIL_WEBP_QUALITY } from './thumbnailQuality';
 import { logPerf, startPerfTimer } from './perfDebug';
-import { runMediaMetadataJob, runPreviewFrameJob, runVideoDurationJob, runVideoThumbnailJob } from './previewFrameWorkerService';
+import { runAudioThumbnailJob, runMediaMetadataJob, runPreviewFrameJob, runVideoDurationJob, runVideoThumbnailJob } from './previewFrameWorkerService';
 import type {
+    AudioThumbnailJobRequest,
     ExtractedMediaMetadata,
     MediaMetadataJobRequest,
     PreviewFrameJobRequest,
@@ -274,17 +275,58 @@ async function generateVideoThumbnailInline(
  */
 function generateAudioThumbnail(audioPath: string): Promise<string | null> {
     const outputPath = createThumbnailOutputPath('audio', '.webp', getCurrentProfileIdForThumbnails());
+    const perfStartedAt = startPerfTimer();
+    const request: AudioThumbnailJobRequest = {
+        type: 'worker:run-audio-thumbnail-job',
+        requestId: uuidv4(),
+        audioPath,
+        outputPath,
+    };
+
+    return runAudioThumbnailJob(request)
+        .then((thumbnailPath) => {
+            logPerf('thumbnail.generateAudioThumbnail', perfStartedAt, {
+                file: path.basename(audioPath),
+                ok: thumbnailPath !== null,
+                mode: 'worker'
+            });
+            return thumbnailPath;
+        })
+        .catch((error) => {
+            const fallbackError = error instanceof Error ? error.message : String(error);
+            log.warn(`Audio thumbnail worker failed for ${path.basename(audioPath)}. Falling back to inline extraction. ${fallbackError}`);
+            logPerf('thumbnail.generateAudioThumbnail', perfStartedAt, {
+                file: path.basename(audioPath),
+                ok: false,
+                mode: 'worker-fallback',
+                error: fallbackError
+            });
+            return generateAudioThumbnailInline(audioPath, outputPath);
+        });
+}
+
+function generateAudioThumbnailInline(audioPath: string, outputPath?: string): Promise<string | null> {
+    const resolvedOutputPath = outputPath ?? createThumbnailOutputPath('audio', '.webp', getCurrentProfileIdForThumbnails());
+    const perfStartedAt = startPerfTimer();
 
     return new Promise((resolve) => {
-        // FFmpegでアルバムアート（埋め込み画像）を抽出
         ffmpeg(audioPath)
             .outputOptions(['-an', '-vcodec', 'copy'])
-            .output(outputPath)
+            .output(resolvedOutputPath)
             .on('end', () => {
-                resolve(outputPath);
+                logPerf('thumbnail.generateAudioThumbnail', perfStartedAt, {
+                    file: path.basename(audioPath),
+                    ok: true,
+                    mode: 'inline'
+                });
+                resolve(resolvedOutputPath);
             })
             .on('error', () => {
-                // アルバムアートがない場合はエラーになる - 正常動作
+                logPerf('thumbnail.generateAudioThumbnail', perfStartedAt, {
+                    file: path.basename(audioPath),
+                    ok: false,
+                    mode: 'inline'
+                });
                 resolve(null);
             })
             .run();

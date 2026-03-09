@@ -21,7 +21,8 @@ import { useTagStore } from '../stores/useTagStore';
 import { useProfileStore } from '../stores/useProfileStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { RatingAxesManager } from './settings/RatingAxesManager';
-import { getSettingsTabMeta, SettingsTabNav } from './settings/SettingsTabNav';
+import { SettingsTabNav } from './settings/SettingsTabNav';
+import { getSettingsTabMeta } from './settings/SettingsTabMeta';
 import { GeneralSettingsTab } from './settings/GeneralSettingsTab';
 import { ScanSettingsTab } from './settings/ScanSettingsTab';
 import { ThumbnailsSettingsTab } from './settings/ThumbnailsSettingsTab';
@@ -168,6 +169,8 @@ export const SettingsModal = React.memo(() => {
         isDownloadingUpdateZip,
         updateDownloadState,
         handleDownloadLatestUpdateZip,
+        handleOpenReleasePage,
+        handleRevealDownloadedZip,
         isApplyingUpdate,
         handleApplyUpdateFromZip,
         handleApplyUpdateViaZipDialog,
@@ -625,6 +628,8 @@ export const SettingsModal = React.memo(() => {
                                 isDownloadingUpdateZip={isDownloadingUpdateZip}
                                 updateDownloadState={updateDownloadState}
                                 onDownloadLatestUpdateZip={() => { void handleDownloadLatestUpdateZip(); }}
+                                onOpenReleasePage={() => { void handleOpenReleasePage(); }}
+                                onRevealDownloadedZip={() => { void handleRevealDownloadedZip(); }}
                                 isApplyingUpdate={isApplyingUpdate}
                                 onApplyUpdateFromZip={() => { void handleApplyUpdateFromZip(); }}
                                 onApplyUpdateViaZipDialog={() => { void handleApplyUpdateViaZipDialog(); }}

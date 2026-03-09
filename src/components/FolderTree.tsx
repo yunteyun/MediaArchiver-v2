@@ -302,7 +302,17 @@ export const FolderTree = React.memo(({
                 )}
             </div>
         );
-    }, [currentFolderId, collapsedFolders, toggleFolder, onSelectFolder, collapsed, onOpenFolderSettings, folderRecursiveCountsByPath]);
+    }, [
+        currentFolderId,
+        collapsedFolders,
+        toggleFolder,
+        onSelectFolder,
+        collapsed,
+        onOpenFolderSettings,
+        folderRecursiveCountsByPath,
+        isPinnedSelection,
+        onTogglePinnedSelection,
+    ]);
 
     // ドライブがない場合（空）
     if (treeByDrive.size === 0) {

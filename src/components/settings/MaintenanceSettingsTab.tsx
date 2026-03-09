@@ -1,5 +1,6 @@
 import React from 'react';
-import { AppWindow, FolderOpen, RefreshCw } from 'lucide-react';
+import { AppWindow, FolderOpen, Globe, RefreshCw } from 'lucide-react';
+import { SettingsSection } from './SettingsSection';
 
 interface UpdateCheckUiState {
     checkedAt: number;
@@ -13,6 +14,8 @@ interface MaintenanceSettingsTabProps {
     isDownloadingUpdateZip: boolean;
     updateDownloadState: AppUpdateDownloadResult | null;
     onDownloadLatestUpdateZip: () => void;
+    onOpenReleasePage: () => void;
+    onRevealDownloadedZip: () => void;
     isApplyingUpdate: boolean;
     onApplyUpdateFromZip: () => void;
     onApplyUpdateViaZipDialog: () => void;
@@ -25,29 +28,45 @@ export const MaintenanceSettingsTab = React.memo(({
     isDownloadingUpdateZip,
     updateDownloadState,
     onDownloadLatestUpdateZip,
+    onOpenReleasePage,
+    onRevealDownloadedZip,
     isApplyingUpdate,
     onApplyUpdateFromZip,
     onApplyUpdateViaZipDialog,
 }: MaintenanceSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
-        <div className="space-y-4">
-            <div className="rounded border border-surface-700 bg-surface-900/50 p-3">
+        <SettingsSection
+            title="アプリ内更新"
+            description="GitHub Releases の最新版を確認し、検証済み ZIP の取得と update.bat 起動までこの画面から行えます。"
+            scope="operation"
+        >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <div className="text-sm font-medium text-surface-200">更新確認（PoC）</div>
+                        <div className="text-sm font-medium text-surface-200">最新版を確認</div>
                         <p className="text-xs text-surface-500 mt-0.5">
-                            最新版を手動で確認します。更新適用もこの画面から起動できます。
+                            現在のバージョンと GitHub Releases の最新リリースを比較します。
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={onCheckForUpdates}
-                        disabled={isCheckingForUpdates}
-                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        <RefreshCw size={14} className={isCheckingForUpdates ? 'animate-spin' : ''} />
-                        {isCheckingForUpdates ? '確認中...' : '更新を確認'}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={onCheckForUpdates}
+                            disabled={isCheckingForUpdates}
+                            className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            <RefreshCw size={14} className={isCheckingForUpdates ? 'animate-spin' : ''} />
+                            {isCheckingForUpdates ? '確認中...' : '更新を確認'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onOpenReleasePage}
+                            disabled={!updateCheckState?.result.releaseUrl}
+                            className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            <Globe size={14} />
+                            リリースページを開く
+                        </button>
+                    </div>
                 </div>
 
                 {updateCheckState && (
@@ -82,6 +101,11 @@ export const MaintenanceSettingsTab = React.memo(({
                                         リリースURL: {updateCheckState.result.releaseUrl}
                                     </div>
                                 )}
+                                {!updateCheckState.result.downloadUrl && updateCheckState.result.hasUpdate && (
+                                    <div className="text-amber-300">
+                                        自動取得できる ZIP が見つからないため、必要に応じてリリースページから手動で取得してください。
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <div className="text-red-300">
@@ -99,11 +123,11 @@ export const MaintenanceSettingsTab = React.memo(({
                         <button
                             type="button"
                             onClick={onDownloadLatestUpdateZip}
-                            disabled={isDownloadingUpdateZip}
+                            disabled={isDownloadingUpdateZip || !updateCheckState.result.downloadUrl}
                             className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <FolderOpen size={14} />
-                            {isDownloadingUpdateZip ? 'ZIP取得中...' : '更新ZIPを取得（PoC）'}
+                            {isDownloadingUpdateZip ? 'ZIP取得中...' : '検証済み更新ZIPを取得'}
                         </button>
                         <p className="text-xs text-surface-500">
                             `.sha256` による検証が通ったZIPのみ取得・適用できます。
@@ -126,12 +150,22 @@ export const MaintenanceSettingsTab = React.memo(({
                                 <div className="pt-1">
                                     <button
                                         type="button"
+                                        onClick={onRevealDownloadedZip}
+                                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700"
+                                    >
+                                        <FolderOpen size={14} />
+                                        保存先を開く
+                                    </button>
+                                </div>
+                                <div className="pt-1">
+                                    <button
+                                        type="button"
                                         onClick={onApplyUpdateFromZip}
                                         disabled={isApplyingUpdate || updateDownloadState.verified !== true}
                                         className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <AppWindow size={14} />
-                                        {isApplyingUpdate ? '適用起動中...' : 'update.bat で適用（PoC）'}
+                                        {isApplyingUpdate ? '適用起動中...' : 'update.bat で適用'}
                                     </button>
                                 </div>
                                 {updateDownloadState.verified !== true && (
@@ -147,9 +181,13 @@ export const MaintenanceSettingsTab = React.memo(({
                         )}
                     </div>
                 )}
-            </div>
+        </SettingsSection>
 
-            <div className="rounded border border-surface-700 bg-surface-950/40 p-3">
+        <SettingsSection
+            title="手動 ZIP 適用"
+            description="手元のリリース ZIP を使って update.bat を起動する従来方式です。ネットワーク制限時や手動配布時の fallback として使います。"
+            scope="operation"
+        >
                 <div className="text-sm font-medium text-surface-200">手動ZIP指定（従来方式）</div>
                 <div className="mt-2">
                     <button
@@ -165,8 +203,7 @@ export const MaintenanceSettingsTab = React.memo(({
                 <p className="mt-1 text-xs text-surface-500">
                     `update.bat` のZIP選択ダイアログから、手元のリリースZIPを指定して更新できます。
                 </p>
-            </div>
-        </div>
+        </SettingsSection>
     </div>
 ));
 

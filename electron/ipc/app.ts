@@ -92,6 +92,10 @@ export function registerAppHandlers() {
         return shell.openPath(filePath);
     });
 
+    ipcMain.handle('app:openUrl', async (_event, url: string) => {
+        await shell.openExternal(url);
+    });
+
     // エクスプローラーでファイル位置を表示
     ipcMain.handle('app:showInExplorer', async (_event, filePath: string) => {
         shell.showItemInFolder(filePath);

@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import type {
+    AudioThumbnailJobRequest,
+    AudioThumbnailJobSuccess,
     ExtractedMediaMetadata,
     MediaMetadataJobRequest,
     MediaMetadataJobSuccess,
@@ -55,6 +57,15 @@ function postVideoDurationSuccess(requestId: string, durationSeconds: number): v
         type: 'worker:video-duration-job-success',
         requestId,
         durationSeconds,
+    };
+    process.parentPort?.postMessage(successMessage);
+}
+
+function postAudioThumbnailSuccess(requestId: string, thumbnailPath: string | null): void {
+    const successMessage: AudioThumbnailJobSuccess = {
+        type: 'worker:audio-thumbnail-job-success',
+        requestId,
+        thumbnailPath,
     };
     process.parentPort?.postMessage(successMessage);
 }
@@ -204,6 +215,22 @@ async function runVideoDurationJob(request: VideoDurationJobRequest): Promise<nu
     return getVideoDurationSeconds(request.filePath);
 }
 
+async function runAudioThumbnailJob(request: AudioThumbnailJobRequest): Promise<string | null> {
+    const outputDir = path.dirname(request.outputPath);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    return new Promise((resolve) => {
+        ffmpeg(request.audioPath)
+            .outputOptions(['-an', '-vcodec', 'copy'])
+            .output(request.outputPath)
+            .on('end', () => resolve(request.outputPath))
+            .on('error', () => resolve(null))
+            .run();
+    });
+}
+
 async function runMediaMetadataJob(request: MediaMetadataJobRequest): Promise<ExtractedMediaMetadata | null> {
     return new Promise((resolve) => {
         ffmpeg.ffprobe(request.filePath, (err, metadata) => {
@@ -259,7 +286,7 @@ if (!process.parentPort) {
 }
 
 process.parentPort.on('message', async (event) => {
-    const message = event.data as PreviewFrameJobRequest | VideoThumbnailJobRequest | VideoDurationJobRequest | MediaMetadataJobRequest;
+    const message = event.data as PreviewFrameJobRequest | VideoThumbnailJobRequest | VideoDurationJobRequest | AudioThumbnailJobRequest | MediaMetadataJobRequest;
     if (!message) {
         return;
     }
@@ -279,6 +306,11 @@ process.parentPort.on('message', async (event) => {
         case 'worker:read-video-duration-job': {
             const durationSeconds = await runVideoDurationJob(message);
             postVideoDurationSuccess(message.requestId, durationSeconds);
+            break;
+        }
+        case 'worker:run-audio-thumbnail-job': {
+            const thumbnailPath = await runAudioThumbnailJob(message);
+            postAudioThumbnailSuccess(message.requestId, thumbnailPath);
             break;
         }
         case 'worker:read-media-metadata-job': {
