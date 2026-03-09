@@ -103,9 +103,13 @@ export const FileGrid = React.memo(() => {
     const ratingAxes = useRatingStore((s) => s.axes);
     const ratingFilter = useRatingStore((s) => s.ratingFilter);
     const allFileRatings = useRatingStore((s) => s.fileRatings);
-    const overallRatingAxisId = useMemo(
-        () => ratingAxes.find((axis) => axis.isSystem)?.id ?? null,
+    const overallRatingAxis = useMemo(
+        () => ratingAxes.find((axis) => axis.isSystem) ?? null,
         [ratingAxes]
+    );
+    const overallRatingAxisId = useMemo(
+        () => overallRatingAxis?.id ?? null,
+        [overallRatingAxis]
     );
 
     const activeSearchConditions = useMemo(() => (
@@ -694,6 +698,8 @@ export const FileGrid = React.memo(() => {
                                                 isSelected={selectedIds.has(file.id)}
                                                 isFocused={focusedId === file.id && !selectedIds.has(file.id)}
                                                 onSelect={handleSelect}
+                                                overallRating={overallRatingAxisId ? allFileRatings[file.id]?.[overallRatingAxisId] : undefined}
+                                                overallRatingAxis={overallRatingAxis}
                                             />
                                         </div>
                                     ))}
@@ -777,6 +783,8 @@ export const FileGrid = React.memo(() => {
                                                 isSelected={selectedIds.has(item.file.id)}
                                                 isFocused={focusedId === item.file.id && !selectedIds.has(item.file.id)}
                                                 onSelect={handleSelect}
+                                                overallRating={overallRatingAxisId ? allFileRatings[item.file.id]?.[overallRatingAxisId] : undefined}
+                                                overallRatingAxis={overallRatingAxis}
                                             />
                                         </div>
                                     );

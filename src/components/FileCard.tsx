@@ -24,6 +24,7 @@ import {
 import type { FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
 import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
+import { FileCardRatingBadge } from './fileCard/FileCardRatingBadge';
 
 // 明るい背景色のタグで暗い文字色を使うためのヘルパー
 function getTagTextColor(bgColor: string): string {
@@ -302,12 +303,25 @@ interface FileCardProps {
     isSelected: boolean;
     isFocused?: boolean;
     onSelect: (id: string, mode: 'single' | 'toggle' | 'range') => void;
+    overallRating?: number;
+    overallRatingAxis?: {
+        name: string;
+        minValue: number;
+        maxValue: number;
+    } | null;
 }
 
 
 
 
-export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSelect }: FileCardProps) => {
+export const FileCard = React.memo(({
+    file,
+    isSelected,
+    isFocused = false,
+    onSelect,
+    overallRating,
+    overallRatingAxis = null,
+}: FileCardProps) => {
     const perfDebugEnabled = isPerfDebugEnabled();
     // アイコン選択ロジック
     const Icon = (() => {
@@ -1202,6 +1216,17 @@ export const FileCard = React.memo(({ file, isSelected, isFocused = false, onSel
                         </div>
                     )}
                 </div>
+
+                {overallRating !== undefined && overallRatingAxis && !isSelected && (
+                    <div className="absolute top-1 left-1 z-10">
+                        <FileCardRatingBadge
+                            value={overallRating}
+                            minValue={overallRatingAxis.minValue}
+                            maxValue={overallRatingAxis.maxValue}
+                            axisName={overallRatingAxis.name}
+                        />
+                    </div>
+                )}
 
                 <button
                     ref={zoomButtonRef}
