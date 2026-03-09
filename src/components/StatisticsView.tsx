@@ -34,6 +34,21 @@ const typeColors: Record<string, string> = {
     audio: '#a855f7',   // 紫
 };
 
+const neutralTagColors = new Set(['gray', 'slate', 'zinc', 'neutral', 'stone']);
+
+const tagChartPalette = [
+    '#60a5fa',
+    '#34d399',
+    '#f59e0b',
+    '#f472b6',
+    '#a78bfa',
+    '#22d3ee',
+    '#fb7185',
+    '#84cc16',
+    '#38bdf8',
+    '#f97316',
+];
+
 const chartTooltipContentStyle = {
     backgroundColor: '#0f172a',
     border: '1px solid #334155',
@@ -58,6 +73,17 @@ const chartTooltipWrapperStyle = {
 const chartHoverCursor = {
     fill: 'rgba(59, 130, 246, 0.12)',
 };
+
+function getTagChartColor(tagColor: string | undefined, index: number): string {
+    if (!tagColor || neutralTagColors.has(tagColor)) {
+        return tagChartPalette[index % tagChartPalette.length];
+    }
+
+    const resolved = resolveTagColorHex(tagColor);
+    return resolved === '#4b5563'
+        ? tagChartPalette[index % tagChartPalette.length]
+        : resolved;
+}
 
 interface MeasuredChartAreaProps {
     className: string;
@@ -347,7 +373,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                     />
                                     <Bar dataKey="count" name="ファイル数" radius={[0, 4, 4, 0]}>
                                         {stats.byTag.slice(0, 10).map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={resolveTagColorHex(entry.tagColor)} />
+                                            <Cell key={`cell-${index}`} fill={getTagChartColor(entry.tagColor, index)} />
                                         ))}
                                     </Bar>
                             </BarChart>
