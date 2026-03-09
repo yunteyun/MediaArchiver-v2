@@ -520,20 +520,26 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                 <div className="bg-surface-800 rounded-lg p-4">
                     <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                         <Tag size={16} className="text-amber-400" />
-                        評価分布（★1-5）
+                        総合評価分布
                     </h2>
                     <MeasuredChartArea className="h-48 min-w-0 min-h-0">
                         {(size) => isReady ? (
                             <BarChart width={size.width} height={size.height} data={stats.ratingStats} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                    <XAxis dataKey="rating" stroke="#94a3b8" fontSize={12} />
-                                    <YAxis stroke="#94a3b8" fontSize={12} />
+                                    <XAxis dataKey="ratingLabel" stroke="#94a3b8" fontSize={12} interval={0} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={chartTooltipContentStyle}
                                         labelStyle={chartTooltipLabelStyle}
                                         itemStyle={chartTooltipItemStyle}
                                         wrapperStyle={chartTooltipWrapperStyle}
                                         cursor={chartHoverCursor}
+                                        formatter={(value: number, name?: string, props?: { payload?: { ratingLabel?: string } }) => {
+                                            if (name === 'ファイル数') {
+                                                return [`${value.toLocaleString()}件`, props?.payload?.ratingLabel ?? '評価'];
+                                            }
+                                            return value;
+                                        }}
                                     />
                                     <Bar dataKey="count" name="ファイル数" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                             </BarChart>

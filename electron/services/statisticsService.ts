@@ -56,7 +56,8 @@ export interface UntaggedStats {
 }
 
 export interface RatingStats {
-    rating: string;
+    ratingValue: number;
+    ratingLabel: string;
     count: number;
 }
 
@@ -173,18 +174,24 @@ export function getLibraryStats(): LibraryStats {
         untagged: totalRow.count - taggedCount.count
     };
 
-    // 評価分布（★1-5）
+    // 評価分布（現在の総合評価軸）
     const ratingStats = db.prepare(`
         SELECT 
-            td.name as rating,
-            COUNT(ft.file_id) as count
-        FROM tag_definitions td
-        LEFT JOIN file_tags ft ON td.id = ft.tag_id
-        WHERE td.category_id = 'cat_rating'
-        GROUP BY td.id
+            fr.value as ratingValue,
+            COUNT(fr.file_id) as count
+        FROM file_ratings fr
+        INNER JOIN rating_axes ra ON ra.id = fr.axis_id
+        WHERE ra.is_system = 1
+        GROUP BY fr.value
         HAVING count > 0
-        ORDER BY td.name DESC
-    `).all() as RatingStats[];
+        ORDER BY fr.value DESC
+    `).all() as Array<{ ratingValue: number; count: number }>;
+
+    const normalizedRatingStats: RatingStats[] = ratingStats.map((row) => ({
+        ratingValue: row.ratingValue,
+        ratingLabel: `★${Number.isInteger(row.ratingValue) ? row.ratingValue : row.ratingValue.toFixed(1)}`,
+        count: row.count,
+    }));
 
     // 巨大ファイル Top 10
     const largeFiles = db.prepare(`
@@ -240,7 +247,7 @@ export function getLibraryStats(): LibraryStats {
         recentFiles,
         monthlyTrend: monthlyTrend.reverse(), // 古い順に並び替え
         untaggedStats,
-        ratingStats,
+        ratingStats: normalizedRatingStats,
         largeFiles,
         extensionStats,
         resolutionStats,

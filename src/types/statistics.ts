@@ -7,7 +7,7 @@ export interface LibraryStats {
     recentFiles: { id: string; name: string; path: string; type: string; createdAt: number; thumbnailPath: string | null }[];
     monthlyTrend: { month: string; count: number }[];
     untaggedStats: { tagged: number; untagged: number };
-    ratingStats: { rating: string; count: number }[];
+    ratingStats: { ratingValue: number; ratingLabel: string; count: number }[];
     largeFiles: { id: string; name: string; path: string; type: string; size: number; thumbnailPath: string | null }[];
     extensionStats: { type: string; extension: string; count: number }[];
     resolutionStats: { resolution: string; count: number }[];

@@ -38,7 +38,8 @@ export interface UntaggedStats {
     untagged: number;
 }
 export interface RatingStats {
-    rating: string;
+    ratingValue: number;
+    ratingLabel: string;
     count: number;
 }
 export interface LargeFile {
