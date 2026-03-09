@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Copy, Settings, X } from 'lucide-react';
+import { Copy, LayoutDashboard, Settings, X } from 'lucide-react';
 
 interface HiddenScanIndicator {
     className: string;
@@ -13,9 +13,9 @@ interface SidebarUtilityActionsProps {
     sidebarCollapsed: boolean;
     showTopSeparator?: boolean;
     duplicateViewOpen: boolean;
-    mainView: 'grid' | 'statistics';
+    mainView: 'grid' | 'profile';
     onOpenDuplicateView: () => void;
-    onOpenStatistics: () => void;
+    onOpenProfileHome: () => void;
     onOpenSettings: () => void;
     hiddenScanIndicator: HiddenScanIndicator | null;
     canDismissScanIndicator: boolean;
@@ -29,7 +29,7 @@ export const SidebarUtilityActions = React.memo(({
     duplicateViewOpen,
     mainView,
     onOpenDuplicateView,
-    onOpenStatistics,
+    onOpenProfileHome,
     onOpenSettings,
     hiddenScanIndicator,
     canDismissScanIndicator,
@@ -56,19 +56,19 @@ export const SidebarUtilityActions = React.memo(({
         </div>
 
         <div
-            onClick={onOpenStatistics}
+            onClick={onOpenProfileHome}
             className={`
                 flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
-                ${mainView === 'statistics'
+                ${mainView === 'profile'
                     ? 'bg-blue-600 text-white'
                     : 'hover:bg-surface-800 text-surface-300'}
                 ${sidebarCollapsed ? 'justify-center' : ''}
             `}
-            title="ライブラリ統計"
+            title="プロファイルトップ"
         >
-            <BarChart3 size={18} className="flex-shrink-0 text-current" />
+            <LayoutDashboard size={18} className="flex-shrink-0 text-current" />
             {!sidebarCollapsed && (
-                <span className="truncate text-sm font-medium">統計</span>
+                <span className="truncate text-sm font-medium">プロファイル</span>
             )}
         </div>
 

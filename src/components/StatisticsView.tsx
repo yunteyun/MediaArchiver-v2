@@ -8,23 +8,8 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, AlertCircle, Image } from 'lucide-react';
 import { ActivityLogView } from './ActivityLogView';
+import { useLibraryStats } from '../hooks/useLibraryStats';
 import { toMediaUrl } from '../utils/mediaPath';
-
-interface LibraryStats {
-    totalFiles: number;
-    totalSize: number;
-    byType: { type: string; count: number; size: number }[];
-    byTag: { tagId: string; tagName: string; tagColor: string; count: number }[];
-    byFolder: { folderId: string; folderPath: string; count: number; size: number }[];
-    recentFiles: any[];
-    monthlyTrend: { month: string; count: number }[];
-    untaggedStats: { tagged: number; untagged: number };
-    ratingStats: { rating: string; count: number }[];
-    largeFiles: { id: string; name: string; path: string; type: string; size: number; thumbnailPath: string | null }[];
-    extensionStats: { type: string; extension: string; count: number }[];
-    resolutionStats: { resolution: string; count: number }[];
-    thumbnailSize: number;  // Phase 24
-}
 
 const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -48,34 +33,20 @@ const typeColors: Record<string, string> = {
     audio: '#a855f7',   // 紫
 };
 
-export const StatisticsView: React.FC = () => {
-    const [stats, setStats] = useState<LibraryStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+interface StatisticsViewProps {
+    embedded?: boolean;
+}
+
+export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false }) => {
     const [regenerating, setRegenerating] = useState(false);
     const [regenProgress, setRegenProgress] = useState<{ current: number; total: number } | null>(null);
-
-    const loadStats = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await window.electronAPI.getLibraryStats();
-            console.log('Statistics loaded:', data);
-            setStats(data);
-        } catch (e: any) {
-            console.error('Failed to load stats:', e);
-            setError(e.message || 'Unknown error');
-        }
-        setLoading(false);
-    };
+    const { stats, loading, error, loadStats } = useLibraryStats();
 
     // Delay rendering to allow container size to be calculated
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        loadStats();
-        // Delay chart rendering to avoid size calculation issues
-        const timer = setTimeout(() => setIsReady(true), 500);
+        const timer = window.setTimeout(() => setIsReady(true), 180);
         return () => clearTimeout(timer);
     }, []);
 
@@ -129,21 +100,23 @@ export const StatisticsView: React.FC = () => {
     }
 
     return (
-        <div className="p-6 space-y-6 overflow-y-auto h-full">
+        <div className={`h-full overflow-y-auto ${embedded ? 'p-5' : 'p-6'} space-y-6`}>
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                    <BarChart3 size={24} className="text-primary-400" />
-                    ライブラリ統計
-                </h1>
-                <button
-                    onClick={loadStats}
-                    className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded text-sm flex items-center gap-1"
-                >
-                    <RefreshCw size={14} />
-                    更新
-                </button>
-            </div>
+            {!embedded && (
+                <div className="flex items-center justify-between">
+                    <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                        <BarChart3 size={24} className="text-primary-400" />
+                        ライブラリ統計
+                    </h1>
+                    <button
+                        onClick={() => void loadStats()}
+                        className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded text-sm flex items-center gap-1"
+                    >
+                        <RefreshCw size={14} />
+                        更新
+                    </button>
+                </div>
+            )}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

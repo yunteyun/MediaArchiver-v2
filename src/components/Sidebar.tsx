@@ -872,9 +872,9 @@ export const Sidebar = React.memo(() => {
                             useUIStore.getState().openDuplicateView();
                             useUIStore.getState().setMainView('grid');
                         }}
-                        onOpenStatistics={() => {
+                        onOpenProfileHome={() => {
                             useUIStore.getState().closeDuplicateView();
-                            useUIStore.getState().setMainView('statistics');
+                            useUIStore.getState().setMainView('profile');
                         }}
                         onOpenSettings={() => useUIStore.getState().openSettingsModal()}
                         hiddenScanIndicator={hiddenScanIndicator}
@@ -903,9 +903,9 @@ export const Sidebar = React.memo(() => {
                                 useUIStore.getState().openDuplicateView();
                                 useUIStore.getState().setMainView('grid');
                             }}
-                            onOpenStatistics={() => {
+                            onOpenProfileHome={() => {
                                 useUIStore.getState().closeDuplicateView();
-                                useUIStore.getState().setMainView('statistics');
+                                useUIStore.getState().setMainView('profile');
                             }}
                             onOpenSettings={() => useUIStore.getState().openSettingsModal()}
                             hiddenScanIndicator={hiddenScanIndicator}

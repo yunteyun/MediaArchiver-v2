@@ -61,7 +61,7 @@ interface UIState {
     scanProgressAutoDismissPending: boolean;
     toasts: ToastData[];
     duplicateViewOpen: boolean;
-    mainView: 'grid' | 'statistics';  // メインエリアの表示切り替え
+    mainView: 'grid' | 'profile';  // メインエリアの表示切り替え
     hoveredPreviewId: string | null;  // Phase 17-3: 同時再生制御用
     deleteDialogOpen: boolean;
     deleteDialogFilePath: string | null;
@@ -107,7 +107,7 @@ interface UIState {
     openDuplicateView: () => void;
     closeDuplicateView: () => void;
     setDuplicateViewOpen: (open: boolean) => void;
-    setMainView: (view: 'grid' | 'statistics') => void;
+    setMainView: (view: 'grid' | 'profile') => void;
     setHoveredPreview: (id: string | null) => void;  // Phase 17-3
     isScanProgressVisible: boolean;
     setScanProgressVisible: (visible: boolean) => void;

@@ -20,7 +20,7 @@ import {
     PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE,
 } from './utils/profileLifecycle';
 
-const StatisticsView = lazy(() => import('./components/StatisticsView').then((module) => ({ default: module.StatisticsView })));
+const ProfileHomeView = lazy(() => import('./components/ProfileHomeView').then((module) => ({ default: module.ProfileHomeView })));
 const DuplicateView = lazy(() => import('./components/DuplicateView').then((module) => ({ default: module.DuplicateView })));
 const RightPanel = lazy(() => import('./components/RightPanel').then((module) => ({ default: module.RightPanel })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then((module) => ({ default: module.SettingsModal })));
@@ -421,9 +421,9 @@ function App() {
                 </header>
                 {/* メインコンテンツ: 統計 / 重複ビュー / ファイルグリッド */}
                 <div className="relative flex-1 min-h-0">
-                    {mainView === 'statistics' ? (
-                        <Suspense fallback={<MainViewLoading label="統計を読み込み中..." />}>
-                            <StatisticsView />
+                    {mainView === 'profile' ? (
+                        <Suspense fallback={<MainViewLoading label="プロファイルトップを読み込み中..." />}>
+                            <ProfileHomeView />
                         </Suspense>
                     ) : duplicateViewOpen ? (
                         <Suspense fallback={<MainViewLoading label="重複チェックを読み込み中..." />}>
