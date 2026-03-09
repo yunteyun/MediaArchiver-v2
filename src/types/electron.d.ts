@@ -5,6 +5,13 @@ import type {
 } from '../stores/useSettingsStore';
 import type { ScanProgress as UiScanProgress } from '../stores/useUIStore';
 import type { SmartFolderConditionV1, SmartFolderV1 } from '../stores/useSmartFolderStore';
+import type {
+    AutoOrganizeActionV1,
+    AutoOrganizeApplyResult,
+    AutoOrganizeConditionV1,
+    AutoOrganizeDryRunResult,
+    AutoOrganizeRuleV1,
+} from './autoOrganize';
 import type { ExternalDisplayPresetListResult } from '../components/fileCard/displayModes';
 import type {
     Tag as RendererTagDefinition,
@@ -300,6 +307,26 @@ declare global {
                 };
             }) => Promise<SmartFolderV1>;
             deleteSmartFolder: (id: string) => Promise<{ success: boolean }>;
+            getAutoOrganizeRules: () => Promise<AutoOrganizeRuleV1[]>;
+            createAutoOrganizeRule: (payload: {
+                name: string;
+                enabled?: boolean;
+                condition?: Partial<AutoOrganizeConditionV1>;
+                action: AutoOrganizeActionV1;
+            }) => Promise<AutoOrganizeRuleV1>;
+            updateAutoOrganizeRule: (payload: {
+                id: string;
+                updates: {
+                    name?: string;
+                    enabled?: boolean;
+                    condition?: Partial<AutoOrganizeConditionV1>;
+                    action?: AutoOrganizeActionV1;
+                    sortOrder?: number;
+                };
+            }) => Promise<AutoOrganizeRuleV1>;
+            deleteAutoOrganizeRule: (id: string) => Promise<{ success: boolean }>;
+            dryRunAutoOrganize: (ruleIds?: string[]) => Promise<AutoOrganizeDryRunResult>;
+            applyAutoOrganize: (ruleIds?: string[]) => Promise<AutoOrganizeApplyResult>;
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
 
             // Duplicate Detection
@@ -486,6 +513,7 @@ interface LibraryStats {
 type ActivityAction =
     | 'file_add'
     | 'file_delete'
+    | 'file_move'
     | 'tag_add'
     | 'tag_remove'
     | 'scan_start'

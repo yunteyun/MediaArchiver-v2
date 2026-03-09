@@ -15,6 +15,7 @@ const log = logger.scope('ActivityLogService');
 export type ActivityAction =
     | 'file_add'
     | 'file_delete'
+    | 'file_move'
     | 'tag_add'
     | 'tag_remove'
     | 'scan_start'

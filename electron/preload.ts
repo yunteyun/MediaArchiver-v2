@@ -4,6 +4,13 @@ import type { ExternalApp, ScanExclusionRules } from '../src/stores/useSettingsS
 import type { ScanProgress } from '../src/stores/useUIStore';
 import type { SmartFolderConditionV1 } from '../src/stores/useSmartFolderStore';
 import type {
+    AutoOrganizeActionV1,
+    AutoOrganizeApplyResult,
+    AutoOrganizeConditionV1,
+    AutoOrganizeDryRunResult,
+    AutoOrganizeRuleV1,
+} from '../src/types/autoOrganize';
+import type {
     AutoTagRule,
     MatchTarget,
     MatchMode,
@@ -304,6 +311,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     ) => ipcRenderer.invoke('smartFolder:update', payload),
     deleteSmartFolder: (id: string) => ipcRenderer.invoke('smartFolder:delete', id),
+    getAutoOrganizeRules: () => ipcRenderer.invoke('autoOrganize:getAll') as Promise<AutoOrganizeRuleV1[]>,
+    createAutoOrganizeRule: (payload: {
+        name: string;
+        enabled?: boolean;
+        condition?: Partial<AutoOrganizeConditionV1>;
+        action: AutoOrganizeActionV1;
+    }) => ipcRenderer.invoke('autoOrganize:create', payload),
+    updateAutoOrganizeRule: (payload: {
+        id: string;
+        updates: {
+            name?: string;
+            enabled?: boolean;
+            condition?: Partial<AutoOrganizeConditionV1>;
+            action?: AutoOrganizeActionV1;
+            sortOrder?: number;
+        };
+    }) => ipcRenderer.invoke('autoOrganize:update', payload),
+    deleteAutoOrganizeRule: (id: string) => ipcRenderer.invoke('autoOrganize:delete', id),
+    dryRunAutoOrganize: (ruleIds?: string[]) => ipcRenderer.invoke('autoOrganize:dryRun', ruleIds) as Promise<AutoOrganizeDryRunResult>,
+    applyAutoOrganize: (ruleIds?: string[]) => ipcRenderer.invoke('autoOrganize:apply', ruleIds) as Promise<AutoOrganizeApplyResult>,
 
     onProfileSwitched: (callback: (profileId: string) => void) => subscribe('profile:switched', callback),
 

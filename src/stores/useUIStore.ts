@@ -19,7 +19,7 @@ export interface ScanProgress {
     };
 }
 
-export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings' | 'maintenance';
+export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings' | 'maintenance' | 'organize';
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
 export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 export type FileSortOrder = 'asc' | 'desc';

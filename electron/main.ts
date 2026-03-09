@@ -28,6 +28,7 @@ import { registerRatingHandlers } from './ipc/rating';
 import { registerSearchHandlers } from './ipc/search';
 import { registerSmartFolderHandlers } from './ipc/smartFolder';
 import { registerDisplayPresetHandlers } from './ipc/displayPreset';
+import { registerAutoOrganizeHandlers } from './ipc/autoOrganize';
 import { syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
 import { disposePreviewFrameWorker } from './services/previewFrameWorkerService';
 
@@ -185,6 +186,7 @@ app.whenReady().then(async () => {
     registerRatingHandlers();
     registerSearchHandlers();
     registerSmartFolderHandlers();
+    registerAutoOrganizeHandlers();
     registerDisplayPresetHandlers();
     logger.info('IPC handlers registered');
 

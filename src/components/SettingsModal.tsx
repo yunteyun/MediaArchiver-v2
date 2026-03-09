@@ -30,6 +30,7 @@ import { LogsSettingsTab } from './settings/LogsSettingsTab';
 import { BackupSettingsTab } from './settings/BackupSettingsTab';
 import { StorageSettingsTab } from './settings/StorageSettingsTab';
 import { MaintenanceSettingsTab } from './settings/MaintenanceSettingsTab';
+import { AutoOrganizeSettingsTab } from './settings/AutoOrganizeSettingsTab';
 import { useSettingsMaintenance } from './settings/useSettingsMaintenance';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
@@ -634,6 +635,10 @@ export const SettingsModal = React.memo(() => {
                                 onApplyUpdateFromZip={() => { void handleApplyUpdateFromZip(); }}
                                 onApplyUpdateViaZipDialog={() => { void handleApplyUpdateViaZipDialog(); }}
                             />
+                        )}
+
+                        {activeTab === 'organize' && (
+                            <AutoOrganizeSettingsTab />
                         )}
 
                         {activeTab === 'logs' && (
