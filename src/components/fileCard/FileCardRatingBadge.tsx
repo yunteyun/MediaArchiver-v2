@@ -38,8 +38,8 @@ function getRatingTone(value: number, minValue: number, maxValue: number): Ratin
     }
     if (value >= RATING_BADGE_MID_THRESHOLD) {
         return {
-            iconClass: 'text-primary-300',
-            valueClass: 'text-primary-300',
+            iconClass: 'text-blue-300',
+            valueClass: 'text-blue-300',
         };
     }
 
