@@ -1217,7 +1217,7 @@ export const FileCard = React.memo(({
                     )}
                 </div>
 
-                {overallRating !== undefined && overallRatingAxis && !isSelected && (
+                {overallRating !== undefined && overallRatingAxis && (
                     <div className="absolute top-1 left-1 z-10">
                         <FileCardRatingBadge
                             value={overallRating}
