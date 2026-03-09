@@ -376,10 +376,9 @@ describe('resetStateForProfileSwitch', () => {
     it('clears app state and reloads ratings', async () => {
         const setFiles = vi.fn();
         const setCurrentFolderId = vi.fn();
-        const closeLightbox = vi.fn();
         const clearTagFilter = vi.fn();
         const clearRatingFilters = vi.fn();
-        const clearRatingQuickFilter = vi.fn();
+        const resetTransientUiState = vi.fn();
         const resetDuplicates = vi.fn();
         const bumpRefreshKey = vi.fn();
         const reloadRatings = vi.fn().mockResolvedValue(undefined);
@@ -387,10 +386,9 @@ describe('resetStateForProfileSwitch', () => {
         resetStateForProfileSwitch({
             setFiles,
             setCurrentFolderId,
-            closeLightbox,
             clearTagFilter,
             clearRatingFilters,
-            clearRatingQuickFilter,
+            resetTransientUiState,
             resetDuplicates,
             bumpRefreshKey,
             reloadRatings,
@@ -398,10 +396,9 @@ describe('resetStateForProfileSwitch', () => {
 
         expect(setFiles).toHaveBeenCalledWith([]);
         expect(setCurrentFolderId).toHaveBeenCalledWith(null);
-        expect(closeLightbox).toHaveBeenCalledTimes(1);
+        expect(resetTransientUiState).toHaveBeenCalledTimes(1);
         expect(clearTagFilter).toHaveBeenCalledTimes(1);
         expect(clearRatingFilters).toHaveBeenCalledTimes(1);
-        expect(clearRatingQuickFilter).toHaveBeenCalledTimes(1);
         expect(resetDuplicates).toHaveBeenCalledTimes(1);
         expect(bumpRefreshKey).toHaveBeenCalledTimes(1);
 

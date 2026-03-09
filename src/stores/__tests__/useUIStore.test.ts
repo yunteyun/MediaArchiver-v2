@@ -147,6 +147,101 @@ describe('useUIStore', () => {
         expect(state.currentThumbnailPresentation).toBe('square');
     });
 
+    it('applies profile scoped UI defaults without keeping previous search conditions', () => {
+        useUIStore.setState({
+            searchQuery: 'hero',
+            searchTarget: 'fileName',
+            searchExtraConditions: [{ text: 'team', target: 'folderName' }],
+            currentSortBy: 'date',
+            currentSortOrder: 'desc',
+            currentGroupBy: 'none',
+        });
+
+        useUIStore.getState().applyProfileScopedUiDefaults({
+            defaultSearchTarget: 'folderName',
+            listDisplayDefaults: {
+                sortBy: 'name',
+                sortOrder: 'asc',
+                groupBy: 'type',
+                displayMode: 'compact',
+                activeDisplayPresetId: 'compact',
+                thumbnailPresentation: 'contain',
+            },
+        });
+
+        const state = useUIStore.getState();
+        expect(state.searchQuery).toBe('');
+        expect(state.searchTarget).toBe('folderName');
+        expect(state.searchExtraConditions).toEqual([]);
+        expect(state.currentSortBy).toBe('name');
+        expect(state.currentSortOrder).toBe('asc');
+        expect(state.currentGroupBy).toBe('type');
+        expect(state.currentDisplayMode).toBe('compact');
+        expect(state.currentActiveDisplayPresetId).toBe('compact');
+        expect(state.currentThumbnailPresentation).toBe('contain');
+    });
+
+    it('resets transient state for profile switches', () => {
+        useUIStore.setState({
+            lightboxFile: { id: 'f1' } as never,
+            lightboxOpenMode: 'archive-image',
+            lightboxStartTime: 10,
+            searchQuery: 'hero',
+            searchTarget: 'folderName',
+            searchExtraConditions: [{ text: 'team', target: 'fileName' }],
+            ratingQuickFilter: 'overall4plus',
+            currentSortBy: 'name',
+            currentSortOrder: 'asc',
+            currentGroupBy: 'type',
+            currentDisplayMode: 'compact',
+            currentActiveDisplayPresetId: 'compact',
+            currentThumbnailPresentation: 'contain',
+            selectedFileTypes: ['image'],
+            settingsModalOpen: true,
+            settingsModalRequestedTab: 'apps',
+            duplicateViewOpen: true,
+            mainView: 'profile',
+            hoveredPreviewId: 'hovered',
+            deleteDialogOpen: true,
+            deleteDialogFilePath: 'C:\\temp\\x.png',
+            deleteDialogFileId: 'delete-target',
+            moveDialogOpen: true,
+            moveFileIds: ['f1'],
+            moveCurrentFolderId: 'folder-1',
+            previewContext: 'right-panel',
+        });
+
+        useUIStore.getState().resetTransientStateForProfileSwitch();
+
+        const state = useUIStore.getState();
+        expect(state.lightboxFile).toBeNull();
+        expect(state.lightboxOpenMode).toBe('default');
+        expect(state.lightboxStartTime).toBeNull();
+        expect(state.searchQuery).toBe('');
+        expect(state.searchTarget).toBe('fileName');
+        expect(state.searchExtraConditions).toEqual([]);
+        expect(state.ratingQuickFilter).toBe('none');
+        expect(state.currentSortBy).toBe('date');
+        expect(state.currentSortOrder).toBe('desc');
+        expect(state.currentGroupBy).toBe('none');
+        expect(state.currentDisplayMode).toBe('standard');
+        expect(state.currentActiveDisplayPresetId).toBe('standard');
+        expect(state.currentThumbnailPresentation).toBe('modeDefault');
+        expect(state.selectedFileTypes).toEqual(['video', 'image', 'archive', 'audio']);
+        expect(state.settingsModalOpen).toBe(false);
+        expect(state.settingsModalRequestedTab).toBeNull();
+        expect(state.duplicateViewOpen).toBe(false);
+        expect(state.mainView).toBe('grid');
+        expect(state.hoveredPreviewId).toBeNull();
+        expect(state.deleteDialogOpen).toBe(false);
+        expect(state.deleteDialogFilePath).toBeNull();
+        expect(state.deleteDialogFileId).toBeNull();
+        expect(state.moveDialogOpen).toBe(false);
+        expect(state.moveFileIds).toEqual([]);
+        expect(state.moveCurrentFolderId).toBeNull();
+        expect(state.previewContext).toBeNull();
+    });
+
     it('stores rating quick filter separately from axis filters', () => {
         useUIStore.getState().setRatingQuickFilter('unrated');
         expect(useUIStore.getState().ratingQuickFilter).toBe('unrated');

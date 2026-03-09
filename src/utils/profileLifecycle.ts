@@ -52,10 +52,9 @@ export interface LoadAndApplyProfileScopedSettingsParams {
 export interface ProfileSwitchResetParams {
     setFiles: (files: MediaFile[]) => void;
     setCurrentFolderId: (folderId: string | null) => void;
-    closeLightbox: () => void;
     clearTagFilter: () => void;
     clearRatingFilters: () => void;
-    clearRatingQuickFilter: () => void;
+    resetTransientUiState: () => void;
     resetDuplicates: () => void;
     bumpRefreshKey: () => void;
     reloadRatings: () => Promise<void>;
@@ -170,10 +169,9 @@ export function resetStateForProfileSwitch(params: ProfileSwitchResetParams): vo
     const {
         setFiles,
         setCurrentFolderId,
-        closeLightbox,
         clearTagFilter,
         clearRatingFilters,
-        clearRatingQuickFilter,
+        resetTransientUiState,
         resetDuplicates,
         bumpRefreshKey,
         reloadRatings,
@@ -182,10 +180,9 @@ export function resetStateForProfileSwitch(params: ProfileSwitchResetParams): vo
 
     setFiles([]);
     setCurrentFolderId(null);
-    closeLightbox();
+    resetTransientUiState();
     clearTagFilter();
     clearRatingFilters();
-    clearRatingQuickFilter();
     resetDuplicates();
     bumpRefreshKey();
 

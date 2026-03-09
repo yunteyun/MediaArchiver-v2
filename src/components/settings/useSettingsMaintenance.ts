@@ -474,28 +474,32 @@ export function useSettingsMaintenance({
             useSettingsStore.getState().setScanExclusionRules(scanExclusionRules);
             useSettingsStore.getState().setStorageMaintenanceSettings(storageMaintenanceSettings);
 
-            useUIStore.getState().applyListDisplayDefaults({
-                sortBy: payload.globalSettings.sortBy,
-                sortOrder: payload.globalSettings.sortOrder,
-                groupBy: payload.globalSettings.groupBy,
-                displayMode: payload.globalSettings.displayMode,
-                activeDisplayPresetId: payload.globalSettings.activeDisplayPresetId,
-                thumbnailPresentation: payload.globalSettings.thumbnailPresentation,
+            useUIStore.getState().applyProfileScopedUiDefaults({
+                defaultSearchTarget: payload.globalSettings.defaultSearchTarget,
+                listDisplayDefaults: {
+                    sortBy: payload.globalSettings.sortBy,
+                    sortOrder: payload.globalSettings.sortOrder,
+                    groupBy: payload.globalSettings.groupBy,
+                    displayMode: payload.globalSettings.displayMode,
+                    activeDisplayPresetId: payload.globalSettings.activeDisplayPresetId,
+                    thumbnailPresentation: payload.globalSettings.thumbnailPresentation,
+                },
             });
-            useUIStore.getState().clearSearchConditions(payload.globalSettings.defaultSearchTarget);
 
             await window.electronAPI.setScanExclusionRules(scanExclusionRules);
             await window.electronAPI.replaceProfileScopedSettings(payload.profileSettings);
             useSettingsStore.getState().applyProfileScopedSettings(payload.profileSettings);
-            useUIStore.getState().applyListDisplayDefaults({
-                sortBy: payload.profileSettings.listDisplayDefaults.sortBy,
-                sortOrder: payload.profileSettings.listDisplayDefaults.sortOrder,
-                groupBy: payload.profileSettings.listDisplayDefaults.groupBy,
-                displayMode: payload.profileSettings.listDisplayDefaults.displayMode,
-                activeDisplayPresetId: payload.profileSettings.listDisplayDefaults.activeDisplayPresetId,
-                thumbnailPresentation: payload.profileSettings.listDisplayDefaults.thumbnailPresentation,
+            useUIStore.getState().applyProfileScopedUiDefaults({
+                defaultSearchTarget: payload.profileSettings.listDisplayDefaults.defaultSearchTarget,
+                listDisplayDefaults: {
+                    sortBy: payload.profileSettings.listDisplayDefaults.sortBy,
+                    sortOrder: payload.profileSettings.listDisplayDefaults.sortOrder,
+                    groupBy: payload.profileSettings.listDisplayDefaults.groupBy,
+                    displayMode: payload.profileSettings.listDisplayDefaults.displayMode,
+                    activeDisplayPresetId: payload.profileSettings.listDisplayDefaults.activeDisplayPresetId,
+                    thumbnailPresentation: payload.profileSettings.listDisplayDefaults.thumbnailPresentation,
+                },
             });
-            useUIStore.getState().clearSearchConditions(payload.profileSettings.listDisplayDefaults.defaultSearchTarget);
             await Promise.all([
                 window.electronAPI.setPreviewFrameCount(payload.profileSettings.previewFrameCount),
                 window.electronAPI.setScanFileTypeCategories(payload.profileSettings.fileTypeFilters),

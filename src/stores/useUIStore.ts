@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import type { MediaFile } from '../types/file';
 import type { ToastData } from '../components/Toast';
-import type { DisplayMode, GroupBy, SearchTarget, ThumbnailPresentation } from './useSettingsStore';
+import {
+    DEFAULT_LIST_DISPLAY_SETTINGS,
+    type DisplayMode,
+    type GroupBy,
+    type SearchTarget,
+    type ThumbnailPresentation,
+} from './useSettingsStore';
 import { beginUiPerfTrace } from '../utils/perfDebug';
 
 export interface ScanProgress {
@@ -37,6 +43,13 @@ export interface ListDisplayDefaults {
     activeDisplayPresetId: string;
     thumbnailPresentation: ThumbnailPresentation;
 }
+
+export interface ProfileScopedUiDefaults {
+    defaultSearchTarget: SearchTarget;
+    listDisplayDefaults: ListDisplayDefaults;
+}
+
+const ALL_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
 
 interface UIState {
     sidebarWidth: number;
@@ -86,6 +99,8 @@ interface UIState {
     clearSearchConditions: (target?: SearchTarget) => void;
     setRatingQuickFilter: (filter: RatingQuickFilter) => void;
     applyListDisplayDefaults: (defaults: ListDisplayDefaults) => void;
+    applyProfileScopedUiDefaults: (defaults: ProfileScopedUiDefaults) => void;
+    resetTransientStateForProfileSwitch: () => void;
     setCurrentSortBy: (sortBy: FileSortBy) => void;
     setCurrentSortOrder: (order: FileSortOrder) => void;
     setCurrentGroupBy: (groupBy: GroupBy) => void;
@@ -139,7 +154,7 @@ export const useUIStore = create<UIState>((set) => ({
     currentDisplayMode: 'standard',
     currentActiveDisplayPresetId: 'standard',
     currentThumbnailPresentation: 'modeDefault',
-    selectedFileTypes: ['video', 'image', 'archive', 'audio'],
+    selectedFileTypes: [...ALL_FILE_TYPES],
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
     scanProgress: null,
@@ -199,6 +214,45 @@ export const useUIStore = create<UIState>((set) => ({
         currentActiveDisplayPresetId: defaults.activeDisplayPresetId,
         currentThumbnailPresentation: defaults.thumbnailPresentation,
     }),
+    applyProfileScopedUiDefaults: ({ defaultSearchTarget, listDisplayDefaults }) => set({
+        searchQuery: '',
+        searchTarget: defaultSearchTarget,
+        searchExtraConditions: [],
+        currentSortBy: listDisplayDefaults.sortBy,
+        currentSortOrder: listDisplayDefaults.sortOrder,
+        currentGroupBy: listDisplayDefaults.groupBy,
+        currentDisplayMode: listDisplayDefaults.displayMode,
+        currentActiveDisplayPresetId: listDisplayDefaults.activeDisplayPresetId,
+        currentThumbnailPresentation: listDisplayDefaults.thumbnailPresentation,
+    }),
+    resetTransientStateForProfileSwitch: () => set({
+        lightboxFile: null,
+        lightboxOpenMode: 'default',
+        lightboxStartTime: null,
+        searchQuery: '',
+        searchTarget: DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget,
+        searchExtraConditions: [],
+        ratingQuickFilter: 'none',
+        currentSortBy: DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
+        currentSortOrder: DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder,
+        currentGroupBy: DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
+        currentDisplayMode: DEFAULT_LIST_DISPLAY_SETTINGS.displayMode,
+        currentActiveDisplayPresetId: DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
+        currentThumbnailPresentation: DEFAULT_LIST_DISPLAY_SETTINGS.thumbnailPresentation,
+        selectedFileTypes: [...ALL_FILE_TYPES],
+        settingsModalOpen: false,
+        settingsModalRequestedTab: null,
+        duplicateViewOpen: false,
+        mainView: 'grid',
+        hoveredPreviewId: null,
+        deleteDialogOpen: false,
+        deleteDialogFilePath: null,
+        deleteDialogFileId: null,
+        moveDialogOpen: false,
+        moveFileIds: [],
+        moveCurrentFolderId: null,
+        previewContext: null,
+    }),
     setCurrentSortBy: (currentSortBy) => set({ currentSortBy }),
     setCurrentSortOrder: (currentSortOrder) => set({ currentSortOrder }),
     setCurrentGroupBy: (currentGroupBy) => set({ currentGroupBy }),
@@ -213,7 +267,7 @@ export const useUIStore = create<UIState>((set) => ({
             ? state.selectedFileTypes.filter((type) => type !== fileType)
             : [...state.selectedFileTypes, fileType],
     })),
-    clearFileTypeFilter: () => set({ selectedFileTypes: ['video', 'image', 'archive', 'audio'] }),
+    clearFileTypeFilter: () => set({ selectedFileTypes: [...ALL_FILE_TYPES] }),
     setSelectedFileTypes: (types) => set({
         selectedFileTypes: Array.from(new Set(types.filter((type): type is MediaFile['type'] => (
             type === 'video' || type === 'image' || type === 'archive' || type === 'audio'

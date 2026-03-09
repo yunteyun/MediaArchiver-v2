@@ -65,7 +65,6 @@ function App() {
     const setCurrentFolderId = useFileStore((s) => s.setCurrentFolderId);
     const clearTagFilter = useTagStore((s) => s.clearTagFilter);
     const setScanProgress = useUIStore((s) => s.setScanProgress);
-    const closeLightbox = useUIStore((s) => s.closeLightbox);
     const toasts = useToastStore((s) => s.toasts);
     const removeToast = useToastStore((s) => s.removeToast);
     const duplicateViewOpen = useUIStore((s) => s.duplicateViewOpen);
@@ -86,8 +85,7 @@ function App() {
     // Phase 23: 右サイドパネル
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
-    const applyListDisplayDefaults = useUIStore((s) => s.applyListDisplayDefaults);
-    const clearSearchConditions = useUIStore((s) => s.clearSearchConditions);
+    const applyProfileScopedUiDefaults = useUIStore((s) => s.applyProfileScopedUiDefaults);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const profileSettingsLoadSeqRef = useRef(0);
 
@@ -107,35 +105,39 @@ function App() {
         window.electronAPI.setThumbnailResolution(settings.thumbnailResolution);
         window.electronAPI.setScanFileTypeCategories(settings.profileFileTypeFilters).catch(console.error);
         window.electronAPI.setScanExclusionRules(settings.scanExclusionRules).catch(console.error);
-        applyListDisplayDefaults({
-            sortBy: settings.sortBy,
-            sortOrder: settings.sortOrder,
-            groupBy: settings.groupBy,
-            displayMode: settings.displayMode,
-            activeDisplayPresetId: settings.activeDisplayPresetId,
-            thumbnailPresentation: settings.thumbnailPresentation,
+        applyProfileScopedUiDefaults({
+            defaultSearchTarget: settings.defaultSearchTarget,
+            listDisplayDefaults: {
+                sortBy: settings.sortBy,
+                sortOrder: settings.sortOrder,
+                groupBy: settings.groupBy,
+                displayMode: settings.displayMode,
+                activeDisplayPresetId: settings.activeDisplayPresetId,
+                thumbnailPresentation: settings.thumbnailPresentation,
+            },
         });
-        clearSearchConditions(settings.defaultSearchTarget);
         void loadDisplayPresets();
-    }, [applyListDisplayDefaults, clearSearchConditions, loadDisplayPresets]);
+    }, [applyProfileScopedUiDefaults, loadDisplayPresets]);
 
     const syncProfileScopedSettingsToRuntime = useCallback(async (settings: ProfileScopedSettingsV1) => {
-        applyListDisplayDefaults({
-            sortBy: settings.listDisplayDefaults.sortBy,
-            sortOrder: settings.listDisplayDefaults.sortOrder,
-            groupBy: settings.listDisplayDefaults.groupBy,
-            displayMode: settings.listDisplayDefaults.displayMode,
-            activeDisplayPresetId: settings.listDisplayDefaults.activeDisplayPresetId,
-            thumbnailPresentation: settings.listDisplayDefaults.thumbnailPresentation,
+        applyProfileScopedUiDefaults({
+            defaultSearchTarget: settings.listDisplayDefaults.defaultSearchTarget,
+            listDisplayDefaults: {
+                sortBy: settings.listDisplayDefaults.sortBy,
+                sortOrder: settings.listDisplayDefaults.sortOrder,
+                groupBy: settings.listDisplayDefaults.groupBy,
+                displayMode: settings.listDisplayDefaults.displayMode,
+                activeDisplayPresetId: settings.listDisplayDefaults.activeDisplayPresetId,
+                thumbnailPresentation: settings.listDisplayDefaults.thumbnailPresentation,
+            },
         });
-        clearSearchConditions(settings.listDisplayDefaults.defaultSearchTarget);
         await Promise.all([
             window.electronAPI.setPreviewFrameCount(settings.previewFrameCount),
             window.electronAPI.setScanFileTypeCategories(settings.fileTypeFilters),
             window.electronAPI.setScanThrottleMs(settings.scanThrottleMs),
             window.electronAPI.setThumbnailResolution(settings.thumbnailResolution),
         ]);
-    }, [applyListDisplayDefaults, clearSearchConditions]);
+    }, [applyProfileScopedUiDefaults]);
 
     const loadAndApplyActiveProfileScopedSettings = useCallback(async () => {
         await loadAndApplyProfileScopedSettings({
@@ -293,10 +295,9 @@ function App() {
             resetStateForProfileSwitch({
                 setFiles,
                 setCurrentFolderId,
-                closeLightbox,
                 clearTagFilter,
                 clearRatingFilters: () => useRatingStore.getState().clearRatingFilters(),
-                clearRatingQuickFilter: () => useUIStore.getState().setRatingQuickFilter('none'),
+                resetTransientUiState: () => useUIStore.getState().resetTransientStateForProfileSwitch(),
                 resetDuplicates: () => useDuplicateStore.getState().reset(),
                 bumpRefreshKey: () => setRefreshKey((k) => k + 1),
                 reloadRatings: () => useRatingStore.getState().loadAllFileRatings(),
@@ -306,7 +307,7 @@ function App() {
             });
         });
         return cleanup;
-    }, [setFiles, setCurrentFolderId, closeLightbox, clearTagFilter]);
+    }, [setFiles, setCurrentFolderId, clearTagFilter]);
 
     // Phase 22-C-2: ファイル移動ダイアログ開くイベント
     useEffect(() => {
