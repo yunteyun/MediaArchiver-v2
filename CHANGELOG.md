@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 ### Added
 - `docs/dev/specs/settings-redesign-v1.md` を追加し、設定項目の棚卸し、保存スコープ、旧状態の整理対象、新しい設定情報設計と実装フェーズを文書化した（表示への変更なし）。
+- `docs/dev/specs/auto-organize-v1.md` を追加し、自動整理 v1 を `手動実行 + Dry Run + 移動のみ` から進める仕様と、マルチエージェント分担案を整理した（表示への変更なし）。
 
 ### Changed
 - 設定モーダルを左ナビ + 右コンテンツの2カラム構成へ見直し、項目数が増えてもカテゴリを探しやすいレイアウトに整理した。
@@ -46,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 音声サムネイル生成も utility process 経由へ移し、スキャンやサムネイル更新中に UI が固まりにくい構成へ寄せた。
 - 設定の `更新` タブから、最新版確認・検証済み更新 ZIP の取得・リリースページ表示・保存先確認までをそのまま実行できるようにし、PoC 前提の案内を通常運用向けに整理した。
 - 設定タブ定義とフォルダツリー周辺の依存関係を整理し、既知の lint warning を解消して継続改修しやすい状態へ戻した（表示への変更なし）。
+- `ROADMAP.md` `不具合・要望リスト` `multi-agent-playbook` を更新し、自動整理を次の進行中テーマとして扱う前提と役割分担を明確化した（表示への変更なし）。
 
 ### Fixed
 - 0.5 刻みの評価軸で最小値や最大値を途中値にした場合に、範囲外の半星を選べてしまう問題を修正した。
