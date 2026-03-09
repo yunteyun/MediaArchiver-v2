@@ -48,6 +48,24 @@ interface ProfileScopedSettingsV1 {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    listDisplayDefaults: {
+        sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
+        sortOrder: 'asc' | 'desc';
+        groupBy: 'none' | 'date' | 'size' | 'type';
+        defaultSearchTarget: 'fileName' | 'folderName';
+        activeDisplayPresetId: string;
+        displayMode: 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
+        thumbnailPresentation: 'modeDefault' | 'contain' | 'cover' | 'square';
+    };
+    fileCardSettings: {
+        showFileName: boolean;
+        showDuration: boolean;
+        showTags: boolean;
+        showFileSize: boolean;
+        tagPopoverTrigger: 'click' | 'hover';
+        tagDisplayStyle: 'filled' | 'border';
+        fileCardTagOrderMode: 'balanced' | 'strict';
+    };
 }
 
 interface ProfileScopedSettingsResponse {

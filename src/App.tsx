@@ -9,7 +9,8 @@ import { useProfileStore } from './stores/useProfileStore';
 import { useFileStore } from './stores/useFileStore';
 import { useTagStore } from './stores/useTagStore';
 import { useUIStore } from './stores/useUIStore';
-import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, useSettingsStore } from './stores/useSettingsStore';
+import { useSettingsStore } from './stores/useSettingsStore';
+import type { ProfileScopedSettingsV1 } from './stores/useSettingsStore';
 import { useToastStore } from './stores/useToastStore';
 import { useRatingStore } from './stores/useRatingStore';
 import { useDuplicateStore } from './stores/useDuplicateStore';
@@ -118,19 +119,23 @@ function App() {
         void loadDisplayPresets();
     }, [applyListDisplayDefaults, clearSearchConditions, loadDisplayPresets]);
 
-    const syncProfileScopedSettingsToScanner = useCallback(async (settings: {
-        previewFrameCount: number;
-        fileTypeFilters: { video: boolean; image: boolean; archive: boolean; audio: boolean };
-        scanThrottleMs: number;
-        thumbnailResolution: number;
-    }) => {
+    const syncProfileScopedSettingsToRuntime = useCallback(async (settings: ProfileScopedSettingsV1) => {
+        applyListDisplayDefaults({
+            sortBy: settings.listDisplayDefaults.sortBy,
+            sortOrder: settings.listDisplayDefaults.sortOrder,
+            groupBy: settings.listDisplayDefaults.groupBy,
+            displayMode: settings.listDisplayDefaults.displayMode,
+            activeDisplayPresetId: settings.listDisplayDefaults.activeDisplayPresetId,
+            thumbnailPresentation: settings.listDisplayDefaults.thumbnailPresentation,
+        });
+        clearSearchConditions(settings.listDisplayDefaults.defaultSearchTarget);
         await Promise.all([
             window.electronAPI.setPreviewFrameCount(settings.previewFrameCount),
             window.electronAPI.setScanFileTypeCategories(settings.fileTypeFilters),
             window.electronAPI.setScanThrottleMs(settings.scanThrottleMs),
             window.electronAPI.setThumbnailResolution(settings.thumbnailResolution),
         ]);
-    }, []);
+    }, [applyListDisplayDefaults, clearSearchConditions]);
 
     const loadAndApplyActiveProfileScopedSettings = useCallback(async () => {
         await loadAndApplyProfileScopedSettings({
@@ -145,6 +150,20 @@ function App() {
                     previewFrameCount: settings.previewFrameCount,
                     scanThrottleMs: settings.scanThrottleMs,
                     thumbnailResolution: settings.thumbnailResolution,
+                    sortBy: settings.sortBy,
+                    sortOrder: settings.sortOrder,
+                    groupBy: settings.groupBy,
+                    defaultSearchTarget: settings.defaultSearchTarget,
+                    activeDisplayPresetId: settings.activeDisplayPresetId,
+                    displayMode: settings.displayMode,
+                    thumbnailPresentation: settings.thumbnailPresentation,
+                    showFileName: settings.showFileName,
+                    showDuration: settings.showDuration,
+                    showTags: settings.showTags,
+                    showFileSize: settings.showFileSize,
+                    tagPopoverTrigger: settings.tagPopoverTrigger,
+                    tagDisplayStyle: settings.tagDisplayStyle,
+                    fileCardTagOrderMode: settings.fileCardTagOrderMode,
                 };
             },
             fetchSettings: () => window.electronAPI.getProfileScopedSettings(),
@@ -152,12 +171,12 @@ function App() {
             markMigrationDone: (done) => useSettingsStore.getState().setProfileSettingsMigrationV1Done(done),
             confirmMigration: (message) => window.confirm(message || PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE),
             applySettings: (settings) => useSettingsStore.getState().applyProfileScopedSettings(settings),
-            syncSettings: syncProfileScopedSettingsToScanner,
+            syncSettings: syncProfileScopedSettingsToRuntime,
             onError: (error) => {
                 console.error('Failed to load/apply profile scoped settings:', error);
             },
         });
-    }, [activeProfileId, profiles.length, syncProfileScopedSettingsToScanner]);
+    }, [activeProfileId, profiles.length, syncProfileScopedSettingsToRuntime]);
 
     // 外部アプリ設定を Electron 側に同期（起動時および変更時）
     useEffect(() => {

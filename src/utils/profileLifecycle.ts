@@ -11,6 +11,20 @@ export interface ProfileSettingsStoreSnapshot {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    sortBy: ProfileScopedSettingsV1['listDisplayDefaults']['sortBy'];
+    sortOrder: ProfileScopedSettingsV1['listDisplayDefaults']['sortOrder'];
+    groupBy: ProfileScopedSettingsV1['listDisplayDefaults']['groupBy'];
+    defaultSearchTarget: ProfileScopedSettingsV1['listDisplayDefaults']['defaultSearchTarget'];
+    activeDisplayPresetId: string;
+    displayMode: ProfileScopedSettingsV1['listDisplayDefaults']['displayMode'];
+    thumbnailPresentation: ProfileScopedSettingsV1['listDisplayDefaults']['thumbnailPresentation'];
+    showFileName: boolean;
+    showDuration: boolean;
+    showTags: boolean;
+    showFileSize: boolean;
+    tagPopoverTrigger: ProfileScopedSettingsV1['fileCardSettings']['tagPopoverTrigger'];
+    tagDisplayStyle: ProfileScopedSettingsV1['fileCardSettings']['tagDisplayStyle'];
+    fileCardTagOrderMode: ProfileScopedSettingsV1['fileCardSettings']['fileCardTagOrderMode'];
 }
 
 export interface ProfileScopedSettingsResponse {
@@ -55,6 +69,40 @@ export function createInitialProfileScopedSettings(
         previewFrameCount: shouldMigrate ? snapshot.previewFrameCount : 10,
         scanThrottleMs: shouldMigrate ? snapshot.scanThrottleMs : 0,
         thumbnailResolution: shouldMigrate ? snapshot.thumbnailResolution : 320,
+        listDisplayDefaults: shouldMigrate ? {
+            sortBy: snapshot.sortBy,
+            sortOrder: snapshot.sortOrder,
+            groupBy: snapshot.groupBy,
+            defaultSearchTarget: snapshot.defaultSearchTarget,
+            activeDisplayPresetId: snapshot.activeDisplayPresetId,
+            displayMode: snapshot.displayMode,
+            thumbnailPresentation: snapshot.thumbnailPresentation,
+        } : {
+            sortBy: 'date',
+            sortOrder: 'desc',
+            groupBy: 'none',
+            defaultSearchTarget: 'fileName',
+            activeDisplayPresetId: 'standard',
+            displayMode: 'standard',
+            thumbnailPresentation: 'modeDefault',
+        },
+        fileCardSettings: shouldMigrate ? {
+            showFileName: snapshot.showFileName,
+            showDuration: snapshot.showDuration,
+            showTags: snapshot.showTags,
+            showFileSize: snapshot.showFileSize,
+            tagPopoverTrigger: snapshot.tagPopoverTrigger,
+            tagDisplayStyle: snapshot.tagDisplayStyle,
+            fileCardTagOrderMode: snapshot.fileCardTagOrderMode,
+        } : {
+            showFileName: true,
+            showDuration: true,
+            showTags: true,
+            showFileSize: true,
+            tagPopoverTrigger: 'click',
+            tagDisplayStyle: 'filled',
+            fileCardTagOrderMode: 'balanced',
+        },
     };
 }
 

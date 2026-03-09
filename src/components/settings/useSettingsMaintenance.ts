@@ -489,6 +489,15 @@ export function useSettingsMaintenance({
             await window.electronAPI.setScanExclusionRules(scanExclusionRules);
             await window.electronAPI.replaceProfileScopedSettings(payload.profileSettings);
             useSettingsStore.getState().applyProfileScopedSettings(payload.profileSettings);
+            useUIStore.getState().applyListDisplayDefaults({
+                sortBy: payload.profileSettings.listDisplayDefaults.sortBy,
+                sortOrder: payload.profileSettings.listDisplayDefaults.sortOrder,
+                groupBy: payload.profileSettings.listDisplayDefaults.groupBy,
+                displayMode: payload.profileSettings.listDisplayDefaults.displayMode,
+                activeDisplayPresetId: payload.profileSettings.listDisplayDefaults.activeDisplayPresetId,
+                thumbnailPresentation: payload.profileSettings.listDisplayDefaults.thumbnailPresentation,
+            });
+            useUIStore.getState().clearSearchConditions(payload.profileSettings.listDisplayDefaults.defaultSearchTarget);
             await Promise.all([
                 window.electronAPI.setPreviewFrameCount(payload.profileSettings.previewFrameCount),
                 window.electronAPI.setScanFileTypeCategories(payload.profileSettings.fileTypeFilters),

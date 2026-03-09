@@ -94,6 +94,24 @@ describe('useSettingsStore', () => {
             previewFrameCount: 99,
             scanThrottleMs: 999,
             thumbnailResolution: 999,
+            listDisplayDefaults: {
+                sortBy: 'overallRating',
+                sortOrder: 'asc',
+                groupBy: 'type',
+                defaultSearchTarget: 'folderName',
+                activeDisplayPresetId: 'compact',
+                displayMode: 'compact',
+                thumbnailPresentation: 'contain',
+            },
+            fileCardSettings: {
+                showFileName: false,
+                showDuration: false,
+                showTags: true,
+                showFileSize: false,
+                tagPopoverTrigger: 'hover',
+                tagDisplayStyle: 'border',
+                fileCardTagOrderMode: 'strict',
+            },
         });
 
         const state = useSettingsStore.getState();
@@ -106,6 +124,19 @@ describe('useSettingsStore', () => {
         expect(state.previewFrameCount).toBe(30);
         expect(state.scanThrottleMs).toBe(0);
         expect(state.thumbnailResolution).toBe(320);
+        expect(state.sortBy).toBe('overallRating');
+        expect(state.sortOrder).toBe('asc');
+        expect(state.groupBy).toBe('type');
+        expect(state.defaultSearchTarget).toBe('folderName');
+        expect(state.activeDisplayPresetId).toBe('compact');
+        expect(state.displayMode).toBe('compact');
+        expect(state.thumbnailPresentation).toBe('contain');
+        expect(state.showFileName).toBe(false);
+        expect(state.showDuration).toBe(false);
+        expect(state.showFileSize).toBe(false);
+        expect(state.tagPopoverTrigger).toBe('hover');
+        expect(state.tagDisplayStyle).toBe('border');
+        expect(state.fileCardTagOrderMode).toBe('strict');
     });
 
     it('keeps display mode and layout axes in sync', () => {

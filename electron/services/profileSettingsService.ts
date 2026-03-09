@@ -19,6 +19,24 @@ export interface ProfileScopedSettingsV1 {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    listDisplayDefaults: {
+        sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
+        sortOrder: 'asc' | 'desc';
+        groupBy: 'none' | 'date' | 'size' | 'type';
+        defaultSearchTarget: 'fileName' | 'folderName';
+        activeDisplayPresetId: string;
+        displayMode: 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
+        thumbnailPresentation: 'modeDefault' | 'contain' | 'cover' | 'square';
+    };
+    fileCardSettings: {
+        showFileName: boolean;
+        showDuration: boolean;
+        showTags: boolean;
+        showFileSize: boolean;
+        tagPopoverTrigger: 'click' | 'hover';
+        tagDisplayStyle: 'filled' | 'border';
+        fileCardTagOrderMode: 'balanced' | 'strict';
+    };
 }
 
 export interface ProfileScopedSettingsResponse {
@@ -38,6 +56,24 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
     previewFrameCount: 10,
     scanThrottleMs: 0,
     thumbnailResolution: 320,
+    listDisplayDefaults: {
+        sortBy: 'date',
+        sortOrder: 'desc',
+        groupBy: 'none',
+        defaultSearchTarget: 'fileName',
+        activeDisplayPresetId: 'standard',
+        displayMode: 'standard',
+        thumbnailPresentation: 'modeDefault',
+    },
+    fileCardSettings: {
+        showFileName: true,
+        showDuration: true,
+        showTags: true,
+        showFileSize: true,
+        tagPopoverTrigger: 'click',
+        tagDisplayStyle: 'filled',
+        fileCardTagOrderMode: 'balanced',
+    },
 };
 
 function ensureProfileSettingsTable(): void {
@@ -85,11 +121,54 @@ function normalizeFileTypeFilters(input: unknown): FileTypeCategoryFilters {
 
 function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettingsV1 {
     const candidate = (input && typeof input === 'object') ? (input as Partial<ProfileScopedSettingsV1>) : {};
+    const listDisplayDefaults = candidate.listDisplayDefaults && typeof candidate.listDisplayDefaults === 'object'
+        ? candidate.listDisplayDefaults
+        : {};
+    const fileCardSettings = candidate.fileCardSettings && typeof candidate.fileCardSettings === 'object'
+        ? candidate.fileCardSettings
+        : {};
+
     return {
         fileTypeFilters: normalizeFileTypeFilters(candidate.fileTypeFilters),
         previewFrameCount: clampPreviewFrameCount(candidate.previewFrameCount),
         scanThrottleMs: clampScanThrottleMs(candidate.scanThrottleMs),
         thumbnailResolution: clampThumbnailResolution(candidate.thumbnailResolution),
+        listDisplayDefaults: {
+            sortBy: ['name', 'date', 'size', 'type', 'accessCount', 'lastAccessed', 'overallRating'].includes(String(listDisplayDefaults.sortBy))
+                ? listDisplayDefaults.sortBy as ProfileScopedSettingsV1['listDisplayDefaults']['sortBy']
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.sortBy,
+            sortOrder: listDisplayDefaults.sortOrder === 'asc' ? 'asc' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.sortOrder,
+            groupBy: ['none', 'date', 'size', 'type'].includes(String(listDisplayDefaults.groupBy))
+                ? listDisplayDefaults.groupBy as ProfileScopedSettingsV1['listDisplayDefaults']['groupBy']
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.groupBy,
+            defaultSearchTarget: listDisplayDefaults.defaultSearchTarget === 'folderName' ? 'folderName' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.defaultSearchTarget,
+            activeDisplayPresetId: typeof listDisplayDefaults.activeDisplayPresetId === 'string' && listDisplayDefaults.activeDisplayPresetId.trim().length > 0
+                ? listDisplayDefaults.activeDisplayPresetId.trim()
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.activeDisplayPresetId,
+            displayMode: ['standard', 'standardLarge', 'manga', 'video', 'whiteBrowser', 'mangaDetailed', 'compact'].includes(String(listDisplayDefaults.displayMode))
+                ? listDisplayDefaults.displayMode as ProfileScopedSettingsV1['listDisplayDefaults']['displayMode']
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.displayMode,
+            thumbnailPresentation: ['modeDefault', 'contain', 'cover', 'square'].includes(String(listDisplayDefaults.thumbnailPresentation))
+                ? listDisplayDefaults.thumbnailPresentation as ProfileScopedSettingsV1['listDisplayDefaults']['thumbnailPresentation']
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.thumbnailPresentation,
+        },
+        fileCardSettings: {
+            showFileName: typeof fileCardSettings.showFileName === 'boolean'
+                ? fileCardSettings.showFileName
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.showFileName,
+            showDuration: typeof fileCardSettings.showDuration === 'boolean'
+                ? fileCardSettings.showDuration
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.showDuration,
+            showTags: typeof fileCardSettings.showTags === 'boolean'
+                ? fileCardSettings.showTags
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.showTags,
+            showFileSize: typeof fileCardSettings.showFileSize === 'boolean'
+                ? fileCardSettings.showFileSize
+                : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.showFileSize,
+            tagPopoverTrigger: fileCardSettings.tagPopoverTrigger === 'hover' ? 'hover' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.tagPopoverTrigger,
+            tagDisplayStyle: fileCardSettings.tagDisplayStyle === 'border' ? 'border' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.tagDisplayStyle,
+            fileCardTagOrderMode: fileCardSettings.fileCardTagOrderMode === 'strict' ? 'strict' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.fileCardSettings.fileCardTagOrderMode,
+        },
     };
 }
 

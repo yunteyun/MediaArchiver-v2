@@ -266,6 +266,28 @@ export const SettingsModal = React.memo(() => {
         setStorageMaintenanceSettings(settings);
     }, [setStorageMaintenanceSettings]);
 
+    const handleProfileListDisplayDefaultsChange = useCallback(async (patch: Partial<typeof DEFAULT_PROFILE_SCOPED_SETTINGS.listDisplayDefaults>) => {
+        try {
+            await window.electronAPI.setProfileScopedSettings({
+                listDisplayDefaults: patch,
+            });
+        } catch (error) {
+            console.error('Failed to update profile list display defaults:', error);
+            useUIStore.getState().showToast('プロファイル別一覧設定の保存に失敗しました', 'error');
+        }
+    }, []);
+
+    const handleProfileFileCardSettingsChange = useCallback(async (patch: Partial<typeof DEFAULT_PROFILE_SCOPED_SETTINGS.fileCardSettings>) => {
+        try {
+            await window.electronAPI.setProfileScopedSettings({
+                fileCardSettings: patch,
+            });
+        } catch (error) {
+            console.error('Failed to update profile file card settings:', error);
+            useUIStore.getState().showToast('プロファイル別ファイルカード設定の保存に失敗しました', 'error');
+        }
+    }, []);
+
 
     const loadLogs = useCallback(async () => {
         setIsLoadingLogs(true);
@@ -365,7 +387,8 @@ export const SettingsModal = React.memo(() => {
         setSortOrder(DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder);
         setGroupBy(DEFAULT_LIST_DISPLAY_SETTINGS.groupBy);
         setDefaultSearchTarget(DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget);
-    }, [setActiveDisplayPreset, setDefaultSearchTarget, setGroupBy, setSortBy, setSortOrder, setThumbnailPresentation]);
+        void handleProfileListDisplayDefaultsChange({ ...DEFAULT_LIST_DISPLAY_SETTINGS });
+    }, [handleProfileListDisplayDefaultsChange, setActiveDisplayPreset, setDefaultSearchTarget, setGroupBy, setSortBy, setSortOrder, setThumbnailPresentation]);
 
     const handleResetPlaybackSettings = useCallback(() => {
         setVideoVolume(DEFAULT_MEDIA_PLAYBACK_SETTINGS.videoVolume);
@@ -382,7 +405,9 @@ export const SettingsModal = React.memo(() => {
         setTagPopoverTrigger(DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger);
         setTagDisplayStyle(DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle);
         setFileCardTagOrderMode(DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode);
+        void handleProfileFileCardSettingsChange({ ...DEFAULT_FILE_CARD_SETTINGS });
     }, [
+        handleProfileFileCardSettingsChange,
         setFileCardTagOrderMode,
         setShowDuration,
         setShowFileName,
@@ -507,6 +532,7 @@ export const SettingsModal = React.memo(() => {
 
                         {activeTab === 'general' && (
                             <GeneralSettingsTab
+                                activeProfileLabel={activeProfileLabel}
                                 defaultDisplayPresetId={activeDisplayPresetId}
                                 defaultThumbnailPresentation={thumbnailPresentation}
                                 defaultSortBy={sortBy}
@@ -519,12 +545,34 @@ export const SettingsModal = React.memo(() => {
                                     baseDisplayMode: option.baseDisplayMode,
                                     thumbnailPresentation: option.thumbnailPresentation,
                                 }))}
-                                onDefaultDisplayPresetChange={setActiveDisplayPreset}
-                                onDefaultThumbnailPresentationChange={setThumbnailPresentation}
-                                onDefaultSortByChange={setSortBy}
-                                onDefaultSortOrderChange={setSortOrder}
-                                onDefaultGroupByChange={setGroupBy}
-                                onDefaultSearchTargetChange={setDefaultSearchTarget}
+                                onDefaultDisplayPresetChange={(selection) => {
+                                    setActiveDisplayPreset(selection);
+                                    void handleProfileListDisplayDefaultsChange({
+                                        activeDisplayPresetId: selection.id,
+                                        displayMode: selection.baseDisplayMode,
+                                        thumbnailPresentation: selection.thumbnailPresentation,
+                                    });
+                                }}
+                                onDefaultThumbnailPresentationChange={(value) => {
+                                    setThumbnailPresentation(value);
+                                    void handleProfileListDisplayDefaultsChange({ thumbnailPresentation: value });
+                                }}
+                                onDefaultSortByChange={(value) => {
+                                    setSortBy(value);
+                                    void handleProfileListDisplayDefaultsChange({ sortBy: value });
+                                }}
+                                onDefaultSortOrderChange={(value) => {
+                                    setSortOrder(value);
+                                    void handleProfileListDisplayDefaultsChange({ sortOrder: value });
+                                }}
+                                onDefaultGroupByChange={(value) => {
+                                    setGroupBy(value);
+                                    void handleProfileListDisplayDefaultsChange({ groupBy: value });
+                                }}
+                                onDefaultSearchTargetChange={(value) => {
+                                    setDefaultSearchTarget(value);
+                                    void handleProfileListDisplayDefaultsChange({ defaultSearchTarget: value });
+                                }}
                                 videoVolume={videoVolume}
                                 onVideoVolumeChange={setVideoVolume}
                                 audioVolume={audioVolume}
@@ -534,19 +582,40 @@ export const SettingsModal = React.memo(() => {
                                 performanceMode={performanceMode}
                                 onPerformanceModeChange={setPerformanceMode}
                                 showFileName={showFileName}
-                                onShowFileNameChange={setShowFileName}
+                                onShowFileNameChange={(checked) => {
+                                    setShowFileName(checked);
+                                    void handleProfileFileCardSettingsChange({ showFileName: checked });
+                                }}
                                 showDuration={showDuration}
-                                onShowDurationChange={setShowDuration}
+                                onShowDurationChange={(checked) => {
+                                    setShowDuration(checked);
+                                    void handleProfileFileCardSettingsChange({ showDuration: checked });
+                                }}
                                 showTags={showTags}
-                                onShowTagsChange={setShowTags}
+                                onShowTagsChange={(checked) => {
+                                    setShowTags(checked);
+                                    void handleProfileFileCardSettingsChange({ showTags: checked });
+                                }}
                                 tagPopoverTrigger={tagPopoverTrigger}
-                                onTagPopoverTriggerChange={setTagPopoverTrigger}
+                                onTagPopoverTriggerChange={(value) => {
+                                    setTagPopoverTrigger(value);
+                                    void handleProfileFileCardSettingsChange({ tagPopoverTrigger: value });
+                                }}
                                 tagDisplayStyle={tagDisplayStyle}
-                                onTagDisplayStyleChange={setTagDisplayStyle}
+                                onTagDisplayStyleChange={(value) => {
+                                    setTagDisplayStyle(value);
+                                    void handleProfileFileCardSettingsChange({ tagDisplayStyle: value });
+                                }}
                                 fileCardTagOrderMode={fileCardTagOrderMode}
-                                onFileCardTagOrderModeChange={setFileCardTagOrderMode}
+                                onFileCardTagOrderModeChange={(value) => {
+                                    setFileCardTagOrderMode(value);
+                                    void handleProfileFileCardSettingsChange({ fileCardTagOrderMode: value });
+                                }}
                                 showFileSize={showFileSize}
-                                onShowFileSizeChange={setShowFileSize}
+                                onShowFileSizeChange={(checked) => {
+                                    setShowFileSize(checked);
+                                    void handleProfileFileCardSettingsChange({ showFileSize: checked });
+                                }}
                                 displayPresetDirectory={displayPresetDirectory}
                                 displayPresetCount={displayPresetCount}
                                 displayPresetWarnings={displayPresetWarnings}

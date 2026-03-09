@@ -11,6 +11,7 @@ import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
 import { SettingsSection } from './SettingsSection';
 
 interface GeneralSettingsTabProps {
+    activeProfileLabel: string;
     defaultDisplayPresetId: string;
     defaultThumbnailPresentation: ThumbnailPresentation;
     defaultSortBy: FileSortBy;
@@ -67,6 +68,7 @@ interface GeneralSettingsTabProps {
 }
 
 export const GeneralSettingsTab = React.memo(({
+    activeProfileLabel,
     defaultDisplayPresetId,
     defaultThumbnailPresentation,
     defaultSortBy,
@@ -115,9 +117,10 @@ export const GeneralSettingsTab = React.memo(({
     <div className="px-4 py-4 space-y-6">
         <SettingsSection
             title="既定の一覧表示"
-            description="ここで変更する内容は次回起動時や「既定値に戻す」で使われます。ヘッダーでの変更は現在の一覧だけに適用されます。"
-            scope="global"
+            description={`ここで変更する内容は現在のプロファイルに保存されます。対象: ${activeProfileLabel}。ヘッダーでの変更は現在の一覧だけに適用されます。`}
+            scope="profile"
             onReset={onResetListDisplayDefaults}
+            className="border-primary-900/40 bg-primary-950/10"
         >
             <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div>
@@ -359,9 +362,10 @@ export const GeneralSettingsTab = React.memo(({
 
         <SettingsSection
             title="ファイルカード表示"
-            description="一覧カードの表示項目とタグの見せ方をアプリ全体の既定値として整えます。"
-            scope="global"
+            description={`一覧カードの表示項目とタグの見せ方を現在のプロファイルに保存します。対象: ${activeProfileLabel}`}
+            scope="profile"
             onReset={onResetFileCardSettings}
+            className="border-primary-900/40 bg-primary-950/10"
         >
             <label className="block text-sm font-medium text-surface-300 mb-2">
                 表示項目

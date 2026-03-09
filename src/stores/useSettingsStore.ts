@@ -49,6 +49,24 @@ export interface ProfileScopedSettingsV1 {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    listDisplayDefaults: {
+        sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
+        sortOrder: 'asc' | 'desc';
+        groupBy: GroupBy;
+        defaultSearchTarget: SearchTarget;
+        activeDisplayPresetId: string;
+        displayMode: DisplayMode;
+        thumbnailPresentation: ThumbnailPresentation;
+    };
+    fileCardSettings: {
+        showFileName: boolean;
+        showDuration: boolean;
+        showTags: boolean;
+        showFileSize: boolean;
+        tagPopoverTrigger: TagPopoverTrigger;
+        tagDisplayStyle: TagDisplayStyle;
+        fileCardTagOrderMode: FileCardTagOrderMode;
+    };
 }
 
 export interface StorageMaintenanceSettings {
@@ -91,6 +109,16 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
     previewFrameCount: 10,
     scanThrottleMs: 0,
     thumbnailResolution: 320,
+    listDisplayDefaults: { ...DEFAULT_LIST_DISPLAY_SETTINGS },
+    fileCardSettings: {
+        showFileName: true,
+        showDuration: true,
+        showTags: true,
+        showFileSize: true,
+        tagPopoverTrigger: 'click',
+        tagDisplayStyle: 'filled',
+        fileCardTagOrderMode: 'balanced',
+    },
 };
 
 export const DEFAULT_FILE_CARD_SETTINGS = {
@@ -507,13 +535,45 @@ export const useSettingsStore = create<SettingsState>()(
                 scanThrottleMs: [0, 50, 100, 200].includes(Number(settings.scanThrottleMs)) ? Number(settings.scanThrottleMs) : 0,
                 thumbnailResolution: [160, 200, 240, 280, 320, 360, 400, 440, 480].includes(Number(settings.thumbnailResolution))
                     ? Number(settings.thumbnailResolution)
-                    : 320
+                    : 320,
+                sortBy: settings.listDisplayDefaults?.sortBy ?? DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
+                sortOrder: settings.listDisplayDefaults?.sortOrder ?? DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder,
+                groupBy: settings.listDisplayDefaults?.groupBy ?? DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
+                defaultSearchTarget: settings.listDisplayDefaults?.defaultSearchTarget ?? DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget,
+                activeDisplayPresetId: settings.listDisplayDefaults?.activeDisplayPresetId ?? DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
+                displayMode: settings.listDisplayDefaults?.displayMode ?? DEFAULT_LIST_DISPLAY_SETTINGS.displayMode,
+                thumbnailPresentation: settings.listDisplayDefaults?.thumbnailPresentation ?? DEFAULT_LIST_DISPLAY_SETTINGS.thumbnailPresentation,
+                showFileName: settings.fileCardSettings?.showFileName ?? DEFAULT_FILE_CARD_SETTINGS.showFileName,
+                showDuration: settings.fileCardSettings?.showDuration ?? DEFAULT_FILE_CARD_SETTINGS.showDuration,
+                showTags: settings.fileCardSettings?.showTags ?? DEFAULT_FILE_CARD_SETTINGS.showTags,
+                showFileSize: settings.fileCardSettings?.showFileSize ?? DEFAULT_FILE_CARD_SETTINGS.showFileSize,
+                tagPopoverTrigger: settings.fileCardSettings?.tagPopoverTrigger ?? DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger,
+                tagDisplayStyle: settings.fileCardSettings?.tagDisplayStyle ?? DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle,
+                fileCardTagOrderMode: settings.fileCardSettings?.fileCardTagOrderMode ?? DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode,
             }),
             exportProfileScopedSettings: () => ({
                 fileTypeFilters: { ...get().profileFileTypeFilters },
                 previewFrameCount: get().previewFrameCount,
                 scanThrottleMs: get().scanThrottleMs,
-                thumbnailResolution: get().thumbnailResolution
+                thumbnailResolution: get().thumbnailResolution,
+                listDisplayDefaults: {
+                    sortBy: get().sortBy,
+                    sortOrder: get().sortOrder,
+                    groupBy: get().groupBy,
+                    defaultSearchTarget: get().defaultSearchTarget,
+                    activeDisplayPresetId: get().activeDisplayPresetId,
+                    displayMode: get().displayMode,
+                    thumbnailPresentation: get().thumbnailPresentation,
+                },
+                fileCardSettings: {
+                    showFileName: get().showFileName,
+                    showDuration: get().showDuration,
+                    showTags: get().showTags,
+                    showFileSize: get().showFileSize,
+                    tagPopoverTrigger: get().tagPopoverTrigger,
+                    tagDisplayStyle: get().tagDisplayStyle,
+                    fileCardTagOrderMode: get().fileCardTagOrderMode,
+                },
             }),
             setProfileFileTypeFilters: (profileFileTypeFilters) => set({ profileFileTypeFilters }),
             setProfilePreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
