@@ -453,6 +453,7 @@ export const Sidebar = React.memo(() => {
                     archive: settings.fileTypeFilters.archive,
                     audio: settings.fileTypeFilters.audio,
                 }),
+                window.electronAPI.setFolderExcludedSubdirectories(folder.id, settings.excludedSubdirectories),
             ]);
 
             if (settings.startScanNow) {

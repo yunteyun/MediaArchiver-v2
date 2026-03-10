@@ -4,6 +4,7 @@ import type { MediaFolder } from '../types/file';
 import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { parseFolderScanSettingsJson } from '../shared/folderScanSettings';
 
 interface FolderScanSettingsManagerDialogProps {
     isOpen: boolean;
@@ -47,21 +48,11 @@ function formatDateTime(ts: number | null): string {
 }
 
 function parseFolderOverrides(folder: MediaFolder): Partial<Record<FileTypeKey, boolean>> {
-    const raw = folder.scan_settings_json ?? folder.scanSettingsJson;
-    if (!raw) return {};
-    try {
-        const parsed = JSON.parse(raw);
-        const rawOverrides = parsed?.fileTypeOverrides;
-        if (!rawOverrides || typeof rawOverrides !== 'object' || Array.isArray(rawOverrides)) return {};
-        const result: Partial<Record<FileTypeKey, boolean>> = {};
-        for (const key of ['video', 'image', 'archive', 'audio'] as const) {
-            const value = (rawOverrides as Record<string, unknown>)[key];
-            if (typeof value === 'boolean') result[key] = value;
-        }
-        return result;
-    } catch {
-        return {};
-    }
+    return parseFolderScanSettingsJson(folder.scan_settings_json ?? folder.scanSettingsJson).fileTypeOverrides ?? {};
+}
+
+function getExcludedSubdirectoryCount(folder: MediaFolder): number {
+    return parseFolderScanSettingsJson(folder.scan_settings_json ?? folder.scanSettingsJson).excludedSubdirectories?.length ?? 0;
 }
 
 function formatCategorySummary(folder: MediaFolder, defaults: Record<FileTypeKey, boolean>): string {
@@ -76,7 +67,11 @@ function formatCategorySummary(folder: MediaFolder, defaults: Record<FileTypeKey
         return `${label}:${effective ? 'ON' : 'OFF'}`;
     });
     const hasOverrides = Object.keys(overrides).length > 0;
-    return hasOverrides ? `${entries.join(' / ')}（フォルダ別）` : `${entries.join(' / ')}（既定）`;
+    const excludedSubdirectoryCount = getExcludedSubdirectoryCount(folder);
+    const exclusionLabel = excludedSubdirectoryCount > 0 ? ` / 除外子 ${excludedSubdirectoryCount}件` : '';
+    return hasOverrides
+        ? `${entries.join(' / ')}（フォルダ別${exclusionLabel}）`
+        : `${entries.join(' / ')}（既定${exclusionLabel}）`;
 }
 
 export const FolderScanSettingsManagerDialog = React.memo(({ isOpen, onClose }: FolderScanSettingsManagerDialogProps) => {
@@ -159,10 +154,7 @@ export const FolderScanSettingsManagerDialog = React.memo(({ isOpen, onClose }: 
                 useUIStore.getState().showToast(`表示中 ${sortedFolders.length} フォルダの監視設定を${enabled ? 'ON' : 'OFF'}にしました`, 'success');
             } else {
                 await Promise.all(sortedFolders.map(folder => window.electronAPI.clearFolderScanFileTypeOverrides(folder.id)));
-                setFolders(prev => prev.map(f => {
-                    if (!sortedFolders.some(t => t.id === f.id)) return f;
-                    return { ...f, scan_settings_json: null, scanSettingsJson: null };
-                }));
+                await loadFolders();
                 useUIStore.getState().showToast(`表示中 ${sortedFolders.length} フォルダの個別カテゴリ設定を解除しました`, 'success');
             }
         } catch (e) {
@@ -171,7 +163,7 @@ export const FolderScanSettingsManagerDialog = React.memo(({ isOpen, onClose }: 
         } finally {
             setBulkApplying(null);
         }
-    }, [sortedFolders]);
+    }, [loadFolders, sortedFolders]);
 
     if (!isOpen) return null;
 
@@ -182,7 +174,7 @@ export const FolderScanSettingsManagerDialog = React.memo(({ isOpen, onClose }: 
                     <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
                         <div>
                             <h2 className="text-base font-semibold text-white">フォルダ別スキャン設定（一覧）</h2>
-                            <p className="text-xs text-surface-500">起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリの現在値を一覧表示</p>
+                            <p className="text-xs text-surface-500">起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリ / 子フォルダ除外の現在値を一覧表示</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button

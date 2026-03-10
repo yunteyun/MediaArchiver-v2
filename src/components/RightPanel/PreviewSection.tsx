@@ -46,6 +46,21 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const thumbnailSrc = toMediaUrl(file.thumbnailPath);
     const videoSrc = isVideo ? toMediaUrl(file.path) : null;
     const backgroundSrc = isVideo ? thumbnailSrc : (animatedSrc || thumbnailSrc);
+    const rightPanelPreviewModeLabel = rightPanelVideoPreviewMode === 'loop'
+        ? 'ループ'
+        : rightPanelVideoPreviewMode === 'long'
+            ? '固定間隔'
+            : '停止';
+    const nextRightPanelPreviewMode = rightPanelVideoPreviewMode === 'loop'
+        ? 'long'
+        : rightPanelVideoPreviewMode === 'long'
+            ? 'off'
+            : 'loop';
+    const nextRightPanelPreviewModeTitle = rightPanelVideoPreviewMode === 'loop'
+        ? '固定間隔プレビューへ切替'
+        : rightPanelVideoPreviewMode === 'long'
+            ? '停止へ切替'
+            : 'ループ再生へ切替';
 
     useEffect(() => {
         const video = videoRef.current;
@@ -68,6 +83,13 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
 
         const startPreview = async () => {
             if (disposed) return;
+
+            if (rightPanelVideoPreviewMode === 'off') {
+                video.loop = false;
+                video.pause();
+                video.currentTime = 0;
+                return;
+            }
 
             if (rightPanelVideoPreviewMode === 'loop') {
                 video.loop = true;
@@ -152,7 +174,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                             ref={videoRef}
                             src={videoSrc}
                             className="relative z-[1] block h-full w-full object-contain"
-                            autoPlay
+                            autoPlay={rightPanelVideoPreviewMode !== 'off'}
                             muted={rightPanelVideoMuted}
                             loop={rightPanelVideoPreviewMode === 'loop'}
                             playsInline
@@ -174,14 +196,12 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                                 type="button"
                                 onClick={(event) => {
                                     event.stopPropagation();
-                                    setRightPanelVideoPreviewMode(
-                                        rightPanelVideoPreviewMode === 'loop' ? 'long' : 'loop'
-                                    );
+                                    setRightPanelVideoPreviewMode(nextRightPanelPreviewMode);
                                 }}
                                 className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
-                                title={rightPanelVideoPreviewMode === 'loop' ? '固定間隔プレビューへ切替' : 'ループ再生へ切替'}
+                                title={nextRightPanelPreviewModeTitle}
                             >
-                                {rightPanelVideoPreviewMode === 'loop' ? 'ループ' : '固定間隔'}
+                                {rightPanelPreviewModeLabel}
                             </button>
                         </div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">

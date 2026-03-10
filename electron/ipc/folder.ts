@@ -1,6 +1,6 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog } from 'electron';
 import {
-    clearFolderScanSettings,
+    clearFolderScanFileTypeOverrides,
     deleteFolder,
     getFolderById,
     getFolderFileCounts,
@@ -8,6 +8,7 @@ import {
     getFolderTreeRecursiveCountsByPath,
     getFolderThumbnails,
     setFolderAutoScanEnabled,
+    setFolderExcludedSubdirectories,
     setFolderScanFileTypeOverride,
     setFolderWatchNewFilesEnabled
 } from '../services/database';
@@ -49,9 +50,26 @@ export function registerFolderHandlers() {
     );
 
     ipcMain.handle('folder:clearScanFileTypeOverrides', async (_event, { folderId }: { folderId: string }) => {
-        clearFolderScanSettings(folderId);
+        clearFolderScanFileTypeOverrides(folderId);
         return { success: true };
     });
+
+    ipcMain.handle(
+        'folder:setExcludedSubdirectories',
+        async (
+            _event,
+            {
+                folderId,
+                excludedSubdirectories
+            }: {
+                folderId: string;
+                excludedSubdirectories: string[];
+            }
+        ) => {
+            setFolderExcludedSubdirectories(folderId, excludedSubdirectories);
+            return { success: true };
+        }
+    );
 
     ipcMain.handle('folder:showContextMenu', async (event, { folderId, path }) => {
         const folderFileCounts = getFolderFileCounts();
@@ -158,7 +176,7 @@ export function registerFolderHandlers() {
                         label: 'プロファイル既定に戻す',
                         enabled: hasOverrides,
                         click: async () => {
-                            clearFolderScanSettings(folderId);
+                            clearFolderScanFileTypeOverrides(folderId);
                         }
                     }
                 ]

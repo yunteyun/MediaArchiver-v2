@@ -11,6 +11,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { logActivity } from './activityLogService';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
+import {
+    normalizeExcludedSubdirectories,
+    normalizeFolderScanSettings,
+    parseFolderScanSettingsJson,
+    type FolderScanFileTypeOverrides,
+    type FolderScanSettings,
+} from '../../src/shared/folderScanSettings';
 
 const log = logger.scope('Database');
 
@@ -100,17 +107,6 @@ export interface MediaFolder {
     last_scan_message?: string | null;
 }
 
-export interface FolderScanFileTypeOverrides {
-    video?: boolean;
-    image?: boolean;
-    archive?: boolean;
-    audio?: boolean;
-}
-
-export interface FolderScanSettings {
-    fileTypeOverrides?: FolderScanFileTypeOverrides;
-}
-
 // --- Helper ---
 function getDb() {
     return dbManager.getDb();
@@ -139,51 +135,25 @@ function parsePreviewFrames(previewFramesRaw?: string): string[] {
     return raw.split(',').map(s => s.trim()).filter(Boolean);
 }
 
-function parseFolderScanSettings(scanSettingsJson?: string | null): FolderScanSettings {
-    if (!scanSettingsJson) return {};
-    try {
-        const parsed = JSON.parse(scanSettingsJson);
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-        const fileTypeOverridesRaw = (parsed as Record<string, unknown>).fileTypeOverrides;
-        const fileTypeOverrides =
-            fileTypeOverridesRaw && typeof fileTypeOverridesRaw === 'object' && !Array.isArray(fileTypeOverridesRaw)
-                ? {
-                    video: typeof (fileTypeOverridesRaw as Record<string, unknown>).video === 'boolean'
-                        ? (fileTypeOverridesRaw as Record<string, unknown>).video as boolean
-                        : undefined,
-                    image: typeof (fileTypeOverridesRaw as Record<string, unknown>).image === 'boolean'
-                        ? (fileTypeOverridesRaw as Record<string, unknown>).image as boolean
-                        : undefined,
-                    archive: typeof (fileTypeOverridesRaw as Record<string, unknown>).archive === 'boolean'
-                        ? (fileTypeOverridesRaw as Record<string, unknown>).archive as boolean
-                        : undefined,
-                    audio: typeof (fileTypeOverridesRaw as Record<string, unknown>).audio === 'boolean'
-                        ? (fileTypeOverridesRaw as Record<string, unknown>).audio as boolean
-                        : undefined,
-                }
-                : undefined;
-
-        return fileTypeOverrides ? { fileTypeOverrides } : {};
-    } catch {
-        return {};
-    }
-}
-
 function serializeFolderScanSettings(settings: FolderScanSettings): string | null {
-    const normalizedOverrides = settings.fileTypeOverrides
+    const normalizedSettings = normalizeFolderScanSettings(settings);
+    const normalizedOverrides = normalizedSettings.fileTypeOverrides
         ? {
-            video: typeof settings.fileTypeOverrides.video === 'boolean' ? settings.fileTypeOverrides.video : undefined,
-            image: typeof settings.fileTypeOverrides.image === 'boolean' ? settings.fileTypeOverrides.image : undefined,
-            archive: typeof settings.fileTypeOverrides.archive === 'boolean' ? settings.fileTypeOverrides.archive : undefined,
-            audio: typeof settings.fileTypeOverrides.audio === 'boolean' ? settings.fileTypeOverrides.audio : undefined,
+            video: typeof normalizedSettings.fileTypeOverrides.video === 'boolean' ? normalizedSettings.fileTypeOverrides.video : undefined,
+            image: typeof normalizedSettings.fileTypeOverrides.image === 'boolean' ? normalizedSettings.fileTypeOverrides.image : undefined,
+            archive: typeof normalizedSettings.fileTypeOverrides.archive === 'boolean' ? normalizedSettings.fileTypeOverrides.archive : undefined,
+            audio: typeof normalizedSettings.fileTypeOverrides.audio === 'boolean' ? normalizedSettings.fileTypeOverrides.audio : undefined,
         }
         : undefined;
+    const normalizedExcludedSubdirectories = normalizeExcludedSubdirectories(normalizedSettings.excludedSubdirectories);
 
     const hasAnyOverride = !!normalizedOverrides && Object.values(normalizedOverrides).some(v => typeof v === 'boolean');
-    if (!hasAnyOverride) return null;
+    const hasExcludedSubdirectories = normalizedExcludedSubdirectories.length > 0;
+    if (!hasAnyOverride && !hasExcludedSubdirectories) return null;
 
     return JSON.stringify({
-        fileTypeOverrides: normalizedOverrides
+        ...(hasAnyOverride ? { fileTypeOverrides: normalizedOverrides } : {}),
+        ...(hasExcludedSubdirectories ? { excludedSubdirectories: normalizedExcludedSubdirectories } : {}),
     });
 }
 
@@ -688,7 +658,7 @@ export function getFileCleanupCandidatesByRootFolderId(rootFolderId: string): Ar
 
 export function getFolderScanSettings(folderId: string): FolderScanSettings {
     const folder = getFolderById(folderId);
-    return parseFolderScanSettings(folder?.scan_settings_json);
+    return parseFolderScanSettingsJson(folder?.scan_settings_json);
 }
 
 export function setFolderScanFileTypeOverride(
@@ -711,7 +681,32 @@ export function setFolderScanFileTypeOverride(
     };
     const serialized = serializeFolderScanSettings(nextSettings);
     db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
-    return parseFolderScanSettings(serialized);
+    return parseFolderScanSettingsJson(serialized);
+}
+
+export function clearFolderScanFileTypeOverrides(folderId: string): FolderScanSettings {
+    const db = getDb();
+    const current = getFolderScanSettings(folderId);
+    const serialized = serializeFolderScanSettings({
+        excludedSubdirectories: current.excludedSubdirectories,
+    });
+    db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
+    return parseFolderScanSettingsJson(serialized);
+}
+
+export function setFolderExcludedSubdirectories(
+    folderId: string,
+    excludedSubdirectories: string[]
+): FolderScanSettings {
+    const db = getDb();
+    const current = getFolderScanSettings(folderId);
+    const nextSettings: FolderScanSettings = {
+        ...current,
+        excludedSubdirectories: normalizeExcludedSubdirectories(excludedSubdirectories),
+    };
+    const serialized = serializeFolderScanSettings(nextSettings);
+    db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
+    return parseFolderScanSettingsJson(serialized);
 }
 
 export function clearFolderScanSettings(folderId: string): void {

@@ -256,11 +256,12 @@ export const ThumbnailsSettingsTab = React.memo(({
                         onChange={(e) => onRightPanelVideoPreviewModeChange(e.target.value as RightPanelVideoPreviewMode)}
                         className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
+                        <option value="off">停止</option>
                         <option value="loop">ループ再生</option>
                         <option value="long">固定間隔プレビュー</option>
                     </select>
                     <p className="text-xs text-surface-500 mt-1">
-                        固定間隔は内容を順送りで確認します。
+                        停止にすると静止サムネイルだけ表示します。固定間隔は内容を順送りで確認します。
                     </p>
                 </div>
 

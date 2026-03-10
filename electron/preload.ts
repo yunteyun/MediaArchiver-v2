@@ -130,6 +130,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         folderId: string,
         overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
     ) => ipcRenderer.invoke('folder:setScanFileTypeOverrides', { folderId, overrides }),
+    setFolderExcludedSubdirectories: (folderId: string, excludedSubdirectories: string[]) =>
+        ipcRenderer.invoke('folder:setExcludedSubdirectories', { folderId, excludedSubdirectories }),
     clearFolderScanFileTypeOverrides: (folderId: string) =>
         ipcRenderer.invoke('folder:clearScanFileTypeOverrides', { folderId }),
 

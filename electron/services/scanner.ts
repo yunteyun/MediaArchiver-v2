@@ -16,6 +16,7 @@ import {
     shouldSkipFileByExtension,
     type ScanExclusionRules,
 } from '../../src/shared/scanExclusionRules';
+import { pathMatchesExcludedSubdirectory } from '../../src/shared/folderScanSettings';
 
 const log = logger.scope('Scanner');
 
@@ -304,8 +305,10 @@ function commitBatch(pendingWrites: PendingWrite[]): number {
 // ファイル数をカウント (再帰)
 async function countFiles(
     dirPath: string,
+    rootPath: string,
     scanFilters: ScanFileTypeCategoryFilters,
     exclusionRules: ScanExclusionRules,
+    excludedSubdirectories: string[],
     cancellationToken?: ScanCancellationToken
 ): Promise<number> {
     // パス長チェック
@@ -336,7 +339,10 @@ async function countFiles(
                     if (shouldSkipDirectoryEntry(entry.name, exclusionRules)) {
                         continue;
                     }
-                    count += await countFiles(fullPath, scanFilters, exclusionRules, cancellationToken);
+                    if (pathMatchesExcludedSubdirectory(fullPath, rootPath, excludedSubdirectories)) {
+                        continue;
+                    }
+                    count += await countFiles(fullPath, rootPath, scanFilters, exclusionRules, excludedSubdirectories, cancellationToken);
                 } else if (entry.isFile()) {
                     const ext = path.extname(entry.name).toLowerCase();
                     if (!shouldSkipFileByExtension(ext, exclusionRules) && isScannableMediaType(ext, scanFilters)) {
@@ -373,12 +379,14 @@ async function scanDirectoryInternal(
         jobId: string;
         current: number;
         total: number;
+        rootPath: string;
         lastProgressTime: number;
         stats: { newCount: number; updateCount: number; skipCount: number; removedCount?: number };
         pendingWrites: PendingWrite[];
         scanFilters: ScanFileTypeCategoryFilters;
         committedCount: number;
         runtimeSettings: ScanRuntimeSettings;
+        excludedSubdirectories: string[];
         cancellationToken?: ScanCancellationToken;
     }
 ) {
@@ -418,6 +426,10 @@ async function scanDirectoryInternal(
 
             if (entry.isDirectory()) {
                 if (shouldSkipDirectoryEntry(entry.name, state.runtimeSettings.exclusionRules)) {
+                    state.stats.skipCount++;
+                    continue;
+                }
+                if (pathMatchesExcludedSubdirectory(fullPath, state.rootPath, state.excludedSubdirectories)) {
                     state.stats.skipCount++;
                     continue;
                 }
@@ -761,6 +773,8 @@ export async function scanDirectory(
             rootFolderId,
             runtimeSettings.fileTypeCategories
         );
+        const folderScanSettings = db.getFolderScanSettings(rootFolderId);
+        const excludedSubdirectories = folderScanSettings.excludedSubdirectories ?? [];
         let total = 0;
 
         if (!options?.skipInitialCount) {
@@ -769,7 +783,14 @@ export async function scanDirectory(
             }
 
             const countStartedAt = startPerfTimer();
-            total = await countFiles(dirPath, effectiveScanFilters, runtimeSettings.exclusionRules, cancellationToken);
+            total = await countFiles(
+                dirPath,
+                dirPath,
+                effectiveScanFilters,
+                runtimeSettings.exclusionRules,
+                excludedSubdirectories,
+                cancellationToken
+            );
             logPerf('scanner.countFiles', countStartedAt, {
                 folder: path.basename(dirPath) || dirPath,
                 total
@@ -784,12 +805,14 @@ export async function scanDirectory(
             jobId,
             current: 0,
             total,
+            rootPath: dirPath,
             lastProgressTime: 0,
             stats: { newCount: 0, updateCount: 0, skipCount: 0, removedCount: 0 },
             pendingWrites: [] as PendingWrite[],
             scanFilters: effectiveScanFilters,
             committedCount: 0,
             runtimeSettings,
+            excludedSubdirectories,
             cancellationToken,
         };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, onBatchCommitted, state);
@@ -822,7 +845,8 @@ export async function scanDirectory(
                     : false;
             const excludedByRules =
                 shouldSkipFileByExtension(path.extname(file.path).toLowerCase(), runtimeSettings.exclusionRules)
-                || pathHasExcludedDirectory(file.path, dirPath, runtimeSettings.exclusionRules);
+                || pathHasExcludedDirectory(file.path, dirPath, runtimeSettings.exclusionRules)
+                || pathMatchesExcludedSubdirectory(file.path, dirPath, excludedSubdirectories);
 
             if (isMissingOnDisk || disabledByProfile || excludedByRules) {
                 db.deleteFile(file.id);

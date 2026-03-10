@@ -3,30 +3,15 @@ import { X } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import {
+    excludedSubdirectoriesToText,
+    parseExcludedSubdirectoriesText,
+    parseFolderScanSettingsJson,
+} from '../shared/folderScanSettings';
 
 type FileTypeCategoryKey = 'video' | 'image' | 'archive' | 'audio';
 
 type FileTypeOverridesState = Record<FileTypeCategoryKey, boolean>;
-
-function parseFolderFileTypeOverrides(folder: MediaFolder | null): Partial<Record<FileTypeCategoryKey, boolean>> {
-    if (!folder) return {};
-    const raw = folder.scan_settings_json ?? folder.scanSettingsJson;
-    if (!raw) return {};
-    try {
-        const parsed = JSON.parse(raw);
-        const overrides = parsed?.fileTypeOverrides;
-        if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) return {};
-        const result: Partial<Record<FileTypeCategoryKey, boolean>> = {};
-        for (const key of ['video', 'image', 'archive', 'audio'] as const) {
-            if (typeof (overrides as Record<string, unknown>)[key] === 'boolean') {
-                result[key] = Boolean((overrides as Record<string, unknown>)[key]);
-            }
-        }
-        return result;
-    } catch {
-        return {};
-    }
-}
 
 interface FolderAutoScanSettingsDialogProps {
     isOpen: boolean;
@@ -51,13 +36,15 @@ export const FolderAutoScanSettingsDialog = React.memo(({
         audio: true,
     });
     const [hasFileTypeOverrides, setHasFileTypeOverrides] = useState(false);
+    const [excludedSubdirectoriesText, setExcludedSubdirectoriesText] = useState('');
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (!folder) return;
         setAutoScanEnabled((folder.auto_scan ?? folder.autoScan ?? 0) === 1);
         setWatchNewFilesEnabled((folder.watch_new_files ?? folder.watchNewFiles ?? 0) === 1);
-        const overrides = parseFolderFileTypeOverrides(folder);
+        const settings = parseFolderScanSettingsJson(folder.scan_settings_json ?? folder.scanSettingsJson);
+        const overrides = settings.fileTypeOverrides ?? {};
         setFileTypeOverrides({
             video: overrides.video ?? profileFileTypeFilters.video,
             image: overrides.image ?? profileFileTypeFilters.image,
@@ -65,6 +52,7 @@ export const FolderAutoScanSettingsDialog = React.memo(({
             audio: overrides.audio ?? profileFileTypeFilters.audio,
         });
         setHasFileTypeOverrides(Object.keys(overrides).length > 0);
+        setExcludedSubdirectoriesText(excludedSubdirectoriesToText(settings.excludedSubdirectories));
     }, [folder, profileFileTypeFilters]);
 
     if (!isOpen || !folder) return null;
@@ -81,6 +69,10 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                     archive: fileTypeOverrides.archive === profileFileTypeFilters.archive ? null : fileTypeOverrides.archive,
                     audio: fileTypeOverrides.audio === profileFileTypeFilters.audio ? null : fileTypeOverrides.audio,
                 }),
+                window.electronAPI.setFolderExcludedSubdirectories(
+                    folder.id,
+                    parseExcludedSubdirectoriesText(excludedSubdirectoriesText)
+                ),
             ]);
             useUIStore.getState().showToast('フォルダ別自動スキャン設定を保存しました', 'success');
             onSaved?.();
@@ -210,6 +202,34 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                                 現在はプロファイル既定を使用しています。
                             </div>
                         )}
+                    </div>
+
+                    <div className="rounded-lg border border-surface-700 bg-surface-900/50 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <div>
+                                <div className="text-sm font-medium text-surface-200">除外する子フォルダ</div>
+                                <div className="text-xs text-surface-500">
+                                    この登録フォルダ配下でスキャンしない子フォルダを、相対パスで1行ずつ指定します。
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setExcludedSubdirectoriesText('')}
+                                className="rounded border border-surface-700 px-2 py-1 text-xs text-surface-300 hover:bg-surface-800 transition-colors"
+                            >
+                                クリア
+                            </button>
+                        </div>
+                        <textarea
+                            value={excludedSubdirectoriesText}
+                            onChange={(e) => setExcludedSubdirectoriesText(e.target.value)}
+                            rows={4}
+                            placeholder={'cache\ntemp\\raw'}
+                            className="mt-3 w-full rounded border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
+                        />
+                        <div className="mt-2 text-xs text-surface-500">
+                            例: `cache` `temp\\raw`。指定したフォルダとその配下は新規スキャン・再スキャン・孤立整理から除外します。
+                        </div>
                     </div>
                 </div>
 

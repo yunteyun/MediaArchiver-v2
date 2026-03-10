@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import {
+    excludedSubdirectoriesToText,
+    parseExcludedSubdirectoriesText,
+} from '../shared/folderScanSettings';
 
 export type AddFolderScanSettingsSubmit = {
     autoScan: boolean;
@@ -10,6 +14,7 @@ export type AddFolderScanSettingsSubmit = {
         archive: boolean;
         audio: boolean;
     };
+    excludedSubdirectories: string[];
     startScanNow: boolean;
 };
 
@@ -29,6 +34,7 @@ const DEFAULT_STATE: AddFolderScanSettingsSubmit = {
         archive: true,
         audio: true,
     },
+    excludedSubdirectories: [],
     startScanNow: true,
 };
 
@@ -39,10 +45,12 @@ export const AddFolderScanSettingsDialog = React.memo(({
     onSubmit
 }: AddFolderScanSettingsDialogProps) => {
     const [state, setState] = useState<AddFolderScanSettingsSubmit>(DEFAULT_STATE);
+    const [excludedSubdirectoriesText, setExcludedSubdirectoriesText] = useState('');
 
     useEffect(() => {
         if (!isOpen) return;
         setState(DEFAULT_STATE);
+        setExcludedSubdirectoriesText(excludedSubdirectoriesToText(DEFAULT_STATE.excludedSubdirectories));
     }, [isOpen, folderPath]);
 
     if (!isOpen || !folderPath) return null;
@@ -141,6 +149,34 @@ export const AddFolderScanSettingsDialog = React.memo(({
                             </div>
                         </label>
                     </div>
+
+                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <div>
+                                <div className="text-sm font-medium text-surface-200">除外する子フォルダ</div>
+                                <div className="text-xs text-surface-500">
+                                    ルート直下からの相対パスを1行ずつ入力します。例: `cache` / `temp\\raw`
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setExcludedSubdirectoriesText('')}
+                                className="rounded border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800"
+                            >
+                                クリア
+                            </button>
+                        </div>
+                        <textarea
+                            value={excludedSubdirectoriesText}
+                            onChange={(e) => setExcludedSubdirectoriesText(e.target.value)}
+                            rows={4}
+                            placeholder={'cache\ntemp\\raw'}
+                            className="mt-3 w-full rounded border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
+                        />
+                        <div className="mt-2 text-xs text-surface-500">
+                            指定した子フォルダとその配下は、この登録フォルダのスキャン対象から外します。
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3">
@@ -151,7 +187,10 @@ export const AddFolderScanSettingsDialog = React.memo(({
                         キャンセル
                     </button>
                     <button
-                        onClick={() => onSubmit(state)}
+                        onClick={() => onSubmit({
+                            ...state,
+                            excludedSubdirectories: parseExcludedSubdirectoriesText(excludedSubdirectoriesText),
+                        })}
                         className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500"
                     >
                         登録
