@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildVisibleFiles, sortFiles, type FileListQueryOptions } from '../fileListQuery';
 import type { MediaFile } from '../../types/file';
+import { DEFAULT_RATING_DISPLAY_THRESHOLDS } from '../../shared/ratingDisplayThresholds';
 
 function createFile(overrides: Partial<MediaFile>): MediaFile {
     return {
@@ -38,6 +39,7 @@ function createQueryOptions(overrides: Partial<FileListQueryOptions> = {}): File
         fileRatings: overrides.fileRatings ?? {},
         overallRatingAxisId: overrides.overallRatingAxisId ?? null,
         ratingQuickFilter: overrides.ratingQuickFilter ?? 'none',
+        ratingDisplayThresholds: overrides.ratingDisplayThresholds ?? DEFAULT_RATING_DISPLAY_THRESHOLDS,
         searchConditions: overrides.searchConditions ?? [],
         selectedFileTypes: overrides.selectedFileTypes ?? ['video', 'image', 'archive', 'audio'],
     };
@@ -111,15 +113,15 @@ describe('fileListQuery', () => {
         );
         expect(sorted.map((file) => file.id)).toEqual(['high', 'mid', 'unrated']);
 
-        const fourPlus = buildVisibleFiles(files, createQueryOptions({
+        const midOrAbove = buildVisibleFiles(files, createQueryOptions({
             fileRatings: {
                 high: { overall: 5 },
                 mid: { overall: 3 },
             },
             overallRatingAxisId: 'overall',
-            ratingQuickFilter: 'overall4plus',
+            ratingQuickFilter: 'midOrAbove',
         }));
-        expect(fourPlus.map((file) => file.id)).toEqual(['high']);
+        expect(midOrAbove.map((file) => file.id)).toEqual(['high', 'mid']);
 
         const unrated = buildVisibleFiles(files, createQueryOptions({
             fileRatings: {
@@ -130,5 +132,19 @@ describe('fileListQuery', () => {
             ratingQuickFilter: 'unrated',
         }));
         expect(unrated.map((file) => file.id)).toEqual(['unrated']);
+
+        const raisedThreshold = buildVisibleFiles(files, createQueryOptions({
+            fileRatings: {
+                high: { overall: 5 },
+                mid: { overall: 3 },
+            },
+            overallRatingAxisId: 'overall',
+            ratingQuickFilter: 'midOrAbove',
+            ratingDisplayThresholds: {
+                mid: 4,
+                high: 4.5,
+            },
+        }));
+        expect(raisedThreshold.map((file) => file.id)).toEqual(['high']);
     });
 });

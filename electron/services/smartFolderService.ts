@@ -1,12 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
+import {
+    normalizeRatingQuickFilter,
+    type RatingQuickFilter,
+} from '../../src/shared/ratingQuickFilter';
 
 const log = logger.scope('SmartFolder');
 
 const SMART_FOLDERS_KEY = 'smart_folders_v1';
 type SearchTarget = 'fileName' | 'folderName';
-type RatingQuickFilter = 'none' | 'overall4plus' | 'unrated';
 interface SearchCondition {
     text: string;
     target: SearchTarget;
@@ -124,10 +127,7 @@ function normalizeCondition(input: unknown): SmartFolderConditionV1 {
         text: primaryTextCondition?.text ?? '',
         textMatchTarget: primaryTextCondition?.target ?? 'fileName',
         textConditions,
-        ratingQuickFilter:
-            candidate.ratingQuickFilter === 'overall4plus' || candidate.ratingQuickFilter === 'unrated'
-                ? candidate.ratingQuickFilter
-                : 'none',
+        ratingQuickFilter: normalizeRatingQuickFilter(candidate.ratingQuickFilter),
         tags: {
             ids: Array.isArray(tagsCandidate.ids)
                 ? tagsCandidate.ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)

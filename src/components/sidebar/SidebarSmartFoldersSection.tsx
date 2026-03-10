@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookmarkPlus, Copy, Pencil, Sparkles, Trash2, X } from 'lucide-react';
 import type { SmartFolderV1 } from '../../stores/useSmartFolderStore';
+import { useRatingDisplay } from '../ratings/useRatingDisplay';
 
 interface SidebarSmartFoldersSectionProps {
     sidebarCollapsed: boolean;
@@ -13,7 +14,7 @@ interface SidebarSmartFoldersSectionProps {
     smartFolderPreviewMap: Map<string, string>;
     onClearSmartFolderConditions: () => void;
     onOpenCreateSmartFolderEditor: () => void;
-    onOpenTemplateSmartFolderEditor: (templateKey: 'overall4plus' | 'unrated') => void;
+    onOpenTemplateSmartFolderEditor: (templateKey: 'midOrAbove' | 'unrated') => void;
     onApplySmartFolder: (smartFolderId: string) => void;
     onDuplicateSmartFolder: (smartFolderId: string) => void;
     onOpenEditSmartFolderEditor: (smartFolderId: string) => void;
@@ -37,6 +38,7 @@ export const SidebarSmartFoldersSection = React.memo(({
     onOpenEditSmartFolderEditor,
     onDeleteSmartFolder,
 }: SidebarSmartFoldersSectionProps) => {
+    const { getQuickFilterLabel } = useRatingDisplay();
     if (sidebarCollapsed) {
         return null;
     }
@@ -92,21 +94,21 @@ export const SidebarSmartFoldersSection = React.memo(({
                 <div className="mb-2 flex flex-wrap gap-1">
                     <button
                         type="button"
-                        onClick={() => onOpenTemplateSmartFolderEditor('overall4plus')}
+                        onClick={() => onOpenTemplateSmartFolderEditor('midOrAbove')}
                         className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-surface-300 hover:bg-surface-800"
-                        title="総合評価 4 以上のテンプレートから作成"
+                        title={`${getQuickFilterLabel('midOrAbove')} のテンプレートから作成`}
                     >
                         <Sparkles size={11} />
-                        総合4+
+                        {getQuickFilterLabel('midOrAbove')}
                     </button>
                     <button
                         type="button"
                         onClick={() => onOpenTemplateSmartFolderEditor('unrated')}
                         className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-surface-300 hover:bg-surface-800"
-                        title="未評価のみのテンプレートから作成"
+                        title={`${getQuickFilterLabel('unrated')} のテンプレートから作成`}
                     >
                         <Sparkles size={11} />
-                        未評価
+                        {getQuickFilterLabel('unrated')}
                     </button>
                 </div>
 

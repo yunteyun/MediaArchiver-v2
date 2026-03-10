@@ -10,8 +10,7 @@
 
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
-import { getRatingDisplayTone } from './ratings/ratingDisplayTone';
-import { useSettingsStore } from '../stores/useSettingsStore';
+import { useRatingDisplay } from './ratings/useRatingDisplay';
 
 // カラー定数（フィルターと統一）
 const C_FILLED = '#2563eb';
@@ -146,14 +145,11 @@ export const StarRatingInput = React.memo<StarRatingInputProps>((({
     toneMode = 'perStar',
 }) => {
     const [hoverValue, setHoverValue] = useState<number | null>(null);
-    const ratingDisplayThresholds = useSettingsStore((s) => s.ratingDisplayThresholds);
+    const { getTone } = useRatingDisplay();
 
     const displayValue = hoverValue ?? value ?? 0;
     const isHalfMode = step < 1;
-    const uniformTone = getRatingDisplayTone(
-        displayValue || value || minValue,
-        ratingDisplayThresholds
-    );
+    const uniformTone = getTone(displayValue || value || minValue);
     const uniformColor = hoverValue !== null ? uniformTone.hoverColor : uniformTone.color;
 
     const handleClick = (v: number) => {

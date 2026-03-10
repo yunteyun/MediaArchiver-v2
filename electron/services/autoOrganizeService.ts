@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { buildAutoOrganizeRenamePreview } from '../../src/shared/autoOrganizeRename';
+import { normalizeRatingQuickFilter } from '../../src/shared/ratingQuickFilter';
 import { buildVisibleFiles, type FileSearchCondition } from '../../src/utils/fileListQuery';
 import type {
     AutoOrganizeActionKind,
@@ -29,6 +30,7 @@ import { getAllAxes, getAllFileRatings } from './ratingService';
 import { getAllFileTagIds } from './tagService';
 import { logActivity } from './activityLogService';
 import { relocateFile, validateNewFileName } from './fileOperationService';
+import { getProfileScopedSettings } from './profileSettingsService';
 
 const log = logger.scope('AutoOrganize');
 
@@ -251,10 +253,7 @@ function normalizeCondition(input: unknown): AutoOrganizeConditionV1 {
         text: primaryTextCondition?.text ?? '',
         textMatchTarget: primaryTextCondition?.target ?? 'fileName',
         textConditions,
-        ratingQuickFilter:
-            candidate.ratingQuickFilter === 'overall4plus' || candidate.ratingQuickFilter === 'unrated'
-                ? candidate.ratingQuickFilter
-                : 'none',
+        ratingQuickFilter: normalizeRatingQuickFilter(candidate.ratingQuickFilter),
         tags: {
             ids: Array.isArray(tagsCandidate.ids)
                 ? tagsCandidate.ids.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
@@ -705,6 +704,7 @@ function evaluateRules(ruleIds?: string[], options: EvaluateRulesOptions = {}): 
     const allFileTagIds = getAllFileTagIds();
     const fileTagCache = new Map<string, string[]>(Object.entries(allFileTagIds));
     const fileRatings = getAllFileRatings();
+    const ratingDisplayThresholds = getProfileScopedSettings().settings.ratingDisplayThresholds;
     const overallRatingAxisId = getAllAxes().find((axis) => axis.isSystem)?.id ?? null;
     const folders = getFolders();
     const foldersById = new Map(folders.map((folder) => [folder.id, folder]));
@@ -734,6 +734,7 @@ function evaluateRules(ruleIds?: string[], options: EvaluateRulesOptions = {}): 
             fileRatings,
             overallRatingAxisId,
             ratingQuickFilter: rule.condition.ratingQuickFilter,
+            ratingDisplayThresholds,
             searchConditions: toSearchConditions(rule.condition),
             selectedFileTypes: rule.condition.types,
         });

@@ -12,9 +12,8 @@ import React, { useState, useEffect } from 'react';
 import { Settings, Star } from 'lucide-react';
 import { useRatingStore } from '../../stores/useRatingStore';
 import { useUIStore } from '../../stores/useUIStore';
-import { useSettingsStore } from '../../stores/useSettingsStore';
 import { SidebarSectionHeader } from '../SidebarSectionHeader';
-import { getRatingDisplayTone } from './ratingDisplayTone';
+import { useRatingDisplay } from './useRatingDisplay';
 
 const COLOR_EMPTY = '#334155';    // 未選択（surface-700）
 
@@ -23,7 +22,7 @@ interface StarButtonProps {
     filled: boolean;
     hovered: boolean;
     activeToneValue: number | null;
-    ratingDisplayThresholds: ReturnType<typeof useSettingsStore.getState>['ratingDisplayThresholds'];
+    getTone: (value: number) => { color: string; hoverColor: string };
     onClick: () => void;
     onMouseEnter: () => void;
     onMouseLeave: () => void;
@@ -31,9 +30,9 @@ interface StarButtonProps {
 }
 
 const StarButton: React.FC<StarButtonProps> = ({
-    value, filled, hovered, activeToneValue, ratingDisplayThresholds, onClick, onMouseEnter, onMouseLeave, size = 16,
+    value, filled, hovered, activeToneValue, getTone, onClick, onMouseEnter, onMouseLeave, size = 16,
 }) => {
-    const tone = getRatingDisplayTone(activeToneValue ?? value, ratingDisplayThresholds);
+    const tone = getTone(activeToneValue ?? value);
     const color = filled || hovered ? (hovered ? tone.hoverColor : tone.color) : COLOR_EMPTY;
     return (
         <button
@@ -60,13 +59,13 @@ interface AxisFilterRowProps {
     maxValue: number;
     step: number;
     currentMin: number | undefined;
-    ratingDisplayThresholds: ReturnType<typeof useSettingsStore.getState>['ratingDisplayThresholds'];
+    getTone: (value: number) => { color: string; hoverColor: string };
     onSet: (min: number) => void;
     onClear: () => void;
 }
 
 const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
-    axisId: _axisId, axisName, minValue, maxValue, step, currentMin, ratingDisplayThresholds, onSet, onClear,
+    axisId: _axisId, axisName, minValue, maxValue, step, currentMin, getTone, onSet, onClear,
 }) => {
     const [hoverValue, setHoverValue] = useState<number | null>(null);
     const isHalfMode = step < 1;
@@ -116,7 +115,7 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                                 resolvedRight !== undefined && dispVal >= resolvedRight ? 'full' :
                                     resolvedLeft !== undefined && dispVal >= resolvedLeft ? 'half' : 'empty';
                             const activeTone = activeToneValue !== null
-                                ? getRatingDisplayTone(activeToneValue, ratingDisplayThresholds)
+                                ? getTone(activeToneValue)
                                 : null;
                             const fillColor = state !== 'empty' && activeTone
                                 ? (hoverValue !== null ? activeTone.hoverColor : activeTone.color)
@@ -175,7 +174,7 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                                     filled={filled}
                                     hovered={!filled && hovered}
                                     activeToneValue={activeToneValue}
-                                    ratingDisplayThresholds={ratingDisplayThresholds}
+                                    getTone={getTone}
                                     onClick={() => handleClick(v)}
                                     onMouseEnter={() => setHoverValue(v)}
                                     onMouseLeave={() => setHoverValue(null)}
@@ -187,7 +186,7 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                 {currentMin !== undefined && (
                     <span
                         className="ml-1 text-xs"
-                        style={{ color: getRatingDisplayTone(currentMin, ratingDisplayThresholds).color }}
+                        style={{ color: getTone(currentMin).color }}
                     >
                         {currentMin}以上
                     </span>
@@ -207,7 +206,7 @@ export const RatingFilterPanel: React.FC = () => {
     const ratingQuickFilter = useUIStore((s) => s.ratingQuickFilter);
     const setRatingQuickFilter = useUIStore((s) => s.setRatingQuickFilter);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
-    const ratingDisplayThresholds = useSettingsStore((s) => s.ratingDisplayThresholds);
+    const { getTone, getQuickFilterLabel } = useRatingDisplay();
     const overallAxis = axes.find((axis) => axis.isSystem) ?? axes[0];
 
     // 起動時に評価軸をロード。多重実行ガードはストア側が担う。
@@ -274,7 +273,7 @@ export const RatingFilterPanel: React.FC = () => {
                         )}
                         {hasQuickFilter && (
                             <button
-                                onClick={() => setRatingQuickFilter('none')}
+                            onClick={() => setRatingQuickFilter('none')}
                                 className="inline-flex items-center gap-1 text-[11px] text-surface-500 hover:text-surface-300 transition-colors"
                                 title="評価クイック条件を解除"
                             >
@@ -291,14 +290,14 @@ export const RatingFilterPanel: React.FC = () => {
                     <div className="flex flex-wrap gap-1">
                         <button
                             type="button"
-                            onClick={() => setRatingQuickFilter('overall4plus')}
+                            onClick={() => setRatingQuickFilter('midOrAbove')}
                             className={`rounded px-2 py-1 text-[11px] transition-colors ${
-                                ratingQuickFilter === 'overall4plus'
+                                ratingQuickFilter === 'midOrAbove'
                                     ? 'bg-primary-600 text-white'
                                     : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
                             }`}
                         >
-                            総合 4+
+                            {getQuickFilterLabel('midOrAbove')}
                         </button>
                         <button
                             type="button"
@@ -309,7 +308,7 @@ export const RatingFilterPanel: React.FC = () => {
                                     : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
                             }`}
                         >
-                            未評価のみ
+                            {getQuickFilterLabel('unrated')}
                         </button>
                     </div>
                 </div>
@@ -326,7 +325,7 @@ export const RatingFilterPanel: React.FC = () => {
                         maxValue={axis.maxValue}
                         step={axis.step}
                         currentMin={ratingFilter[axis.id]?.min}
-                        ratingDisplayThresholds={ratingDisplayThresholds}
+                        getTone={getTone}
                         onSet={(min) => setRatingFilter(axis.id, min, undefined)}
                         onClear={() => setRatingFilter(axis.id, undefined, undefined)}
                     />

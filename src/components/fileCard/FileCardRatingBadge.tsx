@@ -1,7 +1,6 @@
 import React from 'react';
 import { Star } from 'lucide-react';
-import { getRatingDisplayTone } from '../ratings/ratingDisplayTone';
-import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useRatingDisplay } from '../ratings/useRatingDisplay';
 
 interface FileCardRatingBadgeProps {
     value: number;
@@ -24,7 +23,7 @@ function getRatingTone(
     value: number,
     minValue: number,
     maxValue: number,
-    ratingDisplayThresholds: Parameters<typeof getRatingDisplayTone>[1]
+    getTone: (value: number) => { color: string }
 ): RatingTone {
     if (maxValue <= minValue) {
         return {
@@ -33,7 +32,7 @@ function getRatingTone(
     }
 
     return {
-        color: getRatingDisplayTone(value, ratingDisplayThresholds).color,
+        color: getTone(value).color,
     };
 }
 
@@ -44,10 +43,10 @@ export const FileCardRatingBadge = React.memo(({
     axisName = '総合評価',
     className = '',
 }: FileCardRatingBadgeProps) => {
-    const ratingDisplayThresholds = useSettingsStore((s) => s.ratingDisplayThresholds);
+    const { getTone } = useRatingDisplay();
     if (!Number.isFinite(value)) return null;
 
-    const tone = getRatingTone(value, minValue, maxValue, ratingDisplayThresholds);
+    const tone = getRatingTone(value, minValue, maxValue, getTone);
     const formattedValue = formatRatingValue(value);
     const formattedMaxValue = formatRatingValue(maxValue);
 

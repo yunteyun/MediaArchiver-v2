@@ -4,6 +4,7 @@ import { useAutoOrganizeStore } from '../../stores/useAutoOrganizeStore';
 import { useFileStore } from '../../stores/useFileStore';
 import { useProfileStore } from '../../stores/useProfileStore';
 import { useRatingStore } from '../../stores/useRatingStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useTagStore } from '../../stores/useTagStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { AutoOrganizeRuleV1 } from '../../types/autoOrganize';
@@ -13,6 +14,7 @@ import { SettingsSection } from './SettingsSection';
 import { AutoOrganizeRuleEditorDialog } from './AutoOrganizeRuleEditorDialog';
 import { AutoOrganizeDryRunDialog } from './AutoOrganizeDryRunDialog';
 import { AutoOrganizeRollbackDialog } from './AutoOrganizeRollbackDialog';
+import { getRatingQuickFilterLabel } from '../../shared/ratingQuickFilter';
 
 interface FolderOption {
     value: string;
@@ -74,6 +76,7 @@ function describeSelection(selection: string | null, folders: MediaFolder[]): st
 }
 
 function summarizeRule(rule: AutoOrganizeRuleV1, folders: MediaFolder[]): string[] {
+    const ratingDisplayThresholds = useSettingsStore.getState().ratingDisplayThresholds;
     const segments: string[] = [`範囲: ${describeSelection(rule.condition.folderSelection, folders)}`];
 
     if (rule.action.move.enabled) {
@@ -90,7 +93,9 @@ function summarizeRule(rule: AutoOrganizeRuleV1, folders: MediaFolder[]): string
     if (textConditionCount > 0) segments.push(`検索 ${textConditionCount}件`);
     if (rule.condition.tags.ids.length > 0) segments.push(`タグ ${rule.condition.tags.mode} ${rule.condition.tags.ids.length}件`);
     if (Object.keys(rule.condition.ratings).length > 0) segments.push(`評価 ${Object.keys(rule.condition.ratings).length}軸`);
-    if (rule.condition.ratingQuickFilter !== 'none') segments.push(`クイック評価: ${rule.condition.ratingQuickFilter === 'overall4plus' ? '総合評価 4+' : '未評価のみ'}`);
+    if (rule.condition.ratingQuickFilter !== 'none') {
+        segments.push(`クイック評価: ${getRatingQuickFilterLabel(rule.condition.ratingQuickFilter, ratingDisplayThresholds)}`);
+    }
     if (rule.condition.types.length < 4) segments.push(`タイプ: ${rule.condition.types.join(', ')}`);
 
     return segments;

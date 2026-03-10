@@ -74,6 +74,7 @@ export const FileGrid = React.memo(() => {
     const openLightbox = useUIStore((s) => s.openLightbox);
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
     const showToast = useUIStore((s) => s.showToast);
+    const ratingDisplayThresholds = useSettingsStore((s) => s.ratingDisplayThresholds);
 
     // Tag filter state
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -138,6 +139,7 @@ export const FileGrid = React.memo(() => {
             fileRatings: allFileRatings,
             overallRatingAxisId,
             ratingQuickFilter,
+            ratingDisplayThresholds,
             searchConditions: activeSearchConditions,
             selectedFileTypes,
         });
@@ -171,6 +173,7 @@ export const FileGrid = React.memo(() => {
         allFileRatings,
         overallRatingAxisId,
         ratingQuickFilter,
+        ratingDisplayThresholds,
         activeSearchConditions,
         selectedFileTypes,
         activeRatingAxisCount,

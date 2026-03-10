@@ -25,6 +25,7 @@ import {
 } from './sidebar/sidebarShared';
 import type { MediaFile, MediaFolder } from '../types/file';
 import type { SmartFolderConditionV1 } from '../stores/useSmartFolderStore';
+import { getRatingQuickFilterLabel } from '../shared/ratingQuickFilter';
 
 const ALL_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
 const FILE_TYPE_LABEL_MAP: Record<MediaFile['type'], string> = {
@@ -69,7 +70,8 @@ function resolveSmartFolderFolderLabel(folderSelection: string | null, folders: 
 
 function buildSmartFolderPreviewText(
     condition: SmartFolderConditionV1,
-    folders: MediaFolder[]
+    folders: MediaFolder[],
+    ratingDisplayThresholds: ReturnType<typeof useSettingsStore.getState>['ratingDisplayThresholds']
 ): string {
     const segments: string[] = [resolveSmartFolderFolderLabel(condition.folderSelection, folders)];
 
@@ -96,10 +98,8 @@ function buildSmartFolderPreviewText(
     if (activeRatingCount > 0) {
         segments.push(`評価: ${activeRatingCount}軸`);
     }
-    if (condition.ratingQuickFilter === 'overall4plus') {
-        segments.push('総合: 4+');
-    } else if (condition.ratingQuickFilter === 'unrated') {
-        segments.push('総合: 未評価');
+    if (condition.ratingQuickFilter !== 'none') {
+        segments.push(`総合: ${getRatingQuickFilterLabel(condition.ratingQuickFilter, ratingDisplayThresholds)}`);
     }
 
     const normalizedTypes = condition.types.filter((type): type is MediaFile['type'] => (
@@ -268,7 +268,7 @@ function buildSmartFolderFolderOptions(
     return options;
 }
 
-function createSmartFolderTemplateCondition(templateKey: 'overall4plus' | 'unrated'): SmartFolderConditionV1 {
+function createSmartFolderTemplateCondition(templateKey: 'midOrAbove' | 'unrated'): SmartFolderConditionV1 {
     return {
         folderSelection: ALL_FILES_ID,
         text: '',
@@ -380,6 +380,7 @@ export const Sidebar = React.memo(() => {
     const ratingQuickFilter = useUIStore((s) => s.ratingQuickFilter);
     const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
+    const ratingDisplayThresholds = useSettingsStore((s) => s.ratingDisplayThresholds);
     const tags = useTagStore((s) => s.tags);
     const loadTags = useTagStore((s) => s.loadTags);
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -516,14 +517,14 @@ export const Sidebar = React.memo(() => {
         });
     }, [buildCurrentSmartFolderCondition, createDefaultSmartFolderName]);
 
-    const handleOpenTemplateSmartFolderEditor = useCallback((templateKey: 'overall4plus' | 'unrated') => {
-        const label = templateKey === 'overall4plus' ? '総合評価 4+' : '未評価のみ';
+    const handleOpenTemplateSmartFolderEditor = useCallback((templateKey: 'midOrAbove' | 'unrated') => {
+        const label = getRatingQuickFilterLabel(templateKey, ratingDisplayThresholds);
         setSmartFolderEditorState({
             mode: 'create',
             initialName: `${label} ${createDefaultSmartFolderName()}`,
             initialCondition: createSmartFolderTemplateCondition(templateKey),
         });
-    }, [createDefaultSmartFolderName]);
+    }, [createDefaultSmartFolderName, ratingDisplayThresholds]);
 
     const handleApplySmartFolder = useCallback(async (smartFolderId: string) => {
         try {
@@ -626,11 +627,11 @@ export const Sidebar = React.memo(() => {
         smartFolders.forEach((smartFolder) => {
             map.set(
                 smartFolder.id,
-                buildSmartFolderPreviewText(smartFolder.condition, folders)
+                buildSmartFolderPreviewText(smartFolder.condition, folders, ratingDisplayThresholds)
             );
         });
         return map;
-    }, [smartFolders, folders]);
+    }, [smartFolders, folders, ratingDisplayThresholds]);
 
     const activeSmartFolder = useMemo(() => {
         if (!activeSmartFolderId) return null;

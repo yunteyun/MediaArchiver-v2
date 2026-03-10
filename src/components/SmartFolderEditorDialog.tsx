@@ -5,6 +5,7 @@ import type { Tag } from '../stores/useTagStore';
 import type { RatingAxis } from '../stores/useRatingStore';
 import type { MediaFile } from '../types/file';
 import type { RatingQuickFilter, SearchCondition, SearchTarget } from '../stores/useUIStore';
+import { useRatingDisplay } from './ratings/useRatingDisplay';
 
 export interface SmartFolderFolderOption {
     value: string;
@@ -42,12 +43,6 @@ const SEARCH_TARGET_OPTIONS: Array<{ value: SearchTarget; label: string }> = [
     { value: 'fileName', label: 'ファイル名' },
     { value: 'folderName', label: 'フォルダ名' },
 ];
-const RATING_QUICK_FILTER_OPTIONS: Array<{ value: RatingQuickFilter; label: string }> = [
-    { value: 'none', label: 'なし' },
-    { value: 'overall4plus', label: '総合評価 4+' },
-    { value: 'unrated', label: '未評価のみ' },
-];
-
 function normalizeConditionTypes(input: unknown): MediaFile['type'][] {
     if (!Array.isArray(input)) return [...SMART_FOLDER_FILE_TYPES];
     const normalized = Array.from(new Set(
@@ -108,6 +103,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
     onClose,
     onSubmit,
 }) => {
+    const { getQuickFilterLabel } = useRatingDisplay();
     const [name, setName] = useState(initialName);
     const [folderSelection, setFolderSelection] = useState(initialCondition.folderSelection ?? '__all__');
     const [textConditions, setTextConditions] = useState<SearchCondition[]>(() => {
@@ -157,6 +153,11 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
         if (!query) return tags;
         return tags.filter((tag) => tag.name.toLowerCase().includes(query));
     }, [tagSearch, tags]);
+    const ratingQuickFilterOptions: Array<{ value: RatingQuickFilter; label: string }> = [
+        { value: 'none', label: getQuickFilterLabel('none') },
+        { value: 'midOrAbove', label: getQuickFilterLabel('midOrAbove') },
+        { value: 'unrated', label: getQuickFilterLabel('unrated') },
+    ];
 
     if (!isOpen) return null;
 
@@ -380,7 +381,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
                         <label className="block text-xs text-surface-400 mb-2">評価クイック条件</label>
                         <div className="flex flex-wrap gap-1.5">
-                            {RATING_QUICK_FILTER_OPTIONS.map((option) => {
+                            {ratingQuickFilterOptions.map((option) => {
                                 const active = ratingQuickFilter === option.value;
                                 return (
                                     <button
@@ -399,7 +400,7 @@ export const SmartFolderEditorDialog: React.FC<SmartFolderEditorDialogProps> = (
                             })}
                         </div>
                         <p className="mt-2 text-[11px] text-surface-500">
-                            総合評価を基準にしたクイック条件です。詳細な評価条件と組み合わせることもできます。
+                            総合評価を基準にしたクイック条件です。境界値は評価設定の色ルールと連動します。
                         </p>
                     </div>
 

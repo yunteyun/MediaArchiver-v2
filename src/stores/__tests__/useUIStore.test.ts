@@ -189,7 +189,7 @@ describe('useUIStore', () => {
             searchQuery: 'hero',
             searchTarget: 'folderName',
             searchExtraConditions: [{ text: 'team', target: 'fileName' }],
-            ratingQuickFilter: 'overall4plus',
+            ratingQuickFilter: 'midOrAbove',
             currentSortBy: 'name',
             currentSortOrder: 'asc',
             currentGroupBy: 'type',
@@ -246,7 +246,7 @@ describe('useUIStore', () => {
         useUIStore.getState().setRatingQuickFilter('unrated');
         expect(useUIStore.getState().ratingQuickFilter).toBe('unrated');
 
-        useUIStore.getState().setRatingQuickFilter('overall4plus');
-        expect(useUIStore.getState().ratingQuickFilter).toBe('overall4plus');
+        useUIStore.getState().setRatingQuickFilter('midOrAbove');
+        expect(useUIStore.getState().ratingQuickFilter).toBe('midOrAbove');
     });
 });

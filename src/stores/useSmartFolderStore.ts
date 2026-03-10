@@ -4,6 +4,7 @@ import { useTagStore } from './useTagStore';
 import { useUIStore } from './useUIStore';
 import type { MediaFile } from '../types/file';
 import type { RatingQuickFilter, SearchCondition, SearchTarget } from './useUIStore';
+import { normalizeRatingQuickFilter } from '../shared/ratingQuickFilter';
 
 const SMART_FOLDER_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
 
@@ -111,10 +112,7 @@ function normalizeCondition(input: SmartFolderConditionV1): SmartFolderCondition
             ids: Array.isArray(input.tags?.ids) ? input.tags.ids.filter((id) => typeof id === 'string' && id.length > 0) : [],
             mode: input.tags?.mode === 'AND' ? 'AND' : 'OR',
         },
-        ratingQuickFilter:
-            input.ratingQuickFilter === 'overall4plus' || input.ratingQuickFilter === 'unrated'
-                ? input.ratingQuickFilter
-                : 'none',
+        ratingQuickFilter: normalizeRatingQuickFilter(input.ratingQuickFilter),
         ratings: normalizedRatings,
         types: normalizeFileTypes(input.types),
     };

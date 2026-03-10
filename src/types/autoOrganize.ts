@@ -1,5 +1,5 @@
 export type AutoOrganizeSearchTarget = 'fileName' | 'folderName';
-export type AutoOrganizeRatingQuickFilter = 'none' | 'overall4plus' | 'unrated';
+export type AutoOrganizeRatingQuickFilter = 'none' | 'midOrAbove' | 'unrated';
 
 export interface AutoOrganizeSearchCondition {
     text: string;

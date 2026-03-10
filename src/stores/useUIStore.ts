@@ -9,6 +9,8 @@ import {
     type ThumbnailPresentation,
 } from './useSettingsStore';
 import { beginUiPerfTrace } from '../utils/perfDebug';
+import type { RatingQuickFilter } from '../shared/ratingQuickFilter';
+export type { RatingQuickFilter } from '../shared/ratingQuickFilter';
 
 export interface ScanProgress {
     phase: 'counting' | 'scanning' | 'complete' | 'error';
@@ -29,7 +31,6 @@ export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | '
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
 export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 export type FileSortOrder = 'asc' | 'desc';
-export type RatingQuickFilter = 'none' | 'overall4plus' | 'unrated';
 export interface SearchCondition {
     text: string;
     target: SearchTarget;

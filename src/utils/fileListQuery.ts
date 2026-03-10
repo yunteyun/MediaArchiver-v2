@@ -1,10 +1,14 @@
 import type { MediaFile } from '../types/file';
+import type { RatingDisplayThresholds } from '../shared/ratingDisplayThresholds';
+import {
+    matchesRatingQuickFilterValue,
+    type RatingQuickFilter,
+} from '../shared/ratingQuickFilter';
 
 export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 export type FileSortOrder = 'asc' | 'desc';
 export type FileTagFilterMode = 'AND' | 'OR';
 export type FileSearchTarget = 'fileName' | 'folderName';
-export type RatingQuickFilter = 'none' | 'overall4plus' | 'unrated';
 
 export interface FileSearchCondition {
     text: string;
@@ -21,6 +25,7 @@ export interface FileListQueryOptions {
     fileRatings: Record<string, Record<string, number>>;
     overallRatingAxisId?: string | null;
     ratingQuickFilter?: RatingQuickFilter;
+    ratingDisplayThresholds?: RatingDisplayThresholds;
     searchConditions: FileSearchCondition[];
     selectedFileTypes: MediaFile['type'][];
 }
@@ -166,18 +171,11 @@ function matchesRatingQuickFilter(
     file: MediaFile,
     quickFilter: RatingQuickFilter,
     overallRatingAxisId: string | null | undefined,
-    fileRatings: Record<string, Record<string, number>>
+    fileRatings: Record<string, Record<string, number>>,
+    ratingDisplayThresholds?: RatingDisplayThresholds,
 ): boolean {
-    if (quickFilter === 'none') {
-        return true;
-    }
-
     const rating = overallRatingAxisId ? fileRatings[file.id]?.[overallRatingAxisId] : undefined;
-    if (quickFilter === 'overall4plus') {
-        return rating !== undefined && rating >= 4;
-    }
-
-    return rating === undefined;
+    return matchesRatingQuickFilterValue(rating, quickFilter, ratingDisplayThresholds);
 }
 
 function matchesFileTypeFilter(file: MediaFile, selectedFileTypes: MediaFile['type'][]): boolean {
@@ -201,7 +199,7 @@ export function buildVisibleFiles(files: MediaFile[], options: FileListQueryOpti
     return sortedFiles.filter((file) => (
         matchesTagFilter(file, options.selectedTagIds, options.filterMode, options.fileTagsCache) &&
         matchesRatingFilter(file, options.ratingFilter, options.fileRatings) &&
-        matchesRatingQuickFilter(file, options.ratingQuickFilter ?? 'none', options.overallRatingAxisId, options.fileRatings) &&
+        matchesRatingQuickFilter(file, options.ratingQuickFilter ?? 'none', options.overallRatingAxisId, options.fileRatings, options.ratingDisplayThresholds) &&
         matchesSearchFilters(file, options.searchConditions) &&
         matchesFileTypeFilter(file, options.selectedFileTypes)
     ));
