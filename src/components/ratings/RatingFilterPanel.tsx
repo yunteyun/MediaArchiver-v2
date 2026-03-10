@@ -21,6 +21,7 @@ interface StarButtonProps {
     value: number;
     filled: boolean;
     hovered: boolean;
+    activeToneValue: number | null;
     onClick: () => void;
     onMouseEnter: () => void;
     onMouseLeave: () => void;
@@ -28,9 +29,9 @@ interface StarButtonProps {
 }
 
 const StarButton: React.FC<StarButtonProps> = ({
-    value, filled, hovered, onClick, onMouseEnter, onMouseLeave, size = 16,
+    value, filled, hovered, activeToneValue, onClick, onMouseEnter, onMouseLeave, size = 16,
 }) => {
-    const tone = getRatingDisplayTone(value);
+    const tone = getRatingDisplayTone(activeToneValue ?? value);
     const color = filled || hovered ? (hovered ? tone.hoverColor : tone.color) : COLOR_EMPTY;
     return (
         <button
@@ -107,11 +108,11 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                             if (resolvedLeft === undefined && resolvedRight === undefined) return null;
                             // 表示状態
                             const dispVal = hoverValue ?? currentMin ?? 0;
+                            const activeToneValue = hoverValue ?? currentMin ?? null;
                             const state: 'full' | 'half' | 'empty' =
                                 resolvedRight !== undefined && dispVal >= resolvedRight ? 'full' :
                                     resolvedLeft !== undefined && dispVal >= resolvedLeft ? 'half' : 'empty';
-                            const activeToneValue = state === 'full' ? resolvedRight : resolvedLeft;
-                            const activeTone = activeToneValue !== undefined
+                            const activeTone = activeToneValue !== null
                                 ? getRatingDisplayTone(activeToneValue)
                                 : null;
                             const fillColor = state !== 'empty' && activeTone
@@ -163,12 +164,14 @@ const AxisFilterRow: React.FC<AxisFilterRowProps> = ({
                         return steps.map((v) => {
                             const filled = currentMin !== undefined && v <= currentMin;
                             const hovered = hoverValue !== null && v <= hoverValue;
+                            const activeToneValue = hoverValue ?? currentMin ?? null;
                             return (
                                 <StarButton
                                     key={v}
                                     value={v}
                                     filled={filled}
                                     hovered={!filled && hovered}
+                                    activeToneValue={activeToneValue}
                                     onClick={() => handleClick(v)}
                                     onMouseEnter={() => setHoverValue(v)}
                                     onMouseLeave={() => setHoverValue(null)}
