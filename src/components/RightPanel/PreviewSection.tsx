@@ -26,6 +26,9 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
     const videoRef = useRef<HTMLVideoElement>(null);
     const jumpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const lastActivePreviewModeRef = useRef<'loop' | 'long'>(
+        rightPanelVideoPreviewMode === 'long' ? 'long' : 'loop'
+    );
 
     const isVideo = file.type === 'video';
     const isCenterViewerOpen = Boolean(lightboxFile);
@@ -46,21 +49,24 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const thumbnailSrc = toMediaUrl(file.thumbnailPath);
     const videoSrc = isVideo ? toMediaUrl(file.path) : null;
     const backgroundSrc = isVideo ? thumbnailSrc : (animatedSrc || thumbnailSrc);
-    const rightPanelPreviewModeLabel = rightPanelVideoPreviewMode === 'loop'
+    useEffect(() => {
+        if (rightPanelVideoPreviewMode !== 'off') {
+            lastActivePreviewModeRef.current = rightPanelVideoPreviewMode;
+        }
+    }, [rightPanelVideoPreviewMode]);
+
+    const activePreviewMode = rightPanelVideoPreviewMode === 'off'
+        ? lastActivePreviewModeRef.current
+        : rightPanelVideoPreviewMode;
+    const rightPanelPreviewModeLabel = activePreviewMode === 'loop'
         ? 'ループ'
-        : rightPanelVideoPreviewMode === 'long'
-            ? '固定間隔'
-            : '停止';
-    const nextRightPanelPreviewMode = rightPanelVideoPreviewMode === 'loop'
+        : '固定間隔';
+    const nextRightPanelPreviewMode = activePreviewMode === 'loop'
         ? 'long'
-        : rightPanelVideoPreviewMode === 'long'
-            ? 'off'
-            : 'loop';
-    const nextRightPanelPreviewModeTitle = rightPanelVideoPreviewMode === 'loop'
+        : 'loop';
+    const nextRightPanelPreviewModeTitle = activePreviewMode === 'loop'
         ? '固定間隔プレビューへ切替'
-        : rightPanelVideoPreviewMode === 'long'
-            ? '停止へ切替'
-            : 'ループ再生へ切替';
+        : 'ループ再生へ切替';
 
     useEffect(() => {
         const video = videoRef.current;
@@ -202,6 +208,21 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                                 title={nextRightPanelPreviewModeTitle}
                             >
                                 {rightPanelPreviewModeLabel}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setRightPanelVideoPreviewMode(
+                                        rightPanelVideoPreviewMode === 'off'
+                                            ? lastActivePreviewModeRef.current
+                                            : 'off'
+                                    );
+                                }}
+                                className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
+                                title={rightPanelVideoPreviewMode === 'off' ? 'プレビューを再開' : 'プレビューを停止'}
+                            >
+                                {rightPanelVideoPreviewMode === 'off' ? '再開' : '停止'}
                             </button>
                         </div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
