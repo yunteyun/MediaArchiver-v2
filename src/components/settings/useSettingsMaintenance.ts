@@ -393,6 +393,7 @@ export function useSettingsMaintenance({
                     thumbnailAction: settings.thumbnailAction,
                     flipbookSpeed: settings.flipbookSpeed,
                     animatedImagePreviewMode: settings.animatedImagePreviewMode,
+                    rightPanelVideoMuted: settings.rightPanelVideoMuted,
                     rightPanelVideoPreviewMode: settings.rightPanelVideoPreviewMode,
                     rightPanelVideoJumpInterval: settings.rightPanelVideoJumpInterval,
                     sortBy: settings.sortBy,
@@ -466,13 +467,11 @@ export function useSettingsMaintenance({
 
             const payload = parseSettingsImportPayload(result.content);
             const importedGlobalSettings = payload.globalSettings as typeof payload.globalSettings & {
-                rightPanelVideoMuted?: boolean;
                 cardLayout?: string;
             };
             const {
                 scanExclusionRules,
                 storageMaintenanceSettings,
-                rightPanelVideoMuted: _legacyRightPanelVideoMuted,
                 cardLayout: _legacyCardLayout,
                 ...globalSettings
             } = importedGlobalSettings;

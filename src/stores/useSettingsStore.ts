@@ -165,6 +165,7 @@ export const DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS = {
 };
 
 export const DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS = {
+    rightPanelVideoMuted: true,
     rightPanelVideoPreviewMode: 'loop' as RightPanelVideoPreviewMode,
     rightPanelVideoJumpInterval: 2000 as PlayModeJumpInterval,
 };
@@ -353,6 +354,7 @@ interface SettingsState {
     thumbnailAction: ThumbnailAction;
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
+    rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating'; // Phase 17: アクセストラッキング
@@ -413,6 +415,7 @@ interface SettingsState {
     setThumbnailAction: (action: ThumbnailAction) => void;
     setFlipbookSpeed: (speed: FlipbookSpeed) => void;
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
+    setRightPanelVideoMuted: (muted: boolean) => void;
     setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
     setRightPanelVideoJumpInterval: (interval: PlayModeJumpInterval) => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating') => void;
@@ -482,6 +485,7 @@ export const useSettingsStore = create<SettingsState>()(
             thumbnailAction: 'scrub',
             flipbookSpeed: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.flipbookSpeed,
             animatedImagePreviewMode: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.animatedImagePreviewMode,
+            rightPanelVideoMuted: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoMuted,
             rightPanelVideoPreviewMode: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoPreviewMode,
             rightPanelVideoJumpInterval: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoJumpInterval,
             sortBy: DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
@@ -537,6 +541,7 @@ export const useSettingsStore = create<SettingsState>()(
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),
             setAnimatedImagePreviewMode: (animatedImagePreviewMode) => set({ animatedImagePreviewMode }),
+            setRightPanelVideoMuted: (rightPanelVideoMuted) => set({ rightPanelVideoMuted }),
             setRightPanelVideoPreviewMode: (rightPanelVideoPreviewMode) => set({ rightPanelVideoPreviewMode }),
             setRightPanelVideoJumpInterval: (rightPanelVideoJumpInterval) => set({ rightPanelVideoJumpInterval }),
             setSortBy: (sortBy) => set({ sortBy }),
@@ -840,6 +845,9 @@ export const useSettingsStore = create<SettingsState>()(
                 return {
                     ...currentState,
                     ...persistedWithoutLegacyKeys,
+                    rightPanelVideoMuted: typeof typedPersisted?.rightPanelVideoMuted === 'boolean'
+                        ? typedPersisted.rightPanelVideoMuted
+                        : currentState.rightPanelVideoMuted,
                     activeDisplayPresetId: fallbackActiveDisplayPresetId,
                     searchDestinations: persistedDestinations,
                     scanExclusionRules: normalizeScanExclusionRules(persistedWithoutLegacyKeys.scanExclusionRules),

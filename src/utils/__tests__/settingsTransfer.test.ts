@@ -8,6 +8,7 @@ describe('settingsTransfer', () => {
                 thumbnailAction: 'scrub',
                 flipbookSpeed: 'normal',
                 animatedImagePreviewMode: 'hover',
+                rightPanelVideoMuted: true,
                 rightPanelVideoPreviewMode: 'loop',
                 rightPanelVideoJumpInterval: 2000,
                 sortBy: 'date',

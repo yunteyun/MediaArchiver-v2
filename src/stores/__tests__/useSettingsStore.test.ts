@@ -13,6 +13,7 @@ function resetSettingsStore() {
         thumbnailAction: 'scrub',
         flipbookSpeed: 'normal',
         animatedImagePreviewMode: 'hover',
+        rightPanelVideoMuted: true,
         rightPanelVideoPreviewMode: 'loop',
         rightPanelVideoJumpInterval: 2000,
         sortBy: 'date',
@@ -190,6 +191,14 @@ describe('useSettingsStore', () => {
             autoCleanupOrphanedThumbnailsOnStartup: true,
             autoCleanupThresholdMb: 500,
         });
+    });
+
+    it('toggles right panel video muted state', () => {
+        useSettingsStore.getState().setRightPanelVideoMuted(false);
+        expect(useSettingsStore.getState().rightPanelVideoMuted).toBe(false);
+
+        useSettingsStore.getState().setRightPanelVideoMuted(true);
+        expect(useSettingsStore.getState().rightPanelVideoMuted).toBe(true);
     });
 
     it('normalizes search destinations and trims values', () => {

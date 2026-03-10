@@ -25,6 +25,7 @@ export interface GlobalSettingsExportV1 {
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
+    rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
     sortBy: SortBy;
