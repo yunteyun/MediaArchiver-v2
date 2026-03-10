@@ -2,7 +2,7 @@
  * DuplicateView - 重複ファイルビュー
  */
 
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, startTransition } from 'react';
 import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useDuplicateStore } from '../stores/useDuplicateStore';
 import { useUIStore } from '../stores/useUIStore';
@@ -40,8 +40,8 @@ export const DuplicateView: React.FC = () => {
         setProgress,
         selectFile,
         deselectFile,
+        selectAllFiles,
         selectFilesInGroup,
-        selectAllFilesInGroup,
         selectByStrategy,
         keepOnlyFileInGroup,
         clearSelection,
@@ -55,9 +55,11 @@ export const DuplicateView: React.FC = () => {
         const selectedGroupCount = groups.filter((group) =>
             group.files.some((file) => selectedFileIds.has(file.id))
         ).length;
+        const totalSelectableCount = groups.reduce((sum, group) => sum + group.files.length, 0);
         return {
             selectedFileCount: selectedFileIds.size,
             selectedGroupCount,
+            totalSelectableCount,
         };
     }, [groups, selectedFileIds]);
 
@@ -98,6 +100,12 @@ export const DuplicateView: React.FC = () => {
             console.error('Failed to reveal duplicate file:', error);
         }
     }, []);
+
+    const handleSelectAll = useCallback(() => {
+        startTransition(() => {
+            selectAllFiles();
+        });
+    }, [selectAllFiles]);
 
     // 検索中の表示
     if (isSearching) {
@@ -209,6 +217,18 @@ export const DuplicateView: React.FC = () => {
                     >
                         再検索
                     </button>
+                    {groups.length > 0 && (
+                        <button
+                            onClick={handleSelectAll}
+                            disabled={isDeleting || (
+                                selectionSummary.totalSelectableCount > 0 &&
+                                selectedFileIds.size === selectionSummary.totalSelectableCount
+                            )}
+                            className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                        >
+                            全件選択
+                        </button>
+                    )}
                     {selectedFileIds.size > 0 && (
                         <>
                             <button
@@ -307,13 +327,6 @@ export const DuplicateView: React.FC = () => {
                                         パス短優先
                                     </button>
                                     <button
-                                        onClick={() => selectAllFilesInGroup(group.hash)}
-                                        className="px-2 py-1 text-xs bg-red-950/60 hover:bg-red-950 text-red-200 rounded transition-colors"
-                                        title="このグループをすべて削除候補にする"
-                                    >
-                                        全件選択
-                                    </button>
-                                    <button
                                         onClick={() => selectFilesInGroup(group.hash, [])}
                                         className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
                                         title="このグループの選択を解除"
@@ -339,7 +352,7 @@ export const DuplicateView: React.FC = () => {
                                     <div
                                         key={file.id}
                                         onClick={() => toggleFileSelection(file.id)}
-                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${isSelected
+                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${isSelected
                                             ? 'bg-red-900/20 hover:bg-red-900/30'
                                             : isPrimaryKeepTarget
                                                 ? 'bg-emerald-950/20 hover:bg-emerald-950/30'

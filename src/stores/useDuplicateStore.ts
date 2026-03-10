@@ -59,6 +59,7 @@ interface DuplicateState {
     setProgress: (progress: DuplicateProgress) => void;
     selectFile: (fileId: string) => void;
     deselectFile: (fileId: string) => void;
+    selectAllFiles: () => void;
     selectFilesInGroup: (groupHash: string, fileIds: string[]) => void;
     selectAllFilesInGroup: (groupHash: string) => void;
     keepOnlyFileInGroup: (groupHash: string, keepFileId: string) => void;
@@ -133,6 +134,14 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
             newSet.delete(fileId);
             return { selectedFileIds: newSet };
         });
+    },
+
+    selectAllFiles: () => {
+        set((state) => ({
+            selectedFileIds: new Set(
+                state.groups.flatMap((group) => group.files.map((file) => file.id))
+            )
+        }));
     },
 
     selectFilesInGroup: (groupHash, fileIds) => {

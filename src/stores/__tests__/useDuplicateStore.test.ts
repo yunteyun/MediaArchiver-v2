@@ -272,51 +272,68 @@ describe('useDuplicateStore', () => {
         expect(Array.from(useDuplicateStore.getState().selectedFileIds).sort()).toEqual(['delete-1', 'delete-2']);
     });
 
-    it('selects all files in a group', () => {
+    it('selects all files across every duplicate group', () => {
         useDuplicateStore.setState({
-            groups: [createGroup({
-                hash: 'hash-all',
-                count: 3,
-                files: [
-                    {
-                        id: 'file-a',
-                        name: 'file-a.png',
-                        path: 'C:\\library\\file-a.png',
-                        size: 100,
-                        type: 'image',
-                        created_at: 10,
-                        tags: [],
-                    },
-                    {
-                        id: 'file-b',
-                        name: 'file-b.png',
-                        path: 'C:\\library\\file-b.png',
-                        size: 100,
-                        type: 'image',
-                        created_at: 11,
-                        tags: [],
-                    },
-                    {
-                        id: 'file-c',
-                        name: 'file-c.png',
-                        path: 'C:\\library\\file-c.png',
-                        size: 100,
-                        type: 'image',
-                        created_at: 12,
-                        tags: [],
-                    },
-                ],
-            })],
-            selectedFileIds: new Set(['existing-other-group']),
+            groups: [
+                createGroup({
+                    hash: 'hash-all-a',
+                    count: 2,
+                    files: [
+                        {
+                            id: 'file-a',
+                            name: 'file-a.png',
+                            path: 'C:\\library\\file-a.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 10,
+                            tags: [],
+                        },
+                        {
+                            id: 'file-b',
+                            name: 'file-b.png',
+                            path: 'C:\\library\\file-b.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 11,
+                            tags: [],
+                        },
+                    ],
+                }),
+                createGroup({
+                    hash: 'hash-all-b',
+                    count: 2,
+                    files: [
+                        {
+                            id: 'file-c',
+                            name: 'file-c.png',
+                            path: 'C:\\library\\file-c.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 12,
+                            tags: [],
+                        },
+                        {
+                            id: 'file-d',
+                            name: 'file-d.png',
+                            path: 'C:\\library\\file-d.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 13,
+                            tags: [],
+                        },
+                    ],
+                }),
+            ],
+            selectedFileIds: new Set(),
         });
 
-        useDuplicateStore.getState().selectAllFilesInGroup('hash-all');
+        useDuplicateStore.getState().selectAllFiles();
 
         expect(Array.from(useDuplicateStore.getState().selectedFileIds).sort()).toEqual([
-            'existing-other-group',
             'file-a',
             'file-b',
             'file-c',
+            'file-d',
         ]);
     });
 });
