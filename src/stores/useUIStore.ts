@@ -13,6 +13,7 @@ import type { RatingQuickFilter } from '../shared/ratingQuickFilter';
 export type { RatingQuickFilter } from '../shared/ratingQuickFilter';
 
 export interface ScanProgress {
+    jobId?: string;
     phase: 'counting' | 'scanning' | 'complete' | 'error';
     current: number;
     total: number;
@@ -73,6 +74,7 @@ interface UIState {
     settingsModalOpen: boolean;
     settingsModalRequestedTab: SettingsModalTab | null;
     scanProgress: ScanProgress | null;
+    activeScanJobId: string | null;
     scanProgressAutoDismissPending: boolean;
     toasts: ToastData[];
     duplicateViewOpen: boolean;
@@ -159,6 +161,7 @@ export const useUIStore = create<UIState>((set) => ({
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
     scanProgress: null,
+    activeScanJobId: null,
     scanProgressAutoDismissPending: false,
     toasts: [],
     duplicateViewOpen: false,
@@ -243,12 +246,15 @@ export const useUIStore = create<UIState>((set) => ({
         selectedFileTypes: [...ALL_FILE_TYPES],
         settingsModalOpen: false,
         settingsModalRequestedTab: null,
+        scanProgress: null,
+        activeScanJobId: null,
+        scanProgressAutoDismissPending: false,
         duplicateViewOpen: false,
         mainView: 'grid',
         hoveredPreviewId: null,
         deleteDialogOpen: false,
-        deleteDialogFilePath: null,
-        deleteDialogFileId: null,
+        deleteDialogFilePaths: [],
+        deleteDialogFileIds: [],
         moveDialogOpen: false,
         moveFileIds: [],
         moveCurrentFolderId: null,
@@ -279,26 +285,54 @@ export const useUIStore = create<UIState>((set) => ({
         set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null });
     },
     closeSettingsModal: () => set({ settingsModalOpen: false }),
-    setScanProgress: (progress) => set((state) => ({
-        scanProgress: progress,
-        scanProgressAutoDismissPending:
-            progress?.phase === 'complete' || progress?.phase === 'error'
-                ? true
-                : progress?.phase === 'counting' || progress?.phase === 'scanning'
-                    ? false
-                    : state.scanProgressAutoDismissPending,
-        // NOTE:
-        // スキャン開始時のみ UX 向上のため自動表示する。
-        // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
-        isScanProgressVisible:
-            progress?.phase === 'counting' ||
-                (progress?.phase === 'scanning' &&
-                    state.scanProgress?.phase !== 'counting' &&
-                    state.scanProgress?.phase !== 'scanning')
-                ? true
-                : state.isScanProgressVisible
-    })),
-    clearScanProgress: () => set({ scanProgress: null, isScanProgressVisible: false, scanProgressAutoDismissPending: false }),
+    setScanProgress: (progress) => set((state) => {
+        if (!progress) {
+            return {
+                scanProgress: null,
+                activeScanJobId: null,
+                scanProgressAutoDismissPending: false,
+            };
+        }
+
+        const currentActiveJobId = state.activeScanJobId;
+        if (
+            progress.jobId &&
+            currentActiveJobId &&
+            progress.jobId !== currentActiveJobId &&
+            (progress.phase === 'complete' || progress.phase === 'error')
+        ) {
+            return state;
+        }
+
+        const nextActiveJobId =
+            progress.jobId && (progress.phase === 'counting' || progress.phase === 'scanning')
+                ? progress.jobId
+                : progress.jobId && progress.jobId === currentActiveJobId
+                    ? null
+                    : currentActiveJobId;
+
+        return {
+            scanProgress: progress,
+            activeScanJobId: nextActiveJobId,
+            scanProgressAutoDismissPending:
+                progress.phase === 'complete' || progress.phase === 'error'
+                    ? true
+                    : progress.phase === 'counting' || progress.phase === 'scanning'
+                        ? false
+                        : state.scanProgressAutoDismissPending,
+            // NOTE:
+            // スキャン開始時のみ UX 向上のため自動表示する。
+            // それ以外のフェーズではユーザーの表示選択を尊重し、状態は変更しない。
+            isScanProgressVisible:
+                progress.phase === 'counting' ||
+                    (progress.phase === 'scanning' &&
+                        state.scanProgress?.phase !== 'counting' &&
+                        state.scanProgress?.phase !== 'scanning')
+                    ? true
+                    : state.isScanProgressVisible
+        };
+    }),
+    clearScanProgress: () => set({ scanProgress: null, activeScanJobId: null, isScanProgressVisible: false, scanProgressAutoDismissPending: false }),
     acknowledgeScanProgress: () => set({ scanProgressAutoDismissPending: false }),
     setScanProgressVisible: (visible) => set({ isScanProgressVisible: visible }),
     showToast: (message: string, type: ToastData['type'] = 'info', duration = 3000) => set((state) => ({

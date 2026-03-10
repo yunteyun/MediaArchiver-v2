@@ -23,14 +23,15 @@ function resetUiStore() {
         settingsModalOpen: false,
         settingsModalRequestedTab: null,
         scanProgress: null,
+        activeScanJobId: null,
         scanProgressAutoDismissPending: false,
         toasts: [],
         duplicateViewOpen: false,
         mainView: 'grid',
         hoveredPreviewId: null,
         deleteDialogOpen: false,
-        deleteDialogFilePath: null,
-        deleteDialogFileId: null,
+        deleteDialogFilePaths: [],
+        deleteDialogFileIds: [],
         moveDialogOpen: false,
         moveFileIds: [],
         moveCurrentFolderId: null,
@@ -121,6 +122,37 @@ describe('useUIStore', () => {
         expect(state.scanProgress?.phase).toBe('complete');
     });
 
+    it('ignores stale terminal scan events when a newer job is active', () => {
+        useUIStore.getState().setScanProgress({
+            jobId: 'job-1',
+            phase: 'counting',
+            current: 0,
+            total: 0,
+        });
+
+        useUIStore.getState().setScanProgress({
+            jobId: 'job-2',
+            phase: 'scanning',
+            current: 3,
+            total: 10,
+            currentFile: 'new-file.mp4',
+        });
+
+        useUIStore.getState().setScanProgress({
+            jobId: 'job-1',
+            phase: 'complete',
+            current: 10,
+            total: 10,
+            message: 'old complete',
+        });
+
+        const state = useUIStore.getState();
+        expect(state.activeScanJobId).toBe('job-2');
+        expect(state.scanProgress?.jobId).toBe('job-2');
+        expect(state.scanProgress?.phase).toBe('scanning');
+        expect(state.scanProgress?.currentFile).toBe('new-file.mp4');
+    });
+
     it('normalizes selected file types and removes duplicates', () => {
         // @ts-expect-error invalid member for normalization test
         useUIStore.getState().setSelectedFileTypes(['image', 'audio', 'image', 'invalid']);
@@ -199,12 +231,20 @@ describe('useUIStore', () => {
             selectedFileTypes: ['image'],
             settingsModalOpen: true,
             settingsModalRequestedTab: 'apps',
+            scanProgress: {
+                jobId: 'job-1',
+                phase: 'scanning',
+                current: 1,
+                total: 3,
+            },
+            activeScanJobId: 'job-1',
+            scanProgressAutoDismissPending: true,
             duplicateViewOpen: true,
             mainView: 'profile',
             hoveredPreviewId: 'hovered',
             deleteDialogOpen: true,
-            deleteDialogFilePath: 'C:\\temp\\x.png',
-            deleteDialogFileId: 'delete-target',
+            deleteDialogFilePaths: ['C:\\temp\\x.png'],
+            deleteDialogFileIds: ['delete-target'],
             moveDialogOpen: true,
             moveFileIds: ['f1'],
             moveCurrentFolderId: 'folder-1',
@@ -230,12 +270,15 @@ describe('useUIStore', () => {
         expect(state.selectedFileTypes).toEqual(['video', 'image', 'archive', 'audio']);
         expect(state.settingsModalOpen).toBe(false);
         expect(state.settingsModalRequestedTab).toBeNull();
+        expect(state.scanProgress).toBeNull();
+        expect(state.activeScanJobId).toBeNull();
+        expect(state.scanProgressAutoDismissPending).toBe(false);
         expect(state.duplicateViewOpen).toBe(false);
         expect(state.mainView).toBe('grid');
         expect(state.hoveredPreviewId).toBeNull();
         expect(state.deleteDialogOpen).toBe(false);
-        expect(state.deleteDialogFilePath).toBeNull();
-        expect(state.deleteDialogFileId).toBeNull();
+        expect(state.deleteDialogFilePaths).toEqual([]);
+        expect(state.deleteDialogFileIds).toEqual([]);
         expect(state.moveDialogOpen).toBe(false);
         expect(state.moveFileIds).toEqual([]);
         expect(state.moveCurrentFolderId).toBeNull();

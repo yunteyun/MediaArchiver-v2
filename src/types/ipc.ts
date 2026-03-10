@@ -15,6 +15,7 @@ export interface IpcChannels {
     'scanner:progress': {
         request: void; // Event from main
         response: {
+            jobId: string;
             phase: 'counting' | 'scanning' | 'complete' | 'error';
             current: number;
             total: number;

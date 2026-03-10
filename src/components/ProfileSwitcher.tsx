@@ -39,8 +39,10 @@ export const ProfileSwitcher = React.memo(({ onOpenManageModal }: ProfileSwitche
             setIsOpen(false);
             return;
         }
-        await switchProfile(profileId);
-        setIsOpen(false);
+        const switched = await switchProfile(profileId);
+        if (switched) {
+            setIsOpen(false);
+        }
         // データ再読み込みは App.tsx 側で onProfileSwitched イベントを監視して行う
     };
 

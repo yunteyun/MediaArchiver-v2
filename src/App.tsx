@@ -81,7 +81,6 @@ function App() {
     // Phase 22-C-2
     const moveDialogOpen = useUIStore((s) => s.moveDialogOpen);
     const moveFileIds = useUIStore((s) => s.moveFileIds);
-    const moveCurrentFolderId = useUIStore((s) => s.moveCurrentFolderId);
     const closeMoveDialog = useUIStore((s) => s.closeMoveDialog);
     // Phase 23: 右サイドパネル
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
@@ -333,6 +332,7 @@ function App() {
     // スキャン進捗イベントを監視
     useEffect(() => {
         const success = useToastStore.getState().success;
+        const info = useToastStore.getState().info;
         const error = useToastStore.getState().error;
         const cleanup = window.electronAPI.onScanProgress((progress) => {
             setScanProgress(progress);
@@ -342,6 +342,9 @@ function App() {
                 : '';
             if (progress?.phase === 'complete' && progress.message === 'サムネイル再生成完了') {
                 success('サムネイルを再生成しました');
+            }
+            else if (progress?.phase === 'complete' && progress.message?.startsWith('キャンセル')) {
+                info(`${folderPrefix}スキャンをキャンセルしました${statsSummary ? `（${statsSummary}）` : ''}`, 3500);
             }
             else if (progress?.phase === 'complete') {
                 success(`${folderPrefix}スキャン完了${statsSummary ? `（${statsSummary}）` : ''}`, 4500);
@@ -623,13 +626,13 @@ function App() {
                     <MoveFolderDialog
                         isOpen={moveDialogOpen}
                         onClose={closeMoveDialog}
-                        onMove={async (targetFolderId) => {
+                        onMove={async ({ targetFolderId, targetFolderPath }) => {
                             if (moveFileIds.length === 0) return;
 
                             try {
                                 // 現在は単一ファイルのみ対応
                                 const fileId = moveFileIds[0];
-                                const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId);
+                                const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId, targetFolderPath);
 
                                 if (result.success) {
                                     // Bug 3修正: 移動したファイルを即座にstoreから削除
@@ -645,7 +648,6 @@ function App() {
                                 useToastStore.getState().error('ファイル移動に失敗しました');
                             }
                         }}
-                        currentFolderId={moveCurrentFolderId || undefined}
                     />
                 </Suspense>
             )}

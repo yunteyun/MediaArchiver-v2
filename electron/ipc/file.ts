@@ -52,6 +52,25 @@ function normalizeSearchDestinationIcon(icon: unknown, type: SearchDestinationTy
         : getDefaultSearchDestinationIcon(type);
 }
 
+function normalizeComparableFolderPath(targetPath: string): string {
+    return path.resolve(targetPath).replace(/[\\/]+$/, '').toLowerCase();
+}
+
+function resolveRegisteredFolderForPath(folderPath: string) {
+    const normalizedTargetPath = normalizeComparableFolderPath(folderPath);
+    const folders = getFolders();
+
+    const candidates = folders
+        .filter((folder) => {
+            const normalizedFolderPath = normalizeComparableFolderPath(folder.path);
+            return normalizedTargetPath === normalizedFolderPath
+                || normalizedTargetPath.startsWith(`${normalizedFolderPath}\\`);
+        })
+        .sort((left, right) => right.path.length - left.path.length);
+
+    return candidates[0];
+}
+
 function buildFilenameSearchQuery(filePath: string): string {
     const parsed = path.parse(filePath);
     const normalized = parsed.name
@@ -394,12 +413,14 @@ export function registerFileHandlers() {
                 label: 'サムネイル再作成',
                 enabled: !isMultiple, // 複数選択時は無効
                 click: async () => {
+                    const progressJobId = crypto.randomUUID();
                     try {
                         const file = findFileById(fileId);
                         if (!file) return;
 
                         // 開始通知
                         event.sender.send('scanner:progress', {
+                            jobId: progressJobId,
                             phase: 'scanning',
                             current: 0,
                             total: 1,
@@ -425,6 +446,7 @@ export function registerFileHandlers() {
                             } else {
                                 // プレビューフレーム生成中の通知
                                 event.sender.send('scanner:progress', {
+                                    jobId: progressJobId,
                                     phase: 'scanning',
                                     current: 0,
                                     total: 1,
@@ -445,6 +467,7 @@ export function registerFileHandlers() {
 
                         // 完了通知
                         event.sender.send('scanner:progress', {
+                            jobId: progressJobId,
                             phase: 'complete',
                             current: 1,
                             total: 1,
@@ -457,6 +480,7 @@ export function registerFileHandlers() {
                         console.error('Failed to regenerate thumbnail:', e);
                         // エラー通知
                         event.sender.send('scanner:progress', {
+                            jobId: progressJobId,
                             phase: 'error',
                             message: 'サムネイル再生成に失敗しました'
                         });
@@ -637,9 +661,9 @@ export function registerFileHandlers() {
     });
 
     // Phase 18-C: ファイル移動
-    ipcMain.handle('file:moveToFolder', async (event, { fileId, targetFolderId }) => {
+    ipcMain.handle('file:moveToFolder', async (event, { fileId, targetFolderId, targetFolderPath }) => {
         try {
-            console.log('[File Move] Starting file move:', { fileId, targetFolderId });
+            console.log('[File Move] Starting file move:', { fileId, targetFolderId, targetFolderPath });
 
             // DBからファイル情報取得
             const file = findFileById(fileId);
@@ -649,18 +673,21 @@ export function registerFileHandlers() {
             }
             console.log('[File Move] Source file:', file.path);
 
-            // 移動先フォルダ情報取得
-            const folders = getFolders();
-            const targetFolder = folders.find(f => f.id === targetFolderId);
-            if (!targetFolder) {
-                console.error('[File Move] Target folder not found:', targetFolderId);
+            const targetFolder = targetFolderId ? getFolders().find(f => f.id === targetFolderId) : undefined;
+            const resolvedFolderPath = targetFolderPath
+                ? path.resolve(targetFolderPath)
+                : targetFolder?.path;
+            const rootFolder = targetFolder ?? (resolvedFolderPath ? resolveRegisteredFolderForPath(resolvedFolderPath) : undefined);
+
+            if (!resolvedFolderPath || !rootFolder) {
+                console.error('[File Move] Target folder not found:', { targetFolderId, targetFolderPath });
                 return { success: false, error: '移動先フォルダが見つかりません' };
             }
-            console.log('[File Move] Target folder:', targetFolder.path);
+            console.log('[File Move] Target folder:', resolvedFolderPath);
 
             // 新しいパスを生成
             const fileName = path.basename(file.path);
-            const newPath = path.join(targetFolder.path, fileName);
+            const newPath = path.join(resolvedFolderPath, fileName);
             console.log('[File Move] New path:', newPath);
 
             // ファイル移動実行
@@ -673,11 +700,11 @@ export function registerFileHandlers() {
             }
 
             // DB更新
-            updateFileLocation(fileId, newPath, targetFolderId);
+            updateFileLocation(fileId, newPath, rootFolder.id);
             console.log('[File Move] DB updated');
 
             // フロントエンドに通知
-            event.sender.send('file:moved', { fileId, newPath, targetFolderId });
+            event.sender.send('file:moved', { fileId, newPath, targetFolderId: rootFolder.id });
 
             return { success: true, newPath };
         } catch (error) {

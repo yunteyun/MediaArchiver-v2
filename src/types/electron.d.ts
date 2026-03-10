@@ -88,6 +88,7 @@ interface ProfileScopedSettingsResponse {
 }
 
 interface ScanBatchCommittedPayload {
+    jobId: string;
     rootFolderId: string;
     scanPath: string;
     committedCount: number;
@@ -304,7 +305,7 @@ declare global {
             onShowDeleteDialog: (callback: (data: { fileIds: string[]; filePaths: string[] }) => void) => () => void;
 
             // Phase 18-C: File Move
-            moveFileToFolder: (fileId: string, targetFolderId: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
+            moveFileToFolder: (fileId: string, targetFolderId?: string, targetFolderPath?: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
             onFileMoved: (callback: (data: { fileId: string; newPath: string; targetFolderId: string }) => void) => () => void;
             onRequestMove: (callback: (data: { fileId: string; targetFolderId: string }) => void) => () => void;
 
@@ -348,7 +349,7 @@ declare global {
             updateProfile: (id: string, updates: { name?: string }) => Promise<void>;
             deleteProfile: (id: string) => Promise<boolean>;
             getActiveProfileId: () => Promise<string>;
-            switchProfile: (profileId: string) => Promise<{ success: boolean }>;
+            switchProfile: (profileId: string) => Promise<{ success: boolean; error?: string }>;
             getProfileScopedSettings: () => Promise<ProfileScopedSettingsResponse>;
             setProfileScopedSettings: (partial: Partial<ProfileScopedSettingsV1>) => Promise<ProfileScopedSettingsResponse>;
             replaceProfileScopedSettings: (settings: ProfileScopedSettingsV1) => Promise<ProfileScopedSettingsResponse>;

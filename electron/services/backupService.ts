@@ -14,6 +14,7 @@ import { app } from 'electron';
 import checkDiskSpace from 'check-disk-space';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
+import { getBasePath } from './storageConfig';
 
 const log = logger.scope('BackupService');
 const BACKUP_SETTINGS_FILENAME = 'backup-settings.json';
@@ -64,7 +65,7 @@ function normalizeBackupSettings(input: Partial<BackupSettings> | null | undefin
 function resolveBackupDir(settings: BackupSettings): string {
     const backupDir = settings.backupPath
         ? path.resolve(settings.backupPath)
-        : path.join(app.getPath('userData'), 'backups');
+        : path.join(getBasePath(), 'backups');
     if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
     }

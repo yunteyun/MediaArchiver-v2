@@ -116,7 +116,6 @@ export function registerScannerHandlers() {
             }
         }).catch(err => {
             console.error("Scan error:", err);
-            event.sender.send('scanner:progress', { phase: 'error', message: String(err) });
         }).finally(() => {
             releaseToken();
         });

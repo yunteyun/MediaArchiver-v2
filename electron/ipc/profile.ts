@@ -5,6 +5,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { dbManager, Profile } from '../services/databaseManager';
 import { syncFolderWatchers } from '../services/folderWatchService';
+import { getActiveScanJobCount, hasActiveScanJobs } from '../services/scanner';
 
 export function registerProfileHandlers() {
     // プロファイル一覧取得
@@ -38,7 +39,14 @@ export function registerProfileHandlers() {
     });
 
     // プロファイル切替
-    ipcMain.handle('profile:switch', async (event, profileId: string): Promise<{ success: boolean }> => {
+    ipcMain.handle('profile:switch', async (event, profileId: string): Promise<{ success: boolean; error?: string }> => {
+        if (hasActiveScanJobs()) {
+            return {
+                success: false,
+                error: `スキャン実行中はプロファイルを切り替えできません（実行中 ${getActiveScanJobCount()} 件）`,
+            };
+        }
+
         dbManager.switchProfile(profileId);
         syncFolderWatchers();
 

@@ -3,6 +3,7 @@
  */
 
 import { create } from 'zustand';
+import { useToastStore } from './useToastStore';
 
 export interface Profile {
     id: string;
@@ -21,7 +22,7 @@ interface ProfileState {
     createProfile: (name: string) => Promise<Profile>;
     updateProfile: (id: string, updates: { name?: string }) => Promise<void>;
     deleteProfile: (id: string) => Promise<boolean>;
-    switchProfile: (id: string) => Promise<void>;
+    switchProfile: (id: string) => Promise<boolean>;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
@@ -79,18 +80,24 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     },
 
     switchProfile: async (id: string) => {
-        if (get().activeProfileId === id) return;
+        if (get().activeProfileId === id) return true;
 
         set({ isLoading: true });
         try {
-            await window.electronAPI.switchProfile(id);
+            const result = await window.electronAPI.switchProfile(id);
+            if (!result.success) {
+                throw new Error(result.error || 'プロファイル切替に失敗しました');
+            }
             set({
                 activeProfileId: id,
                 isLoading: false
             });
+            return true;
         } catch (error) {
             console.error('Failed to switch profile:', error);
+            useToastStore.getState().error(error instanceof Error ? error.message : 'プロファイル切替に失敗しました');
             set({ isLoading: false });
+            return false;
         }
     }
 }));

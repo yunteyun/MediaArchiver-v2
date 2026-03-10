@@ -63,8 +63,10 @@ export const ProfileModal = React.memo(({ isOpen, onClose }: ProfileModalProps) 
     };
 
     const handleSwitchAndClose = async (id: string) => {
-        await switchProfile(id);
-        onClose();
+        const switched = await switchProfile(id);
+        if (switched) {
+            onClose();
+        }
     };
 
     return (

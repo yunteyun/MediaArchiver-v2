@@ -233,8 +233,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         subscribe('file:showDeleteDialog', callback),
 
     // Phase 18-C: ファイル移動
-    moveFileToFolder: (fileId: string, targetFolderId: string) =>
-        ipcRenderer.invoke('file:moveToFolder', { fileId, targetFolderId }),
+    moveFileToFolder: (fileId: string, targetFolderId?: string, targetFolderPath?: string) =>
+        ipcRenderer.invoke('file:moveToFolder', { fileId, targetFolderId, targetFolderPath }),
     onFileMoved: (callback: (data: FileMovedPayload) => void) => subscribe('file:moved', callback),
     onRequestMove: (callback: (data: MoveRequestPayload) => void) => subscribe('file:requestMove', callback),
 

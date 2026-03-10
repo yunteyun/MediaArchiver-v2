@@ -169,6 +169,7 @@ function attachImageAnimationCheckBackfillMarker(metadata?: string): string | un
 }
 
 export type ScanProgressCallback = (progress: {
+    jobId: string;
     phase: 'counting' | 'scanning' | 'complete' | 'error';
     current: number;
     total: number;
@@ -183,6 +184,7 @@ export type ScanProgressCallback = (progress: {
 }) => void;
 
 export interface ScanBatchCommittedPayload {
+    jobId: string;
     rootFolderId: string;
     scanPath: string;
     committedCount: number;
@@ -225,6 +227,7 @@ export interface ScanDirectoryOptions {
     skipInitialCount?: boolean;
     runtimeSettings?: ScanRuntimeSettings;
     cancellationToken?: ScanCancellationToken;
+    jobId?: string;
 }
 
 export function cancelScan() {
@@ -271,6 +274,16 @@ const TRANSACTION_BATCH_SIZE = 100;
 interface PendingWrite {
     fileData: Parameters<typeof db.insertFile>[0];
     existingId?: string;
+}
+
+const activeScanJobs = new Map<string, { dirPath: string; rootFolderId: string }>();
+
+export function hasActiveScanJobs(): boolean {
+    return activeScanJobs.size > 0;
+}
+
+export function getActiveScanJobCount(): number {
+    return activeScanJobs.size;
 }
 
 // バッチコミット関数
@@ -357,6 +370,7 @@ async function scanDirectoryInternal(
     onProgress: ScanProgressCallback | undefined,
     onBatchCommitted: ScanBatchCommittedCallback | undefined,
     state: {
+        jobId: string;
         current: number;
         total: number;
         lastProgressTime: number;
@@ -489,6 +503,7 @@ async function scanDirectoryInternal(
                             state.lastProgressTime = now;
                             const progressTotal = state.total > 0 ? Math.max(state.total, state.current) : 0;
                             onProgress({
+                                jobId: state.jobId,
                                 phase: 'scanning',
                                 current: state.current,
                                 total: progressTotal,
@@ -505,6 +520,7 @@ async function scanDirectoryInternal(
                         try {
                             if (onProgress) {
                                 onProgress({
+                                    jobId: state.jobId,
                                     phase: 'scanning',
                                     current: state.current,
                                     total: state.total,
@@ -559,6 +575,7 @@ async function scanDirectoryInternal(
                         try {
                             if (onProgress) {
                                 onProgress({
+                                    jobId: state.jobId,
                                     phase: 'scanning',
                                     current: state.current,
                                     total: state.total,
@@ -586,6 +603,7 @@ async function scanDirectoryInternal(
                         try {
                             if (onProgress) {
                                 onProgress({
+                                    jobId: state.jobId,
                                     phase: 'scanning',
                                     current: state.current,
                                     total: state.total,
@@ -695,12 +713,13 @@ async function scanDirectoryInternal(
                     // Throttled progress update
                     const nowAfter = Date.now();
                     if (onProgress && (nowAfter - state.lastProgressTime > PROGRESS_THROTTLE_MS || state.current === state.total)) {
-                        state.lastProgressTime = nowAfter;
-                        const progressTotal = state.total > 0 ? Math.max(state.total, state.current) : 0;
-                        onProgress({
-                            phase: 'scanning',
-                            current: state.current,
-                            total: progressTotal,
+                            state.lastProgressTime = nowAfter;
+                            const progressTotal = state.total > 0 ? Math.max(state.total, state.current) : 0;
+                            onProgress({
+                                jobId: state.jobId,
+                                phase: 'scanning',
+                                current: state.current,
+                                total: progressTotal,
                             currentFile: entry.name,
                             message: isNew ? '新規登録' : '更新',
                             stats: state.stats
@@ -727,6 +746,8 @@ export async function scanDirectory(
     options?: ScanDirectoryOptions
 ) {
     const perfStartedAt = startPerfTimer();
+    const jobId = options?.jobId ?? crypto.randomUUID();
+    activeScanJobs.set(jobId, { dirPath, rootFolderId });
     db.updateFolderLastScanStatus(rootFolderId, {
         at: Date.now(),
         status: 'running',
@@ -744,7 +765,7 @@ export async function scanDirectory(
 
         if (!options?.skipInitialCount) {
             if (onProgress) {
-                onProgress({ phase: 'counting', current: 0, total: 0, message: 'ファイル数をカウント中...' });
+                onProgress({ jobId, phase: 'counting', current: 0, total: 0, message: 'ファイル数をカウント中...' });
             }
 
             const countStartedAt = startPerfTimer();
@@ -756,10 +777,11 @@ export async function scanDirectory(
         }
 
         if (onProgress) {
-            onProgress({ phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
+            onProgress({ jobId, phase: 'scanning', current: 0, total, message: 'スキャン開始...' });
         }
 
         const state = {
+            jobId,
             current: 0,
             total,
             lastProgressTime: 0,
@@ -778,6 +800,7 @@ export async function scanDirectory(
             state.committedCount += committedCount;
             state.pendingWrites = [];
             onBatchCommitted?.({
+                jobId,
                 rootFolderId,
                 scanPath: dirPath,
                 committedCount,
@@ -811,6 +834,7 @@ export async function scanDirectory(
         if (isScanCancelled(cancellationToken)) {
             const finalTotal = state.total > 0 ? Math.max(state.total, state.current) : state.current;
             onBatchCommitted?.({
+                jobId,
                 rootFolderId,
                 scanPath: dirPath,
                 committedCount: 0,
@@ -835,6 +859,7 @@ export async function scanDirectory(
             });
             if (onProgress) {
                 onProgress({
+                    jobId,
                     phase: 'complete',
                     current: state.current,
                     total: finalTotal,
@@ -852,6 +877,7 @@ export async function scanDirectory(
         if (onProgress) {
             console.log(`Scan completed. Total: ${finalTotal}, New: ${state.stats.newCount}, Update: ${state.stats.updateCount}, Skip: ${state.stats.skipCount}, Removed: ${removedCount}`);
             onProgress({
+                jobId,
                 phase: 'complete',
                 current: finalTotal,
                 total: finalTotal,
@@ -868,6 +894,7 @@ export async function scanDirectory(
             message: `完了: ${state.stats.newCount}件新規, ${state.stats.updateCount}件更新, ${state.stats.skipCount}件スキップ, ${removedCount}件削除`
         });
         onBatchCommitted?.({
+            jobId,
             rootFolderId,
             scanPath: dirPath,
             committedCount: 0,
@@ -899,8 +926,10 @@ export async function scanDirectory(
             message: String(e)
         });
         if (onProgress) {
-            onProgress({ phase: 'error', current: 0, total: 0, message: String(e) });
+            onProgress({ jobId, phase: 'error', current: 0, total: 0, message: String(e) });
         }
         throw e;
+    } finally {
+        activeScanJobs.delete(jobId);
     }
 }
