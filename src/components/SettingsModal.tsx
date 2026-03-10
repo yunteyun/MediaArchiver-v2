@@ -782,8 +782,9 @@ export const SettingsModal = React.memo(() => {
                                     value={ratingDisplayThresholds}
                                     onChange={(thresholds) => { void handleProfileRatingDisplayThresholdsChange(thresholds); }}
                                     onReset={handleResetRatingDisplaySettings}
+                                    activeProfileLabel={activeProfileLabel}
                                 />
-                                <RatingAxesManager />
+                                <RatingAxesManager activeProfileLabel={activeProfileLabel} />
                             </div>
                         )}
                     </div>

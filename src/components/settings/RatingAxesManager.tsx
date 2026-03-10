@@ -14,6 +14,10 @@ interface AxisFormState {
     step: string;
 }
 
+interface RatingAxesManagerProps {
+    activeProfileLabel: string;
+}
+
 function createAxisFormState(axis?: RatingAxis): AxisFormState {
     return {
         name: axis?.name ?? '',
@@ -62,7 +66,7 @@ function parseAxisForm(form: AxisFormState): {
     return { name, minValue, maxValue, step };
 }
 
-export const RatingAxesManager: React.FC = () => {
+export const RatingAxesManager: React.FC<RatingAxesManagerProps> = ({ activeProfileLabel }) => {
     const {
         axes,
         isLoaded,
@@ -176,8 +180,8 @@ export const RatingAxesManager: React.FC = () => {
                     評価軸の管理
                 </h3>
                 <p className="text-xs text-surface-500 mb-4">
-                    ファイルに対して複数の評価軸（例: 総合評価、演技、映像美）を定義できます。
-                    シールドの付いた軸が現在の総合評価で、削除できません。
+                    評価軸は現在のプロファイルに保存されます。対象: {activeProfileLabel}。
+                    ファイルに対して複数の評価軸（例: 総合評価、演技、映像美）を定義でき、シールドの付いた軸が現在の総合評価です。
                 </p>
 
                 {/* 軸一覧 */}

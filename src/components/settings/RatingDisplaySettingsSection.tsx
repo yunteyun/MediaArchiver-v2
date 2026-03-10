@@ -4,11 +4,13 @@ import {
     RATING_DISPLAY_THRESHOLD_STEP,
     type RatingDisplayThresholds,
 } from '../../shared/ratingDisplayThresholds';
+import { SettingsSection } from './SettingsSection';
 
 interface RatingDisplaySettingsSectionProps {
     value: RatingDisplayThresholds;
     onChange: (value: RatingDisplayThresholds) => void;
     onReset: () => void;
+    activeProfileLabel: string;
 }
 
 function formatThresholdValue(value: number): string {
@@ -19,6 +21,7 @@ export const RatingDisplaySettingsSection: React.FC<RatingDisplaySettingsSection
     value,
     onChange,
     onReset,
+    activeProfileLabel,
 }) => {
     const [midInput, setMidInput] = useState(() => formatThresholdValue(value.mid));
     const [highInput, setHighInput] = useState(() => formatThresholdValue(value.high));
@@ -66,25 +69,13 @@ export const RatingDisplaySettingsSection: React.FC<RatingDisplaySettingsSection
 
     return (
         <section className="px-4 pt-4">
-            <div className="rounded-lg border border-surface-700 bg-surface-800 p-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h3 className="text-sm font-semibold text-surface-200">
-                            評価表示の色境界
-                        </h3>
-                        <p className="mt-1 text-xs text-surface-500">
-                            ファイルカード、左サイドバー、右パネル、中央ビューアの星色に使う境界値です。
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onReset}
-                        className="rounded border border-surface-600 px-2.5 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-700 hover:text-white"
-                    >
-                        既定値に戻す
-                    </button>
-                </div>
-
+            <SettingsSection
+                title="評価表示の色境界"
+                description={`現在のプロファイルに保存されます。対象: ${activeProfileLabel}。ファイルカード、左サイドバー、右パネル、中央ビューアの星色に使う境界値です。`}
+                scope="profile"
+                onReset={onReset}
+                className="border-primary-900/40 bg-primary-950/10"
+            >
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="text-xs text-surface-400">
                         <span className="mb-1 block">青開始</span>
@@ -114,7 +105,7 @@ export const RatingDisplaySettingsSection: React.FC<RatingDisplaySettingsSection
                     </label>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                <div className="flex flex-wrap gap-2 text-xs">
                     <span className="rounded bg-surface-900 px-2 py-1 text-white">
                         {`< ${formatThresholdValue(value.mid)}`}
                     </span>
@@ -126,14 +117,12 @@ export const RatingDisplaySettingsSection: React.FC<RatingDisplaySettingsSection
                     </span>
                 </div>
 
-                {error && (
-                    <p className="mt-3 text-xs text-red-400">{error}</p>
-                )}
+                {error && <p className="text-xs text-red-400">{error}</p>}
 
                 <p className="mt-3 text-[11px] text-surface-500">
                     既定値は 青開始 {formatThresholdValue(DEFAULT_RATING_DISPLAY_THRESHOLDS.mid)} / 黄開始 {formatThresholdValue(DEFAULT_RATING_DISPLAY_THRESHOLDS.high)} です。
                 </p>
-            </div>
+            </SettingsSection>
         </section>
     );
 };
