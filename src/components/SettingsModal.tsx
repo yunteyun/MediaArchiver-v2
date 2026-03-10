@@ -21,6 +21,7 @@ import { useTagStore } from '../stores/useTagStore';
 import { useProfileStore } from '../stores/useProfileStore';
 import { ExternalAppsTab } from './ExternalAppsTab';
 import { RatingAxesManager } from './settings/RatingAxesManager';
+import { RatingDisplaySettingsSection } from './settings/RatingDisplaySettingsSection';
 import { SettingsTabNav } from './settings/SettingsTabNav';
 import { getSettingsTabMeta } from './settings/SettingsTabMeta';
 import { GeneralSettingsTab } from './settings/GeneralSettingsTab';
@@ -68,6 +69,8 @@ export const SettingsModal = React.memo(() => {
     const setProfileScanThrottleMs = useSettingsStore((s) => s.setProfileScanThrottleMs);
     const thumbnailResolution = useSettingsStore((s) => s.thumbnailResolution);
     const setProfileThumbnailResolution = useSettingsStore((s) => s.setProfileThumbnailResolution);
+    const ratingDisplayThresholds = useSettingsStore((s) => s.ratingDisplayThresholds);
+    const setRatingDisplayThresholds = useSettingsStore((s) => s.setRatingDisplayThresholds);
     const profileFileTypeFilters = useSettingsStore((s) => s.profileFileTypeFilters);
     const setProfileFileTypeFilters = useSettingsStore((s) => s.setProfileFileTypeFilters);
     const scanExclusionRules = useSettingsStore((s) => s.scanExclusionRules);
@@ -251,6 +254,18 @@ export const SettingsModal = React.memo(() => {
             useUIStore.getState().showToast('サムネイル解像度の保存に失敗しました', 'error');
         }
     }, [setProfileThumbnailResolution]);
+
+    const handleProfileRatingDisplayThresholdsChange = useCallback(async (thresholds: typeof ratingDisplayThresholds) => {
+        setRatingDisplayThresholds(thresholds);
+        try {
+            await window.electronAPI.setProfileScopedSettings({
+                ratingDisplayThresholds: thresholds,
+            });
+        } catch (error) {
+            console.error('Failed to update rating display thresholds:', error);
+            useUIStore.getState().showToast('評価表示境界の保存に失敗しました', 'error');
+        }
+    }, [setRatingDisplayThresholds]);
 
     const handleScanExclusionRulesChange = useCallback(async (rules: typeof scanExclusionRules) => {
         setScanExclusionRules(rules);
@@ -479,6 +494,12 @@ export const SettingsModal = React.memo(() => {
         setRightPanelVideoPreviewMode(DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoPreviewMode);
         setRightPanelVideoJumpInterval(DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoJumpInterval);
     }, [setRightPanelVideoJumpInterval, setRightPanelVideoPreviewMode]);
+
+    const handleResetRatingDisplaySettings = useCallback(() => {
+        const defaults = DEFAULT_PROFILE_SCOPED_SETTINGS.ratingDisplayThresholds;
+        setRatingDisplayThresholds(defaults);
+        void handleProfileRatingDisplayThresholdsChange(defaults);
+    }, [handleProfileRatingDisplayThresholdsChange, setRatingDisplayThresholds]);
 
     const handleResetStorageMaintenanceSettings = useCallback(() => {
         handleStorageMaintenanceSettingsChange({ ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS });
@@ -756,7 +777,14 @@ export const SettingsModal = React.memo(() => {
                         )}
 
                         {activeTab === 'ratings' && (
-                            <RatingAxesManager />
+                            <div className="space-y-4">
+                                <RatingDisplaySettingsSection
+                                    value={ratingDisplayThresholds}
+                                    onChange={(thresholds) => { void handleProfileRatingDisplayThresholdsChange(thresholds); }}
+                                    onReset={handleResetRatingDisplaySettings}
+                                />
+                                <RatingAxesManager />
+                            </div>
                         )}
                     </div>
                 </div>

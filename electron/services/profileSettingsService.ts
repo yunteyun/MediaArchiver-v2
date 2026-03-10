@@ -1,5 +1,10 @@
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
+import {
+    DEFAULT_RATING_DISPLAY_THRESHOLDS,
+    normalizeRatingDisplayThresholds,
+    type RatingDisplayThresholds,
+} from '../../src/shared/ratingDisplayThresholds';
 
 const log = logger.scope('ProfileSettings');
 
@@ -19,6 +24,7 @@ export interface ProfileScopedSettingsV1 {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    ratingDisplayThresholds: RatingDisplayThresholds;
     listDisplayDefaults: {
         sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
         sortOrder: 'asc' | 'desc';
@@ -66,6 +72,7 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
     previewFrameCount: 10,
     scanThrottleMs: 0,
     thumbnailResolution: 320,
+    ratingDisplayThresholds: { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
     listDisplayDefaults: {
         sortBy: 'date',
         sortOrder: 'desc',
@@ -158,6 +165,7 @@ function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettings
         previewFrameCount: clampPreviewFrameCount(candidate.previewFrameCount),
         scanThrottleMs: clampScanThrottleMs(candidate.scanThrottleMs),
         thumbnailResolution: clampThumbnailResolution(candidate.thumbnailResolution),
+        ratingDisplayThresholds: normalizeRatingDisplayThresholds(candidate.ratingDisplayThresholds),
         listDisplayDefaults: {
             sortBy: ['name', 'date', 'size', 'type', 'accessCount', 'lastAccessed', 'overallRating'].includes(String(listDisplayDefaults.sortBy))
                 ? listDisplayDefaults.sortBy as ProfileScopedSettingsV1['listDisplayDefaults']['sortBy']
@@ -277,6 +285,15 @@ export function setProfileScopedSettings(partial: Partial<ProfileScopedSettingsV
         fileTypeFilters: partial.fileTypeFilters
             ? { ...current.fileTypeFilters, ...partial.fileTypeFilters }
             : current.fileTypeFilters,
+        ratingDisplayThresholds: partial.ratingDisplayThresholds
+            ? { ...current.ratingDisplayThresholds, ...partial.ratingDisplayThresholds }
+            : current.ratingDisplayThresholds,
+        listDisplayDefaults: partial.listDisplayDefaults
+            ? { ...current.listDisplayDefaults, ...partial.listDisplayDefaults }
+            : current.listDisplayDefaults,
+        fileCardSettings: partial.fileCardSettings
+            ? { ...current.fileCardSettings, ...partial.fileCardSettings }
+            : current.fileCardSettings,
     });
 
     writeSettings(next);

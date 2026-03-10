@@ -48,6 +48,10 @@ interface ProfileScopedSettingsV1 {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    ratingDisplayThresholds: {
+        mid: number;
+        high: number;
+    };
     listDisplayDefaults: {
         sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
         sortOrder: 'asc' | 'desc';

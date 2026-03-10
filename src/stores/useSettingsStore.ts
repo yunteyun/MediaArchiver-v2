@@ -10,9 +10,19 @@ import {
     normalizeScanExclusionRules,
     type ScanExclusionRules,
 } from '../shared/scanExclusionRules';
+import {
+    DEFAULT_RATING_DISPLAY_THRESHOLDS,
+    normalizeRatingDisplayThresholds,
+    type RatingDisplayThresholds,
+} from '../shared/ratingDisplayThresholds';
 
 export type { ScanExclusionRules } from '../shared/scanExclusionRules';
 export { DEFAULT_SCAN_EXCLUSION_RULES } from '../shared/scanExclusionRules';
+export type { RatingDisplayThresholds } from '../shared/ratingDisplayThresholds';
+export {
+    DEFAULT_RATING_DISPLAY_THRESHOLDS,
+    RATING_DISPLAY_THRESHOLD_STEP,
+} from '../shared/ratingDisplayThresholds';
 
 // 表示モード型定義（Phase 14）
 export type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
@@ -49,6 +59,7 @@ export interface ProfileScopedSettingsV1 {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    ratingDisplayThresholds: RatingDisplayThresholds;
     listDisplayDefaults: {
         sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
         sortOrder: 'asc' | 'desc';
@@ -111,6 +122,7 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
     previewFrameCount: 10,
     scanThrottleMs: 0,
     thumbnailResolution: 320,
+    ratingDisplayThresholds: { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
     listDisplayDefaults: { ...DEFAULT_LIST_DISPLAY_SETTINGS },
     fileCardSettings: {
         showFileName: true,
@@ -359,6 +371,7 @@ interface SettingsState {
 
     // サムネイル生成解像度（Phase 14整理）
     thumbnailResolution: number; // 生成時の幅px（160〜480）
+    ratingDisplayThresholds: RatingDisplayThresholds;
 
     showFileName: boolean;
     showDuration: boolean;
@@ -412,6 +425,7 @@ interface SettingsState {
     setPreviewFrameCount: (count: number) => void;
     setScanThrottleMs: (ms: number) => void;
     setThumbnailResolution: (resolution: number) => void;
+    setRatingDisplayThresholds: (thresholds: RatingDisplayThresholds) => void;
     setScanExclusionRules: (rules: ScanExclusionRules) => void;
     setStorageMaintenanceSettings: (settings: StorageMaintenanceSettings) => void;
     applyProfileScopedSettings: (settings: ProfileScopedSettingsV1) => void;
@@ -486,6 +500,7 @@ export const useSettingsStore = create<SettingsState>()(
 
             // サムネイル生成解像度（Phase 14整理）
             thumbnailResolution: DEFAULT_PROFILE_SCOPED_SETTINGS.thumbnailResolution,
+            ratingDisplayThresholds: { ...DEFAULT_PROFILE_SCOPED_SETTINGS.ratingDisplayThresholds },
 
             showFileName: DEFAULT_FILE_CARD_SETTINGS.showFileName,
             showDuration: DEFAULT_FILE_CARD_SETTINGS.showDuration,
@@ -534,6 +549,9 @@ export const useSettingsStore = create<SettingsState>()(
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
             setScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
+            setRatingDisplayThresholds: (ratingDisplayThresholds) => set({
+                ratingDisplayThresholds: normalizeRatingDisplayThresholds(ratingDisplayThresholds),
+            }),
             setScanExclusionRules: (scanExclusionRules) => set({
                 scanExclusionRules: normalizeScanExclusionRules(scanExclusionRules),
             }),
@@ -547,6 +565,7 @@ export const useSettingsStore = create<SettingsState>()(
                 thumbnailResolution: [160, 200, 240, 280, 320, 360, 400, 440, 480].includes(Number(settings.thumbnailResolution))
                     ? Number(settings.thumbnailResolution)
                     : 320,
+                ratingDisplayThresholds: normalizeRatingDisplayThresholds(settings.ratingDisplayThresholds),
                 sortBy: settings.listDisplayDefaults?.sortBy ?? DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
                 sortOrder: settings.listDisplayDefaults?.sortOrder ?? DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder,
                 groupBy: settings.listDisplayDefaults?.groupBy ?? DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
@@ -571,6 +590,7 @@ export const useSettingsStore = create<SettingsState>()(
                 previewFrameCount: get().previewFrameCount,
                 scanThrottleMs: get().scanThrottleMs,
                 thumbnailResolution: get().thumbnailResolution,
+                ratingDisplayThresholds: { ...get().ratingDisplayThresholds },
                 listDisplayDefaults: {
                     sortBy: get().sortBy,
                     sortOrder: get().sortOrder,
@@ -824,6 +844,7 @@ export const useSettingsStore = create<SettingsState>()(
                     searchDestinations: persistedDestinations,
                     scanExclusionRules: normalizeScanExclusionRules(persistedWithoutLegacyKeys.scanExclusionRules),
                     storageMaintenanceSettings: normalizeStorageMaintenanceSettings(persistedWithoutLegacyKeys.storageMaintenanceSettings),
+                    ratingDisplayThresholds: normalizeRatingDisplayThresholds(persistedWithoutLegacyKeys.ratingDisplayThresholds),
                     layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,
                     thumbnailPresentation: persistedThumbnailPresentation ?? mappedAxes.thumbnailPresentation,
                 };

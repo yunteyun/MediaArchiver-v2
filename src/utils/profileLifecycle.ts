@@ -1,5 +1,6 @@
 import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, type ProfileScopedSettingsV1 } from '../stores/useSettingsStore';
 import type { MediaFile } from '../types/file';
+import { DEFAULT_RATING_DISPLAY_THRESHOLDS } from '../shared/ratingDisplayThresholds';
 
 export const PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE =
     'プロファイル別スキャン設定の初回移行を行います。\n\n' +
@@ -11,6 +12,7 @@ export interface ProfileSettingsStoreSnapshot {
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
+    ratingDisplayThresholds: ProfileScopedSettingsV1['ratingDisplayThresholds'];
     sortBy: ProfileScopedSettingsV1['listDisplayDefaults']['sortBy'];
     sortOrder: ProfileScopedSettingsV1['listDisplayDefaults']['sortOrder'];
     groupBy: ProfileScopedSettingsV1['listDisplayDefaults']['groupBy'];
@@ -70,6 +72,9 @@ export function createInitialProfileScopedSettings(
         previewFrameCount: shouldMigrate ? snapshot.previewFrameCount : 10,
         scanThrottleMs: shouldMigrate ? snapshot.scanThrottleMs : 0,
         thumbnailResolution: shouldMigrate ? snapshot.thumbnailResolution : 320,
+        ratingDisplayThresholds: shouldMigrate
+            ? { ...snapshot.ratingDisplayThresholds }
+            : { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
         listDisplayDefaults: shouldMigrate ? {
             sortBy: snapshot.sortBy,
             sortOrder: snapshot.sortOrder,

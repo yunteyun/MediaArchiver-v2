@@ -56,6 +56,7 @@ export const RatingSection: React.FC<RatingSectionProps> = ({ fileId }) => {
                             step={axis.step}
                             onChange={(v) => handleChange(axis.id, v)}
                             size={16}
+                            toneMode="uniform"
                         />
                     </div>
                 ))}

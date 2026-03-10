@@ -1,5 +1,7 @@
-export const RATING_BADGE_MID_THRESHOLD = 3;
-export const RATING_BADGE_HIGH_THRESHOLD = 4.5;
+import {
+    DEFAULT_RATING_DISPLAY_THRESHOLDS,
+    type RatingDisplayThresholds,
+} from '../../shared/ratingDisplayThresholds';
 
 export interface RatingDisplayTone {
     color: string;
@@ -21,11 +23,14 @@ const HIGH_TONE: RatingDisplayTone = {
     hoverColor: '#fef9c3',
 };
 
-export function getRatingDisplayTone(value: number): RatingDisplayTone {
-    if (value >= RATING_BADGE_HIGH_THRESHOLD) {
+export function getRatingDisplayTone(
+    value: number,
+    thresholds: RatingDisplayThresholds = DEFAULT_RATING_DISPLAY_THRESHOLDS
+): RatingDisplayTone {
+    if (value >= thresholds.high) {
         return HIGH_TONE;
     }
-    if (value >= RATING_BADGE_MID_THRESHOLD) {
+    if (value >= thresholds.mid) {
         return MID_TONE;
     }
     return LOW_TONE;

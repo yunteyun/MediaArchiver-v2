@@ -199,6 +199,7 @@ export const ImageInfoPane = React.memo<ImageInfoPaneProps>(({ file }) => {
                                     step={axis.step}
                                     onChange={(value) => void handleRatingChange(axis.id, value)}
                                     size={16}
+                                    toneMode="uniform"
                                 />
                             </div>
                         ))

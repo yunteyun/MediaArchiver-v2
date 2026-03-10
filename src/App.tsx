@@ -152,6 +152,7 @@ function App() {
                     previewFrameCount: settings.previewFrameCount,
                     scanThrottleMs: settings.scanThrottleMs,
                     thumbnailResolution: settings.thumbnailResolution,
+                    ratingDisplayThresholds: settings.ratingDisplayThresholds,
                     sortBy: settings.sortBy,
                     sortOrder: settings.sortOrder,
                     groupBy: settings.groupBy,
