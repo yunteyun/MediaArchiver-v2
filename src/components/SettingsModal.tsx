@@ -147,6 +147,8 @@ export const SettingsModal = React.memo(() => {
     );
     const {
         appVersion,
+        isLoadingBundledReleaseNotes,
+        bundledReleaseNotesState,
         currentLoadedExportRows,
         exportScopeLabel,
         exportScope,
@@ -723,6 +725,8 @@ export const SettingsModal = React.memo(() => {
 
                         {activeTab === 'maintenance' && (
                             <MaintenanceSettingsTab
+                                isLoadingBundledReleaseNotes={isLoadingBundledReleaseNotes}
+                                bundledReleaseNotesState={bundledReleaseNotesState}
                                 isCheckingForUpdates={isCheckingForUpdates}
                                 updateCheckState={updateCheckState}
                                 onCheckForUpdates={() => { void handleCheckForUpdates(); }}

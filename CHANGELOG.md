@@ -10,10 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- (なし)
+- 設定の `更新` タブに、ZIP 同梱の現在バージョン用リリースノート表示を追加し、ネットワーク未接続でも更新内容をアプリ内で確認できるようにした。
 
 ### Changed
-- (なし)
+- リリースZIPに `release-notes/v<version>.md` を同梱するようにし、配布物だけで更新履歴を追えるようにした。
 
 ### Fixed
 - (なし)

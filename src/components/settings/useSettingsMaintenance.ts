@@ -52,6 +52,8 @@ export function useSettingsMaintenance({
     activeProfileLabel,
 }: UseSettingsMaintenanceParams) {
     const [appVersion, setAppVersion] = useState('');
+    const [isLoadingBundledReleaseNotes, setIsLoadingBundledReleaseNotes] = useState(false);
+    const [bundledReleaseNotesState, setBundledReleaseNotesState] = useState<AppBundledReleaseNotesResult | null>(null);
     const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
     const [updateCheckState, setUpdateCheckState] = useState<UpdateCheckUiState | null>(null);
     const [isDownloadingUpdateZip, setIsDownloadingUpdateZip] = useState(false);
@@ -677,6 +679,24 @@ export function useSettingsMaintenance({
         }
     }, [appVersion, isCheckingForUpdates]);
 
+    const loadBundledReleaseNotes = useCallback(async () => {
+        if (isLoadingBundledReleaseNotes) return;
+        setIsLoadingBundledReleaseNotes(true);
+        try {
+            const result = await window.electronAPI.getBundledReleaseNotes();
+            setBundledReleaseNotesState(result);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            setBundledReleaseNotesState({
+                success: false,
+                version: appVersion || 'unknown',
+                error: message,
+            });
+        } finally {
+            setIsLoadingBundledReleaseNotes(false);
+        }
+    }, [appVersion, isLoadingBundledReleaseNotes]);
+
     const handleDownloadLatestUpdateZip = useCallback(async () => {
         if (isDownloadingUpdateZip) return;
         setIsDownloadingUpdateZip(true);
@@ -818,8 +838,31 @@ export function useSettingsMaintenance({
         }
     }, [appVersion, isOpen]);
 
+    useEffect(() => {
+        const shouldLoad = isOpen
+            && activeTab === 'maintenance'
+            && !isLoadingBundledReleaseNotes
+            && (
+                !bundledReleaseNotesState
+                || (appVersion ? bundledReleaseNotesState.version !== appVersion : false)
+            );
+
+        if (shouldLoad) {
+            void loadBundledReleaseNotes();
+        }
+    }, [
+        activeTab,
+        appVersion,
+        bundledReleaseNotesState,
+        isLoadingBundledReleaseNotes,
+        isOpen,
+        loadBundledReleaseNotes,
+    ]);
+
     return {
         appVersion,
+        isLoadingBundledReleaseNotes,
+        bundledReleaseNotesState,
         currentLoadedExportRows,
         exportScopeLabel,
         exportScope,

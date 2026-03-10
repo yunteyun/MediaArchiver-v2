@@ -5,6 +5,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { incrementExternalOpenCount } from '../services/database';
 import { setPerfDebugEnabled } from '../services/perfDebug';
+import { getBundledReleaseNotes } from '../services/releaseNotesService';
 import { checkForAppUpdate, downloadLatestUpdateZip } from '../services/updateCheckService';
 
 // 外部アプリのキャッシュ
@@ -25,6 +26,9 @@ export function getCachedExternalApps(): ExternalApp[] {
 export function registerAppHandlers() {
     // アプリバージョンを返す（Phase 26）
     ipcMain.handle('app:getVersion', () => app.getVersion());
+    ipcMain.handle('app:getBundledReleaseNotes', async (_event, version?: string) => {
+        return getBundledReleaseNotes(version);
+    });
     ipcMain.handle('app:checkForUpdates', async (_event, sourceUrl?: string) => {
         return checkForAppUpdate(app.getVersion(), sourceUrl);
     });

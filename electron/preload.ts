@@ -145,6 +145,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openUrl: (url: string) => ipcRenderer.invoke('app:openUrl', url),
     showInExplorer: (path: string) => ipcRenderer.invoke('app:showInExplorer', path),
     getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
+    getBundledReleaseNotes: (version?: string) => ipcRenderer.invoke('app:getBundledReleaseNotes', version),
     checkForAppUpdate: (sourceUrl?: string) => ipcRenderer.invoke('app:checkForUpdates', sourceUrl),
     downloadLatestUpdateZip: (sourceUrl?: string) => ipcRenderer.invoke('app:downloadLatestUpdateZip', sourceUrl),
     applyUpdateFromZip: (zipPath?: string) => ipcRenderer.invoke('app:applyUpdateFromZip', zipPath),

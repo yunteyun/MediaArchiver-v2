@@ -170,6 +170,14 @@ interface AppUpdateApplyResult {
     error?: string;
 }
 
+interface AppBundledReleaseNotesResult {
+    success: boolean;
+    version: string;
+    path?: string;
+    content?: string;
+    error?: string;
+}
+
 declare global {
     interface Window {
         electronAPI: {
@@ -206,6 +214,7 @@ declare global {
             openUrl: (url: string) => Promise<void>;
             showInExplorer: (path: string) => Promise<void>;
             getAppVersion: () => Promise<string>;  // Phase 26
+            getBundledReleaseNotes: (version?: string) => Promise<AppBundledReleaseNotesResult>;
             checkForAppUpdate: (sourceUrl?: string) => Promise<AppUpdateCheckResult>;
             downloadLatestUpdateZip: (sourceUrl?: string) => Promise<AppUpdateDownloadResult>;
             applyUpdateFromZip: (zipPath?: string) => Promise<AppUpdateApplyResult>;

@@ -8,6 +8,8 @@ interface UpdateCheckUiState {
 }
 
 interface MaintenanceSettingsTabProps {
+    isLoadingBundledReleaseNotes: boolean;
+    bundledReleaseNotesState: AppBundledReleaseNotesResult | null;
     isCheckingForUpdates: boolean;
     updateCheckState: UpdateCheckUiState | null;
     onCheckForUpdates: () => void;
@@ -22,6 +24,8 @@ interface MaintenanceSettingsTabProps {
 }
 
 export const MaintenanceSettingsTab = React.memo(({
+    isLoadingBundledReleaseNotes,
+    bundledReleaseNotesState,
     isCheckingForUpdates,
     updateCheckState,
     onCheckForUpdates,
@@ -35,6 +39,31 @@ export const MaintenanceSettingsTab = React.memo(({
     onApplyUpdateViaZipDialog,
 }: MaintenanceSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
+        <SettingsSection
+            title="このバージョンのリリースノート"
+            description="ZIP に同梱された現在インストール済み版のリリースノートを表示します。ネットワーク接続なしでも確認できます。"
+            scope="operation"
+        >
+            <div className="text-xs text-surface-500">
+                {bundledReleaseNotesState?.success
+                    ? `同梱ファイル: v${bundledReleaseNotesState.version}`
+                    : '同梱済みリリースノートを確認します。'}
+            </div>
+            {isLoadingBundledReleaseNotes ? (
+                <div className="mt-2 text-sm text-surface-400">読み込み中...</div>
+            ) : bundledReleaseNotesState?.success && bundledReleaseNotesState.content ? (
+                <div className="mt-2 rounded border border-surface-700 bg-surface-950/40 p-3">
+                    <div className="max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-sm text-surface-200">
+                        {bundledReleaseNotesState.content}
+                    </div>
+                </div>
+            ) : (
+                <div className="mt-2 text-sm text-amber-300">
+                    {bundledReleaseNotesState?.error ?? '同梱リリースノートを読み込めませんでした。'}
+                </div>
+            )}
+        </SettingsSection>
+
         <SettingsSection
             title="アプリ内更新"
             description="GitHub Releases の最新版を確認し、検証済み ZIP の取得と update.bat 起動までこの画面から行えます。"

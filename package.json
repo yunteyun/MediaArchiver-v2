@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "build:electron": "electron-builder",
+        "build:electron": "node ./electron/scripts/buildElectron.cjs",
         "lint": "eslint .",
         "preview": "vite preview",
         "test": "vitest run",
@@ -86,6 +86,10 @@
             {
                 "from": "dist",
                 "to": "dist"
+            },
+            {
+                "from": "release-notes",
+                "to": "release-notes"
             }
         ],
         "win": {

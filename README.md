@@ -59,9 +59,13 @@ npm run build:electron
 
 1. `package.json` の `version` を更新する
 2. `CHANGELOG.md` を更新する（Unreleased を整理）
-3. `npm run build`
-4. `npm run build:electron`
-5. 出力ZIPを展開して `update.bat` 更新が通るか確認する（可能なら既存版から更新テスト）
+3. `release-notes/v<version>.md` を更新する
+4. `npm run build`
+5. `npm run build:electron`
+6. 出力ZIPを展開して `update.bat` 更新が通るか確認する（可能なら既存版から更新テスト）
+
+補足:
+- `release-notes/v<version>.md` はリリースZIPへ同梱され、アプリの `設定 > 更新` から現在版の内容確認に使われます
 
 ### バージョン運用（命名規則）
 
