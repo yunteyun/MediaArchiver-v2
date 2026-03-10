@@ -209,6 +209,8 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                             >
                                 {rightPanelPreviewModeLabel}
                             </button>
+                        </div>
+                        <div className="absolute bottom-2 right-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                             <button
                                 type="button"
                                 onClick={(event) => {
