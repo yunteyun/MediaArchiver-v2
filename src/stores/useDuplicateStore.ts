@@ -4,6 +4,8 @@
 
 import { create } from 'zustand';
 
+export const DUPLICATE_BULK_ACTION_GROUP_LIMIT = 100;
+
 // Types
 export interface DuplicateFileEntry {
     id: string;
@@ -43,6 +45,76 @@ export interface DuplicateProgress {
     currentFile?: string;
 }
 
+export type DuplicateSelectionStrategy = 'newest' | 'oldest' | 'shortest_path';
+
+function getTimePriority(file: DuplicateFileEntry): number {
+    return file.mtime_ms || file.created_at || 0;
+}
+
+function resolveKeepFile(group: DuplicateGroup, strategy: DuplicateSelectionStrategy): DuplicateFileEntry | null {
+    if (group.files.length < 2) {
+        return null;
+    }
+
+    switch (strategy) {
+        case 'newest':
+            return group.files.reduce((best, file) => {
+                const fileMtime = file.mtime_ms || 0;
+                const bestMtime = best.mtime_ms || 0;
+
+                if (fileMtime !== bestMtime) {
+                    return fileMtime > bestMtime ? file : best;
+                }
+
+                const fileCreated = file.created_at || 0;
+                const bestCreated = best.created_at || 0;
+                if (fileCreated !== bestCreated) {
+                    return fileCreated > bestCreated ? file : best;
+                }
+
+                return file.path.length < best.path.length ? file : best;
+            });
+
+        case 'oldest':
+            return group.files.reduce((best, file) => {
+                const fileMtime = file.mtime_ms || Infinity;
+                const bestMtime = best.mtime_ms || Infinity;
+
+                if (fileMtime !== bestMtime) {
+                    return fileMtime < bestMtime ? file : best;
+                }
+
+                const fileCreated = file.created_at || Infinity;
+                const bestCreated = best.created_at || Infinity;
+                if (fileCreated !== bestCreated) {
+                    return fileCreated < bestCreated ? file : best;
+                }
+
+                return file.path.length < best.path.length ? file : best;
+            });
+
+        case 'shortest_path':
+            return group.files.reduce((best, file) => {
+                if (file.path.length !== best.path.length) {
+                    return file.path.length < best.path.length ? file : best;
+                }
+
+                const fileTime = getTimePriority(file);
+                const bestTime = getTimePriority(best);
+                return fileTime > bestTime ? file : best;
+            });
+    }
+}
+
+function getFilesToDeleteByStrategy(group: DuplicateGroup, strategy: DuplicateSelectionStrategy): string[] {
+    const keepFile = resolveKeepFile(group, strategy);
+    if (!keepFile) {
+        return [];
+    }
+
+    return group.files.filter((file) => file.id !== keepFile.id).map((file) => file.id);
+}
+
 interface DuplicateState {
     // State
     groups: DuplicateGroup[];
@@ -59,7 +131,7 @@ interface DuplicateState {
     setProgress: (progress: DuplicateProgress) => void;
     selectFile: (fileId: string) => void;
     deselectFile: (fileId: string) => void;
-    selectAllFiles: () => void;
+    selectAllFiles: (limit?: number) => void;
     selectFilesInGroup: (groupHash: string, fileIds: string[]) => void;
     selectAllFilesInGroup: (groupHash: string) => void;
     keepOnlyFileInGroup: (groupHash: string, keepFileId: string) => void;
@@ -68,7 +140,8 @@ interface DuplicateState {
     reset: () => void;
 
     // Smart selection
-    selectByStrategy: (groupHash: string, strategy: 'newest' | 'oldest' | 'shortest_path') => void;
+    selectByStrategy: (groupHash: string, strategy: DuplicateSelectionStrategy) => void;
+    selectAcrossGroupsByStrategy: (strategy: DuplicateSelectionStrategy, limit?: number) => void;
 }
 
 export const useDuplicateStore = create<DuplicateState>((set, get) => ({
@@ -136,10 +209,12 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
         });
     },
 
-    selectAllFiles: () => {
+    selectAllFiles: (limit = DUPLICATE_BULK_ACTION_GROUP_LIMIT) => {
         set((state) => ({
             selectedFileIds: new Set(
-                state.groups.flatMap((group) => group.files.map((file) => file.id))
+                state.groups
+                    .slice(0, limit)
+                    .flatMap((group) => group.files.map((file) => file.id))
             )
         }));
     },
@@ -250,77 +325,17 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
         const group = groups.find(g => g.hash === groupHash);
         if (!group || group.files.length < 2) return;
 
-        let keepFile: DuplicateFileEntry;
-
-        // 比較用のヘルパー関数
-        const getTimePriority = (file: DuplicateFileEntry): number => {
-            // mtime_msを優先、なければcreated_at
-            return file.mtime_ms || file.created_at || 0;
-        };
-
-        switch (strategy) {
-            case 'newest':
-                // Keep the newest file
-                keepFile = group.files.reduce((best, file) => {
-                    const fileMtime = file.mtime_ms || 0;
-                    const bestMtime = best.mtime_ms || 0;
-
-                    // mtime_msが異なる場合
-                    if (fileMtime !== bestMtime) {
-                        return fileMtime > bestMtime ? file : best;
-                    }
-
-                    // mtime_msが同じ場合、created_atで比較
-                    const fileCreated = file.created_at || 0;
-                    const bestCreated = best.created_at || 0;
-                    if (fileCreated !== bestCreated) {
-                        return fileCreated > bestCreated ? file : best;
-                    }
-
-                    // 両方同じ場合、パスが短い方を優先
-                    return file.path.length < best.path.length ? file : best;
-                });
-                break;
-
-            case 'oldest':
-                // Keep the oldest file
-                keepFile = group.files.reduce((best, file) => {
-                    const fileMtime = file.mtime_ms || Infinity;
-                    const bestMtime = best.mtime_ms || Infinity;
-
-                    // mtime_msが異なる場合
-                    if (fileMtime !== bestMtime) {
-                        return fileMtime < bestMtime ? file : best;
-                    }
-
-                    // mtime_msが同じ場合、created_atで比較
-                    const fileCreated = file.created_at || Infinity;
-                    const bestCreated = best.created_at || Infinity;
-                    if (fileCreated !== bestCreated) {
-                        return fileCreated < bestCreated ? file : best;
-                    }
-
-                    // 両方同じ場合、パスが短い方を優先
-                    return file.path.length < best.path.length ? file : best;
-                });
-                break;
-
-            case 'shortest_path':
-                // Keep the file with shortest path
-                keepFile = group.files.reduce((best, file) => {
-                    if (file.path.length !== best.path.length) {
-                        return file.path.length < best.path.length ? file : best;
-                    }
-                    // 同じ長さの場合、より新しい方を優先
-                    const fileTime = getTimePriority(file);
-                    const bestTime = getTimePriority(best);
-                    return fileTime > bestTime ? file : best;
-                });
-                break;
-        }
-
-        // Select all files except the one to keep
-        const filesToDelete = group.files.filter(f => f.id !== keepFile.id).map(f => f.id);
+        const filesToDelete = getFilesToDeleteByStrategy(group, strategy);
         get().selectFilesInGroup(groupHash, filesToDelete);
+    },
+
+    selectAcrossGroupsByStrategy: (strategy, limit = DUPLICATE_BULK_ACTION_GROUP_LIMIT) => {
+        set((state) => ({
+            selectedFileIds: new Set(
+                state.groups
+                    .slice(0, limit)
+                    .flatMap((group) => getFilesToDeleteByStrategy(group, strategy))
+            )
+        }));
     }
 }));

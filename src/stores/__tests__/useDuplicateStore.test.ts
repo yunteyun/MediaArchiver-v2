@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useDuplicateStore, type DuplicateGroup } from '../useDuplicateStore';
+import {
+    DUPLICATE_BULK_ACTION_GROUP_LIMIT,
+    useDuplicateStore,
+    type DuplicateGroup
+} from '../useDuplicateStore';
 
 function createGroup(overrides: Partial<DuplicateGroup> = {}): DuplicateGroup {
     return {
@@ -335,5 +339,140 @@ describe('useDuplicateStore', () => {
             'file-c',
             'file-d',
         ]);
+    });
+
+    it('applies strategy selection across groups up to the provided limit', () => {
+        useDuplicateStore.setState({
+            groups: [
+                createGroup({
+                    hash: 'hash-bulk-a',
+                    count: 2,
+                    files: [
+                        {
+                            id: 'keep-a',
+                            name: 'keep-a.png',
+                            path: 'C:\\library\\keep-a.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 100,
+                            mtime_ms: 100,
+                            tags: [],
+                        },
+                        {
+                            id: 'delete-a',
+                            name: 'delete-a.png',
+                            path: 'C:\\library\\delete-a.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 90,
+                            mtime_ms: 90,
+                            tags: [],
+                        },
+                    ],
+                }),
+                createGroup({
+                    hash: 'hash-bulk-b',
+                    count: 2,
+                    files: [
+                        {
+                            id: 'keep-b',
+                            name: 'keep-b.png',
+                            path: 'C:\\library\\keep-b.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 80,
+                            mtime_ms: 80,
+                            tags: [],
+                        },
+                        {
+                            id: 'delete-b',
+                            name: 'delete-b.png',
+                            path: 'C:\\library\\delete-b.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 70,
+                            mtime_ms: 70,
+                            tags: [],
+                        },
+                    ],
+                }),
+                createGroup({
+                    hash: 'hash-bulk-c',
+                    count: 2,
+                    files: [
+                        {
+                            id: 'keep-c',
+                            name: 'keep-c.png',
+                            path: 'C:\\library\\keep-c.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 60,
+                            mtime_ms: 60,
+                            tags: [],
+                        },
+                        {
+                            id: 'delete-c',
+                            name: 'delete-c.png',
+                            path: 'C:\\library\\delete-c.png',
+                            size: 100,
+                            type: 'image',
+                            created_at: 50,
+                            mtime_ms: 50,
+                            tags: [],
+                        },
+                    ],
+                }),
+            ],
+            selectedFileIds: new Set(),
+        });
+
+        useDuplicateStore.getState().selectAcrossGroupsByStrategy('newest', 2);
+
+        expect(Array.from(useDuplicateStore.getState().selectedFileIds).sort()).toEqual([
+            'delete-a',
+            'delete-b',
+        ]);
+    });
+
+    it('uses the default bulk limit for global selection actions', () => {
+        const groups = Array.from({ length: DUPLICATE_BULK_ACTION_GROUP_LIMIT + 2 }, (_, index) =>
+            createGroup({
+                hash: `hash-limit-${index}`,
+                count: 2,
+                files: [
+                    {
+                        id: `keep-${index}`,
+                        name: `keep-${index}.png`,
+                        path: `C:\\library\\keep-${index}.png`,
+                        size: 100,
+                        type: 'image',
+                        created_at: index,
+                        mtime_ms: index,
+                        tags: [],
+                    },
+                    {
+                        id: `delete-${index}`,
+                        name: `delete-${index}.png`,
+                        path: `C:\\library\\delete-${index}.png`,
+                        size: 100,
+                        type: 'image',
+                        created_at: index + 1,
+                        mtime_ms: index + 1,
+                        tags: [],
+                    },
+                ],
+            })
+        );
+
+        useDuplicateStore.setState({
+            groups,
+            selectedFileIds: new Set(),
+        });
+
+        useDuplicateStore.getState().selectAllFiles();
+
+        expect(useDuplicateStore.getState().selectedFileIds.size).toBe(DUPLICATE_BULK_ACTION_GROUP_LIMIT * 2);
+        expect(useDuplicateStore.getState().selectedFileIds.has(`keep-${DUPLICATE_BULK_ACTION_GROUP_LIMIT + 1}`)).toBe(false);
+        expect(useDuplicateStore.getState().selectedFileIds.has(`delete-${DUPLICATE_BULK_ACTION_GROUP_LIMIT + 1}`)).toBe(false);
     });
 });

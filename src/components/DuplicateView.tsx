@@ -4,7 +4,11 @@
 
 import React, { useEffect, useCallback, useMemo, startTransition } from 'react';
 import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { useDuplicateStore } from '../stores/useDuplicateStore';
+import {
+    DUPLICATE_BULK_ACTION_GROUP_LIMIT,
+    useDuplicateStore,
+    type DuplicateSelectionStrategy
+} from '../stores/useDuplicateStore';
 import { useUIStore } from '../stores/useUIStore';
 import { toMediaUrl } from '../utils/mediaPath';
 
@@ -41,6 +45,7 @@ export const DuplicateView: React.FC = () => {
         selectFile,
         deselectFile,
         selectAllFiles,
+        selectAcrossGroupsByStrategy,
         selectFilesInGroup,
         selectByStrategy,
         keepOnlyFileInGroup,
@@ -55,11 +60,15 @@ export const DuplicateView: React.FC = () => {
         const selectedGroupCount = groups.filter((group) =>
             group.files.some((file) => selectedFileIds.has(file.id))
         ).length;
-        const totalSelectableCount = groups.reduce((sum, group) => sum + group.files.length, 0);
+        const bulkActionGroupCount = Math.min(groups.length, DUPLICATE_BULK_ACTION_GROUP_LIMIT);
+        const bulkActionFileCount = groups
+            .slice(0, DUPLICATE_BULK_ACTION_GROUP_LIMIT)
+            .reduce((sum, group) => sum + group.files.length, 0);
         return {
             selectedFileCount: selectedFileIds.size,
             selectedGroupCount,
-            totalSelectableCount,
+            bulkActionGroupCount,
+            bulkActionFileCount,
         };
     }, [groups, selectedFileIds]);
 
@@ -103,9 +112,15 @@ export const DuplicateView: React.FC = () => {
 
     const handleSelectAll = useCallback(() => {
         startTransition(() => {
-            selectAllFiles();
+            selectAllFiles(DUPLICATE_BULK_ACTION_GROUP_LIMIT);
         });
     }, [selectAllFiles]);
+
+    const handleBulkStrategy = useCallback((strategy: DuplicateSelectionStrategy) => {
+        startTransition(() => {
+            selectAcrossGroupsByStrategy(strategy, DUPLICATE_BULK_ACTION_GROUP_LIMIT);
+        });
+    }, [selectAcrossGroupsByStrategy]);
 
     // 検索中の表示
     if (isSearching) {
@@ -218,16 +233,39 @@ export const DuplicateView: React.FC = () => {
                         再検索
                     </button>
                     {groups.length > 0 && (
-                        <button
-                            onClick={handleSelectAll}
-                            disabled={isDeleting || (
-                                selectionSummary.totalSelectableCount > 0 &&
-                                selectedFileIds.size === selectionSummary.totalSelectableCount
-                            )}
-                            className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
-                        >
-                            全件選択
-                        </button>
+                        <>
+                            <button
+                                onClick={() => handleBulkStrategy('newest')}
+                                disabled={isDeleting}
+                                className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                            >
+                                新しい方を残す
+                            </button>
+                            <button
+                                onClick={() => handleBulkStrategy('oldest')}
+                                disabled={isDeleting}
+                                className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                            >
+                                古い方を残す
+                            </button>
+                            <button
+                                onClick={() => handleBulkStrategy('shortest_path')}
+                                disabled={isDeleting}
+                                className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                            >
+                                パス短優先
+                            </button>
+                            <button
+                                onClick={handleSelectAll}
+                                disabled={isDeleting || (
+                                    selectionSummary.bulkActionFileCount > 0 &&
+                                    selectedFileIds.size === selectionSummary.bulkActionFileCount
+                                )}
+                                className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                            >
+                                全件選択
+                            </button>
+                        </>
                     )}
                     {selectedFileIds.size > 0 && (
                         <>
@@ -264,6 +302,17 @@ export const DuplicateView: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {groups.length > DUPLICATE_BULK_ACTION_GROUP_LIMIT && (
+                <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
+                    <span>
+                        一括操作は負荷対策のため先頭 {selectionSummary.bulkActionGroupCount} グループまで適用します。
+                    </span>
+                    <span className="text-amber-200/80">
+                        対象外のグループは個別ボタンか手動選択を使ってください。
+                    </span>
+                </div>
+            )}
 
             {selectionSummary.selectedFileCount > 0 && (
                 <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-surface-800 bg-surface-950/80 px-4 py-3 text-sm">
