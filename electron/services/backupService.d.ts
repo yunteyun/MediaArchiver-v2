@@ -21,14 +21,17 @@ export interface BackupSettings {
     maxBackups: number;
     backupPath: string;
 }
+export declare const DEFAULT_BACKUP_SETTINGS: BackupSettings;
+export declare function loadBackupSettings(): BackupSettings;
+export declare function saveBackupSettings(settings: BackupSettings): BackupSettings;
 /**
  * 手動バックアップ（VACUUM INTO使用）
  */
-export declare function createBackup(profileId: string): Promise<BackupInfo>;
+export declare function createBackup(profileId: string, settings?: BackupSettings): Promise<BackupInfo>;
 /**
  * バックアップ履歴取得（ファイル名からタイムスタンプをパース）
  */
-export declare function getBackupHistory(profileId: string): BackupInfo[];
+export declare function getBackupHistory(profileId: string, settings?: BackupSettings): BackupInfo[];
 /**
  * リストア（安全なフロー）
  * 1. db.close() で明示的に接続を切断
@@ -39,7 +42,7 @@ export declare function restoreBackup(backupPath: string): Promise<void>;
 /**
  * 古いバックアップの削除（世代数制限）
  */
-export declare function pruneOldBackups(profileId: string, maxCount: number): void;
+export declare function pruneOldBackups(profileId: string, maxCount: number, settings?: BackupSettings): void;
 /**
  * 自動バックアップのスケジュールチェック
  */

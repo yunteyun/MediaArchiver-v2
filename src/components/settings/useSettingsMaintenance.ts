@@ -33,6 +33,7 @@ interface UseSettingsMaintenanceParams {
     fileTagsCache: ReturnType<typeof useFileStore.getState>['fileTagsCache'];
     currentFolderId: string | null;
     allTags: ReturnType<typeof useTagStore.getState>['tags'];
+    activeProfileId: string;
     activeProfileLabel: string;
 }
 
@@ -47,6 +48,7 @@ export function useSettingsMaintenance({
     fileTagsCache,
     currentFolderId,
     allTags,
+    activeProfileId,
     activeProfileLabel,
 }: UseSettingsMaintenanceParams) {
     const [appVersion, setAppVersion] = useState('');
@@ -70,6 +72,12 @@ export function useSettingsMaintenance({
     const [customPath, setCustomPath] = useState('');
     const [isMigrating, setIsMigrating] = useState(false);
     const [migrationMsg, setMigrationMsg] = useState<{ type: 'success' | 'error'; text: string; oldBase?: string } | null>(null);
+    const [backupSettings, setBackupSettings] = useState<BackupSettings | null>(null);
+    const [backupHistory, setBackupHistory] = useState<BackupInfo[]>([]);
+    const [isLoadingBackupSettings, setIsLoadingBackupSettings] = useState(false);
+    const [isSavingBackupSettings, setIsSavingBackupSettings] = useState(false);
+    const [isLoadingBackupHistory, setIsLoadingBackupHistory] = useState(false);
+    const [isRestoringBackup, setIsRestoringBackup] = useState(false);
 
     const currentLoadedExportRows = useMemo(() => {
         return buildFileExportRows(rawFiles, fileTagsCache, allTags);
@@ -532,6 +540,77 @@ export function useSettingsMaintenance({
         if (path) setCustomPath(path);
     }, []);
 
+    const loadBackupSettingsState = useCallback(async () => {
+        setIsLoadingBackupSettings(true);
+        try {
+            const settings = await window.electronAPI.getBackupSettings();
+            setBackupSettings(settings);
+        } catch (error) {
+            console.error('Failed to load backup settings:', error);
+            useUIStore.getState().showToast('バックアップ設定の読み込みに失敗しました', 'error');
+        } finally {
+            setIsLoadingBackupSettings(false);
+        }
+    }, []);
+
+    const loadBackupHistory = useCallback(async () => {
+        if (!activeProfileId) return;
+        setIsLoadingBackupHistory(true);
+        try {
+            const history = await window.electronAPI.getBackupHistory(activeProfileId);
+            setBackupHistory(history);
+        } catch (error) {
+            console.error('Failed to load backup history:', error);
+            useUIStore.getState().showToast('バックアップ履歴の読み込みに失敗しました', 'error');
+        } finally {
+            setIsLoadingBackupHistory(false);
+        }
+    }, [activeProfileId]);
+
+    const handleBackupSettingsChange = useCallback(async (patch: Partial<BackupSettings>) => {
+        if (!backupSettings) return;
+
+        const nextSettings: BackupSettings = {
+            ...backupSettings,
+            ...patch,
+        };
+
+        setBackupSettings(nextSettings);
+        setIsSavingBackupSettings(true);
+        try {
+            await window.electronAPI.setBackupSettings(nextSettings);
+            setBackupSettings(await window.electronAPI.getBackupSettings());
+        } catch (error) {
+            console.error('Failed to save backup settings:', error);
+            useUIStore.getState().showToast('バックアップ設定の保存に失敗しました', 'error');
+            await loadBackupSettingsState();
+        } finally {
+            setIsSavingBackupSettings(false);
+        }
+    }, [backupSettings, loadBackupSettingsState]);
+
+    const handleBrowseBackupPath = useCallback(async () => {
+        const selectedPath = await window.electronAPI.selectFolder();
+        if (!selectedPath) return;
+        await handleBackupSettingsChange({ backupPath: selectedPath });
+    }, [handleBackupSettingsChange]);
+
+    const handleRestoreBackup = useCallback(async (backupPath: string) => {
+        if (isRestoringBackup) return;
+        setIsRestoringBackup(true);
+        try {
+            const result = await window.electronAPI.restoreBackup(backupPath);
+            if (!result.success && !result.cancelled) {
+                useUIStore.getState().showToast(`バックアップの復元に失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
+            }
+        } catch (error) {
+            console.error('Restore backup failed:', error);
+            useUIStore.getState().showToast(`バックアップの復元に失敗しました: ${(error as Error).message}`, 'error', 5000);
+        } finally {
+            setIsRestoringBackup(false);
+        }
+    }, [isRestoringBackup]);
+
     const handleMigrate = useCallback(async () => {
         if (isMigrating) return;
         setIsMigrating(true);
@@ -710,20 +789,28 @@ export function useSettingsMaintenance({
             const profileId = await window.electronAPI.getActiveProfileId();
             const result = await window.electronAPI.createBackup(profileId);
             if (result.success) {
-                window.alert('バックアップが作成されました');
+                useUIStore.getState().showToast('バックアップを作成しました', 'success');
+                await loadBackupHistory();
             } else {
-                window.alert(`バックアップ失敗: ${result.error}`);
+                useUIStore.getState().showToast(`バックアップに失敗しました: ${result.error ?? 'unknown error'}`, 'error', 5000);
             }
         } catch (error) {
-            window.alert(`エラー: ${(error as Error).message}`);
+            useUIStore.getState().showToast(`バックアップに失敗しました: ${(error as Error).message}`, 'error', 5000);
         }
-    }, []);
+    }, [loadBackupHistory]);
 
     useEffect(() => {
         if (isOpen && activeTab === 'storage') {
             void loadStorageConfig();
         }
     }, [activeTab, isOpen, loadStorageConfig]);
+
+    useEffect(() => {
+        if (isOpen && activeTab === 'backup') {
+            void loadBackupSettingsState();
+            void loadBackupHistory();
+        }
+    }, [activeProfileId, activeTab, isOpen, loadBackupHistory, loadBackupSettingsState]);
 
     useEffect(() => {
         if (isOpen && !appVersion) {
@@ -765,6 +852,15 @@ export function useSettingsMaintenance({
         handleApplyUpdateFromZip,
         handleApplyUpdateViaZipDialog,
         handleCreateBackup,
+        backupSettings,
+        backupHistory,
+        isLoadingBackupSettings,
+        isSavingBackupSettings,
+        isLoadingBackupHistory,
+        isRestoringBackup,
+        handleBackupSettingsChange,
+        handleBrowseBackupPath,
+        handleRestoreBackup,
         storageConfig,
         selectedMode,
         setSelectedMode,

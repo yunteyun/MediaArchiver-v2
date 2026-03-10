@@ -25,6 +25,23 @@ interface BackupSettingsTabProps {
     importDryRun: CsvImportDryRunSummary | null;
     importWarnings: string[];
     onCreateBackup: () => void;
+    backupSettings: BackupSettings | null;
+    backupHistory: BackupInfo[];
+    isLoadingBackupSettings: boolean;
+    isSavingBackupSettings: boolean;
+    isLoadingBackupHistory: boolean;
+    isRestoringBackup: boolean;
+    onBackupSettingsChange: (patch: Partial<BackupSettings>) => void;
+    onBrowseBackupPath: () => void;
+    onRestoreBackup: (backupPath: string) => void;
+}
+
+function formatBackupTimestamp(timestamp: number): string {
+    return new Date(timestamp).toLocaleString('ja-JP');
+}
+
+function formatBackupSize(bytes: number): string {
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
 export const BackupSettingsTab = React.memo(({
@@ -50,6 +67,15 @@ export const BackupSettingsTab = React.memo(({
     importDryRun,
     importWarnings,
     onCreateBackup,
+    backupSettings,
+    backupHistory,
+    isLoadingBackupSettings,
+    isSavingBackupSettings,
+    isLoadingBackupHistory,
+    isRestoringBackup,
+    onBackupSettingsChange,
+    onBrowseBackupPath,
+    onRestoreBackup,
 }: BackupSettingsTabProps) => (
     <div className="px-4 py-4 space-y-6">
         <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">
@@ -83,19 +109,100 @@ export const BackupSettingsTab = React.memo(({
             </div>
         </div>
 
-        <div>
-            <h3 className="text-sm font-semibold text-white mb-3">データベースバックアップ</h3>
+        <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+                <div>
+                    <h3 className="text-sm font-medium text-surface-200">データベースバックアップ</h3>
+                    <p className="text-xs text-surface-500 mt-0.5">
+                        現在のプロファイルごとに世代管理します。自動バックアップは起動時やプロファイル切替後に必要な時だけ実行されます。
+                    </p>
+                </div>
+                <button
+                    onClick={onCreateBackup}
+                    disabled={isLoadingBackupSettings}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-surface-800/60 disabled:text-surface-600 text-white rounded transition-colors"
+                >
+                    今すぐバックアップを作成
+                </button>
+            </div>
 
-            <button
-                onClick={onCreateBackup}
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded transition-colors"
-            >
-                今すぐバックアップを作成
-            </button>
+            {backupSettings ? (
+                <div className="space-y-4">
+                    <label className="flex items-start gap-3 rounded border border-surface-700 bg-surface-900/60 px-3 py-3 cursor-pointer hover:border-surface-600">
+                        <input
+                            type="checkbox"
+                            checked={backupSettings.enabled}
+                            onChange={(e) => onBackupSettingsChange({ enabled: e.target.checked })}
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-primary-500"
+                        />
+                        <div className="min-w-0">
+                            <div className="text-sm text-surface-200">自動バックアップを有効にする</div>
+                            <div className="text-[11px] text-surface-500 mt-0.5">
+                                現在のプロファイルを開いた時、前回バックアップから一定期間空いていれば自動作成します。
+                            </div>
+                        </div>
+                    </label>
 
-            <p className="text-xs text-surface-500 mt-2">
-                現在のデータベースを安全にバックアップします（VACUUM INTO使用）
-            </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="block text-sm font-medium text-surface-300 mb-2">自動バックアップ間隔</label>
+                            <select
+                                value={backupSettings.interval}
+                                onChange={(e) => onBackupSettingsChange({ interval: e.target.value as BackupSettings['interval'] })}
+                                className="w-full rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                            >
+                                <option value="daily">毎日</option>
+                                <option value="weekly">毎週</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-surface-300 mb-2">保持世代数</label>
+                            <select
+                                value={backupSettings.maxBackups}
+                                onChange={(e) => onBackupSettingsChange({ maxBackups: Number(e.target.value) })}
+                                className="w-full rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                            >
+                                {[3, 5, 7, 10, 15, 20].map((value) => (
+                                    <option key={value} value={value}>{value} 世代</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-surface-300 mb-2">バックアップ保存先</label>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <input
+                                type="text"
+                                value={backupSettings.backupPath}
+                                onChange={(e) => onBackupSettingsChange({ backupPath: e.target.value })}
+                                placeholder="未指定時は既定の保存先を使用"
+                                className="flex-1 rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                            />
+                            <button
+                                type="button"
+                                onClick={onBrowseBackupPath}
+                                className="inline-flex items-center justify-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-700"
+                            >
+                                <FolderOpen size={15} />
+                                フォルダ選択
+                            </button>
+                        </div>
+                        <p className="text-xs text-surface-500 mt-1">
+                            空欄なら既定のバックアップ保存先を使います。変更内容は自動保存されます。
+                        </p>
+                    </div>
+
+                    <div className="text-xs text-surface-500">
+                        {isSavingBackupSettings ? 'バックアップ設定を保存中...' : 'バックアップ設定は再起動後も保持されます。'}
+                    </div>
+                </div>
+            ) : (
+                <div className="text-xs text-surface-500">
+                    {isLoadingBackupSettings ? 'バックアップ設定を読み込み中...' : 'バックアップ設定を読み込めませんでした。'}
+                </div>
+            )}
         </div>
 
         <div className="text-xs text-surface-400 bg-surface-800 p-3 rounded">
@@ -103,8 +210,51 @@ export const BackupSettingsTab = React.memo(({
             <ul className="list-disc list-inside space-y-1">
                 <li>バックアップにはDBサイズの1.5倍のディスク容量が必要です</li>
                 <li>リストアを実行するとアプリが再起動されます</li>
-                <li>バックアップファイルは自動的に世代管理されます（最大5世代）</li>
+                <li>バックアップファイルは設定した世代数で自動整理されます</li>
             </ul>
+        </div>
+
+        <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">
+            <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                    <h3 className="text-sm font-medium text-surface-200">現在のプロファイルのバックアップ履歴</h3>
+                    <p className="text-xs text-surface-500 mt-0.5">
+                        対象: {activeProfileLabel}
+                    </p>
+                </div>
+                <span className="text-xs text-surface-400 whitespace-nowrap">
+                    {isLoadingBackupHistory ? '読込中...' : `${backupHistory.length} 件`}
+                </span>
+            </div>
+
+            {backupHistory.length === 0 ? (
+                <p className="text-xs text-surface-500">まだバックアップはありません。</p>
+            ) : (
+                <div className="space-y-2">
+                    {backupHistory.slice(0, 8).map((backup) => (
+                        <div
+                            key={backup.id}
+                            className="flex flex-col gap-2 rounded border border-surface-700 bg-surface-900/60 px-3 py-2 md:flex-row md:items-center md:justify-between"
+                        >
+                            <div className="min-w-0">
+                                <div className="text-sm text-surface-200 truncate">{backup.filename}</div>
+                                <div className="text-xs text-surface-500 mt-0.5">
+                                    {formatBackupTimestamp(backup.createdAt)} / {formatBackupSize(backup.size)}
+                                </div>
+                                <div className="text-[11px] text-surface-600 break-all mt-0.5">{backup.path}</div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => onRestoreBackup(backup.path)}
+                                disabled={isRestoringBackup}
+                                className="rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:bg-surface-800/60 disabled:text-surface-600"
+                            >
+                                {isRestoringBackup ? '復元中...' : 'このバックアップへ復元'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
 
         <div className="border border-surface-700 rounded-lg p-3 bg-surface-900/40">

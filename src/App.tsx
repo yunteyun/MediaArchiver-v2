@@ -90,6 +90,7 @@ function App() {
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const profileSettingsLoadSeqRef = useRef(0);
     const startupAutoScanStartedRef = useRef(false);
+    const autoBackupProfileCheckRef = useRef<string | null>(null);
 
     useEffect(() => {
         const flags = initializePerfDebugFlags();
@@ -244,6 +245,53 @@ function App() {
         }, 500);
         return () => clearTimeout(timer);
     }, [activeProfileId, profileSettingsRuntimeReady, profiles.length]);
+
+    useEffect(() => {
+        if (!profileSettingsRuntimeReady || !activeProfileId) {
+            return;
+        }
+
+        if (autoBackupProfileCheckRef.current === activeProfileId) {
+            return;
+        }
+        autoBackupProfileCheckRef.current = activeProfileId;
+
+        let cancelled = false;
+
+        void (async () => {
+            try {
+                const backupSettings = await window.electronAPI.getBackupSettings();
+                if (cancelled || !backupSettings.enabled) {
+                    return;
+                }
+
+                const shouldRun = await window.electronAPI.shouldAutoBackup(activeProfileId);
+                if (cancelled || !shouldRun) {
+                    return;
+                }
+
+                const result = await window.electronAPI.createBackup(activeProfileId);
+                if (cancelled) {
+                    return;
+                }
+
+                if (result.success) {
+                    useToastStore.getState().success('自動バックアップを作成しました', 4000);
+                } else {
+                    useToastStore.getState().error(`自動バックアップに失敗しました: ${result.error ?? 'unknown error'}`, 5000);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('Auto backup failed:', error);
+                    useToastStore.getState().error('自動バックアップに失敗しました', 5000);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeProfileId, profileSettingsRuntimeReady]);
 
     useEffect(() => {
         const settings = useSettingsStore.getState().storageMaintenanceSettings;

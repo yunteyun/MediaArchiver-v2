@@ -43,6 +43,9 @@
 - `docs/dev/operations/回帰確認チェックリスト.md`
   - UI 変更時の最低限の確認観点
   - リリース前のスモーク確認
+- `docs/dev/operations/運用前チェックリスト.md`
+  - 本格運用へ入る前の確認項目
+  - バックアップ、スキャン、更新導線の事前確認
 - `docs/dev/operations/multi-agent-playbook.md`
   - マルチエージェント運用時の役割分担
   - 依頼テンプレートと競合防止ルール

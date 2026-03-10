@@ -5,9 +5,12 @@
 import { ipcMain, dialog } from 'electron';
 import {
     createBackup,
+    DEFAULT_BACKUP_SETTINGS,
     getBackupHistory,
+    loadBackupSettings,
     restoreBackup,
     pruneOldBackups,
+    saveBackupSettings,
     shouldAutoBackup,
     BackupSettings
 } from '../services/backupService';
@@ -15,23 +18,17 @@ import { logger } from '../services/logger';
 
 const log = logger.scope('BackupIPC');
 
-// バックアップ設定（簡易実装、後で settingsService に統合可能）
-let backupSettings: BackupSettings = {
-    enabled: false,
-    interval: 'weekly',
-    maxBackups: 5,
-    backupPath: ''
-};
+let backupSettings: BackupSettings = loadBackupSettings();
 
 export function registerBackupHandlers(): void {
     // バックアップ作成
     ipcMain.handle('backup:create', async (_event, { profileId }: { profileId: string }) => {
         try {
             log.info(`Creating backup for profile: ${profileId}`);
-            const backup = await createBackup(profileId);
+            const backup = await createBackup(profileId, backupSettings);
 
             // 世代数制限チェック
-            pruneOldBackups(profileId, backupSettings.maxBackups);
+            pruneOldBackups(profileId, backupSettings.maxBackups, backupSettings);
 
             return { success: true, backup };
         } catch (error: any) {
@@ -43,7 +40,7 @@ export function registerBackupHandlers(): void {
     // バックアップ履歴取得
     ipcMain.handle('backup:history', async (_event, { profileId }: { profileId: string }) => {
         try {
-            return getBackupHistory(profileId);
+            return getBackupHistory(profileId, backupSettings);
         } catch (error: any) {
             log.error('Failed to get backup history:', error);
             return [];
@@ -83,7 +80,7 @@ export function registerBackupHandlers(): void {
 
     // 設定更新
     ipcMain.handle('backup:setSettings', async (_event, settings: BackupSettings) => {
-        backupSettings = { ...backupSettings, ...settings };
+        backupSettings = saveBackupSettings({ ...DEFAULT_BACKUP_SETTINGS, ...backupSettings, ...settings });
         log.info('Backup settings updated:', backupSettings);
         return { success: true };
     });

@@ -16,6 +16,7 @@ import { dbManager } from './databaseManager';
 import { logger } from './logger';
 
 const log = logger.scope('BackupService');
+const BACKUP_SETTINGS_FILENAME = 'backup-settings.json';
 
 // --- Types ---
 
@@ -35,17 +36,68 @@ export interface BackupSettings {
     backupPath: string;
 }
 
+export const DEFAULT_BACKUP_SETTINGS: BackupSettings = {
+    enabled: false,
+    interval: 'weekly',
+    maxBackups: 5,
+    backupPath: '',
+};
+
 // --- Helper Functions ---
 
-/**
- * バックアップディレクトリ取得
- */
-function getBackupDir(): string {
-    const backupDir = path.join(app.getPath('userData'), 'backups');
+function getBackupSettingsPath(): string {
+    return path.join(app.getPath('userData'), BACKUP_SETTINGS_FILENAME);
+}
+
+function normalizeBackupSettings(input: Partial<BackupSettings> | null | undefined): BackupSettings {
+    const parsedMaxBackups = Number(input?.maxBackups);
+    return {
+        enabled: input?.enabled === true,
+        interval: input?.interval === 'daily' ? 'daily' : DEFAULT_BACKUP_SETTINGS.interval,
+        maxBackups: Number.isFinite(parsedMaxBackups)
+            ? Math.max(1, Math.min(50, Math.round(parsedMaxBackups)))
+            : DEFAULT_BACKUP_SETTINGS.maxBackups,
+        backupPath: typeof input?.backupPath === 'string' ? input.backupPath.trim() : DEFAULT_BACKUP_SETTINGS.backupPath,
+    };
+}
+
+function resolveBackupDir(settings: BackupSettings): string {
+    const backupDir = settings.backupPath
+        ? path.resolve(settings.backupPath)
+        : path.join(app.getPath('userData'), 'backups');
     if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
     }
     return backupDir;
+}
+
+/**
+ * バックアップディレクトリ取得
+ */
+function getBackupDir(settings: BackupSettings = DEFAULT_BACKUP_SETTINGS): string {
+    return resolveBackupDir(settings);
+}
+
+export function loadBackupSettings(): BackupSettings {
+    const settingsPath = getBackupSettingsPath();
+    if (!fs.existsSync(settingsPath)) {
+        return { ...DEFAULT_BACKUP_SETTINGS };
+    }
+
+    try {
+        const parsed = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) as Partial<BackupSettings>;
+        return normalizeBackupSettings(parsed);
+    } catch (error) {
+        log.warn('Failed to read backup settings. Falling back to defaults.', error);
+        return { ...DEFAULT_BACKUP_SETTINGS };
+    }
+}
+
+export function saveBackupSettings(settings: BackupSettings): BackupSettings {
+    const normalized = normalizeBackupSettings(settings);
+    const settingsPath = getBackupSettingsPath();
+    fs.writeFileSync(settingsPath, JSON.stringify(normalized, null, 2), 'utf-8');
+    return normalized;
 }
 
 /**
@@ -69,11 +121,14 @@ async function checkDiskSpaceAvailable(targetPath: string, requiredBytes: number
 /**
  * 手動バックアップ（VACUUM INTO使用）
  */
-export async function createBackup(profileId: string): Promise<BackupInfo> {
+export async function createBackup(
+    profileId: string,
+    settings: BackupSettings = loadBackupSettings()
+): Promise<BackupInfo> {
     const db = dbManager.getDb();
     const timestamp = Date.now();
     const filename = `backup_${profileId}_${timestamp}.db`;
-    const backupPath = path.join(getBackupDir(), filename);
+    const backupPath = path.join(getBackupDir(settings), filename);
 
     log.info(`Creating backup: ${backupPath}`);
 
@@ -117,8 +172,11 @@ export async function createBackup(profileId: string): Promise<BackupInfo> {
 /**
  * バックアップ履歴取得（ファイル名からタイムスタンプをパース）
  */
-export function getBackupHistory(profileId: string): BackupInfo[] {
-    const backupDir = getBackupDir();
+export function getBackupHistory(
+    profileId: string,
+    settings: BackupSettings = loadBackupSettings()
+): BackupInfo[] {
+    const backupDir = getBackupDir(settings);
 
     if (!fs.existsSync(backupDir)) {
         return [];
@@ -182,8 +240,12 @@ export async function restoreBackup(backupPath: string): Promise<void> {
 /**
  * 古いバックアップの削除（世代数制限）
  */
-export function pruneOldBackups(profileId: string, maxCount: number): void {
-    const backups = getBackupHistory(profileId);
+export function pruneOldBackups(
+    profileId: string,
+    maxCount: number,
+    settings: BackupSettings = loadBackupSettings()
+): void {
+    const backups = getBackupHistory(profileId, settings);
 
     if (backups.length > maxCount) {
         const toDelete = backups.slice(maxCount);
@@ -206,7 +268,7 @@ export function shouldAutoBackup(profileId: string, settings: BackupSettings): b
         return false;
     }
 
-    const backups = getBackupHistory(profileId);
+    const backups = getBackupHistory(profileId, settings);
     if (backups.length === 0) {
         return true; // 初回バックアップ
     }

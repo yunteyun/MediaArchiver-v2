@@ -179,6 +179,15 @@ export const SettingsModal = React.memo(() => {
         handleApplyUpdateFromZip,
         handleApplyUpdateViaZipDialog,
         handleCreateBackup,
+        backupSettings,
+        backupHistory,
+        isLoadingBackupSettings,
+        isSavingBackupSettings,
+        isLoadingBackupHistory,
+        isRestoringBackup,
+        handleBackupSettingsChange,
+        handleBrowseBackupPath,
+        handleRestoreBackup,
         storageConfig,
         selectedMode,
         setSelectedMode,
@@ -196,6 +205,7 @@ export const SettingsModal = React.memo(() => {
         fileTagsCache,
         currentFolderId,
         allTags,
+        activeProfileId,
         activeProfileLabel,
     });
 
@@ -773,6 +783,15 @@ export const SettingsModal = React.memo(() => {
                                 importDryRun={importDryRun}
                                 importWarnings={importWarnings}
                                 onCreateBackup={() => { void handleCreateBackup(); }}
+                                backupSettings={backupSettings}
+                                backupHistory={backupHistory}
+                                isLoadingBackupSettings={isLoadingBackupSettings}
+                                isSavingBackupSettings={isSavingBackupSettings}
+                                isLoadingBackupHistory={isLoadingBackupHistory}
+                                isRestoringBackup={isRestoringBackup}
+                                onBackupSettingsChange={(patch) => { void handleBackupSettingsChange(patch); }}
+                                onBrowseBackupPath={() => { void handleBrowseBackupPath(); }}
+                                onRestoreBackup={(backupPath) => { void handleRestoreBackup(backupPath); }}
                             />
                         )}
 
