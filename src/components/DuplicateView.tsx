@@ -2,8 +2,8 @@
  * DuplicateView - 重複ファイルビュー
  */
 
-import React, { useEffect, useCallback } from 'react';
-import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader } from 'lucide-react';
+import React, { useEffect, useCallback, useMemo } from 'react';
+import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useDuplicateStore } from '../stores/useDuplicateStore';
 import { useUIStore } from '../stores/useUIStore';
 import { toMediaUrl } from '../utils/mediaPath';
@@ -40,12 +40,26 @@ export const DuplicateView: React.FC = () => {
         setProgress,
         selectFile,
         deselectFile,
+        selectFilesInGroup,
+        selectAllFilesInGroup,
         selectByStrategy,
+        keepOnlyFileInGroup,
+        clearSelection,
         deleteSelectedFiles,
         reset
     } = useDuplicateStore();
 
     const closeDuplicateView = useUIStore((s) => s.closeDuplicateView);
+
+    const selectionSummary = useMemo(() => {
+        const selectedGroupCount = groups.filter((group) =>
+            group.files.some((file) => selectedFileIds.has(file.id))
+        ).length;
+        return {
+            selectedFileCount: selectedFileIds.size,
+            selectedGroupCount,
+        };
+    }, [groups, selectedFileIds]);
 
     // 進捗イベントをリッスン
     useEffect(() => {
@@ -76,6 +90,14 @@ export const DuplicateView: React.FC = () => {
             await deleteSelectedFiles();
         }
     }, [selectedFileIds, deleteSelectedFiles]);
+
+    const handleRevealInExplorer = useCallback(async (filePath: string) => {
+        try {
+            await window.electronAPI.showInExplorer(filePath);
+        } catch (error) {
+            console.error('Failed to reveal duplicate file:', error);
+        }
+    }, []);
 
     // 検索中の表示
     if (isSearching) {
@@ -188,18 +210,27 @@ export const DuplicateView: React.FC = () => {
                         再検索
                     </button>
                     {selectedFileIds.size > 0 && (
-                        <button
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                            className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-sm transition-colors flex items-center gap-1 disabled:opacity-50"
-                        >
-                            {isDeleting ? (
-                                <Loader className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Trash2 className="w-4 h-4" />
-                            )}
-                            {selectedFileIds.size}件を削除
-                        </button>
+                        <>
+                            <button
+                                onClick={clearSelection}
+                                disabled={isDeleting}
+                                className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                            >
+                                選択解除
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-sm transition-colors flex items-center gap-1 disabled:opacity-50"
+                            >
+                                {isDeleting ? (
+                                    <Loader className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                )}
+                                {selectedFileIds.size}件を削除
+                            </button>
+                        </>
                     )}
                     <button
                         onClick={() => {
@@ -214,51 +245,105 @@ export const DuplicateView: React.FC = () => {
                 </div>
             </div>
 
+            {selectionSummary.selectedFileCount > 0 && (
+                <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-surface-800 bg-surface-950/80 px-4 py-3 text-sm">
+                    <div className="flex items-center gap-2 text-surface-200">
+                        <AlertTriangle className="h-4 w-4 text-red-400" />
+                        <span>
+                            {selectionSummary.selectedGroupCount} グループ / {selectionSummary.selectedFileCount} 件を削除候補として選択中
+                        </span>
+                    </div>
+                    <div className="text-xs text-surface-500">
+                        各行の「このファイルを残す」で残したい側へすぐ切り替えできます。
+                    </div>
+                </div>
+            )}
+
             {/* グループ一覧 */}
             <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
-                {groups.map((group) => (
-                    <div key={group.hash} className="bg-surface-800 rounded-lg overflow-hidden">
+                {groups.map((group) => {
+                    const selectedCount = group.files.filter((file) => selectedFileIds.has(file.id)).length;
+                    const keepCount = group.count - selectedCount;
+                    const allSelected = selectedCount === group.count;
+
+                    return (
+                    <div key={group.hash} className="bg-surface-800 rounded-lg overflow-hidden ring-1 ring-surface-700/80">
                         {/* グループヘッダー */}
-                        <div className="flex items-center justify-between px-4 py-3 bg-surface-750 border-b border-surface-700">
-                            <span className="text-surface-200 font-medium">
-                                {group.count}ファイル, {formatFileSize(group.size)}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => selectByStrategy(group.hash, 'newest')}
-                                    className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
-                                    title="最も新しいファイルを残す"
-                                >
-                                    新しい方を残す
-                                </button>
-                                <button
-                                    onClick={() => selectByStrategy(group.hash, 'oldest')}
-                                    className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
-                                    title="最も古いファイルを残す"
-                                >
-                                    古い方を残す
-                                </button>
-                                <button
-                                    onClick={() => selectByStrategy(group.hash, 'shortest_path')}
-                                    className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
-                                    title="パスが短い方を残す"
-                                >
-                                    パスが短い方
-                                </button>
+                        <div className="border-b border-surface-700 bg-surface-750 px-4 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <span className="text-surface-100 font-medium">
+                                        {group.count}ファイル, {formatFileSize(group.size)}
+                                    </span>
+                                    <span className="rounded bg-surface-700 px-2 py-0.5 text-xs text-surface-300">
+                                        重複ぶん {formatFileSize(group.size * Math.max(group.count - 1, 0))}
+                                    </span>
+                                    {selectedCount > 0 && (
+                                        <span className={`rounded px-2 py-0.5 text-xs ${allSelected ? 'bg-red-500/20 text-red-200' : 'bg-amber-500/15 text-amber-200'}`}>
+                                            削除候補 {selectedCount} 件 / 残す予定 {Math.max(keepCount, 0)} 件
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <button
+                                        onClick={() => selectByStrategy(group.hash, 'newest')}
+                                        className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
+                                        title="最も新しいファイルを残す"
+                                    >
+                                        新しい方を残す
+                                    </button>
+                                    <button
+                                        onClick={() => selectByStrategy(group.hash, 'oldest')}
+                                        className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
+                                        title="最も古いファイルを残す"
+                                    >
+                                        古い方を残す
+                                    </button>
+                                    <button
+                                        onClick={() => selectByStrategy(group.hash, 'shortest_path')}
+                                        className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
+                                        title="パスが短い方を残す"
+                                    >
+                                        パス短優先
+                                    </button>
+                                    <button
+                                        onClick={() => selectAllFilesInGroup(group.hash)}
+                                        className="px-2 py-1 text-xs bg-red-950/60 hover:bg-red-950 text-red-200 rounded transition-colors"
+                                        title="このグループをすべて削除候補にする"
+                                    >
+                                        全件選択
+                                    </button>
+                                    <button
+                                        onClick={() => selectFilesInGroup(group.hash, [])}
+                                        className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
+                                        title="このグループの選択を解除"
+                                    >
+                                        選択解除
+                                    </button>
+                                </div>
                             </div>
+                            {allSelected && (
+                                <div className="mt-2 flex items-center gap-2 text-xs text-red-200">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-red-300" />
+                                    <span>このグループは全件削除候補です。残したいファイルがある場合は各行の「このファイルを残す」を使ってください。</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* ファイル一覧 */}
                         <div className="divide-y divide-surface-700">
                             {group.files.map((file) => {
                                 const isSelected = selectedFileIds.has(file.id);
+                                const isPrimaryKeepTarget = !isSelected && keepCount === 1;
                                 return (
                                     <div
                                         key={file.id}
                                         onClick={() => toggleFileSelection(file.id)}
                                         className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${isSelected
                                             ? 'bg-red-900/20 hover:bg-red-900/30'
-                                            : 'hover:bg-surface-750'
+                                            : isPrimaryKeepTarget
+                                                ? 'bg-emerald-950/20 hover:bg-emerald-950/30'
+                                                : 'hover:bg-surface-750'
                                             }`}
                                     >
                                         {/* チェックボックス */}
@@ -283,9 +368,19 @@ export const DuplicateView: React.FC = () => {
 
                                         {/* ファイル情報 */}
                                         <div className="flex-1 min-w-0">
-                                            <p className={`font-medium truncate ${isSelected ? 'text-red-300' : 'text-surface-200'}`}>
-                                                {file.name}
-                                            </p>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <p className={`min-w-0 flex-1 truncate font-medium ${isSelected ? 'text-red-300' : 'text-surface-200'}`}>
+                                                    {file.name}
+                                                </p>
+                                                <span className={`rounded px-2 py-0.5 text-[11px] ${isSelected
+                                                    ? 'bg-red-500/15 text-red-200'
+                                                    : isPrimaryKeepTarget
+                                                        ? 'bg-emerald-500/15 text-emerald-200'
+                                                        : 'bg-surface-700 text-surface-300'
+                                                    }`}>
+                                                    {isSelected ? '削除候補' : isPrimaryKeepTarget ? '残す対象' : '未選択'}
+                                                </span>
+                                            </div>
                                             <p className="text-sm text-surface-500 truncate flex items-center gap-2">
                                                 <FolderOpen className="w-3 h-3 flex-shrink-0" />
                                                 {file.path}
@@ -293,16 +388,46 @@ export const DuplicateView: React.FC = () => {
                                         </div>
 
                                         {/* 日付 */}
-                                        <div className="text-sm text-surface-400 flex items-center gap-1 flex-shrink-0">
-                                            <Clock className="w-3 h-3" />
-                                            {formatDate(file.mtime_ms || file.created_at)}
+                                        <div className="flex items-center gap-2 self-stretch">
+                                            <div className="text-sm text-surface-400 flex items-center gap-1 flex-shrink-0">
+                                                <Clock className="w-3 h-3" />
+                                                {formatDate(file.mtime_ms || file.created_at)}
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        keepOnlyFileInGroup(group.hash, file.id);
+                                                    }}
+                                                    className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs transition-colors ${isSelected
+                                                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                                        : 'bg-surface-700 hover:bg-surface-600 text-surface-200'
+                                                        }`}
+                                                    title="このファイル以外を削除候補にする"
+                                                >
+                                                    <ShieldCheck className="h-3.5 w-3.5" />
+                                                    このファイルを残す
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        void handleRevealInExplorer(file.path);
+                                                    }}
+                                                    className="rounded px-2 py-0.5 text-[11px] text-surface-400 transition-colors hover:bg-surface-700 hover:text-surface-200"
+                                                    title="エクスプローラーで表示"
+                                                >
+                                                    場所を開く
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
-                ))}
+                )})}
             </div>
         </div>
     );
