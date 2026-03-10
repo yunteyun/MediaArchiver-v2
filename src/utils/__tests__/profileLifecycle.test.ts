@@ -5,6 +5,7 @@ import {
     loadAndApplyProfileScopedSettings,
     resetStateForProfileSwitch,
 } from '../profileLifecycle';
+import { DEFAULT_RATING_DISPLAY_THRESHOLDS } from '../../shared/ratingDisplayThresholds';
 
 describe('createInitialProfileScopedSettings', () => {
     it('uses current settings when migration is accepted', () => {
@@ -13,6 +14,7 @@ describe('createInitialProfileScopedSettings', () => {
             previewFrameCount: 14,
             scanThrottleMs: 100,
             thumbnailResolution: 440,
+            ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
             sortBy: 'name',
             sortOrder: 'asc',
             groupBy: 'type',
@@ -41,6 +43,7 @@ describe('createInitialProfileScopedSettings', () => {
             previewFrameCount: 14,
             scanThrottleMs: 100,
             thumbnailResolution: 440,
+            ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
             listDisplayDefaults: {
                 sortBy: 'name',
                 sortOrder: 'asc',
@@ -72,6 +75,7 @@ describe('createInitialProfileScopedSettings', () => {
             previewFrameCount: 18,
             scanThrottleMs: 200,
             thumbnailResolution: 480,
+            ratingDisplayThresholds: { mid: 1.5, high: 3.5 },
             sortBy: 'name',
             sortOrder: 'asc',
             groupBy: 'type',
@@ -100,6 +104,7 @@ describe('createInitialProfileScopedSettings', () => {
             previewFrameCount: 10,
             scanThrottleMs: 0,
             thumbnailResolution: 320,
+            ratingDisplayThresholds: { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
             listDisplayDefaults: {
                 sortBy: 'date',
                 sortOrder: 'desc',
@@ -140,6 +145,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 previewFrameCount: 9,
                 scanThrottleMs: 0,
                 thumbnailResolution: 320,
+                ratingDisplayThresholds: { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
                 listDisplayDefaults: {
                     sortBy: 'date',
                     sortOrder: 'desc',
@@ -169,6 +175,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 previewFrameCount: 14,
                 scanThrottleMs: 100,
                 thumbnailResolution: 440,
+                ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
                 listDisplayDefaults: {
                     sortBy: 'name',
                     sortOrder: 'asc',
@@ -209,6 +216,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 previewFrameCount: 14,
                 scanThrottleMs: 100,
                 thumbnailResolution: 440,
+                ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
                 sortBy: 'name',
                 sortOrder: 'asc',
                 groupBy: 'type',
@@ -242,6 +250,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
             previewFrameCount: 14,
             scanThrottleMs: 100,
             thumbnailResolution: 440,
+            ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
             listDisplayDefaults: {
                 sortBy: 'name',
                 sortOrder: 'asc',
@@ -271,6 +280,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
             previewFrameCount: 14,
             scanThrottleMs: 100,
             thumbnailResolution: 440,
+            ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
             listDisplayDefaults: {
                 sortBy: 'name',
                 sortOrder: 'asc',
@@ -312,6 +322,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 previewFrameCount: 10,
                 scanThrottleMs: 0,
                 thumbnailResolution: 320,
+                ratingDisplayThresholds: { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
                 sortBy: 'date',
                 sortOrder: 'desc',
                 groupBy: 'none',
@@ -336,6 +347,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
                     previewFrameCount: 8,
                     scanThrottleMs: 50,
                     thumbnailResolution: 280,
+                    ratingDisplayThresholds: { mid: 2.8, high: 4.4 },
                     listDisplayDefaults: {
                         sortBy: 'name',
                         sortOrder: 'asc',

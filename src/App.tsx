@@ -53,6 +53,7 @@ function OverlayLoading({ label }: { label: string }) {
 
 function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [profileSettingsRuntimeReady, setProfileSettingsRuntimeReady] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [renameDialogFileId, setRenameDialogFileId] = useState<string | null>(null);
     const [renameDialogCurrentName, setRenameDialogCurrentName] = useState('');
@@ -73,8 +74,8 @@ function App() {
     const lightboxFile = useUIStore((s) => s.lightboxFile);
     const externalApps = useSettingsStore((s) => s.externalApps);
     const deleteDialogOpen = useUIStore((s) => s.deleteDialogOpen);
-    const deleteDialogFilePath = useUIStore((s) => s.deleteDialogFilePath);
-    const deleteDialogFileId = useUIStore((s) => s.deleteDialogFileId);
+    const deleteDialogFilePaths = useUIStore((s) => s.deleteDialogFilePaths);
+    const deleteDialogFileIds = useUIStore((s) => s.deleteDialogFileIds);
     const openDeleteDialog = useUIStore((s) => s.openDeleteDialog);
     const closeDeleteDialog = useUIStore((s) => s.closeDeleteDialog);
     // Phase 22-C-2
@@ -88,6 +89,7 @@ function App() {
     const applyProfileScopedUiDefaults = useUIStore((s) => s.applyProfileScopedUiDefaults);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
     const profileSettingsLoadSeqRef = useRef(0);
+    const startupAutoScanStartedRef = useRef(false);
 
     useEffect(() => {
         const flags = initializePerfDebugFlags();
@@ -194,8 +196,28 @@ function App() {
     }, [loadProfiles]);
 
     useEffect(() => {
-        void loadAndApplyActiveProfileScopedSettings();
-    }, [loadAndApplyActiveProfileScopedSettings]);
+        if (!activeProfileId || profiles.length === 0) {
+            setProfileSettingsRuntimeReady(false);
+            return;
+        }
+
+        let cancelled = false;
+        setProfileSettingsRuntimeReady(false);
+
+        void (async () => {
+            try {
+                await loadAndApplyActiveProfileScopedSettings();
+            } finally {
+                if (!cancelled) {
+                    setProfileSettingsRuntimeReady(true);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeProfileId, loadAndApplyActiveProfileScopedSettings, profiles.length]);
 
     // 評価フィルター用キャッシュを起動時に一括ロード
     useEffect(() => {
@@ -210,12 +232,18 @@ function App() {
     // 起動時自動スキャン（初回マウント時のみ）
     // 実際の対象は「フォルダ別設定で起動時スキャンONのフォルダ」のみ。
     useEffect(() => {
+        if (startupAutoScanStartedRef.current || !profileSettingsRuntimeReady || !activeProfileId || profiles.length === 0) {
+            return;
+        }
+
+        startupAutoScanStartedRef.current = true;
+
         // 少し遅延を入れてUIが準備できてから実行
         const timer = setTimeout(() => {
             window.electronAPI.autoScan().catch(console.error);
         }, 500);
         return () => clearTimeout(timer);
-    }, []);
+    }, [activeProfileId, profileSettingsRuntimeReady, profiles.length]);
 
     useEffect(() => {
         const settings = useSettingsStore.getState().storageMaintenanceSettings;
@@ -389,33 +417,52 @@ function App() {
     // 削除ダイアログイベントリスナー（Phase 12-17B）
     useEffect(() => {
         const cleanup = window.electronAPI.onShowDeleteDialog((data) => {
-            openDeleteDialog(data.fileId, data.filePath);
+            openDeleteDialog(data.fileIds, data.filePaths);
         });
         return cleanup;
     }, [openDeleteDialog]);
 
     // 削除確認ハンドラー（Phase 12-17B）
     const handleDeleteConfirm = useCallback(async (permanentDelete: boolean) => {
-        if (!deleteDialogFileId || !deleteDialogFilePath) return;
+        if (deleteDialogFileIds.length === 0 || deleteDialogFilePaths.length === 0) return;
 
         try {
-            const result = await window.electronAPI.confirmDelete(
-                deleteDialogFileId,
-                deleteDialogFilePath,
+            if (deleteDialogFileIds.length === 1) {
+                const result = await window.electronAPI.confirmDelete(
+                    deleteDialogFileIds[0]!,
+                    deleteDialogFilePaths[0]!,
+                    permanentDelete
+                );
+
+                if (result.success) {
+                    closeDeleteDialog();
+                    useToastStore.getState().success('ファイルを削除しました');
+                } else if (!result.cancelled) {
+                    useToastStore.getState().error(`削除に失敗しました: ${result.error}`);
+                }
+                return;
+            }
+
+            const result = await window.electronAPI.confirmDeleteBatch(
+                deleteDialogFileIds,
+                deleteDialogFilePaths,
                 permanentDelete
             );
 
             if (result.success) {
                 closeDeleteDialog();
-                useToastStore.getState().success('ファイルを削除しました');
+                useToastStore.getState().success(`${result.deletedCount} 件のファイルを削除しました`);
             } else if (!result.cancelled) {
-                useToastStore.getState().error(`削除に失敗しました: ${result.error}`);
+                const baseMessage = result.failedCount > 0
+                    ? `${result.deletedCount} 件削除 / ${result.failedCount} 件失敗`
+                    : (result.error ?? '削除に失敗しました');
+                useToastStore.getState().error(baseMessage);
             }
         } catch (e) {
             console.error('Delete failed:', e);
             useToastStore.getState().error('削除に失敗しました');
         }
-    }, [deleteDialogFileId, deleteDialogFilePath, closeDeleteDialog]);
+    }, [closeDeleteDialog, deleteDialogFileIds, deleteDialogFilePaths]);
 
     // Phase 26: ヘッダーバージョン表記
     const [appVersion, setAppVersion] = useState('');
@@ -504,7 +551,7 @@ function App() {
                 <Suspense fallback={null}>
                     <DeleteConfirmDialog
                         isOpen={deleteDialogOpen}
-                        filePath={deleteDialogFilePath || ''}
+                        filePaths={deleteDialogFilePaths}
                         onConfirm={handleDeleteConfirm}
                         onCancel={closeDeleteDialog}
                     />

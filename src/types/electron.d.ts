@@ -280,7 +280,19 @@ declare global {
 
             // File Delete Dialog (Phase 12-17B)
             confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) => Promise<{ success: boolean; cancelled?: boolean; error?: string }>;
-            onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) => () => void;
+            confirmDeleteBatch: (
+                fileIds: string[],
+                filePaths: string[],
+                permanentDelete: boolean
+            ) => Promise<{
+                success: boolean;
+                cancelled?: boolean;
+                deletedCount: number;
+                failedCount: number;
+                error?: string;
+                errors?: string[];
+            }>;
+            onShowDeleteDialog: (callback: (data: { fileIds: string[]; filePaths: string[] }) => void) => () => void;
 
             // Phase 18-C: File Move
             moveFileToFolder: (fileId: string, targetFolderId: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;

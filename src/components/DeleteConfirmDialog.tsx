@@ -2,18 +2,21 @@ import React, { useState, useEffect } from 'react';
 
 interface DeleteConfirmDialogProps {
     isOpen: boolean;
-    filePath: string;
+    filePaths: string[];
     onConfirm: (permanentDelete: boolean) => void;
     onCancel: () => void;
 }
 
 export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
     isOpen,
-    filePath,
+    filePaths,
     onConfirm,
     onCancel
 }) => {
     const [isPermanentDelete, setIsPermanentDelete] = useState(false);
+    const fileCount = filePaths.length;
+    const previewPaths = filePaths.slice(0, 3);
+    const remainingCount = Math.max(0, fileCount - previewPaths.length);
 
     // ダイアログが閉じたらチェックボックスをリセット
     useEffect(() => {
@@ -49,12 +52,19 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
                 <h2 className="text-lg font-semibold mb-4 text-surface-100">ファイルの削除</h2>
 
                 {/* メッセージ */}
-                <p className="text-surface-200 mb-2">このファイルを削除しますか？</p>
+                <p className="text-surface-200 mb-2">
+                    {fileCount > 1 ? `選択した ${fileCount} 件のファイルを削除しますか？` : 'このファイルを削除しますか？'}
+                </p>
 
                 {/* ファイルパス */}
-                <p className="text-sm text-surface-400 mb-4 break-all bg-surface-900 p-2 rounded border border-surface-700">
-                    {filePath}
-                </p>
+                <div className="text-sm text-surface-400 mb-4 break-all bg-surface-900 p-2 rounded border border-surface-700 space-y-2">
+                    {previewPaths.map((filePath) => (
+                        <p key={filePath}>{filePath}</p>
+                    ))}
+                    {remainingCount > 0 && (
+                        <p className="text-surface-500">...ほか {remainingCount} 件</p>
+                    )}
+                </div>
 
                 {/* チェックボックス */}
                 <label className="flex items-center gap-2 mb-6 cursor-pointer hover:bg-surface-700/30 p-2 rounded transition-colors">

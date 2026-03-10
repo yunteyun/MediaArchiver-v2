@@ -34,6 +34,18 @@ export interface ScanFileTypeCategoryFilters {
     audio: boolean;
 }
 
+export interface ScanRuntimeSettings {
+    previewFrameCount: number;
+    scanThrottleMs: number;
+    thumbnailResolution: number;
+    fileTypeCategories: ScanFileTypeCategoryFilters;
+    exclusionRules: ScanExclusionRules;
+}
+
+export interface ScanCancellationToken {
+    cancelled: boolean;
+}
+
 let enabledScanCategories: ScanFileTypeCategoryFilters = {
     video: true,
     image: true,
@@ -51,8 +63,10 @@ function normalizeScanFileTypeCategories(input: Partial<ScanFileTypeCategoryFilt
     };
 }
 
-function resolveEffectiveScanFileTypeCategories(rootFolderId: string): ScanFileTypeCategoryFilters {
-    const profileDefaults = getScanFileTypeCategories();
+function resolveEffectiveScanFileTypeCategories(
+    rootFolderId: string,
+    profileDefaults: ScanFileTypeCategoryFilters
+): ScanFileTypeCategoryFilters {
     const folderSettings = db.getFolderScanSettings(rootFolderId);
     const overrides = folderSettings.fileTypeOverrides || {};
     return {
@@ -77,6 +91,26 @@ export function setScanExclusionRules(rules: ScanExclusionRules) {
 
 export function getScanExclusionRules(): ScanExclusionRules {
     return { ...scanExclusionRules };
+}
+
+export function getCurrentScanRuntimeSettings(): ScanRuntimeSettings {
+    return {
+        previewFrameCount: previewFrameCountSetting,
+        scanThrottleMs: scanThrottleMsSetting,
+        thumbnailResolution: thumbnailResolutionSetting,
+        fileTypeCategories: getScanFileTypeCategories(),
+        exclusionRules: getScanExclusionRules(),
+    };
+}
+
+export function createScanCancellationToken(): ScanCancellationToken {
+    return { cancelled: false };
+}
+
+export function cancelScanToken(token?: ScanCancellationToken): void {
+    if (token) {
+        token.cancelled = true;
+    }
 }
 
 function getMediaTypeFromExtension(ext: string): 'video' | 'image' | 'archive' | 'audio' | null {
@@ -189,15 +223,15 @@ export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) =>
 
 export interface ScanDirectoryOptions {
     skipInitialCount?: boolean;
+    runtimeSettings?: ScanRuntimeSettings;
+    cancellationToken?: ScanCancellationToken;
 }
 
-// スキャンキャンセル用フラグ
-let scanCancelled = false;
 export function cancelScan() {
-    scanCancelled = true;
+    // Legacy no-op. Cancellation is controlled per scan job via token.
 }
-export function isScanCancelled() {
-    return scanCancelled;
+export function isScanCancelled(token?: ScanCancellationToken) {
+    return token?.cancelled === true;
 }
 
 // プレビューフレーム数の設定（デフォルト: 10）
@@ -255,18 +289,27 @@ function commitBatch(pendingWrites: PendingWrite[]): number {
 }
 
 // ファイル数をカウント (再帰)
-async function countFiles(dirPath: string, scanFilters: ScanFileTypeCategoryFilters): Promise<number> {
+async function countFiles(
+    dirPath: string,
+    scanFilters: ScanFileTypeCategoryFilters,
+    exclusionRules: ScanExclusionRules,
+    cancellationToken?: ScanCancellationToken
+): Promise<number> {
     // パス長チェック
     if (!validatePathLength(dirPath)) {
         log.warn(`Skipping path (too long): ${dirPath.substring(0, 100)}...`);
         return 0;
     }
     if (!fs.existsSync(dirPath)) return 0;
+    if (isScanCancelled(cancellationToken)) return 0;
 
     let count = 0;
     try {
         const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
         for (const entry of entries) {
+            if (isScanCancelled(cancellationToken)) {
+                return count;
+            }
             try {
                 const fullPath = path.join(dirPath, entry.name);
 
@@ -277,13 +320,13 @@ async function countFiles(dirPath: string, scanFilters: ScanFileTypeCategoryFilt
                 }
 
                 if (entry.isDirectory()) {
-                    if (shouldSkipDirectoryEntry(entry.name, scanExclusionRules)) {
+                    if (shouldSkipDirectoryEntry(entry.name, exclusionRules)) {
                         continue;
                     }
-                    count += await countFiles(fullPath, scanFilters);
+                    count += await countFiles(fullPath, scanFilters, exclusionRules, cancellationToken);
                 } else if (entry.isFile()) {
                     const ext = path.extname(entry.name).toLowerCase();
-                    if (!shouldSkipFileByExtension(ext, scanExclusionRules) && isScannableMediaType(ext, scanFilters)) {
+                    if (!shouldSkipFileByExtension(ext, exclusionRules) && isScannableMediaType(ext, scanFilters)) {
                         count++;
                     }
                 }
@@ -321,6 +364,8 @@ async function scanDirectoryInternal(
         pendingWrites: PendingWrite[];
         scanFilters: ScanFileTypeCategoryFilters;
         committedCount: number;
+        runtimeSettings: ScanRuntimeSettings;
+        cancellationToken?: ScanCancellationToken;
     }
 ) {
     // パス長チェック
@@ -329,7 +374,7 @@ async function scanDirectoryInternal(
         return;
     }
     if (!fs.existsSync(dirPath)) return;
-    if (scanCancelled) return;
+    if (isScanCancelled(state.cancellationToken)) return;
 
     let entries;
     try {
@@ -345,7 +390,7 @@ async function scanDirectoryInternal(
 
     for (const entry of entries) {
         // キャンセルチェック
-        if (scanCancelled) return;
+        if (isScanCancelled(state.cancellationToken)) return;
 
         try {
             const fullPath = path.join(dirPath, entry.name);
@@ -358,14 +403,14 @@ async function scanDirectoryInternal(
             }
 
             if (entry.isDirectory()) {
-                if (shouldSkipDirectoryEntry(entry.name, scanExclusionRules)) {
+                if (shouldSkipDirectoryEntry(entry.name, state.runtimeSettings.exclusionRules)) {
                     state.stats.skipCount++;
                     continue;
                 }
                 await scanDirectoryInternal(fullPath, rootFolderId, onProgress, onBatchCommitted, state);
             } else if (entry.isFile()) {
                 const ext = path.extname(entry.name).toLowerCase();
-                if (shouldSkipFileByExtension(ext, scanExclusionRules)) {
+                if (shouldSkipFileByExtension(ext, state.runtimeSettings.exclusionRules)) {
                     state.stats.skipCount++;
                     continue;
                 }
@@ -416,7 +461,7 @@ async function scanDirectoryInternal(
                         ? hasArchiveImageCountMetadataForDisplay(existing?.metadata)
                         : false;
                     const isComplete = type === 'video'
-                        ? (hasThumbnail && (hasPreviewFrames || previewFrameCountSetting === 0) && hasMetadata)
+                        ? (hasThumbnail && (hasPreviewFrames || state.runtimeSettings.previewFrameCount === 0) && hasMetadata)
                         : type === 'audio'
                             ? (hasThumbnail && hasMetadata)
                         : type === 'image'
@@ -468,8 +513,8 @@ async function scanDirectoryInternal(
                                 });
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
-                            const generated = await thumbnailLimit(() => generateThumbnail(fullPath, thumbnailResolutionSetting));
-                            if (scanCancelled) return;
+                            const generated = await thumbnailLimit(() => generateThumbnail(fullPath, state.runtimeSettings.thumbnailResolution));
+                            if (isScanCancelled(state.cancellationToken)) return;
                             if (generated) thumbnailPath = generated;
                         } catch (e) {
                             log.error('Thumbnail generation failed:', e);
@@ -492,7 +537,7 @@ async function scanDirectoryInternal(
 
                     // Check if preview frames actually exist on disk
                     let needsPreviewFrames = false;
-                    if (type === 'video' && previewFrameCountSetting > 0) {
+                    if (type === 'video' && state.runtimeSettings.previewFrameCount > 0) {
                         if (!previewFrames) {
                             // No DB record at all
                             needsPreviewFrames = true;
@@ -522,14 +567,14 @@ async function scanDirectoryInternal(
                                 });
                             }
                             // p-limitで同時実行数を制限（CPU負荷軽減）
-                            previewFrames = await thumbnailLimit(() => generatePreviewFrames(fullPath, previewFrameCountSetting)) || undefined;
+                            previewFrames = await thumbnailLimit(() => generatePreviewFrames(fullPath, state.runtimeSettings.previewFrameCount)) || undefined;
 
                             // スキャン速度抑制（コイル鳴き対策）
-                            if (scanThrottleMsSetting > 0) {
-                                await new Promise(resolve => setTimeout(resolve, scanThrottleMsSetting));
+                            if (state.runtimeSettings.scanThrottleMs > 0) {
+                                await new Promise(resolve => setTimeout(resolve, state.runtimeSettings.scanThrottleMs));
                             }
 
-                            if (scanCancelled) return;
+                            if (isScanCancelled(state.cancellationToken)) return;
                         } catch (e) {
                             log.error('Preview frames generation failed:', e);
                         }
@@ -682,8 +727,6 @@ export async function scanDirectory(
     options?: ScanDirectoryOptions
 ) {
     const perfStartedAt = startPerfTimer();
-    // キャンセルフラグをリセット
-    scanCancelled = false;
     db.updateFolderLastScanStatus(rootFolderId, {
         at: Date.now(),
         status: 'running',
@@ -691,7 +734,12 @@ export async function scanDirectory(
     });
 
     try {
-        const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(rootFolderId);
+        const runtimeSettings = options?.runtimeSettings ?? getCurrentScanRuntimeSettings();
+        const cancellationToken = options?.cancellationToken;
+        const effectiveScanFilters = resolveEffectiveScanFileTypeCategories(
+            rootFolderId,
+            runtimeSettings.fileTypeCategories
+        );
         let total = 0;
 
         if (!options?.skipInitialCount) {
@@ -700,7 +748,7 @@ export async function scanDirectory(
             }
 
             const countStartedAt = startPerfTimer();
-            total = await countFiles(dirPath, effectiveScanFilters);
+            total = await countFiles(dirPath, effectiveScanFilters, runtimeSettings.exclusionRules, cancellationToken);
             logPerf('scanner.countFiles', countStartedAt, {
                 folder: path.basename(dirPath) || dirPath,
                 total
@@ -719,6 +767,8 @@ export async function scanDirectory(
             pendingWrites: [] as PendingWrite[],
             scanFilters: effectiveScanFilters,
             committedCount: 0,
+            runtimeSettings,
+            cancellationToken,
         };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, onBatchCommitted, state);
 
@@ -748,8 +798,8 @@ export async function scanDirectory(
                     ? !isScanTypeEnabled(type, state.scanFilters)
                     : false;
             const excludedByRules =
-                shouldSkipFileByExtension(path.extname(file.path).toLowerCase(), scanExclusionRules)
-                || pathHasExcludedDirectory(file.path, dirPath, scanExclusionRules);
+                shouldSkipFileByExtension(path.extname(file.path).toLowerCase(), runtimeSettings.exclusionRules)
+                || pathHasExcludedDirectory(file.path, dirPath, runtimeSettings.exclusionRules);
 
             if (isMissingOnDisk || disabledByProfile || excludedByRules) {
                 db.deleteFile(file.id);
@@ -758,7 +808,7 @@ export async function scanDirectory(
         }
 
         // キャンセルされた場合
-        if (scanCancelled) {
+        if (isScanCancelled(cancellationToken)) {
             const finalTotal = state.total > 0 ? Math.max(state.total, state.current) : state.current;
             onBatchCommitted?.({
                 rootFolderId,

@@ -480,13 +480,18 @@ export function registerFileHandlers() {
             {
                 label: isMultiple ? `ファイルを削除 (${effectiveFileIds.length}件)` : 'ファイルを削除',
                 click: async () => {
-                    // Bug 2修正: 複数ファイルの削除
-                    for (const id of effectiveFileIds) {
-                        const file = findFileById(id);
-                        if (file) {
-                            event.sender.send('file:showDeleteDialog', { fileId: id, filePath: file.path });
-                        }
+                    const filePaths = effectiveFileIds
+                        .map((id) => findFileById(id)?.path)
+                        .filter((candidate): candidate is string => typeof candidate === 'string' && candidate.length > 0);
+
+                    if (filePaths.length === 0) {
+                        return;
                     }
+
+                    event.sender.send('file:showDeleteDialog', {
+                        fileIds: effectiveFileIds,
+                        filePaths,
+                    });
                 }
             }
         );
@@ -539,6 +544,66 @@ export function registerFileHandlers() {
                 error: e instanceof Error ? e.message : String(e)
             };
         }
+    });
+
+    ipcMain.handle('file:confirmDeleteBatch', async (event, { fileIds, filePaths, permanentDelete }) => {
+        const normalizedFileIds = Array.isArray(fileIds) ? fileIds.filter((id): id is string => typeof id === 'string' && id.length > 0) : [];
+        const normalizedFilePaths = Array.isArray(filePaths) ? filePaths.filter((filePath): filePath is string => typeof filePath === 'string' && filePath.length > 0) : [];
+
+        if (normalizedFileIds.length === 0 || normalizedFilePaths.length === 0 || normalizedFileIds.length !== normalizedFilePaths.length) {
+            return {
+                success: false,
+                deletedCount: 0,
+                failedCount: 0,
+                error: '削除対象の情報が不正です',
+            };
+        }
+
+        if (permanentDelete) {
+            const { response } = await dialog.showMessageBox({
+                type: 'warning',
+                title: '完全削除の確認',
+                message: `${normalizedFileIds.length} 件のファイルを完全に削除しますか？`,
+                detail: 'この操作は取り消せません。ファイルはゴミ箱に移動せず、完全に削除されます。',
+                buttons: ['完全に削除', 'キャンセル'],
+                defaultId: 1,
+                cancelId: 1
+            });
+
+            if (response === 1) {
+                return { success: false, cancelled: true, deletedCount: 0, failedCount: 0 };
+            }
+        }
+
+        const errors: string[] = [];
+        let deletedCount = 0;
+
+        for (let index = 0; index < normalizedFileIds.length; index += 1) {
+            const currentFileId = normalizedFileIds[index]!;
+            const currentFilePath = normalizedFilePaths[index]!;
+
+            try {
+                const result = await deleteFileSafe(currentFilePath, !permanentDelete);
+                if (!result.success) {
+                    errors.push(result.error ?? currentFilePath);
+                    continue;
+                }
+
+                deleteFile(currentFileId);
+                event.sender.send('file:deleted', currentFileId);
+                deletedCount += 1;
+            } catch (error) {
+                errors.push(error instanceof Error ? error.message : String(error));
+            }
+        }
+
+        return {
+            success: errors.length === 0,
+            deletedCount,
+            failedCount: errors.length,
+            errors,
+            error: errors[0],
+        };
     });
 
     // Phase 17: アクセス回数をインクリメント

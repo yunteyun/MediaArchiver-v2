@@ -226,7 +226,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === File Delete Dialog (Phase 12-17B) ===
     confirmDelete: (fileId: string, filePath: string, permanentDelete: boolean) =>
         ipcRenderer.invoke('file:confirmDelete', { fileId, filePath, permanentDelete }),
-    onShowDeleteDialog: (callback: (data: { fileId: string; filePath: string }) => void) =>
+    confirmDeleteBatch: (fileIds: string[], filePaths: string[], permanentDelete: boolean) =>
+        ipcRenderer.invoke('file:confirmDeleteBatch', { fileIds, filePaths, permanentDelete }),
+    onShowDeleteDialog: (callback: (data: { fileIds: string[]; filePaths: string[] }) => void) =>
         subscribe('file:showDeleteDialog', callback),
 
     // Phase 18-C: ファイル移動

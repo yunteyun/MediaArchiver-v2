@@ -79,8 +79,8 @@ interface UIState {
     mainView: 'grid' | 'profile';  // メインエリアの表示切り替え
     hoveredPreviewId: string | null;  // Phase 17-3: 同時再生制御用
     deleteDialogOpen: boolean;
-    deleteDialogFilePath: string | null;
-    deleteDialogFileId: string | null;
+    deleteDialogFilePaths: string[];
+    deleteDialogFileIds: string[];
     // Phase 22-C-2: ファイル移動ダイアログ
     moveDialogOpen: boolean;
     moveFileIds: string[];  // 将来の複数選択対応
@@ -128,7 +128,7 @@ interface UIState {
     setHoveredPreview: (id: string | null) => void;  // Phase 17-3
     isScanProgressVisible: boolean;
     setScanProgressVisible: (visible: boolean) => void;
-    openDeleteDialog: (fileId: string, filePath: string) => void;
+    openDeleteDialog: (fileIds: string[], filePaths: string[]) => void;
     closeDeleteDialog: () => void;
     // Phase 22-C-2
     openMoveDialog: (fileIds: string[], currentFolderId: string | null) => void;
@@ -166,8 +166,8 @@ export const useUIStore = create<UIState>((set) => ({
     hoveredPreviewId: null,  // Phase 17-3
     isScanProgressVisible: false,
     deleteDialogOpen: false,
-    deleteDialogFilePath: null,
-    deleteDialogFileId: null,
+    deleteDialogFilePaths: [],
+    deleteDialogFileIds: [],
     // Phase 22-C-2
     moveDialogOpen: false,
     moveFileIds: [],
@@ -311,8 +311,12 @@ export const useUIStore = create<UIState>((set) => ({
     closeDuplicateView: () => set({ duplicateViewOpen: false }),
     setDuplicateViewOpen: (open) => set({ duplicateViewOpen: open }),
     setMainView: (view) => set({ mainView: view }),
-    openDeleteDialog: (fileId, filePath) => set({ deleteDialogOpen: true, deleteDialogFileId: fileId, deleteDialogFilePath: filePath }),
-    closeDeleteDialog: () => set({ deleteDialogOpen: false, deleteDialogFilePath: null, deleteDialogFileId: null }),
+    openDeleteDialog: (fileIds, filePaths) => set({
+        deleteDialogOpen: true,
+        deleteDialogFileIds: [...fileIds],
+        deleteDialogFilePaths: [...filePaths],
+    }),
+    closeDeleteDialog: () => set({ deleteDialogOpen: false, deleteDialogFilePaths: [], deleteDialogFileIds: [] }),
     // Phase 22-C-2
     openMoveDialog: (fileIds, currentFolderId) => set({ moveDialogOpen: true, moveFileIds: fileIds, moveCurrentFolderId: currentFolderId }),
     closeMoveDialog: () => set({ moveDialogOpen: false, moveFileIds: [], moveCurrentFolderId: null }),
