@@ -1,9 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-    DUPLICATE_BULK_ACTION_GROUP_LIMIT,
-    useDuplicateStore,
-    type DuplicateGroup
-} from '../useDuplicateStore';
+import { useDuplicateStore, type DuplicateGroup } from '../useDuplicateStore';
 
 function createGroup(overrides: Partial<DuplicateGroup> = {}): DuplicateGroup {
     return {
@@ -276,71 +272,6 @@ describe('useDuplicateStore', () => {
         expect(Array.from(useDuplicateStore.getState().selectedFileIds).sort()).toEqual(['delete-1', 'delete-2']);
     });
 
-    it('selects all files across every duplicate group', () => {
-        useDuplicateStore.setState({
-            groups: [
-                createGroup({
-                    hash: 'hash-all-a',
-                    count: 2,
-                    files: [
-                        {
-                            id: 'file-a',
-                            name: 'file-a.png',
-                            path: 'C:\\library\\file-a.png',
-                            size: 100,
-                            type: 'image',
-                            created_at: 10,
-                            tags: [],
-                        },
-                        {
-                            id: 'file-b',
-                            name: 'file-b.png',
-                            path: 'C:\\library\\file-b.png',
-                            size: 100,
-                            type: 'image',
-                            created_at: 11,
-                            tags: [],
-                        },
-                    ],
-                }),
-                createGroup({
-                    hash: 'hash-all-b',
-                    count: 2,
-                    files: [
-                        {
-                            id: 'file-c',
-                            name: 'file-c.png',
-                            path: 'C:\\library\\file-c.png',
-                            size: 100,
-                            type: 'image',
-                            created_at: 12,
-                            tags: [],
-                        },
-                        {
-                            id: 'file-d',
-                            name: 'file-d.png',
-                            path: 'C:\\library\\file-d.png',
-                            size: 100,
-                            type: 'image',
-                            created_at: 13,
-                            tags: [],
-                        },
-                    ],
-                }),
-            ],
-            selectedFileIds: new Set(),
-        });
-
-        useDuplicateStore.getState().selectAllFiles();
-
-        expect(Array.from(useDuplicateStore.getState().selectedFileIds).sort()).toEqual([
-            'file-a',
-            'file-b',
-            'file-c',
-            'file-d',
-        ]);
-    });
-
     it('applies strategy selection across groups up to the provided limit', () => {
         useDuplicateStore.setState({
             groups: [
@@ -432,47 +363,5 @@ describe('useDuplicateStore', () => {
             'delete-a',
             'delete-b',
         ]);
-    });
-
-    it('uses the default bulk limit for global selection actions', () => {
-        const groups = Array.from({ length: DUPLICATE_BULK_ACTION_GROUP_LIMIT + 2 }, (_, index) =>
-            createGroup({
-                hash: `hash-limit-${index}`,
-                count: 2,
-                files: [
-                    {
-                        id: `keep-${index}`,
-                        name: `keep-${index}.png`,
-                        path: `C:\\library\\keep-${index}.png`,
-                        size: 100,
-                        type: 'image',
-                        created_at: index,
-                        mtime_ms: index,
-                        tags: [],
-                    },
-                    {
-                        id: `delete-${index}`,
-                        name: `delete-${index}.png`,
-                        path: `C:\\library\\delete-${index}.png`,
-                        size: 100,
-                        type: 'image',
-                        created_at: index + 1,
-                        mtime_ms: index + 1,
-                        tags: [],
-                    },
-                ],
-            })
-        );
-
-        useDuplicateStore.setState({
-            groups,
-            selectedFileIds: new Set(),
-        });
-
-        useDuplicateStore.getState().selectAllFiles();
-
-        expect(useDuplicateStore.getState().selectedFileIds.size).toBe(DUPLICATE_BULK_ACTION_GROUP_LIMIT * 2);
-        expect(useDuplicateStore.getState().selectedFileIds.has(`keep-${DUPLICATE_BULK_ACTION_GROUP_LIMIT + 1}`)).toBe(false);
-        expect(useDuplicateStore.getState().selectedFileIds.has(`delete-${DUPLICATE_BULK_ACTION_GROUP_LIMIT + 1}`)).toBe(false);
     });
 });

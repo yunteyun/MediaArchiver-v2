@@ -44,7 +44,6 @@ export const DuplicateView: React.FC = () => {
         setProgress,
         selectFile,
         deselectFile,
-        selectAllFiles,
         selectAcrossGroupsByStrategy,
         selectFilesInGroup,
         selectByStrategy,
@@ -61,14 +60,10 @@ export const DuplicateView: React.FC = () => {
             group.files.some((file) => selectedFileIds.has(file.id))
         ).length;
         const bulkActionGroupCount = Math.min(groups.length, DUPLICATE_BULK_ACTION_GROUP_LIMIT);
-        const bulkActionFileCount = groups
-            .slice(0, DUPLICATE_BULK_ACTION_GROUP_LIMIT)
-            .reduce((sum, group) => sum + group.files.length, 0);
         return {
             selectedFileCount: selectedFileIds.size,
             selectedGroupCount,
             bulkActionGroupCount,
-            bulkActionFileCount,
         };
     }, [groups, selectedFileIds]);
 
@@ -109,12 +104,6 @@ export const DuplicateView: React.FC = () => {
             console.error('Failed to reveal duplicate file:', error);
         }
     }, []);
-
-    const handleSelectAll = useCallback(() => {
-        startTransition(() => {
-            selectAllFiles(DUPLICATE_BULK_ACTION_GROUP_LIMIT);
-        });
-    }, [selectAllFiles]);
 
     const handleBulkStrategy = useCallback((strategy: DuplicateSelectionStrategy) => {
         startTransition(() => {
@@ -254,16 +243,6 @@ export const DuplicateView: React.FC = () => {
                                 className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
                             >
                                 パス短優先
-                            </button>
-                            <button
-                                onClick={handleSelectAll}
-                                disabled={isDeleting || (
-                                    selectionSummary.bulkActionFileCount > 0 &&
-                                    selectedFileIds.size === selectionSummary.bulkActionFileCount
-                                )}
-                                className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
-                            >
-                                全件選択
                             </button>
                         </>
                     )}
