@@ -10,6 +10,7 @@
 
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
+import { getRatingDisplayTone } from './ratings/ratingDisplayTone';
 
 // カラー定数（フィルターと統一）
 const C_FILLED = '#2563eb';
@@ -33,6 +34,8 @@ interface StarRatingInputProps {
     size?: number;
     /** 非活性状態 */
     disabled?: boolean;
+    /** 表示色ルール */
+    toneMode?: 'perStar' | 'uniform';
 }
 
 // ─── ハーフスターモード ───────────────────────────────────────────────────────
@@ -46,6 +49,7 @@ interface HalfStarProps {
     readOnly: boolean;
     disabled: boolean;
     size: number;
+    activeColor: string;
     onClickValue: (v: number) => void;
     onHoverValue: (v: number) => void;
     onLeave: () => void;
@@ -53,6 +57,7 @@ interface HalfStarProps {
 
 const HalfStar = React.memo<HalfStarProps>(({
     position, leftValue, rightValue, displayValue, readOnly, disabled, size,
+    activeColor,
     onClickValue, onHoverValue, onLeave,
 }) => {
     // この星の表示状態
@@ -60,7 +65,7 @@ const HalfStar = React.memo<HalfStarProps>(({
         rightValue !== undefined && displayValue >= rightValue ? 'full' :
             leftValue !== undefined && displayValue >= leftValue ? 'half' : 'empty';
 
-    const fillColor = state !== 'empty' ? C_FILLED : 'transparent';
+    const fillColor = state !== 'empty' ? activeColor : 'transparent';
     const baseStyle: React.CSSProperties = {
         width: size,
         height: size,
@@ -137,11 +142,14 @@ export const StarRatingInput = React.memo<StarRatingInputProps>((({
     readOnly = false,
     size = 18,
     disabled = false,
+    toneMode = 'perStar',
 }) => {
     const [hoverValue, setHoverValue] = useState<number | null>(null);
 
     const displayValue = hoverValue ?? value ?? 0;
     const isHalfMode = step < 1;
+    const uniformTone = getRatingDisplayTone(displayValue || value || minValue);
+    const uniformColor = hoverValue !== null ? uniformTone.hoverColor : uniformTone.color;
 
     const handleClick = (v: number) => {
         if (readOnly || disabled) return;
@@ -182,6 +190,7 @@ export const StarRatingInput = React.memo<StarRatingInputProps>((({
                             readOnly={readOnly}
                             disabled={disabled}
                             size={size}
+                            activeColor={toneMode === 'uniform' ? uniformColor : (hoverValue !== null ? C_HOVER : C_FILLED)}
                             onClickValue={handleClick}
                             onHoverValue={(v) => { if (!readOnly && !disabled) setHoverValue(v); }}
                             onLeave={() => {/* 親のonMouseLeaveに委ねる */ }}
@@ -211,6 +220,11 @@ export const StarRatingInput = React.memo<StarRatingInputProps>((({
             {steps.map((v) => {
                 const filled = v <= displayValue;
                 const isHovered = hoverValue !== null && v <= (hoverValue ?? 0) && !filled;
+                const tone = toneMode === 'uniform'
+                    ? uniformColor
+                    : filled
+                        ? C_FILLED
+                        : (isHovered ? C_HOVER : C_EMPTY);
                 return (
                     <button
                         key={v}
@@ -225,8 +239,8 @@ export const StarRatingInput = React.memo<StarRatingInputProps>((({
                         <Star
                             size={size}
                             style={{
-                                color: filled ? C_FILLED : (isHovered ? C_HOVER : C_EMPTY),
-                                fill: filled ? C_FILLED : (isHovered ? C_HOVER : 'transparent'),
+                                color: tone,
+                                fill: filled ? tone : (isHovered ? tone : 'transparent'),
                                 transition: 'color 0.1s, fill 0.1s',
                             }}
                         />
