@@ -67,6 +67,18 @@ function isPerfDebugEnabled(): boolean {
     return import.meta.env.DEV && (globalThis as { __MA_DEBUG_PERF?: boolean }).__MA_DEBUG_PERF === true;
 }
 
+const ARCHIVE_PREVIEW_FRAME_COUNT = 8;
+const VIDEO_FLIPBOOK_INTERVAL_MS = {
+    slow: 520,
+    normal: 220,
+    fast: 140,
+} as const;
+const ARCHIVE_FLIPBOOK_INTERVAL_MS = {
+    slow: 760,
+    normal: 460,
+    fast: 280,
+} as const;
+
 type TagSummaryUiConfig = {
     tagChipPaddingClass: string;
     tagChipTextClass: string;
@@ -842,7 +854,6 @@ export const FileCard = React.memo(({
             }
 
             if (
-                thumbnailAction === 'flipbook' &&
                 canFlipbookArchive &&
                 activePreviewFrames.length === 0 &&
                 archivePreviewFetchState === 'idle'
@@ -850,7 +861,7 @@ export const FileCard = React.memo(({
                 setArchivePreviewFetchState('loading');
                 setPreloadState('loading');
 
-                void window.electronAPI.getArchivePreviewFrames(file.path, 6)
+                void window.electronAPI.getArchivePreviewFrames(file.path, ARCHIVE_PREVIEW_FRAME_COUNT)
                     .then((frames) => {
                         if (frames.length === 0) {
                             setArchivePreviewFrames([]);
@@ -936,10 +947,9 @@ export const FileCard = React.memo(({
         }
 
         clearFlipbookInterval();
-        const flipbookIntervalMs =
-            flipbookSpeed === 'slow' ? 520 :
-                flipbookSpeed === 'fast' ? 140 :
-                    220;
+        const flipbookIntervalMs = file.type === 'archive'
+            ? ARCHIVE_FLIPBOOK_INTERVAL_MS[flipbookSpeed]
+            : VIDEO_FLIPBOOK_INTERVAL_MS[flipbookSpeed];
         flipbookIntervalRef.current = window.setInterval(() => {
             setScrubIndex((prev) => (prev + 1) % activePreviewFrames.length);
         }, flipbookIntervalMs);
