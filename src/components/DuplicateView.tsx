@@ -357,6 +357,7 @@ export const DuplicateView: React.FC = () => {
                     const selectedCount = group.files.filter((file) => selectedFileIds.has(file.id)).length;
                     const keepCount = group.count - selectedCount;
                     const allSelected = selectedCount === group.count;
+                    const hasSizeMismatch = group.files.some((file) => file.size !== group.size);
                     const folderPaths = [...new Set(group.files.map((file) => getFolderPath(file.path)))];
                     const hasMultipleFolders = folderPaths.length > 1;
                     const folderToneMap = new Map(folderPaths.map((folderPath, index) => [folderPath, getFolderTone(index)]));
@@ -425,6 +426,12 @@ export const DuplicateView: React.FC = () => {
                                     <span>この重複グループは別フォルダに分散しています。削除前に保存先の違いを確認してください。</span>
                                 </div>
                             )}
+                            {hasSizeMismatch && (
+                                <div className="mt-2 flex items-center gap-2 text-xs text-amber-200">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
+                                    <span>このグループにはサイズが一致しない項目があります。スキャン結果やメタ情報を確認してください。</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* ファイル一覧 */}
@@ -432,6 +439,7 @@ export const DuplicateView: React.FC = () => {
                             {group.files.map((file) => {
                                 const isSelected = selectedFileIds.has(file.id);
                                 const isPrimaryKeepTarget = !isSelected && keepCount === 1;
+                                const isUnexpectedSize = file.size !== group.size;
                                 const folderName = getFolderName(file.path);
                                 const folderPath = getFolderPath(file.path);
                                 const folderTone = folderToneMap.get(folderPath) ?? getFolderTone(0);
@@ -475,7 +483,14 @@ export const DuplicateView: React.FC = () => {
                                                 <span className={`rounded px-2 py-0.5 text-[11px] ${hasMultipleFolders ? folderTone.badge : 'bg-surface-700 text-surface-300'}`}>
                                                     フォルダ: {folderName}
                                                 </span>
-                                                <span className="inline-flex items-center gap-1 rounded bg-surface-700 px-2 py-0.5 text-[11px] text-surface-300">
+                                                <span
+                                                    className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] ${
+                                                        isUnexpectedSize
+                                                            ? 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30'
+                                                            : 'bg-surface-700 text-surface-300'
+                                                    }`}
+                                                    title={isUnexpectedSize ? `グループ基準 ${formatFileSize(group.size)} と一致しません` : undefined}
+                                                >
                                                     <HardDrive className="h-3 w-3" />
                                                     {formatFileSize(file.size)}
                                                 </span>
