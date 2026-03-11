@@ -44,6 +44,7 @@ export type FlipbookSpeed = 'slow' | 'normal' | 'fast';
 export type AnimatedImagePreviewMode = 'off' | 'hover' | 'visible';
 export type RightPanelVideoPreviewMode = 'loop' | 'long' | 'off';
 export type ThumbnailAction = 'scrub' | 'flipbook' | 'play';
+export type ArchiveThumbnailAction = 'off' | 'flipbook';
 export type PlayModeJumpType = 'light' | 'random' | 'sequential';
 export type PlayModeJumpInterval = 1000 | 2000 | 3000 | 5000;
 
@@ -156,6 +157,7 @@ export const DEFAULT_FILE_CARD_SETTINGS = {
 
 export const DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS = {
     thumbnailAction: 'scrub' as ThumbnailAction,
+    archiveThumbnailAction: 'off' as ArchiveThumbnailAction,
     flipbookSpeed: 'normal' as FlipbookSpeed,
     animatedImagePreviewMode: 'hover' as AnimatedImagePreviewMode,
     playMode: {
@@ -352,6 +354,7 @@ function mapLayoutPresetToLegacyDisplayMode(layoutPreset: LayoutPreset): Display
 
 interface SettingsState {
     thumbnailAction: ThumbnailAction;
+    archiveThumbnailAction: ArchiveThumbnailAction;
     flipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
     rightPanelVideoMuted: boolean;
@@ -413,6 +416,7 @@ interface SettingsState {
 
     // アクション
     setThumbnailAction: (action: ThumbnailAction) => void;
+    setArchiveThumbnailAction: (action: ArchiveThumbnailAction) => void;
     setFlipbookSpeed: (speed: FlipbookSpeed) => void;
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
     setRightPanelVideoMuted: (muted: boolean) => void;
@@ -483,6 +487,7 @@ export const useSettingsStore = create<SettingsState>()(
     persist(
         (set, get) => ({
             thumbnailAction: 'scrub',
+            archiveThumbnailAction: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.archiveThumbnailAction,
             flipbookSpeed: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.flipbookSpeed,
             animatedImagePreviewMode: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.animatedImagePreviewMode,
             rightPanelVideoMuted: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoMuted,
@@ -539,6 +544,7 @@ export const useSettingsStore = create<SettingsState>()(
             playMode: { ...DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode },
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
+            setArchiveThumbnailAction: (archiveThumbnailAction) => set({ archiveThumbnailAction }),
             setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),
             setAnimatedImagePreviewMode: (animatedImagePreviewMode) => set({ animatedImagePreviewMode }),
             setRightPanelVideoMuted: (rightPanelVideoMuted) => set({ rightPanelVideoMuted }),

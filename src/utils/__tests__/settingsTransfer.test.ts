@@ -6,6 +6,7 @@ describe('settingsTransfer', () => {
         const payload = buildSettingsExportPayload(
             {
                 thumbnailAction: 'scrub',
+                archiveThumbnailAction: 'off',
                 flipbookSpeed: 'normal',
                 animatedImagePreviewMode: 'hover',
                 rightPanelVideoMuted: true,

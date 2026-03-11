@@ -53,6 +53,8 @@ export const SettingsModal = React.memo(() => {
     const setLightboxOverlayOpacity = useSettingsStore((s) => s.setLightboxOverlayOpacity);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
     const setThumbnailAction = useSettingsStore((s) => s.setThumbnailAction);
+    const archiveThumbnailAction = useSettingsStore((s) => s.archiveThumbnailAction);
+    const setArchiveThumbnailAction = useSettingsStore((s) => s.setArchiveThumbnailAction);
     const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
     const setFlipbookSpeed = useSettingsStore((s) => s.setFlipbookSpeed);
     const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
@@ -490,12 +492,14 @@ export const SettingsModal = React.memo(() => {
 
     const handleResetThumbnailBehaviorSettings = useCallback(() => {
         setThumbnailAction(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.thumbnailAction);
+        setArchiveThumbnailAction(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.archiveThumbnailAction);
         setFlipbookSpeed(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.flipbookSpeed);
         setAnimatedImagePreviewMode(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.animatedImagePreviewMode);
         setPlayModeJumpType(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode.jumpType);
         setPlayModeJumpInterval(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode.jumpInterval);
     }, [
         setAnimatedImagePreviewMode,
+        setArchiveThumbnailAction,
         setFlipbookSpeed,
         setPlayModeJumpInterval,
         setPlayModeJumpType,
@@ -684,6 +688,8 @@ export const SettingsModal = React.memo(() => {
                                 onProfileThumbnailResolutionChange={(resolution) => { void handleProfileThumbnailResolutionChange(resolution); }}
                                 thumbnailAction={thumbnailAction}
                                 onThumbnailActionChange={setThumbnailAction}
+                                archiveThumbnailAction={archiveThumbnailAction}
+                                onArchiveThumbnailActionChange={setArchiveThumbnailAction}
                                 flipbookSpeed={flipbookSpeed}
                                 onFlipbookSpeedChange={setFlipbookSpeed}
                                 animatedImagePreviewMode={animatedImagePreviewMode}

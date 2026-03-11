@@ -11,6 +11,7 @@ const originalLocalStorage = globalThis.localStorage;
 function resetSettingsStore() {
     useSettingsStore.setState({
         thumbnailAction: 'scrub',
+        archiveThumbnailAction: 'off',
         flipbookSpeed: 'normal',
         animatedImagePreviewMode: 'hover',
         rightPanelVideoMuted: true,
@@ -154,6 +155,14 @@ describe('useSettingsStore', () => {
         expect(state.fileCardTagOrderMode).toBe('strict');
         expect(state.defaultExternalApps).toEqual({ mp4: 'player' });
         expect(state.searchDestinations).toHaveLength(1);
+    });
+
+    it('updates archive thumbnail action separately from video thumbnail action', () => {
+        useSettingsStore.getState().setArchiveThumbnailAction('flipbook');
+
+        const state = useSettingsStore.getState();
+        expect(state.archiveThumbnailAction).toBe('flipbook');
+        expect(state.thumbnailAction).toBe('scrub');
     });
 
     it('keeps display mode and layout axes in sync', () => {

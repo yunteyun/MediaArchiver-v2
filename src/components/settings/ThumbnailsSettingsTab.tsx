@@ -1,14 +1,14 @@
 import React from 'react';
 import type {
+    ArchiveThumbnailAction,
     AnimatedImagePreviewMode,
     FlipbookSpeed,
     PlayModeJumpInterval,
     PlayModeJumpType,
     RightPanelVideoPreviewMode,
+    ThumbnailAction,
 } from '../../stores/useSettingsStore';
 import { SettingsSection } from './SettingsSection';
-
-type ThumbnailAction = 'scrub' | 'flipbook' | 'play';
 
 interface ThumbnailsSettingsTabProps {
     previewFrameCount: number;
@@ -17,6 +17,8 @@ interface ThumbnailsSettingsTabProps {
     onProfileThumbnailResolutionChange: (resolution: number) => void;
     thumbnailAction: ThumbnailAction;
     onThumbnailActionChange: (value: ThumbnailAction) => void;
+    archiveThumbnailAction: ArchiveThumbnailAction;
+    onArchiveThumbnailActionChange: (value: ArchiveThumbnailAction) => void;
     flipbookSpeed: FlipbookSpeed;
     onFlipbookSpeedChange: (value: FlipbookSpeed) => void;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
@@ -43,6 +45,8 @@ export const ThumbnailsSettingsTab = React.memo(({
     onProfileThumbnailResolutionChange,
     thumbnailAction,
     onThumbnailActionChange,
+    archiveThumbnailAction,
+    onArchiveThumbnailActionChange,
     flipbookSpeed,
     onFlipbookSpeedChange,
     animatedImagePreviewMode,
@@ -57,8 +61,11 @@ export const ThumbnailsSettingsTab = React.memo(({
     onResetProfileThumbnailSettings,
     onResetThumbnailBehaviorSettings,
     onResetRightPanelPreviewSettings,
-}: ThumbnailsSettingsTabProps) => (
-    <div className="px-4 py-4 space-y-6">
+}: ThumbnailsSettingsTabProps) => {
+    const usesFlipbook = thumbnailAction === 'flipbook' || archiveThumbnailAction === 'flipbook';
+
+    return (
+        <div className="px-4 py-4 space-y-6">
         <SettingsSection
             title="サムネイル生成"
             description="スキャン時に生成するプレビュー枚数とサムネイル解像度を、現在のプロファイル単位で管理します。"
@@ -118,7 +125,7 @@ export const ThumbnailsSettingsTab = React.memo(({
         >
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">
-                        サムネイルホバー時の動作
+                        動画カードのホバー時動作
                     </label>
                     <div className="flex gap-4">
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -155,9 +162,45 @@ export const ThumbnailsSettingsTab = React.memo(({
                             <span className="text-surface-200">再生</span>
                         </label>
                     </div>
+                    <p className="text-xs text-surface-500 mt-1">
+                        動画カードに対する既定動作です。書庫カードは下の設定で個別に切り替えます。
+                    </p>
                 </div>
 
-                {thumbnailAction === 'flipbook' && (
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                        書庫カードのホバー時動作
+                    </label>
+                    <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="archiveThumbnailAction"
+                                value="off"
+                                checked={archiveThumbnailAction === 'off'}
+                                onChange={() => onArchiveThumbnailActionChange('off')}
+                                className="w-4 h-4 accent-primary-500"
+                            />
+                            <span className="text-surface-200">オフ</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="archiveThumbnailAction"
+                                value="flipbook"
+                                checked={archiveThumbnailAction === 'flipbook'}
+                                onChange={() => onArchiveThumbnailActionChange('flipbook')}
+                                className="w-4 h-4 accent-primary-500"
+                            />
+                            <span className="text-surface-200">自動パラパラ</span>
+                        </label>
+                    </div>
+                    <p className="text-xs text-surface-500 mt-1">
+                        画像を含む書庫カードだけに適用します。音声書庫は対象外です。
+                    </p>
+                </div>
+
+                {usesFlipbook && (
                     <div className="ml-6 mt-2">
                         <label className="block text-sm font-medium text-surface-300 mb-1">
                             自動パラパラ速度
@@ -284,6 +327,7 @@ export const ThumbnailsSettingsTab = React.memo(({
                 )}
         </SettingsSection>
     </div>
-));
+    );
+});
 
 ThumbnailsSettingsTab.displayName = 'ThumbnailsSettingsTab';

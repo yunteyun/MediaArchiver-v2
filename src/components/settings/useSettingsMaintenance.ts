@@ -391,6 +391,7 @@ export function useSettingsMaintenance({
             const payload = buildSettingsExportPayload(
                 {
                     thumbnailAction: settings.thumbnailAction,
+                    archiveThumbnailAction: settings.archiveThumbnailAction,
                     flipbookSpeed: settings.flipbookSpeed,
                     animatedImagePreviewMode: settings.animatedImagePreviewMode,
                     rightPanelVideoMuted: settings.rightPanelVideoMuted,

@@ -337,6 +337,7 @@ export const FileCard = React.memo(({
 
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
+    const archiveThumbnailAction = useSettingsStore((s) => s.archiveThumbnailAction);
     const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const searchDestinations = useSettingsStore((s) => s.searchDestinations);
@@ -492,7 +493,10 @@ export const FileCard = React.memo(({
     }, [file.metadata]);
 
     const archiveImageCount = getArchiveImageCount(file);
-    const canFlipbookArchive = file.type === 'archive' && !isAudioArchiveFile && (archiveImageCount ?? 0) > 1;
+    const canFlipbookArchive = file.type === 'archive'
+        && archiveThumbnailAction === 'flipbook'
+        && !isAudioArchiveFile
+        && (archiveImageCount ?? 0) > 1;
 
     // Phase 17-3: interval クリーンアップヘルパー
     const clearJumpInterval = useCallback(() => {
@@ -538,7 +542,7 @@ export const FileCard = React.memo(({
     }, [file.type, previewFrames, canFlipbookArchive, archivePreviewFrames]);
 
     const canScrubPreview = file.type === 'video';
-    const canFlipbookPreview = thumbnailAction === 'flipbook' && (file.type === 'video' || canFlipbookArchive);
+    const canFlipbookPreview = (thumbnailAction === 'flipbook' && file.type === 'video') || canFlipbookArchive;
     const canHoverFramePreview = (thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview;
 
     const tagById = useMemo(
@@ -868,6 +872,7 @@ export const FileCard = React.memo(({
         }, 100);
     }, [
         thumbnailAction,
+        archiveThumbnailAction,
         animatedImagePreviewMode,
         isAnimatedImage,
         file.type,
@@ -920,10 +925,10 @@ export const FileCard = React.memo(({
     useEffect(() => {
         const shouldFlipbook =
             isHovered &&
-            thumbnailAction === 'flipbook' &&
-            (file.type === 'video' || canFlipbookArchive) &&
-            preloadState === 'ready' &&
-            activePreviewFrames.length > 1;
+        canFlipbookPreview &&
+        (file.type === 'video' || canFlipbookArchive) &&
+        preloadState === 'ready' &&
+        activePreviewFrames.length > 1;
 
         if (!shouldFlipbook) {
             clearFlipbookInterval();
@@ -942,7 +947,7 @@ export const FileCard = React.memo(({
         return () => {
             clearFlipbookInterval();
         };
-    }, [isHovered, thumbnailAction, file.type, canFlipbookArchive, preloadState, activePreviewFrames.length, flipbookSpeed, clearFlipbookInterval]);
+    }, [isHovered, canFlipbookPreview, file.type, canFlipbookArchive, preloadState, activePreviewFrames.length, flipbookSpeed, clearFlipbookInterval]);
 
     // Phase 17-3: Video 要素の制御（3モード対応 + interval管理強化）
     useEffect(() => {
@@ -1031,7 +1036,7 @@ export const FileCard = React.memo(({
             isHovered &&
             preloadState === 'ready' &&
             activePreviewFrames.length > 0 &&
-            ((thumbnailAction === 'scrub' && canScrubPreview) || thumbnailAction === 'flipbook')
+            ((thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview)
         ) {
             return activePreviewFrames[scrubIndex];
         }
@@ -1039,7 +1044,7 @@ export const FileCard = React.memo(({
             return file.path;
         }
         return file.thumbnailPath;
-    }, [isHovered, preloadState, activePreviewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, canScrubPreview, shouldAnimateImagePreview]);
+    }, [isHovered, preloadState, activePreviewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, canScrubPreview, canFlipbookPreview, shouldAnimateImagePreview]);
 
     const displayImageSrc = useMemo(() => {
         if (!displayImagePath) return '';
