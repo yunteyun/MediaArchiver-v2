@@ -5,7 +5,7 @@
  * 1. VACUUM INTO によるホットバックアップ
  * 2. ディスク容量事前チェック（DBサイズの1.5倍）
  * 3. ファイル名規則: backup_{profileId}_{timestamp}.db
- * 4. 安全なリストアフロー: db.close() → copy → app.relaunch()
+ * 4. 安全なリストアフロー: checkpoint/close → copy → app.relaunch() → app.quit()
  */
 
 import fs from 'fs';
@@ -15,6 +15,8 @@ import checkDiskSpace from 'check-disk-space';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { getBasePath } from './storageConfig';
+import { stopAllFolderWatchers } from './folderWatchService';
+import { disposePreviewFrameWorker } from './previewFrameWorkerService';
 
 const log = logger.scope('BackupService');
 const BACKUP_SETTINGS_FILENAME = 'backup-settings.json';
@@ -222,9 +224,9 @@ export function getBackupHistory(
 
 /**
  * リストア（安全なフロー）
- * 1. db.close() で明示的に接続を切断
+ * 1. DB を checkpoint / close して sidecar を掃除できる状態にする
  * 2. fs.copyFile() でファイルを上書き
- * 3. app.relaunch() + app.exit() でアプリ再起動
+ * 3. app.relaunch() + app.quit() でアプリ再起動
  */
 export async function restoreBackup(backupPath: string): Promise<void> {
     log.info(`Restoring backup: ${backupPath}`);
@@ -241,7 +243,7 @@ export async function restoreBackup(backupPath: string): Promise<void> {
     } catch (error) {
         log.warn('WAL checkpoint before restore failed. Continuing with restore.', error);
     }
-    dbManager.closeDb();
+    dbManager.closeAll();
 
     // 2. ファイルコピー
     try {
@@ -259,8 +261,10 @@ export async function restoreBackup(backupPath: string): Promise<void> {
     }
 
     // 3. アプリ再起動（整合性保証）
+    stopAllFolderWatchers();
+    disposePreviewFrameWorker();
     app.relaunch();
-    app.exit(0);
+    app.quit();
 }
 
 /**
