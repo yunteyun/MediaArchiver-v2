@@ -7,7 +7,8 @@ describe('settingsTransfer', () => {
             {
                 thumbnailAction: 'scrub',
                 archiveThumbnailAction: 'off',
-                flipbookSpeed: 'normal',
+                videoFlipbookSpeed: 'normal',
+                archiveFlipbookSpeed: 'slow',
                 animatedImagePreviewMode: 'hover',
                 rightPanelVideoMuted: true,
                 rightPanelVideoPreviewMode: 'loop',

@@ -158,7 +158,8 @@ export const DEFAULT_FILE_CARD_SETTINGS = {
 export const DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS = {
     thumbnailAction: 'scrub' as ThumbnailAction,
     archiveThumbnailAction: 'off' as ArchiveThumbnailAction,
-    flipbookSpeed: 'normal' as FlipbookSpeed,
+    videoFlipbookSpeed: 'normal' as FlipbookSpeed,
+    archiveFlipbookSpeed: 'slow' as FlipbookSpeed,
     animatedImagePreviewMode: 'hover' as AnimatedImagePreviewMode,
     playMode: {
         jumpType: 'random' as PlayModeJumpType,
@@ -355,7 +356,8 @@ function mapLayoutPresetToLegacyDisplayMode(layoutPreset: LayoutPreset): Display
 interface SettingsState {
     thumbnailAction: ThumbnailAction;
     archiveThumbnailAction: ArchiveThumbnailAction;
-    flipbookSpeed: FlipbookSpeed;
+    videoFlipbookSpeed: FlipbookSpeed;
+    archiveFlipbookSpeed: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
     rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
@@ -417,7 +419,8 @@ interface SettingsState {
     // アクション
     setThumbnailAction: (action: ThumbnailAction) => void;
     setArchiveThumbnailAction: (action: ArchiveThumbnailAction) => void;
-    setFlipbookSpeed: (speed: FlipbookSpeed) => void;
+    setVideoFlipbookSpeed: (speed: FlipbookSpeed) => void;
+    setArchiveFlipbookSpeed: (speed: FlipbookSpeed) => void;
     setAnimatedImagePreviewMode: (mode: AnimatedImagePreviewMode) => void;
     setRightPanelVideoMuted: (muted: boolean) => void;
     setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
@@ -481,6 +484,7 @@ type PersistedSettingsState = Partial<SettingsState> & {
     autoScanOnStartup?: boolean;
     rightPanelVideoMuted?: boolean;
     cardLayout?: string;
+    flipbookSpeed?: FlipbookSpeed;
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -488,7 +492,8 @@ export const useSettingsStore = create<SettingsState>()(
         (set, get) => ({
             thumbnailAction: 'scrub',
             archiveThumbnailAction: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.archiveThumbnailAction,
-            flipbookSpeed: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.flipbookSpeed,
+            videoFlipbookSpeed: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.videoFlipbookSpeed,
+            archiveFlipbookSpeed: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.archiveFlipbookSpeed,
             animatedImagePreviewMode: DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.animatedImagePreviewMode,
             rightPanelVideoMuted: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoMuted,
             rightPanelVideoPreviewMode: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoPreviewMode,
@@ -545,7 +550,8 @@ export const useSettingsStore = create<SettingsState>()(
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setArchiveThumbnailAction: (archiveThumbnailAction) => set({ archiveThumbnailAction }),
-            setFlipbookSpeed: (flipbookSpeed) => set({ flipbookSpeed }),
+            setVideoFlipbookSpeed: (videoFlipbookSpeed) => set({ videoFlipbookSpeed }),
+            setArchiveFlipbookSpeed: (archiveFlipbookSpeed) => set({ archiveFlipbookSpeed }),
             setAnimatedImagePreviewMode: (animatedImagePreviewMode) => set({ animatedImagePreviewMode }),
             setRightPanelVideoMuted: (rightPanelVideoMuted) => set({ rightPanelVideoMuted }),
             setRightPanelVideoPreviewMode: (rightPanelVideoPreviewMode) => set({ rightPanelVideoPreviewMode }),
@@ -833,6 +839,7 @@ export const useSettingsStore = create<SettingsState>()(
                     autoScanOnStartup: _legacyAutoScanOnStartup,
                     rightPanelVideoMuted: _legacyRightPanelVideoMuted,
                     cardLayout: _legacyCardLayout,
+                    flipbookSpeed: legacyFlipbookSpeed,
                     ...persistedWithoutLegacyKeys
                 } = typedPersisted ?? {};
                 const persistedDestinations = Array.isArray(typedPersisted?.searchDestinations)
@@ -861,6 +868,12 @@ export const useSettingsStore = create<SettingsState>()(
                     ratingDisplayThresholds: normalizeRatingDisplayThresholds(persistedWithoutLegacyKeys.ratingDisplayThresholds),
                     layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,
                     thumbnailPresentation: persistedThumbnailPresentation ?? mappedAxes.thumbnailPresentation,
+                    videoFlipbookSpeed: persistedWithoutLegacyKeys.videoFlipbookSpeed
+                        ?? legacyFlipbookSpeed
+                        ?? currentState.videoFlipbookSpeed,
+                    archiveFlipbookSpeed: persistedWithoutLegacyKeys.archiveFlipbookSpeed
+                        ?? legacyFlipbookSpeed
+                        ?? currentState.archiveFlipbookSpeed,
                 };
             },
         }

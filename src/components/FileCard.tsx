@@ -458,7 +458,8 @@ export const FileCard = React.memo(({
 
     // Phase 17-3: playMode 設定を取得
     const playMode = useSettingsStore((s) => s.playMode);
-    const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
+    const videoFlipbookSpeed = useSettingsStore((s) => s.videoFlipbookSpeed);
+    const archiveFlipbookSpeed = useSettingsStore((s) => s.archiveFlipbookSpeed);
     const allTags = useTagStore((s) => s.tags);
     const tagCategories = useTagStore((s) => s.categories);
 
@@ -947,9 +948,10 @@ export const FileCard = React.memo(({
         }
 
         clearFlipbookInterval();
+        const activeFlipbookSpeed = file.type === 'archive' ? archiveFlipbookSpeed : videoFlipbookSpeed;
         const flipbookIntervalMs = file.type === 'archive'
-            ? ARCHIVE_FLIPBOOK_INTERVAL_MS[flipbookSpeed]
-            : VIDEO_FLIPBOOK_INTERVAL_MS[flipbookSpeed];
+            ? ARCHIVE_FLIPBOOK_INTERVAL_MS[activeFlipbookSpeed]
+            : VIDEO_FLIPBOOK_INTERVAL_MS[activeFlipbookSpeed];
         flipbookIntervalRef.current = window.setInterval(() => {
             setScrubIndex((prev) => (prev + 1) % activePreviewFrames.length);
         }, flipbookIntervalMs);
@@ -957,7 +959,7 @@ export const FileCard = React.memo(({
         return () => {
             clearFlipbookInterval();
         };
-    }, [isHovered, canFlipbookPreview, file.type, canFlipbookArchive, preloadState, activePreviewFrames.length, flipbookSpeed, clearFlipbookInterval]);
+    }, [isHovered, canFlipbookPreview, file.type, canFlipbookArchive, preloadState, activePreviewFrames.length, videoFlipbookSpeed, archiveFlipbookSpeed, clearFlipbookInterval]);
 
     // Phase 17-3: Video 要素の制御（3モード対応 + interval管理強化）
     useEffect(() => {

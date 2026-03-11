@@ -392,7 +392,8 @@ export function useSettingsMaintenance({
                 {
                     thumbnailAction: settings.thumbnailAction,
                     archiveThumbnailAction: settings.archiveThumbnailAction,
-                    flipbookSpeed: settings.flipbookSpeed,
+                    videoFlipbookSpeed: settings.videoFlipbookSpeed,
+                    archiveFlipbookSpeed: settings.archiveFlipbookSpeed,
                     animatedImagePreviewMode: settings.animatedImagePreviewMode,
                     rightPanelVideoMuted: settings.rightPanelVideoMuted,
                     rightPanelVideoPreviewMode: settings.rightPanelVideoPreviewMode,
@@ -469,17 +470,25 @@ export function useSettingsMaintenance({
             const payload = parseSettingsImportPayload(result.content);
             const importedGlobalSettings = payload.globalSettings as typeof payload.globalSettings & {
                 cardLayout?: string;
+                flipbookSpeed?: import('../../stores/useSettingsStore').FlipbookSpeed;
             };
             const {
                 scanExclusionRules,
                 storageMaintenanceSettings,
                 cardLayout: _legacyCardLayout,
+                flipbookSpeed: legacyFlipbookSpeed,
                 ...globalSettings
             } = importedGlobalSettings;
 
+            const normalizedGlobalSettings = {
+                ...globalSettings,
+                videoFlipbookSpeed: globalSettings.videoFlipbookSpeed ?? legacyFlipbookSpeed,
+                archiveFlipbookSpeed: globalSettings.archiveFlipbookSpeed ?? legacyFlipbookSpeed,
+            };
+
             useSettingsStore.setState((state) => ({
                 ...state,
-                ...globalSettings,
+                ...normalizedGlobalSettings,
             }));
             useSettingsStore.getState().setScanExclusionRules(scanExclusionRules);
             useSettingsStore.getState().setStorageMaintenanceSettings(storageMaintenanceSettings);

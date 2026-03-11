@@ -12,7 +12,8 @@ function resetSettingsStore() {
     useSettingsStore.setState({
         thumbnailAction: 'scrub',
         archiveThumbnailAction: 'off',
-        flipbookSpeed: 'normal',
+        videoFlipbookSpeed: 'normal',
+        archiveFlipbookSpeed: 'slow',
         animatedImagePreviewMode: 'hover',
         rightPanelVideoMuted: true,
         rightPanelVideoPreviewMode: 'loop',
@@ -163,6 +164,15 @@ describe('useSettingsStore', () => {
         const state = useSettingsStore.getState();
         expect(state.archiveThumbnailAction).toBe('flipbook');
         expect(state.thumbnailAction).toBe('scrub');
+    });
+
+    it('updates video and archive flipbook speeds independently', () => {
+        useSettingsStore.getState().setVideoFlipbookSpeed('fast');
+        useSettingsStore.getState().setArchiveFlipbookSpeed('slow');
+
+        const state = useSettingsStore.getState();
+        expect(state.videoFlipbookSpeed).toBe('fast');
+        expect(state.archiveFlipbookSpeed).toBe('slow');
     });
 
     it('keeps display mode and layout axes in sync', () => {

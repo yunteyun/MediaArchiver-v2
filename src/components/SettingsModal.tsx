@@ -55,8 +55,10 @@ export const SettingsModal = React.memo(() => {
     const setThumbnailAction = useSettingsStore((s) => s.setThumbnailAction);
     const archiveThumbnailAction = useSettingsStore((s) => s.archiveThumbnailAction);
     const setArchiveThumbnailAction = useSettingsStore((s) => s.setArchiveThumbnailAction);
-    const flipbookSpeed = useSettingsStore((s) => s.flipbookSpeed);
-    const setFlipbookSpeed = useSettingsStore((s) => s.setFlipbookSpeed);
+    const videoFlipbookSpeed = useSettingsStore((s) => s.videoFlipbookSpeed);
+    const setVideoFlipbookSpeed = useSettingsStore((s) => s.setVideoFlipbookSpeed);
+    const archiveFlipbookSpeed = useSettingsStore((s) => s.archiveFlipbookSpeed);
+    const setArchiveFlipbookSpeed = useSettingsStore((s) => s.setArchiveFlipbookSpeed);
     const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
     const setAnimatedImagePreviewMode = useSettingsStore((s) => s.setAnimatedImagePreviewMode);
     const rightPanelVideoPreviewMode = useSettingsStore((s) => s.rightPanelVideoPreviewMode);
@@ -493,17 +495,19 @@ export const SettingsModal = React.memo(() => {
     const handleResetThumbnailBehaviorSettings = useCallback(() => {
         setThumbnailAction(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.thumbnailAction);
         setArchiveThumbnailAction(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.archiveThumbnailAction);
-        setFlipbookSpeed(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.flipbookSpeed);
+        setVideoFlipbookSpeed(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.videoFlipbookSpeed);
+        setArchiveFlipbookSpeed(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.archiveFlipbookSpeed);
         setAnimatedImagePreviewMode(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.animatedImagePreviewMode);
         setPlayModeJumpType(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode.jumpType);
         setPlayModeJumpInterval(DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode.jumpInterval);
     }, [
         setAnimatedImagePreviewMode,
         setArchiveThumbnailAction,
-        setFlipbookSpeed,
+        setArchiveFlipbookSpeed,
         setPlayModeJumpInterval,
         setPlayModeJumpType,
         setThumbnailAction,
+        setVideoFlipbookSpeed,
     ]);
 
     const handleResetRightPanelPreviewSettings = useCallback(() => {
@@ -690,8 +694,10 @@ export const SettingsModal = React.memo(() => {
                                 onThumbnailActionChange={setThumbnailAction}
                                 archiveThumbnailAction={archiveThumbnailAction}
                                 onArchiveThumbnailActionChange={setArchiveThumbnailAction}
-                                flipbookSpeed={flipbookSpeed}
-                                onFlipbookSpeedChange={setFlipbookSpeed}
+                                videoFlipbookSpeed={videoFlipbookSpeed}
+                                onVideoFlipbookSpeedChange={setVideoFlipbookSpeed}
+                                archiveFlipbookSpeed={archiveFlipbookSpeed}
+                                onArchiveFlipbookSpeedChange={setArchiveFlipbookSpeed}
                                 animatedImagePreviewMode={animatedImagePreviewMode}
                                 onAnimatedImagePreviewModeChange={setAnimatedImagePreviewMode}
                                 playMode={playMode}

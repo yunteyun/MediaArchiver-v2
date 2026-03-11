@@ -24,7 +24,9 @@ type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrow
 export interface GlobalSettingsExportV1 {
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
     archiveThumbnailAction: 'off' | 'flipbook';
-    flipbookSpeed: FlipbookSpeed;
+    videoFlipbookSpeed: FlipbookSpeed;
+    archiveFlipbookSpeed: FlipbookSpeed;
+    flipbookSpeed?: FlipbookSpeed;
     animatedImagePreviewMode: AnimatedImagePreviewMode;
     rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
