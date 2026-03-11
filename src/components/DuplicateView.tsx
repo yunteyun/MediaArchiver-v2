@@ -47,6 +47,33 @@ function getFolderName(filePath: string): string {
     return segments[segments.length - 1] ?? folderPath;
 }
 
+const folderTonePalette = [
+    {
+        row: 'border-l-sky-400',
+        badge: 'bg-sky-500/15 text-sky-200 ring-1 ring-sky-500/30',
+        text: 'text-sky-200/95',
+    },
+    {
+        row: 'border-l-amber-400',
+        badge: 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30',
+        text: 'text-amber-200/95',
+    },
+    {
+        row: 'border-l-emerald-400',
+        badge: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30',
+        text: 'text-emerald-200/95',
+    },
+    {
+        row: 'border-l-fuchsia-400',
+        badge: 'bg-fuchsia-500/15 text-fuchsia-200 ring-1 ring-fuchsia-500/30',
+        text: 'text-fuchsia-200/95',
+    },
+];
+
+function getFolderTone(index: number) {
+    return folderTonePalette[index % folderTonePalette.length];
+}
+
 export const DuplicateView: React.FC = () => {
     const {
         groups,
@@ -332,6 +359,7 @@ export const DuplicateView: React.FC = () => {
                     const allSelected = selectedCount === group.count;
                     const folderPaths = [...new Set(group.files.map((file) => getFolderPath(file.path)))];
                     const hasMultipleFolders = folderPaths.length > 1;
+                    const folderToneMap = new Map(folderPaths.map((folderPath, index) => [folderPath, getFolderTone(index)]));
 
                     return (
                     <div key={group.hash} className="bg-surface-800 rounded-lg overflow-hidden ring-1 ring-surface-700/80">
@@ -406,11 +434,12 @@ export const DuplicateView: React.FC = () => {
                                 const isPrimaryKeepTarget = !isSelected && keepCount === 1;
                                 const folderName = getFolderName(file.path);
                                 const folderPath = getFolderPath(file.path);
+                                const folderTone = folderToneMap.get(folderPath) ?? getFolderTone(0);
                                 return (
                                     <div
                                         key={file.id}
                                         onClick={() => toggleFileSelection(file.id)}
-                                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${isSelected
+                                        className={`flex items-center gap-3 border-l-2 px-4 py-3 cursor-pointer ${hasMultipleFolders ? folderTone.row : 'border-l-transparent'} ${isSelected
                                             ? 'bg-red-900/20 hover:bg-red-900/30'
                                             : isPrimaryKeepTarget
                                                 ? 'bg-emerald-950/20 hover:bg-emerald-950/30'
@@ -443,7 +472,7 @@ export const DuplicateView: React.FC = () => {
                                                 <p className={`min-w-0 flex-1 truncate font-medium ${isSelected ? 'text-red-300' : 'text-surface-200'}`}>
                                                     {file.name}
                                                 </p>
-                                                <span className={`rounded px-2 py-0.5 text-[11px] ${hasMultipleFolders ? 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30' : 'bg-surface-700 text-surface-300'}`}>
+                                                <span className={`rounded px-2 py-0.5 text-[11px] ${hasMultipleFolders ? folderTone.badge : 'bg-surface-700 text-surface-300'}`}>
                                                     フォルダ: {folderName}
                                                 </span>
                                                 <span className={`rounded px-2 py-0.5 text-[11px] ${isSelected
@@ -455,13 +484,9 @@ export const DuplicateView: React.FC = () => {
                                                     {isSelected ? '削除候補' : isPrimaryKeepTarget ? '保持対象' : '未選択'}
                                                 </span>
                                             </div>
-                                            <p className={`text-xs truncate flex items-center gap-2 ${hasMultipleFolders ? 'text-amber-200/90' : 'text-surface-400'}`}>
+                                            <p className={`text-xs truncate flex items-center gap-2 ${hasMultipleFolders ? folderTone.text : 'text-surface-400'}`}>
                                                 <FolderOpen className="w-3 h-3 flex-shrink-0" />
                                                 保存先フォルダ: {folderPath}
-                                            </p>
-                                            <p className="text-sm text-surface-500 truncate flex items-center gap-2">
-                                                <FolderOpen className="w-3 h-3 flex-shrink-0" />
-                                                {file.path}
                                             </p>
                                         </div>
 
