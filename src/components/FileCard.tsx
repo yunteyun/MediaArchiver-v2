@@ -1247,12 +1247,9 @@ export const FileCard = React.memo(({
 
                 {/* 書庫コマ送り補助表示 */}
                 {isHovered && file.type === 'archive' && canFlipbookArchive && preloadState === 'ready' && activePreviewFrames.length > 0 && (
-                    <div className="absolute bottom-3 left-1 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1.5">
+                    <div className="absolute bottom-7 left-1 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1.5">
                         <Clapperboard size={10} className="text-cyan-300" strokeWidth={2.2} />
-                        <span>{`コマ送り ${scrubIndex + 1}/${activePreviewFrames.length}`}</span>
-                        {archiveImageCount != null && archiveImageCount > activePreviewFrames.length && (
-                            <span className="text-surface-300">{`全${archiveImageCount}枚`}</span>
-                        )}
+                        <span>{`${scrubIndex + 1}/${activePreviewFrames.length}`}</span>
                     </div>
                 )}
 
