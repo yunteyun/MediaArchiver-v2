@@ -30,6 +30,23 @@ function formatDate(timestamp: number): string {
     });
 }
 
+function normalizeFilePath(filePath: string): string {
+    return filePath.replace(/\\/g, '/');
+}
+
+function getFolderPath(filePath: string): string {
+    const normalizedPath = normalizeFilePath(filePath);
+    const lastSlashIndex = normalizedPath.lastIndexOf('/');
+    if (lastSlashIndex <= 0) return normalizedPath;
+    return normalizedPath.slice(0, lastSlashIndex);
+}
+
+function getFolderName(filePath: string): string {
+    const folderPath = getFolderPath(filePath);
+    const segments = folderPath.split('/').filter(Boolean);
+    return segments[segments.length - 1] ?? folderPath;
+}
+
 export const DuplicateView: React.FC = () => {
     const {
         groups,
@@ -313,6 +330,8 @@ export const DuplicateView: React.FC = () => {
                     const selectedCount = group.files.filter((file) => selectedFileIds.has(file.id)).length;
                     const keepCount = group.count - selectedCount;
                     const allSelected = selectedCount === group.count;
+                    const folderPaths = [...new Set(group.files.map((file) => getFolderPath(file.path)))];
+                    const hasMultipleFolders = folderPaths.length > 1;
 
                     return (
                     <div key={group.hash} className="bg-surface-800 rounded-lg overflow-hidden ring-1 ring-surface-700/80">
@@ -325,6 +344,9 @@ export const DuplicateView: React.FC = () => {
                                     </span>
                                     <span className="rounded bg-surface-700 px-2 py-0.5 text-xs text-surface-300">
                                         重複ぶん {formatFileSize(group.size * Math.max(group.count - 1, 0))}
+                                    </span>
+                                    <span className={`rounded px-2 py-0.5 text-xs ${hasMultipleFolders ? 'bg-amber-500/15 text-amber-200' : 'bg-surface-700 text-surface-300'}`}>
+                                        保存先 {folderPaths.length} フォルダ
                                     </span>
                                     {selectedCount > 0 && (
                                         <span className={`rounded px-2 py-0.5 text-xs ${allSelected ? 'bg-red-500/20 text-red-200' : 'bg-amber-500/15 text-amber-200'}`}>
@@ -369,6 +391,12 @@ export const DuplicateView: React.FC = () => {
                                     <span>このグループは全件削除候補です。残したいファイルがある場合は各行の「これ以外を削除候補にする」を使ってください。</span>
                                 </div>
                             )}
+                            {hasMultipleFolders && (
+                                <div className="mt-2 flex items-center gap-2 text-xs text-amber-200">
+                                    <FolderOpen className="h-3.5 w-3.5 text-amber-300" />
+                                    <span>この重複グループは別フォルダに分散しています。削除前に保存先の違いを確認してください。</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* ファイル一覧 */}
@@ -376,6 +404,8 @@ export const DuplicateView: React.FC = () => {
                             {group.files.map((file) => {
                                 const isSelected = selectedFileIds.has(file.id);
                                 const isPrimaryKeepTarget = !isSelected && keepCount === 1;
+                                const folderName = getFolderName(file.path);
+                                const folderPath = getFolderPath(file.path);
                                 return (
                                     <div
                                         key={file.id}
@@ -413,6 +443,9 @@ export const DuplicateView: React.FC = () => {
                                                 <p className={`min-w-0 flex-1 truncate font-medium ${isSelected ? 'text-red-300' : 'text-surface-200'}`}>
                                                     {file.name}
                                                 </p>
+                                                <span className={`rounded px-2 py-0.5 text-[11px] ${hasMultipleFolders ? 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30' : 'bg-surface-700 text-surface-300'}`}>
+                                                    フォルダ: {folderName}
+                                                </span>
                                                 <span className={`rounded px-2 py-0.5 text-[11px] ${isSelected
                                                     ? 'bg-red-500/15 text-red-200'
                                                     : isPrimaryKeepTarget
@@ -422,6 +455,10 @@ export const DuplicateView: React.FC = () => {
                                                     {isSelected ? '削除候補' : isPrimaryKeepTarget ? '保持対象' : '未選択'}
                                                 </span>
                                             </div>
+                                            <p className={`text-xs truncate flex items-center gap-2 ${hasMultipleFolders ? 'text-amber-200/90' : 'text-surface-400'}`}>
+                                                <FolderOpen className="w-3 h-3 flex-shrink-0" />
+                                                保存先フォルダ: {folderPath}
+                                            </p>
                                             <p className="text-sm text-surface-500 truncate flex items-center gap-2">
                                                 <FolderOpen className="w-3 h-3 flex-shrink-0" />
                                                 {file.path}
