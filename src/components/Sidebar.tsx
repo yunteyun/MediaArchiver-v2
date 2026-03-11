@@ -5,7 +5,7 @@ import { useUIStore, type SearchCondition, type SearchTarget } from '../stores/u
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
-import { useSmartFolderStore } from '../stores/useSmartFolderStore';
+import { clearAppliedSmartFolderState, useSmartFolderStore } from '../stores/useSmartFolderStore';
 import { TagFilterPanel, TagManagerModal } from './tags';
 import { RatingFilterPanel } from './ratings/RatingFilterPanel';
 import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
@@ -397,7 +397,6 @@ export const Sidebar = React.memo(() => {
     const updateSmartFolder = useSmartFolderStore((s) => s.updateSmartFolder);
     const deleteSmartFolder = useSmartFolderStore((s) => s.deleteSmartFolder);
     const applySmartFolder = useSmartFolderStore((s) => s.applySmartFolder);
-    const setActiveSmartFolderId = useSmartFolderStore((s) => s.setActiveSmartFolderId);
 
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
     const [folderSettingsOpen, setFolderSettingsOpen] = useState(false);
@@ -544,24 +543,14 @@ export const Sidebar = React.memo(() => {
     const handleClearSmartFolderConditions = useCallback(async () => {
         try {
             const uiStore = useUIStore.getState();
-            uiStore.clearSearchConditions(defaultSearchTarget);
-            uiStore.setSelectedFileTypes([...ALL_FILE_TYPES]);
-            uiStore.setRatingQuickFilter('none');
-            useTagStore.setState({
-                selectedTagIds: [],
-                filterMode: 'OR',
-            });
-            useRatingStore.setState({
-                ratingFilter: {},
-            });
+            clearAppliedSmartFolderState(defaultSearchTarget);
             await handleSelectFolder(ALL_FILES_ID);
-            setActiveSmartFolderId(null);
             uiStore.showToast('スマートフォルダ条件を解除しました');
         } catch (error) {
             console.error('Failed to clear smart folder conditions:', error);
             window.alert('スマートフォルダ条件の解除に失敗しました');
         }
-    }, [defaultSearchTarget, handleSelectFolder, setActiveSmartFolderId]);
+    }, [defaultSearchTarget, handleSelectFolder]);
 
     const handleOpenEditSmartFolderEditor = useCallback((id: string) => {
         setSmartFolderEditorState({

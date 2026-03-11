@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useFileStore } from '../../stores/useFileStore';
-import { useSmartFolderStore } from '../../stores/useSmartFolderStore';
+import { clearAppliedSmartFolderState, useSmartFolderStore } from '../../stores/useSmartFolderStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import type { MediaFile, MediaFolder } from '../../types/file';
 import {
@@ -139,6 +140,8 @@ export function useSidebarData(): UseSidebarDataResult {
     const setCurrentFolderId = useFileStore((state) => state.setCurrentFolderId);
     const duplicateViewOpen = useUIStore((state) => state.duplicateViewOpen);
     const mainView = useUIStore((state) => state.mainView);
+    const defaultSearchTarget = useSettingsStore((state) => state.defaultSearchTarget);
+    const activeSmartFolderId = useSmartFolderStore((state) => state.activeSmartFolderId);
     const setActiveSmartFolderId = useSmartFolderStore((state) => state.setActiveSmartFolderId);
 
     const [folders, setFolders] = useState<MediaFolder[]>([]);
@@ -235,7 +238,11 @@ export function useSidebarData(): UseSidebarDataResult {
     const handleSelectFolder = useCallback(async (folderId: string | null) => {
         const start = perfDebugEnabled ? performance.now() : 0;
         const normalizedSelection = normalizeSidebarSelection(folderId);
-        setActiveSmartFolderId(null);
+        if (activeSmartFolderId) {
+            clearAppliedSmartFolderState(defaultSearchTarget);
+        } else {
+            setActiveSmartFolderId(null);
+        }
         setCurrentFolderId(folderId);
         setRecentSelections((prev) => {
             const next = [normalizedSelection, ...prev.filter((value) => value !== normalizedSelection)].slice(0, MAX_RECENT_SELECTIONS);
@@ -264,7 +271,7 @@ export function useSidebarData(): UseSidebarDataResult {
             }
             console.error('Error loading files:', error);
         }
-    }, [loadFilesForSelection, perfDebugEnabled, setActiveSmartFolderId, setCurrentFolderId]);
+    }, [activeSmartFolderId, defaultSearchTarget, loadFilesForSelection, perfDebugEnabled, setActiveSmartFolderId, setCurrentFolderId]);
 
     const handleSelectAllFiles = useCallback(() => {
         void handleSelectFolder(ALL_FILES_ID);

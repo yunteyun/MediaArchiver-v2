@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { clearAppliedSmartFolderState, useSmartFolderStore } from '../stores/useSmartFolderStore';
 import { useTagStore } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useToastStore } from '../stores/useToastStore';
@@ -75,6 +76,8 @@ export const FileGrid = React.memo(() => {
     const openSettingsModal = useUIStore((s) => s.openSettingsModal);
     const showToast = useUIStore((s) => s.showToast);
     const ratingDisplayThresholds = useSettingsStore((s) => s.ratingDisplayThresholds);
+    const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
+    const activeSmartFolderId = useSmartFolderStore((s) => s.activeSmartFolderId);
 
     // Tag filter state
     const selectedTagIds = useTagStore((s) => s.selectedTagIds);
@@ -544,6 +547,9 @@ export const FileGrid = React.memo(() => {
 
     // フォルダナビゲーションハンドラー（Phase 12-4）
     const handleFolderNavigate = useCallback(async (folderId: string) => {
+        if (activeSmartFolderId) {
+            clearAppliedSmartFolderState(defaultSearchTarget);
+        }
         setCurrentFolderId(folderId);
         try {
             const files = await window.electronAPI.getFiles(folderId);
@@ -551,7 +557,7 @@ export const FileGrid = React.memo(() => {
         } catch (e) {
             console.error('Failed to navigate to folder:', e);
         }
-    }, [setCurrentFolderId]);
+    }, [activeSmartFolderId, defaultSearchTarget, setCurrentFolderId]);
 
     // キーボードショートカット登録
     useKeyboardShortcuts({

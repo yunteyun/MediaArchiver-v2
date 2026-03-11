@@ -118,6 +118,19 @@ function normalizeCondition(input: SmartFolderConditionV1): SmartFolderCondition
     };
 }
 
+export function clearAppliedSmartFolderState(defaultSearchTarget: SearchTarget) {
+    const uiStore = useUIStore.getState();
+    uiStore.clearSearchConditions(defaultSearchTarget);
+    uiStore.setRatingQuickFilter('none');
+    uiStore.setSelectedFileTypes([...SMART_FOLDER_FILE_TYPES]);
+    useTagStore.setState({
+        selectedTagIds: [],
+        filterMode: 'OR',
+    });
+    useRatingStore.getState().clearRatingFilters();
+    useSmartFolderStore.getState().setActiveSmartFolderId(null);
+}
+
 export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
     smartFolders: [],
     activeSmartFolderId: null,
