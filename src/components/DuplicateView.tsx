@@ -38,6 +38,35 @@ function formatDate(timestamp: number): string {
     });
 }
 
+function formatDateTime(timestamp: number): string {
+    if (!timestamp) return '不明';
+    return new Date(timestamp).toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function getFileTimestamp(file: { mtime_ms?: number; created_at: number }): number {
+    return file.mtime_ms || file.created_at || 0;
+}
+
+function formatDayGap(startTimestamp: number, endTimestamp: number): string {
+    if (!startTimestamp || !endTimestamp) {
+        return '不明';
+    }
+
+    const diffMs = Math.abs(endTimestamp - startTimestamp);
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) {
+        return '同日';
+    }
+
+    return `${diffDays}日差`;
+}
+
 function normalizeFilePath(filePath: string): string {
     return filePath.replace(/\\/g, '/');
 }
@@ -415,6 +444,10 @@ export const DuplicateView: React.FC = () => {
                     const keepCount = group.count - selectedCount;
                     const allSelected = selectedCount === group.count;
                     const hasSizeMismatch = group.sizeMin !== group.sizeMax;
+                    const timestamps = group.files.map((file) => getFileTimestamp(file)).filter((timestamp) => timestamp > 0);
+                    const oldestTimestamp = timestamps.length > 0 ? Math.min(...timestamps) : 0;
+                    const newestTimestamp = timestamps.length > 0 ? Math.max(...timestamps) : 0;
+                    const hasDateSpread = oldestTimestamp > 0 && newestTimestamp > 0 && oldestTimestamp !== newestTimestamp;
                     const folderPaths = [...new Set(group.files.map((file) => getFolderPath(file.path)))];
                     const hasMultipleFolders = folderPaths.length > 1;
                     const folderToneMap = new Map(folderPaths.map((folderPath, index) => [folderPath, getFolderTone(index)]));
@@ -441,6 +474,9 @@ export const DuplicateView: React.FC = () => {
                                     )}
                                     <span className={`rounded px-2 py-0.5 text-xs ${isSimilarMode ? 'bg-primary-500/15 text-primary-200' : 'bg-surface-700 text-surface-300'}`}>
                                         {group.matchLabel}
+                                    </span>
+                                    <span className={`rounded px-2 py-0.5 text-xs ${hasDateSpread ? 'bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-500/30' : 'bg-surface-700 text-surface-300'}`}>
+                                        日時幅 {formatDayGap(oldestTimestamp, newestTimestamp)}
                                     </span>
                                     <span className={`rounded px-2 py-0.5 text-xs ${hasMultipleFolders ? 'bg-amber-500/15 text-amber-200' : 'bg-surface-700 text-surface-300'}`}>
                                         保存先 {folderPaths.length} フォルダ
@@ -506,6 +542,12 @@ export const DuplicateView: React.FC = () => {
                                     <span>このグループにはサイズ差があります。異なる版や変換後ファイルの可能性があります。</span>
                                 </div>
                             )}
+                            {hasDateSpread && (
+                                <div className="mt-2 flex items-center gap-2 text-xs text-cyan-200">
+                                    <Clock className="h-3.5 w-3.5 text-cyan-300" />
+                                    <span>このグループは {formatDate(oldestTimestamp)} から {formatDate(newestTimestamp)} まで差があります。新旧を見比べて残す側を判断してください。</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* ファイル一覧 */}
@@ -514,6 +556,9 @@ export const DuplicateView: React.FC = () => {
                                 const isSelected = selectedFileIds.has(file.id);
                                 const isPrimaryKeepTarget = !isSelected && keepCount === 1;
                                 const isUnexpectedSize = file.size !== group.size;
+                                const fileTimestamp = getFileTimestamp(file);
+                                const isNewestDate = hasDateSpread && fileTimestamp === newestTimestamp;
+                                const isOldestDate = hasDateSpread && fileTimestamp === oldestTimestamp;
                                 const folderName = getFolderName(file.path);
                                 const folderPath = getFolderPath(file.path);
                                 const folderTone = folderToneMap.get(folderPath) ?? getFolderTone(0);
@@ -585,9 +630,26 @@ export const DuplicateView: React.FC = () => {
 
                                         {/* 日付 */}
                                         <div className="flex items-center gap-2 self-stretch">
-                                            <div className="text-sm text-surface-400 flex items-center gap-1 flex-shrink-0">
-                                                <Clock className="w-3 h-3" />
-                                                {formatDate(file.mtime_ms || file.created_at)}
+                                            <div className="flex flex-col items-end gap-1 text-right">
+                                                <span className={`rounded px-2 py-0.5 text-[11px] ${
+                                                    isNewestDate
+                                                        ? 'bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-500/30'
+                                                        : isOldestDate
+                                                            ? 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30'
+                                                            : 'bg-surface-700 text-surface-300'
+                                                }`}>
+                                                    {isNewestDate ? '最新候補' : isOldestDate ? '最古候補' : hasDateSpread ? '中間日時' : '同日候補'}
+                                                </span>
+                                                <div className={`text-sm flex items-center gap-1 flex-shrink-0 ${
+                                                    isNewestDate
+                                                        ? 'text-cyan-200'
+                                                        : isOldestDate
+                                                            ? 'text-amber-200'
+                                                            : 'text-surface-400'
+                                                }`}>
+                                                    <Clock className="w-3 h-3" />
+                                                    {formatDateTime(fileTimestamp)}
+                                                </div>
                                             </div>
                                             <div className="flex flex-col items-end gap-1">
                                                 <button
