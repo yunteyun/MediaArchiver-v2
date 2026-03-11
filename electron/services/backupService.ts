@@ -11,12 +11,12 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
-import { app } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import checkDiskSpace from 'check-disk-space';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { getBasePath } from './storageConfig';
-import { stopAllFolderWatchers } from './folderWatchService';
+import { stopAllFolderWatchers, syncFolderWatchers } from './folderWatchService';
 import { disposePreviewFrameWorker } from './previewFrameWorkerService';
 
 const log = logger.scope('BackupService');
@@ -126,6 +126,25 @@ function scheduleRestoreRelaunch(): void {
         log.error('Failed to schedule delayed restore relaunch:', error);
         app.relaunch();
     }
+}
+
+function reloadWindowsAfterRestoreInDev(): void {
+    setTimeout(() => {
+        const windows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
+
+        if (windows.length === 0) {
+            log.warn('No browser windows found for in-place restore reload.');
+            return;
+        }
+
+        windows.forEach((window) => {
+            try {
+                window.webContents.reloadIgnoringCache();
+            } catch (error) {
+                log.warn('Failed to reload browser window after restore.', error);
+            }
+        });
+    }, 100);
 }
 
 export function loadBackupSettings(): BackupSettings {
@@ -294,9 +313,22 @@ export async function restoreBackup(backupPath: string): Promise<void> {
         throw error;
     }
 
-    // 3. アプリ再起動（整合性保証）
+    // 3. 復元後の再初期化
     stopAllFolderWatchers();
     disposePreviewFrameWorker();
+
+    if (!app.isPackaged) {
+        try {
+            dbManager.initialize();
+            syncFolderWatchers();
+            log.info('Backup restored successfully in dev. Reloading current windows in-place.');
+            reloadWindowsAfterRestoreInDev();
+            return;
+        } catch (error) {
+            log.error('Failed to reinitialize app state after dev restore. Falling back to relaunch.', error);
+        }
+    }
+
     scheduleRestoreRelaunch();
     app.quit();
 }
