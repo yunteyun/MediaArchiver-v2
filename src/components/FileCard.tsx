@@ -1245,14 +1245,6 @@ export const FileCard = React.memo(({
                     </div>
                 )}
 
-                {/* 書庫コマ送り補助表示 */}
-                {isHovered && file.type === 'archive' && canFlipbookArchive && preloadState === 'ready' && activePreviewFrames.length > 0 && (
-                    <div className="absolute bottom-7 left-1 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1.5">
-                        <Clapperboard size={10} className="text-cyan-300" strokeWidth={2.2} />
-                        <span>{`${scrubIndex + 1}/${activePreviewFrames.length}`}</span>
-                    </div>
-                )}
-
                 {/* スクラブ / コマ送り 進捗バー */}
                 {isHovered && canHoverFramePreview && preloadState === 'ready' && activePreviewFrames.length > 0 && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
@@ -1267,17 +1259,26 @@ export const FileCard = React.memo(({
                     </div>
                 )}
 
-                {/* Duration Badge */}
-                {showDuration && file.duration && (
-                    <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                        {file.duration}
-                    </div>
-                )}
-
-                {/* Archive Image Count Badge */}
-                {file.type === 'archive' && archiveImageCount != null && archiveImageCount > 1 && (
-                    <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                        {archiveImageCount}p
+                {/* 右下バッジ群 */}
+                {((showDuration && file.duration) || (file.type === 'archive' && archiveImageCount != null && archiveImageCount > 1)) && (
+                    <div className="absolute bottom-1 right-1 flex items-center gap-1">
+                        {file.type === 'archive' && archiveImageCount != null && archiveImageCount > 1 && (
+                            <>
+                                {isHovered && canFlipbookArchive && preloadState === 'ready' && activePreviewFrames.length > 0 && (
+                                    <div className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                                        {`${scrubIndex + 1}/${activePreviewFrames.length}`}
+                                    </div>
+                                )}
+                                <div className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                                    {archiveImageCount}p
+                                </div>
+                            </>
+                        )}
+                        {showDuration && file.duration && (
+                            <div className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                                {file.duration}
+                            </div>
+                        )}
                     </div>
                 )}
 
