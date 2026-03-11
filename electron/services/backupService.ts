@@ -5,11 +5,12 @@
  * 1. VACUUM INTO によるホットバックアップ
  * 2. ディスク容量事前チェック（DBサイズの1.5倍）
  * 3. ファイル名規則: backup_{profileId}_{timestamp}.db
- * 4. 安全なリストアフロー: checkpoint/close → copy → app.relaunch() → app.quit()
+ * 4. 安全なリストアフロー: checkpoint/close → copy → relaunch scheduling → app.quit()
  */
 
 import fs from 'fs';
 import path from 'path';
+import { spawn } from 'child_process';
 import { app } from 'electron';
 import checkDiskSpace from 'check-disk-space';
 import { dbManager } from './databaseManager';
@@ -92,6 +93,29 @@ function removeDbSidecarFiles(dbPath: string): void {
             log.warn(`Failed to remove DB sidecar: ${sidecarPath}`, error);
         }
     }
+}
+
+function scheduleRestoreRelaunch(): void {
+    if (!app.isPackaged) {
+        app.relaunch();
+        return;
+    }
+
+    const exePath = app.getPath('exe');
+    const exeDir = path.dirname(exePath);
+    app.once('will-quit', () => {
+        try {
+            const child = spawn(exePath, [], {
+                cwd: exeDir,
+                detached: true,
+                stdio: 'ignore',
+            });
+            child.unref();
+            log.info(`Spawned app after restore quit: ${exePath}`);
+        } catch (error) {
+            log.error('Failed to spawn app after restore quit:', error);
+        }
+    });
 }
 
 export function loadBackupSettings(): BackupSettings {
@@ -226,7 +250,7 @@ export function getBackupHistory(
  * リストア（安全なフロー）
  * 1. DB を checkpoint / close して sidecar を掃除できる状態にする
  * 2. fs.copyFile() でファイルを上書き
- * 3. app.relaunch() + app.quit() でアプリ再起動
+ * 3. 再起動を予約して app.quit() で正常終了
  */
 export async function restoreBackup(backupPath: string): Promise<void> {
     log.info(`Restoring backup: ${backupPath}`);
@@ -263,7 +287,7 @@ export async function restoreBackup(backupPath: string): Promise<void> {
     // 3. アプリ再起動（整合性保証）
     stopAllFolderWatchers();
     disposePreviewFrameWorker();
-    app.relaunch();
+    scheduleRestoreRelaunch();
     app.quit();
 }
 
