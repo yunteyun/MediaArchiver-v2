@@ -228,21 +228,21 @@ export const DuplicateView: React.FC = () => {
                                 disabled={isDeleting}
                                 className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
                             >
-                                新しい方を残す
+                                古い方を削除候補
                             </button>
                             <button
                                 onClick={() => handleBulkStrategy('oldest')}
                                 disabled={isDeleting}
                                 className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
                             >
-                                古い方を残す
+                                新しい方を削除候補
                             </button>
                             <button
                                 onClick={() => handleBulkStrategy('shortest_path')}
                                 disabled={isDeleting}
                                 className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
                             >
-                                パス短優先
+                                パス長優先で削除候補
                             </button>
                         </>
                     )}
@@ -302,7 +302,7 @@ export const DuplicateView: React.FC = () => {
                         </span>
                     </div>
                     <div className="text-xs text-surface-500">
-                        各行の「このファイルを残す」で残したい側へすぐ切り替えできます。
+                        各行の「これ以外を削除候補にする」で、残したい 1 件へすぐ絞り込めます。
                     </div>
                 </div>
             )}
@@ -328,7 +328,7 @@ export const DuplicateView: React.FC = () => {
                                     </span>
                                     {selectedCount > 0 && (
                                         <span className={`rounded px-2 py-0.5 text-xs ${allSelected ? 'bg-red-500/20 text-red-200' : 'bg-amber-500/15 text-amber-200'}`}>
-                                            削除候補 {selectedCount} 件 / 残す予定 {Math.max(keepCount, 0)} 件
+                                            削除候補 {selectedCount} 件 / 保持 {Math.max(keepCount, 0)} 件
                                         </span>
                                     )}
                                 </div>
@@ -336,23 +336,23 @@ export const DuplicateView: React.FC = () => {
                                     <button
                                         onClick={() => selectByStrategy(group.hash, 'newest')}
                                         className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
-                                        title="最も新しいファイルを残す"
+                                        title="古いファイルを削除候補にする"
                                     >
-                                        新しい方を残す
+                                        古い方を削除候補
                                     </button>
                                     <button
                                         onClick={() => selectByStrategy(group.hash, 'oldest')}
                                         className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
-                                        title="最も古いファイルを残す"
+                                        title="新しいファイルを削除候補にする"
                                     >
-                                        古い方を残す
+                                        新しい方を削除候補
                                     </button>
                                     <button
                                         onClick={() => selectByStrategy(group.hash, 'shortest_path')}
                                         className="px-2 py-1 text-xs bg-surface-700 hover:bg-surface-600 text-surface-300 rounded transition-colors"
-                                        title="パスが短い方を残す"
+                                        title="パスが長いファイルを削除候補にする"
                                     >
-                                        パス短優先
+                                        パス長優先で削除候補
                                     </button>
                                     <button
                                         onClick={() => selectFilesInGroup(group.hash, [])}
@@ -366,7 +366,7 @@ export const DuplicateView: React.FC = () => {
                             {allSelected && (
                                 <div className="mt-2 flex items-center gap-2 text-xs text-red-200">
                                     <AlertTriangle className="h-3.5 w-3.5 text-red-300" />
-                                    <span>このグループは全件削除候補です。残したいファイルがある場合は各行の「このファイルを残す」を使ってください。</span>
+                                    <span>このグループは全件削除候補です。残したいファイルがある場合は各行の「これ以外を削除候補にする」を使ってください。</span>
                                 </div>
                             )}
                         </div>
@@ -419,7 +419,7 @@ export const DuplicateView: React.FC = () => {
                                                         ? 'bg-emerald-500/15 text-emerald-200'
                                                         : 'bg-surface-700 text-surface-300'
                                                     }`}>
-                                                    {isSelected ? '削除候補' : isPrimaryKeepTarget ? '残す対象' : '未選択'}
+                                                    {isSelected ? '削除候補' : isPrimaryKeepTarget ? '保持対象' : '未選択'}
                                                 </span>
                                             </div>
                                             <p className="text-sm text-surface-500 truncate flex items-center gap-2">
@@ -448,7 +448,7 @@ export const DuplicateView: React.FC = () => {
                                                     title="このファイル以外を削除候補にする"
                                                 >
                                                     <ShieldCheck className="h-3.5 w-3.5" />
-                                                    このファイルを残す
+                                                    これ以外を削除候補にする
                                                 </button>
                                                 <button
                                                     type="button"
