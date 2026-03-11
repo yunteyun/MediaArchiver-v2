@@ -210,23 +210,6 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                                 {rightPanelPreviewModeLabel}
                             </button>
                         </div>
-                        <div className="absolute bottom-2 right-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                            <button
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setRightPanelVideoPreviewMode(
-                                        rightPanelVideoPreviewMode === 'off'
-                                            ? lastActivePreviewModeRef.current
-                                            : 'off'
-                                    );
-                                }}
-                                className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
-                                title={rightPanelVideoPreviewMode === 'off' ? 'プレビューを再開' : 'プレビューを停止'}
-                            >
-                                {rightPanelVideoPreviewMode === 'off' ? '再開' : '停止'}
-                            </button>
-                        </div>
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                             <div className="bg-black/50 rounded-full p-2">
                                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
