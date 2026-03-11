@@ -26,6 +26,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
     const videoRef = useRef<HTMLVideoElement>(null);
     const jumpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastActivePreviewModeRef = useRef<'loop' | 'long'>(
         rightPanelVideoPreviewMode === 'long' ? 'long' : 'loop'
     );
@@ -42,8 +43,6 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
             return () => setPreviewContext(null);
         }
     }, [isVideo, setPreviewContext]);
-
-    const handleClick = () => openLightbox(file);
 
     const animatedSrc = isAnimated ? toMediaUrl(file.path) : null;
     const thumbnailSrc = toMediaUrl(file.thumbnailPath);
@@ -67,6 +66,39 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const nextRightPanelPreviewModeTitle = activePreviewMode === 'loop'
         ? '固定間隔プレビューへ切替'
         : 'ループ再生へ切替';
+    const currentPreviewModeTitle = activePreviewMode === 'loop'
+        ? '現在: ループ再生'
+        : '現在: 固定間隔プレビュー';
+
+    const toggleVideoPreviewPlayback = () => {
+        setRightPanelVideoPreviewMode(
+            rightPanelVideoPreviewMode === 'off'
+                ? lastActivePreviewModeRef.current
+                : 'off'
+        );
+    };
+
+    const handlePreviewClick = () => {
+        if (!isVideo) {
+            openLightbox(file);
+            return;
+        }
+        if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+        }
+        clickTimeoutRef.current = setTimeout(() => {
+            toggleVideoPreviewPlayback();
+            clickTimeoutRef.current = null;
+        }, 180);
+    };
+
+    const handlePreviewDoubleClick = () => {
+        if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+            clickTimeoutRef.current = null;
+        }
+        openLightbox(file);
+    };
 
     useEffect(() => {
         const video = videoRef.current;
@@ -155,13 +187,84 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
         };
     }, [file.id, isCenterViewerOpen, isVideo, rightPanelVideoJumpInterval, rightPanelVideoPreviewMode]);
 
+    useEffect(() => () => {
+        if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+            clickTimeoutRef.current = null;
+        }
+    }, []);
+
     return (
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
-            <SectionTitle>プレビュー</SectionTitle>
+            <div className="flex items-center justify-between gap-2">
+                <SectionTitle>プレビュー</SectionTitle>
+                {isVideo && (
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setRightPanelVideoMuted(!rightPanelVideoMuted);
+                            }}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${
+                                rightPanelVideoMuted
+                                    ? 'border-surface-500 bg-surface-800 text-surface-300 hover:bg-surface-700'
+                                    : 'border-sky-500/60 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20'
+                            }`}
+                            title={rightPanelVideoMuted ? '音声を再生' : 'ミュート'}
+                            aria-label={rightPanelVideoMuted ? '音声を再生' : 'ミュート'}
+                        >
+                            {rightPanelVideoMuted ? (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                                    <path d="m17 9 4 6" />
+                                    <path d="m21 9-4 6" />
+                                </svg>
+                            ) : (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                                    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                                    <path d="M18.5 6a8.5 8.5 0 0 1 0 12" />
+                                </svg>
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setRightPanelVideoPreviewMode(nextRightPanelPreviewMode);
+                            }}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${
+                                activePreviewMode === 'loop'
+                                    ? 'border-sky-500/60 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20'
+                                    : 'border-amber-500/60 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
+                            }`}
+                            title={`${currentPreviewModeTitle} / ${nextRightPanelPreviewModeTitle}`}
+                            aria-label={`${currentPreviewModeTitle} / ${nextRightPanelPreviewModeTitle}`}
+                        >
+                            {activePreviewMode === 'loop' ? (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M17 2v4h-4" />
+                                    <path d="M7 22v-4h4" />
+                                    <path d="M20 11a8 8 0 0 0-13.66-5.66L3 9" />
+                                    <path d="M4 13a8 8 0 0 0 13.66 5.66L21 15" />
+                                </svg>
+                            ) : (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M4 6h16" />
+                                    <path d="M7 12h10" />
+                                    <path d="M10 18h4" />
+                                </svg>
+                            )}
+                        </button>
+                    </div>
+                )}
+            </div>
             <div
                 className="h-[208px] bg-black flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0 relative group rounded-md"
-                onClick={handleClick}
-                title="クリックして拡大表示"
+                onClick={handlePreviewClick}
+                onDoubleClick={handlePreviewDoubleClick}
+                title={isVideo ? 'クリックで停止/再開、ダブルクリックで拡大表示' : 'クリックして拡大表示'}
             >
                 {backgroundSrc && (
                     <>
@@ -186,30 +289,6 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                             playsInline
                             preload="metadata"
                         />
-                        <div className="absolute right-2 top-2 z-10 flex gap-1.5">
-                            <button
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setRightPanelVideoMuted(!rightPanelVideoMuted);
-                                }}
-                                className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
-                                title={rightPanelVideoMuted ? '音声を再生' : 'ミュート'}
-                            >
-                                {rightPanelVideoMuted ? '音声OFF' : '音声ON'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setRightPanelVideoPreviewMode(nextRightPanelPreviewMode);
-                                }}
-                                className="rounded bg-black/70 px-2 py-1 text-[11px] text-white transition hover:bg-black/85"
-                                title={nextRightPanelPreviewModeTitle}
-                            >
-                                {rightPanelPreviewModeLabel}
-                            </button>
-                        </div>
                     </>
                 ) : isAnimated && animatedSrc ? (
                     <img
