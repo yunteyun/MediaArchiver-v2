@@ -1245,6 +1245,17 @@ export const FileCard = React.memo(({
                     </div>
                 )}
 
+                {/* 書庫コマ送り補助表示 */}
+                {isHovered && file.type === 'archive' && canFlipbookArchive && preloadState === 'ready' && activePreviewFrames.length > 0 && (
+                    <div className="absolute bottom-3 left-1 bg-black/75 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1.5">
+                        <Clapperboard size={10} className="text-cyan-300" strokeWidth={2.2} />
+                        <span>{`コマ送り ${scrubIndex + 1}/${activePreviewFrames.length}`}</span>
+                        {archiveImageCount != null && archiveImageCount > activePreviewFrames.length && (
+                            <span className="text-surface-300">{`全${archiveImageCount}枚`}</span>
+                        )}
+                    </div>
+                )}
+
                 {/* スクラブ / コマ送り 進捗バー */}
                 {isHovered && canHoverFramePreview && preloadState === 'ready' && activePreviewFrames.length > 0 && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
@@ -1275,6 +1286,11 @@ export const FileCard = React.memo(({
 
                 {/* Phase 15: バッジ（右上） - アニメーション + 属性 + 拡張子 */}
                 <div className="absolute top-1 right-1 flex gap-1 z-10">
+                    {!isSelected && file.type === 'archive' && !isAudioArchiveFile && (archiveImageCount ?? 0) > 0 && (
+                        <div className="bg-emerald-700/85 rounded-sm p-0.5 opacity-90" title="画像書庫">
+                            <ImageIcon size={12} className="text-white" strokeWidth={2.4} />
+                        </div>
+                    )}
                     {/* アニメーションバッジ（アイコン） */}
                     {file.isAnimated && !isSelected && (
                         <div className="bg-pink-800/80 rounded-sm p-0.5 opacity-90">
