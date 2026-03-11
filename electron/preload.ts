@@ -25,6 +25,7 @@ import type { BackupSettings } from './services/backupService';
 import type { ActivityAction } from './services/activityLogService';
 import type { StorageMode } from './services/storageConfig';
 import type { ExternalDisplayPresetListResult } from '../src/components/fileCard/displayModes';
+import type { DuplicateSearchMode } from '../src/shared/duplicateNameCandidates';
 
 type ScanBatchCommittedPayload = {
     rootFolderId: string;
@@ -427,7 +428,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     shouldAutoBackup: (profileId: string) => ipcRenderer.invoke('backup:shouldAutoBackup', { profileId }),
 
     // === Duplicate Detection ===
-    findDuplicates: () => ipcRenderer.invoke('duplicate:find'),
+    findDuplicates: (mode: DuplicateSearchMode = 'exact') => ipcRenderer.invoke('duplicate:find', mode),
     cancelDuplicateSearch: () => ipcRenderer.invoke('duplicate:cancel'),
     deleteDuplicateFiles: (fileIds: string[]) => ipcRenderer.invoke('duplicate:deleteFiles', fileIds),
     onDuplicateProgress: (callback: (progress: DuplicateProgress) => void) =>

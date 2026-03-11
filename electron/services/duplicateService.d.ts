@@ -7,9 +7,14 @@
  * 3. ハッシュ値で真の重複を判定
  */
 import type { MediaFile } from './database';
+import type { DuplicateSearchMode, SimilarNameMatchKind } from '../../src/shared/duplicateNameCandidates';
 export interface DuplicateGroup {
     hash: string;
     size: number;
+    sizeMin: number;
+    sizeMax: number;
+    matchKind: 'content_hash' | SimilarNameMatchKind;
+    matchLabel: string;
     files: MediaFile[];
     count: number;
 }
@@ -34,7 +39,7 @@ export declare function cancelDuplicateSearch(): void;
  * @param onProgress 進捗コールバック
  * @returns 重複グループ配列
  */
-export declare function findDuplicates(onProgress?: (progress: DuplicateProgress) => void): Promise<DuplicateGroup[]>;
+export declare function findDuplicates(onProgress?: (progress: DuplicateProgress) => void, mode?: DuplicateSearchMode): Promise<DuplicateGroup[]>;
 /**
  * 重複統計を取得
  */

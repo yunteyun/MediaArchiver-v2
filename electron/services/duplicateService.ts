@@ -11,6 +11,11 @@ import { dbManager } from './databaseManager';
 import { calculateFileHash } from './hashService';
 import { logger } from './logger';
 import type { MediaFile } from './database';
+import {
+    buildSimilarNameCandidateGroups,
+    type DuplicateSearchMode,
+    type SimilarNameMatchKind,
+} from '../../src/shared/duplicateNameCandidates';
 
 const log = logger.scope('DuplicateService');
 
@@ -18,6 +23,10 @@ const log = logger.scope('DuplicateService');
 export interface DuplicateGroup {
     hash: string;
     size: number;
+    sizeMin: number;
+    sizeMax: number;
+    matchKind: 'content_hash' | SimilarNameMatchKind;
+    matchLabel: string;
     files: MediaFile[];
     count: number;
 }
@@ -53,6 +62,15 @@ export function cancelDuplicateSearch(): void {
  * @returns 重複グループ配列
  */
 export async function findDuplicates(
+    onProgress?: (progress: DuplicateProgress) => void,
+    mode: DuplicateSearchMode = 'exact',
+): Promise<DuplicateGroup[]> {
+    return mode === 'similar_name'
+        ? findSimilarNameDuplicates(onProgress)
+        : findExactDuplicates(onProgress);
+}
+
+async function findExactDuplicates(
     onProgress?: (progress: DuplicateProgress) => void
 ): Promise<DuplicateGroup[]> {
     isCancelled = false;
@@ -169,6 +187,10 @@ export async function findDuplicates(
                 duplicateGroups.push({
                     hash,
                     size: sizeGroup.size,
+                    sizeMin: sizeGroup.size,
+                    sizeMax: sizeGroup.size,
+                    matchKind: 'content_hash',
+                    matchLabel: '完全一致',
                     files: groupFiles,
                     count: groupFiles.length
                 });
@@ -185,6 +207,56 @@ export async function findDuplicates(
     return duplicateGroups;
 }
 
+async function findSimilarNameDuplicates(
+    onProgress?: (progress: DuplicateProgress) => void
+): Promise<DuplicateGroup[]> {
+    isCancelled = false;
+    const db = dbManager.getDb();
+
+    log.info('Similar-name candidate search started');
+    const files = db.prepare(`
+        SELECT id, name, path, size, type, created_at, duration,
+               thumbnail_path, preview_frames, root_folder_id,
+               content_hash, metadata, mtime_ms, notes
+        FROM files
+        WHERE name IS NOT NULL AND name != ''
+    `).all() as MediaFile[];
+
+    onProgress?.({
+        phase: 'analyzing',
+        current: 0,
+        total: files.length,
+        currentFile: 'ファイル名候補を集計中',
+    });
+
+    if (isCancelled) {
+        log.info('Similar-name candidate search cancelled by user');
+        onProgress?.({ phase: 'complete', current: 0, total: files.length });
+        return [];
+    }
+
+    const duplicateGroups = buildSimilarNameCandidateGroups(files).map((group) => ({
+        hash: group.id,
+        size: group.size,
+        sizeMin: group.sizeMin,
+        sizeMax: group.sizeMax,
+        matchKind: group.matchKind,
+        matchLabel: group.matchLabel,
+        files: group.files,
+        count: group.count,
+    }));
+
+    onProgress?.({
+        phase: 'complete',
+        current: files.length,
+        total: files.length,
+        currentFile: `${duplicateGroups.length} グループ`,
+    });
+
+    log.info(`[DEBUG] Found ${duplicateGroups.length} similar-name candidate groups`);
+    return duplicateGroups;
+}
+
 /**
  * 重複統計を取得
  */
@@ -193,10 +265,14 @@ export function getDuplicateStats(groups: DuplicateGroup[]): DuplicateStats {
     let wastedSpace = 0;
 
     for (const group of groups) {
-        // 重複ファイル数（元ファイルを除く）
-        const duplicateCount = group.count - 1;
-        totalFiles += duplicateCount;
-        wastedSpace += group.size * duplicateCount;
+        if (group.matchKind === 'content_hash') {
+            const duplicateCount = group.count - 1;
+            totalFiles += duplicateCount;
+            wastedSpace += group.size * duplicateCount;
+            continue;
+        }
+
+        totalFiles += group.count;
     }
 
     return {

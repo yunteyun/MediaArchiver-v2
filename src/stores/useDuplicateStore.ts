@@ -3,6 +3,7 @@
  */
 
 import { create } from 'zustand';
+import type { DuplicateSearchMode, SimilarNameMatchKind } from '../shared/duplicateNameCandidates';
 
 export const DUPLICATE_BULK_ACTION_GROUP_LIMIT = 100;
 
@@ -28,6 +29,10 @@ export interface DuplicateFileEntry {
 export interface DuplicateGroup {
     hash: string;
     size: number;
+    sizeMin: number;
+    sizeMax: number;
+    matchKind: 'content_hash' | SimilarNameMatchKind;
+    matchLabel: string;
     files: DuplicateFileEntry[];
     count: number;
 }
@@ -124,9 +129,10 @@ interface DuplicateState {
     selectedFileIds: Set<string>;
     isDeleting: boolean;
     hasSearched: boolean; // 検索完了フラグ（未検索 vs 結果0件の区別）
+    searchMode: DuplicateSearchMode;
 
     // Actions
-    startSearch: () => Promise<void>;
+    startSearch: (mode?: DuplicateSearchMode) => Promise<void>;
     cancelSearch: () => void;
     setProgress: (progress: DuplicateProgress) => void;
     selectFile: (fileId: string) => void;
@@ -152,20 +158,23 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
     selectedFileIds: new Set(),
     isDeleting: false,
     hasSearched: false,
+    searchMode: 'exact',
 
     // Start duplicate search
-    startSearch: async () => {
+    startSearch: async (mode) => {
+        const nextMode = mode ?? get().searchMode;
         // Bug 4修正: 開始時に完全初期化
         set({
             isSearching: true,
             groups: [],
             stats: null,
             progress: null,
-            selectedFileIds: new Set()
+            selectedFileIds: new Set(),
+            searchMode: nextMode,
         });
 
         try {
-            const result = await window.electronAPI.findDuplicates();
+            const result = await window.electronAPI.findDuplicates(nextMode);
             set({
                 groups: result.groups,
                 stats: result.stats,
@@ -274,9 +283,14 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
             let totalFiles = 0;
             let wastedSpace = 0;
             for (const group of updatedGroups) {
-                const duplicateCount = group.count - 1;
-                totalFiles += duplicateCount;
-                wastedSpace += group.size * duplicateCount;
+                if (group.matchKind === 'content_hash') {
+                    const duplicateCount = group.count - 1;
+                    totalFiles += duplicateCount;
+                    wastedSpace += group.size * duplicateCount;
+                    continue;
+                }
+
+                totalFiles += group.count;
             }
 
             set({
@@ -304,7 +318,8 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
             progress: null,
             selectedFileIds: new Set(),
             isDeleting: false,
-            hasSearched: false
+            hasSearched: false,
+            searchMode: 'exact',
         });
     },
 

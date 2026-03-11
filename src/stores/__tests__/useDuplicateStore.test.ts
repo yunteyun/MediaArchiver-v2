@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDuplicateStore, type DuplicateGroup } from '../useDuplicateStore';
+import type { DuplicateSearchMode } from '../../shared/duplicateNameCandidates';
 
 function createGroup(overrides: Partial<DuplicateGroup> = {}): DuplicateGroup {
     return {
         hash: overrides.hash ?? 'hash-1',
         size: overrides.size ?? 100,
+        sizeMin: overrides.sizeMin ?? (overrides.size ?? 100),
+        sizeMax: overrides.sizeMax ?? (overrides.size ?? 100),
+        matchKind: overrides.matchKind ?? 'content_hash',
+        matchLabel: overrides.matchLabel ?? '完全一致',
         count: overrides.count ?? 2,
         files: overrides.files ?? [
             {
@@ -41,6 +46,7 @@ describe('useDuplicateStore', () => {
             selectedFileIds: new Set(),
             isDeleting: false,
             hasSearched: false,
+            searchMode: 'exact',
         });
     });
 
@@ -80,6 +86,31 @@ describe('useDuplicateStore', () => {
         expect(state.progress).toEqual({ phase: 'complete', current: 0, total: 0 });
         expect(state.isSearching).toBe(false);
         expect(state.hasSearched).toBe(true);
+        expect(state.searchMode).toBe('exact');
+    });
+
+    it('passes the requested search mode to the electron bridge', async () => {
+        const findDuplicates = vi.fn().mockResolvedValue({
+            groups: [],
+            stats: {
+                totalGroups: 0,
+                totalFiles: 0,
+                wastedSpace: 0,
+            },
+        });
+
+        vi.stubGlobal('window', {
+            electronAPI: {
+                findDuplicates,
+                cancelDuplicateSearch: vi.fn(),
+                deleteDuplicateFiles: vi.fn(),
+            },
+        });
+
+        await useDuplicateStore.getState().startSearch('similar_name' satisfies DuplicateSearchMode);
+
+        expect(findDuplicates).toHaveBeenCalledWith('similar_name');
+        expect(useDuplicateStore.getState().searchMode).toBe('similar_name');
     });
 
     it('removes successfully deleted duplicate files and recalculates stats', async () => {

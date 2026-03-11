@@ -14,6 +14,7 @@ import {
 } from '../services/duplicateService';
 import { findFileById, deleteFile } from '../services/database';
 import { deleteFileSafe } from '../services/fileOperationService';
+import type { DuplicateSearchMode } from '../../src/shared/duplicateNameCandidates';
 
 // 進捗スロットリング用の状態
 let lastProgressTime = 0;
@@ -23,7 +24,7 @@ export function registerDuplicateHandlers() {
     /**
      * 重複ファイル検索
      */
-    ipcMain.handle('duplicate:find', async (event: IpcMainInvokeEvent) => {
+    ipcMain.handle('duplicate:find', async (event: IpcMainInvokeEvent, mode: DuplicateSearchMode = 'exact') => {
         lastProgressTime = 0;
 
         const groups = await findDuplicates((progress: DuplicateProgress) => {
@@ -38,7 +39,7 @@ export function registerDuplicateHandlers() {
             if (progress.phase === 'complete') {
                 event.sender.send('duplicate:progress', progress);
             }
-        });
+        }, mode);
 
         // 統計情報も計算して返す
         const stats = getDuplicateStats(groups);

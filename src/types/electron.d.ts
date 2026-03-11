@@ -17,6 +17,7 @@ import type {
     AutoOrganizeSettingsV1,
 } from './autoOrganize';
 import type { ExternalDisplayPresetListResult } from '../components/fileCard/displayModes';
+import type { DuplicateSearchMode } from '../shared/duplicateNameCandidates';
 import type {
     Tag as RendererTagDefinition,
     TagCategory as RendererTagCategory,
@@ -396,7 +397,7 @@ declare global {
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
 
             // Duplicate Detection
-            findDuplicates: () => Promise<{
+            findDuplicates: (mode?: DuplicateSearchMode) => Promise<{
                 groups: DuplicateGroup[];
                 stats: DuplicateStats;
             }>;
@@ -524,6 +525,10 @@ interface DuplicateFileEntry {
 interface DuplicateGroup {
     hash: string;
     size: number;
+    sizeMin: number;
+    sizeMax: number;
+    matchKind: 'content_hash' | 'normalized_name' | 'numbered_series';
+    matchLabel: string;
     files: DuplicateFileEntry[];
     count: number;
 }

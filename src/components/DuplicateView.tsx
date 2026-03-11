@@ -20,6 +20,14 @@ function formatFileSize(bytes: number): string {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+function formatSizeRange(minBytes: number, maxBytes: number): string {
+    if (minBytes === maxBytes) {
+        return formatFileSize(minBytes);
+    }
+
+    return `${formatFileSize(minBytes)} - ${formatFileSize(maxBytes)}`;
+}
+
 // 日付を人間が読める形式に変換
 function formatDate(timestamp: number): string {
     if (!timestamp) return '不明';
@@ -83,6 +91,7 @@ export const DuplicateView: React.FC = () => {
         selectedFileIds,
         isDeleting,
         hasSearched,
+        searchMode,
         startSearch,
         cancelSearch,
         setProgress,
@@ -98,6 +107,15 @@ export const DuplicateView: React.FC = () => {
     } = useDuplicateStore();
 
     const closeDuplicateView = useUIStore((s) => s.closeDuplicateView);
+    const isSimilarMode = searchMode === 'similar_name';
+
+    const viewCopy = useMemo(() => ({
+        title: isSimilarMode ? '類似ファイル名候補' : '重複ファイル',
+        emptyTitle: isSimilarMode ? '類似ファイル名候補は見つかりませんでした' : '重複ファイルは見つかりませんでした',
+        idleTitle: isSimilarMode ? '類似ファイル名候補' : '重複ファイル検出',
+        searchingTitle: isSimilarMode ? '類似ファイル名候補を検索中...' : '重複ファイルを検索中...',
+        retryButton: isSimilarMode ? '類似候補を再検索' : '再検索',
+    }), [isSimilarMode]);
 
     const selectionSummary = useMemo(() => {
         const selectedGroupCount = groups.filter((group) =>
@@ -161,11 +179,15 @@ export const DuplicateView: React.FC = () => {
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Loader className="w-12 h-12 text-primary-400 animate-spin mb-4" />
                 <h2 className="text-xl font-medium text-surface-100 mb-2">
-                    重複ファイルを検索中...
+                    {viewCopy.searchingTitle}
                 </h2>
                 <p className="text-surface-400 mb-4">
                     {!progress && '準備中...'}
-                    {progress?.phase === 'analyzing' && '同じサイズのファイルを分析中...'}
+                    {progress?.phase === 'analyzing' && (
+                        isSimilarMode
+                            ? `ファイル名候補を分析中...${progress.total ? ` ${progress.current}/${progress.total}` : ''}`
+                            : '同じサイズのファイルを分析中...'
+                    )}
                     {progress?.phase === 'hashing' && (
                         <>
                             ハッシュ計算中: {progress.current}/{progress.total}
@@ -201,17 +223,19 @@ export const DuplicateView: React.FC = () => {
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Copy className="w-16 h-16 text-surface-600 mb-4" />
                 <h2 className="text-xl font-medium text-surface-100 mb-2">
-                    重複ファイルは見つかりませんでした
+                    {viewCopy.emptyTitle}
                 </h2>
                 <p className="text-surface-400 mb-6 text-center max-w-md">
-                    このプロファイルには重複するファイルがありません。
+                    {isSimilarMode
+                        ? 'このプロファイルには名前が近い候補がありません。'
+                        : 'このプロファイルには重複するファイルがありません。'}
                 </p>
                 <button
-                    onClick={startSearch}
+                    onClick={() => void startSearch(searchMode)}
                     className="px-6 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
                     <Copy className="w-5 h-5" />
-                    再検索
+                    {viewCopy.retryButton}
                 </button>
             </div>
         );
@@ -223,19 +247,37 @@ export const DuplicateView: React.FC = () => {
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Copy className="w-16 h-16 text-surface-600 mb-4" />
                 <h2 className="text-xl font-medium text-surface-100 mb-2">
-                    重複ファイル検出
+                    {viewCopy.idleTitle}
                 </h2>
                 <p className="text-surface-400 mb-6 text-center max-w-md">
-                    同じ内容を持つファイルを検出します。<br />
-                    サイズが同じファイルのみハッシュ値を計算するため、高速に動作します。
+                    {isSimilarMode ? (
+                        <>
+                            名前が同じ、または連番違いの近いファイル候補を集めます。<br />
+                            内容一致は保証しないため、サイズや日時を見ながら手動確認してください。
+                        </>
+                    ) : (
+                        <>
+                            同じ内容を持つファイルを検出します。<br />
+                            サイズが同じファイルのみハッシュ値を計算するため、高速に動作します。
+                        </>
+                    )}
                 </p>
-                <button
-                    onClick={startSearch}
-                    className="px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                    <Copy className="w-5 h-5" />
-                    重複チェック開始
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                        onClick={() => void startSearch('exact')}
+                        className="px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                        <Copy className="w-5 h-5" />
+                        重複チェック開始
+                    </button>
+                    <button
+                        onClick={() => void startSearch('similar_name')}
+                        className="px-6 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                        <Copy className="w-5 h-5" />
+                        類似候補を検索
+                    </button>
+                </div>
             </div>
         );
     }
@@ -248,22 +290,37 @@ export const DuplicateView: React.FC = () => {
                 <div className="flex items-center gap-4">
                     <h2 className="text-lg font-medium text-surface-100 flex items-center gap-2">
                         <Copy className="w-5 h-5 text-primary-400" />
-                        重複ファイル
+                        {viewCopy.title}
                     </h2>
                     {stats && (
                         <span className="text-sm text-surface-400">
-                            {stats.totalGroups}グループ, {stats.totalFiles}ファイル,
-                            {formatFileSize(stats.wastedSpace)}の無駄
+                            {isSimilarMode
+                                ? `${stats.totalGroups}グループ, ${stats.totalFiles}候補`
+                                : `${stats.totalGroups}グループ, ${stats.totalFiles}ファイル, ${formatFileSize(stats.wastedSpace)}の無駄`}
                         </span>
                     )}
                 </div>
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={startSearch}
+                        onClick={() => void startSearch(searchMode)}
                         disabled={isSearching}
                         className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
                     >
-                        再検索
+                        {viewCopy.retryButton}
+                    </button>
+                    <button
+                        onClick={() => void startSearch('exact')}
+                        disabled={isSearching || searchMode === 'exact'}
+                        className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                    >
+                        完全一致
+                    </button>
+                    <button
+                        onClick={() => void startSearch('similar_name')}
+                        disabled={isSearching || searchMode === 'similar_name'}
+                        className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
+                    >
+                        類似候補
                     </button>
                     {groups.length > 0 && (
                         <>
@@ -357,7 +414,7 @@ export const DuplicateView: React.FC = () => {
                     const selectedCount = group.files.filter((file) => selectedFileIds.has(file.id)).length;
                     const keepCount = group.count - selectedCount;
                     const allSelected = selectedCount === group.count;
-                    const hasSizeMismatch = group.files.some((file) => file.size !== group.size);
+                    const hasSizeMismatch = group.sizeMin !== group.sizeMax;
                     const folderPaths = [...new Set(group.files.map((file) => getFolderPath(file.path)))];
                     const hasMultipleFolders = folderPaths.length > 1;
                     const folderToneMap = new Map(folderPaths.map((folderPath, index) => [folderPath, getFolderTone(index)]));
@@ -369,10 +426,21 @@ export const DuplicateView: React.FC = () => {
                             <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                                     <span className="text-surface-100 font-medium">
-                                        {group.count}ファイル, {formatFileSize(group.size)}
+                                        {isSimilarMode
+                                            ? `${group.count}候補`
+                                            : `${group.count}ファイル, ${formatFileSize(group.size)}`}
                                     </span>
-                                    <span className="rounded bg-surface-700 px-2 py-0.5 text-xs text-surface-300">
-                                        重複ぶん {formatFileSize(group.size * Math.max(group.count - 1, 0))}
+                                    {isSimilarMode ? (
+                                        <span className="rounded bg-surface-700 px-2 py-0.5 text-xs text-surface-300">
+                                            サイズ帯 {formatSizeRange(group.sizeMin, group.sizeMax)}
+                                        </span>
+                                    ) : (
+                                        <span className="rounded bg-surface-700 px-2 py-0.5 text-xs text-surface-300">
+                                            重複ぶん {formatFileSize(group.size * Math.max(group.count - 1, 0))}
+                                        </span>
+                                    )}
+                                    <span className={`rounded px-2 py-0.5 text-xs ${isSimilarMode ? 'bg-primary-500/15 text-primary-200' : 'bg-surface-700 text-surface-300'}`}>
+                                        {group.matchLabel}
                                     </span>
                                     <span className={`rounded px-2 py-0.5 text-xs ${hasMultipleFolders ? 'bg-amber-500/15 text-amber-200' : 'bg-surface-700 text-surface-300'}`}>
                                         保存先 {folderPaths.length} フォルダ
@@ -423,13 +491,19 @@ export const DuplicateView: React.FC = () => {
                             {hasMultipleFolders && (
                                 <div className="mt-2 flex items-center gap-2 text-xs text-amber-200">
                                     <FolderOpen className="h-3.5 w-3.5 text-amber-300" />
-                                    <span>この重複グループは別フォルダに分散しています。削除前に保存先の違いを確認してください。</span>
+                                    <span>このグループは別フォルダに分散しています。削除前に保存先の違いを確認してください。</span>
+                                </div>
+                            )}
+                            {isSimilarMode && (
+                                <div className="mt-2 flex items-center gap-2 text-xs text-primary-200">
+                                    <Copy className="h-3.5 w-3.5 text-primary-300" />
+                                    <span>この一覧は内容一致ではなく、ファイル名が近い候補です。削除前にサイズや日時を確認してください。</span>
                                 </div>
                             )}
                             {hasSizeMismatch && (
                                 <div className="mt-2 flex items-center gap-2 text-xs text-amber-200">
                                     <AlertTriangle className="h-3.5 w-3.5 text-amber-300" />
-                                    <span>このグループにはサイズが一致しない項目があります。スキャン結果やメタ情報を確認してください。</span>
+                                    <span>このグループにはサイズ差があります。異なる版や変換後ファイルの可能性があります。</span>
                                 </div>
                             )}
                         </div>
@@ -489,7 +563,7 @@ export const DuplicateView: React.FC = () => {
                                                             ? 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30'
                                                             : 'bg-surface-700 text-surface-300'
                                                     }`}
-                                                    title={isUnexpectedSize ? `グループ基準 ${formatFileSize(group.size)} と一致しません` : undefined}
+                                                    title={isUnexpectedSize ? `基準サイズ ${formatFileSize(group.size)} と一致しません` : undefined}
                                                 >
                                                     <HardDrive className="h-3 w-3" />
                                                     {formatFileSize(file.size)}
