@@ -153,7 +153,7 @@ export const ThumbnailsSettingsTab = React.memo(({
                                 onChange={() => onThumbnailActionChange('flipbook')}
                                 className="w-4 h-4 accent-primary-500"
                             />
-                            <span className="text-surface-200">自動パラパラ</span>
+                            <span className="text-surface-200">コマ送り</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -175,7 +175,7 @@ export const ThumbnailsSettingsTab = React.memo(({
                 {usesVideoFlipbook && (
                     <div className="ml-6 mt-2">
                         <label className="block text-sm font-medium text-surface-300 mb-1">
-                            動画の自動パラパラ速度
+                            動画のコマ送り速度
                         </label>
                         <select
                             value={videoFlipbookSpeed}
@@ -217,7 +217,7 @@ export const ThumbnailsSettingsTab = React.memo(({
                                 onChange={() => onArchiveThumbnailActionChange('flipbook')}
                                 className="w-4 h-4 accent-primary-500"
                             />
-                            <span className="text-surface-200">自動パラパラ</span>
+                            <span className="text-surface-200">コマ送り</span>
                         </label>
                     </div>
                     <p className="text-xs text-surface-500 mt-1">
@@ -228,7 +228,7 @@ export const ThumbnailsSettingsTab = React.memo(({
                 {usesArchiveFlipbook && (
                     <div className="ml-6 mt-2">
                         <label className="block text-sm font-medium text-surface-300 mb-1">
-                            書庫の自動パラパラ速度
+                            書庫のコマ送り速度
                         </label>
                         <select
                             value={archiveFlipbookSpeed}

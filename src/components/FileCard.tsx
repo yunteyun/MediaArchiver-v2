@@ -933,7 +933,7 @@ export const FileCard = React.memo(({
         setScrubIndex(Math.max(0, Math.min(index, activePreviewFrames.length - 1)));
     }, [thumbnailAction, canScrubPreview, preloadState, activePreviewFrames.length]);
 
-    // 自動パラパラモード: ホバー中にプレビューフレームを自動再生
+    // コマ送りモード: ホバー中にプレビューフレームを順送り表示
     useEffect(() => {
         const shouldFlipbook =
             isHovered &&
@@ -1237,7 +1237,7 @@ export const FileCard = React.memo(({
                     />
                 )}
 
-                {/* ローディングインジケーター（Scrub / 自動パラパラ ロード中） */}
+                {/* ローディングインジケーター（Scrub / コマ送り ロード中） */}
                 {isHovered && preloadState === 'loading' && canHoverFramePreview && (
                     <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
                         <Loader size={10} className="animate-spin" />
@@ -1245,7 +1245,7 @@ export const FileCard = React.memo(({
                     </div>
                 )}
 
-                {/* スクラブ / 自動パラパラ 進捗バー */}
+                {/* スクラブ / コマ送り 進捗バー */}
                 {isHovered && canHoverFramePreview && preloadState === 'ready' && activePreviewFrames.length > 0 && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
                         <div
