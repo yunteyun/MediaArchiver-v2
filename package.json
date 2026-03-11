@@ -4,11 +4,11 @@
     "version": "1.8.0",
     "main": "dist-electron/bootstrap.js",
     "scripts": {
-        "dev": "vite",
-        "build": "vite build",
+        "dev": "node -e \"const path=require('node:path');const pkg=process.env.npm_package_json||path.join(process.cwd(),'package.json');const normalized=pkg.startsWith('\\\\\\\\?\\\\')?pkg.slice(4):pkg;require(path.join(path.dirname(normalized),'scripts','run-vite.cjs'));\" --",
+        "build": "node -e \"const path=require('node:path');const pkg=process.env.npm_package_json||path.join(process.cwd(),'package.json');const normalized=pkg.startsWith('\\\\\\\\?\\\\')?pkg.slice(4):pkg;require(path.join(path.dirname(normalized),'scripts','run-vite.cjs'));\" -- build",
         "build:electron": "node ./electron/scripts/buildElectron.cjs",
         "lint": "eslint .",
-        "preview": "vite preview",
+        "preview": "node -e \"const path=require('node:path');const pkg=process.env.npm_package_json||path.join(process.cwd(),'package.json');const normalized=pkg.startsWith('\\\\\\\\?\\\\')?pkg.slice(4):pkg;require(path.join(path.dirname(normalized),'scripts','run-vite.cjs'));\" -- preview",
         "test": "vitest run",
         "test:watch": "vitest"
     },
