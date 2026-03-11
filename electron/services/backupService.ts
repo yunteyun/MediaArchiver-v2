@@ -79,6 +79,19 @@ function getBackupDir(settings: BackupSettings = DEFAULT_BACKUP_SETTINGS): strin
     return resolveBackupDir(settings);
 }
 
+function removeDbSidecarFiles(dbPath: string): void {
+    for (const suffix of ['-wal', '-shm', '-journal']) {
+        const sidecarPath = `${dbPath}${suffix}`;
+        if (!fs.existsSync(sidecarPath)) continue;
+        try {
+            fs.unlinkSync(sidecarPath);
+            log.info(`Removed stale DB sidecar: ${sidecarPath}`);
+        } catch (error) {
+            log.warn(`Failed to remove DB sidecar: ${sidecarPath}`, error);
+        }
+    }
+}
+
 export function loadBackupSettings(): BackupSettings {
     const settingsPath = getBackupSettingsPath();
     if (!fs.existsSync(settingsPath)) {
@@ -220,16 +233,28 @@ export async function restoreBackup(backupPath: string): Promise<void> {
         throw new Error('Backup file not found');
     }
 
+    const currentDbPath = dbManager.getCurrentDbPath();
+
     // 1. DB接続を明示的に切断
+    try {
+        dbManager.walCheckpoint();
+    } catch (error) {
+        log.warn('WAL checkpoint before restore failed. Continuing with restore.', error);
+    }
     dbManager.closeDb();
 
     // 2. ファイルコピー
-    const currentDbPath = dbManager.getCurrentDbPath();
     try {
+        removeDbSidecarFiles(currentDbPath);
         await fs.promises.copyFile(backupPath, currentDbPath);
         log.info('Backup restored successfully. App will relaunch.');
     } catch (error) {
         log.error('Restore failed:', error);
+        try {
+            dbManager.initialize();
+        } catch (reopenError) {
+            log.error('Failed to reinitialize database after restore failure:', reopenError);
+        }
         throw error;
     }
 
