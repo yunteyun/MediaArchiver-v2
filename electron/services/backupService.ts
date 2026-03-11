@@ -103,19 +103,29 @@ function scheduleRestoreRelaunch(): void {
 
     const exePath = app.getPath('exe');
     const exeDir = path.dirname(exePath);
-    app.once('will-quit', () => {
-        try {
-            const child = spawn(exePath, [], {
-                cwd: exeDir,
-                detached: true,
-                stdio: 'ignore',
-            });
-            child.unref();
-            log.info(`Spawned app after restore quit: ${exePath}`);
-        } catch (error) {
-            log.error('Failed to spawn app after restore quit:', error);
-        }
-    });
+    const scriptPath = path.join(app.getPath('temp'), `mediaarchiver-restore-relaunch-${Date.now()}.cmd`);
+    const scriptLines = [
+        '@echo off',
+        'ping 127.0.0.1 -n 3 >nul',
+        `cd /d "${exeDir.replace(/"/g, '""')}"`,
+        `start "" "${exePath.replace(/"/g, '""')}"`,
+        'del "%~f0"',
+    ];
+
+    try {
+        fs.writeFileSync(scriptPath, `${scriptLines.join('\r\n')}\r\n`, 'utf-8');
+        const child = spawn('cmd.exe', ['/d', '/c', scriptPath], {
+            cwd: exeDir,
+            detached: true,
+            stdio: 'ignore',
+            windowsHide: true,
+        });
+        child.unref();
+        log.info(`Scheduled delayed restore relaunch via script: ${scriptPath}`);
+    } catch (error) {
+        log.error('Failed to schedule delayed restore relaunch:', error);
+        app.relaunch();
+    }
 }
 
 export function loadBackupSettings(): BackupSettings {
