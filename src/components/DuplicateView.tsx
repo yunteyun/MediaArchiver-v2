@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useCallback, useMemo, startTransition } from 'react';
-import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader, ShieldCheck, AlertTriangle, HardDrive } from 'lucide-react';
 import {
     DUPLICATE_BULK_ACTION_GROUP_LIMIT,
     useDuplicateStore,
@@ -474,6 +474,10 @@ export const DuplicateView: React.FC = () => {
                                                 </p>
                                                 <span className={`rounded px-2 py-0.5 text-[11px] ${hasMultipleFolders ? folderTone.badge : 'bg-surface-700 text-surface-300'}`}>
                                                     フォルダ: {folderName}
+                                                </span>
+                                                <span className="inline-flex items-center gap-1 rounded bg-surface-700 px-2 py-0.5 text-[11px] text-surface-300">
+                                                    <HardDrive className="h-3 w-3" />
+                                                    {formatFileSize(file.size)}
                                                 </span>
                                                 <span className={`rounded px-2 py-0.5 text-[11px] ${isSelected
                                                     ? 'bg-red-500/15 text-red-200'
