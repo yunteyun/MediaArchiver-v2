@@ -26,7 +26,6 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
     const videoRef = useRef<HTMLVideoElement>(null);
     const jumpIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastActivePreviewModeRef = useRef<'loop' | 'long'>(
         rightPanelVideoPreviewMode === 'long' ? 'long' : 'loop'
     );
@@ -79,24 +78,6 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     };
 
     const handlePreviewClick = () => {
-        if (!isVideo) {
-            openLightbox(file);
-            return;
-        }
-        if (clickTimeoutRef.current) {
-            clearTimeout(clickTimeoutRef.current);
-        }
-        clickTimeoutRef.current = setTimeout(() => {
-            toggleVideoPreviewPlayback();
-            clickTimeoutRef.current = null;
-        }, 180);
-    };
-
-    const handlePreviewDoubleClick = () => {
-        if (clickTimeoutRef.current) {
-            clearTimeout(clickTimeoutRef.current);
-            clickTimeoutRef.current = null;
-        }
         openLightbox(file);
     };
 
@@ -187,19 +168,37 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
         };
     }, [file.id, isCenterViewerOpen, isVideo, rightPanelVideoJumpInterval, rightPanelVideoPreviewMode]);
 
-    useEffect(() => () => {
-        if (clickTimeoutRef.current) {
-            clearTimeout(clickTimeoutRef.current);
-            clickTimeoutRef.current = null;
-        }
-    }, []);
-
     return (
         <section className="px-4 py-3 space-y-2 border-b border-surface-700">
             <div className="flex items-center justify-between gap-2">
                 <SectionTitle>プレビュー</SectionTitle>
                 {isVideo && (
                     <div className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                toggleVideoPreviewPlayback();
+                            }}
+                            className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${
+                                rightPanelVideoPreviewMode === 'off'
+                                    ? 'border-surface-500 bg-surface-800 text-surface-300 hover:bg-surface-700'
+                                    : 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                            }`}
+                            title={rightPanelVideoPreviewMode === 'off' ? 'プレビューを再開' : 'プレビューを停止'}
+                            aria-label={rightPanelVideoPreviewMode === 'off' ? 'プレビューを再開' : 'プレビューを停止'}
+                        >
+                            {rightPanelVideoPreviewMode === 'off' ? (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                            ) : (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M6 5h4v14H6z" />
+                                    <path d="M14 5h4v14h-4z" />
+                                </svg>
+                            )}
+                        </button>
                         <button
                             type="button"
                             onClick={(event) => {
@@ -234,11 +233,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                                 event.stopPropagation();
                                 setRightPanelVideoPreviewMode(nextRightPanelPreviewMode);
                             }}
-                            className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${
-                                activePreviewMode === 'loop'
-                                    ? 'border-sky-500/60 bg-sky-500/10 text-sky-200 hover:bg-sky-500/20'
-                                    : 'border-amber-500/60 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
-                            }`}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-surface-500 bg-surface-800 text-surface-300 transition hover:bg-surface-700"
                             title={`${currentPreviewModeTitle} / ${nextRightPanelPreviewModeTitle}`}
                             aria-label={`${currentPreviewModeTitle} / ${nextRightPanelPreviewModeTitle}`}
                         >
@@ -263,8 +258,7 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
             <div
                 className="h-[208px] bg-black flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0 relative group rounded-md"
                 onClick={handlePreviewClick}
-                onDoubleClick={handlePreviewDoubleClick}
-                title={isVideo ? 'クリックで停止/再開、ダブルクリックで拡大表示' : 'クリックして拡大表示'}
+                title="クリックして拡大表示"
             >
                 {backgroundSrc && (
                     <>
