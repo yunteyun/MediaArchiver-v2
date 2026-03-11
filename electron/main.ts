@@ -43,6 +43,10 @@ protocol.registerSchemesAsPrivileged([
 // Note: electron-squirrel-startup removed (not needed for dir build)
 
 let mainWindow: BrowserWindow | null = null;
+const DEV_SERVER_WAIT_TIMEOUT_MS = 15_000;
+const DEV_SERVER_PROBE_TIMEOUT_MS = 1_500;
+const DEV_SERVER_RETRY_DELAY_MS = 750;
+const DEV_SERVER_MAX_LOAD_ATTEMPTS = 5;
 
 function getDevWindowIconPath(): string | undefined {
     if (!process.env.VITE_DEV_SERVER_URL) return undefined;
@@ -78,7 +82,142 @@ function getBuildMarker(): string {
     ].join(' | ');
 }
 
-const createWindow = () => {
+function delay(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
+}
+
+async function isDevServerReachable(devServerUrl: string): Promise<boolean> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DEV_SERVER_PROBE_TIMEOUT_MS);
+
+    try {
+        const probeUrl = new URL(devServerUrl);
+        probeUrl.pathname = '/';
+        probeUrl.search = '';
+        probeUrl.hash = '';
+
+        const response = await fetch(probeUrl, {
+            method: 'GET',
+            cache: 'no-store',
+            signal: controller.signal,
+        });
+
+        return response.ok || response.status < 500;
+    } catch {
+        return false;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function waitForDevServer(devServerUrl: string, timeoutMs: number): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+        if (await isDevServerReachable(devServerUrl)) {
+            return true;
+        }
+        await delay(DEV_SERVER_RETRY_DELAY_MS);
+    }
+
+    return isDevServerReachable(devServerUrl);
+}
+
+async function loadRenderer(window: BrowserWindow): Promise<void> {
+    const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+
+    if (devServerUrl) {
+        for (let attempt = 1; attempt <= DEV_SERVER_MAX_LOAD_ATTEMPTS; attempt += 1) {
+            const waitTimeout = attempt === 1 ? DEV_SERVER_WAIT_TIMEOUT_MS : DEV_SERVER_PROBE_TIMEOUT_MS;
+            const isReachable = await waitForDevServer(devServerUrl, waitTimeout);
+
+            if (!isReachable) {
+                logger.warn(`[RendererLoad] Dev server is not reachable yet (attempt ${attempt}/${DEV_SERVER_MAX_LOAD_ATTEMPTS}): ${devServerUrl}`);
+            }
+
+            try {
+                await window.loadURL(devServerUrl);
+                return;
+            } catch (error) {
+                logger.warn(`[RendererLoad] Failed to load dev renderer (attempt ${attempt}/${DEV_SERVER_MAX_LOAD_ATTEMPTS})`, error);
+                if (attempt < DEV_SERVER_MAX_LOAD_ATTEMPTS) {
+                    await delay(DEV_SERVER_RETRY_DELAY_MS);
+                }
+            }
+        }
+
+        const escapedUrl = devServerUrl
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        const fallbackHtml = `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Renderer 起動待機</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(560px, calc(100vw - 48px));
+      padding: 32px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.35);
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 24px;
+    }
+    p {
+      margin: 0 0 12px;
+      line-height: 1.7;
+    }
+    code {
+      font-family: Consolas, monospace;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Renderer の起動を待機できませんでした</h1>
+    <p>開発サーバーへの接続に複数回失敗しました。Vite が起動中か確認してから再度起動してください。</p>
+    <p><code>${escapedUrl}</code></p>
+  </main>
+</body>
+</html>`;
+        await window.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(fallbackHtml)}`);
+        return;
+    }
+
+    const packagedIndexCandidates = [
+        path.join(__dirname, '../dist/index.html'),
+        path.join(process.resourcesPath, 'dist/index.html'),
+        path.join(process.resourcesPath, 'app.asar.unpacked/dist/index.html'),
+    ];
+    const packagedIndexPath = packagedIndexCandidates.find((candidate) => fs.existsSync(candidate));
+
+    if (!packagedIndexPath) {
+        logger.error('Renderer entry not found in packaged build', { candidates: packagedIndexCandidates });
+        app.quit();
+        return;
+    }
+
+    await window.loadFile(packagedIndexPath);
+}
+
+const createWindow = async () => {
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
@@ -102,30 +241,13 @@ const createWindow = () => {
         });
     });
 
-    // Load the app
-    if (process.env.VITE_DEV_SERVER_URL) {
-        mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    } else {
-        const packagedIndexCandidates = [
-            path.join(__dirname, '../dist/index.html'),
-            path.join(process.resourcesPath, 'dist/index.html'),
-            path.join(process.resourcesPath, 'app.asar.unpacked/dist/index.html'),
-        ];
-        const packagedIndexPath = packagedIndexCandidates.find((candidate) => fs.existsSync(candidate));
-
-        if (!packagedIndexPath) {
-            logger.error('Renderer entry not found in packaged build', { candidates: packagedIndexCandidates });
-            app.quit();
-            return;
-        }
-
-        mainWindow.loadFile(packagedIndexPath);
-    }
-
     // Show window when ready
     mainWindow.once('ready-to-show', () => {
         mainWindow?.show();
     });
+
+    // Load the app
+    await loadRenderer(mainWindow);
 
     // Open DevTools in development
     if (process.env.VITE_DEV_SERVER_URL) {
@@ -193,14 +315,14 @@ app.whenReady().then(async () => {
     // 古いアクティビティログを削除（30日以上前）
     pruneOldLogs(30);
 
-    createWindow();
+    await createWindow();
     logger.info('Main window created');
     syncFolderWatchers();
     logger.info('Folder watchers synced');
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
-            createWindow();
+            void createWindow();
         }
     });
 });
