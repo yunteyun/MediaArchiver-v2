@@ -323,13 +323,14 @@ export const FileCard = React.memo(({
     overallRatingAxis = null,
 }: FileCardProps) => {
     const perfDebugEnabled = isPerfDebugEnabled();
+    const isAudioArchiveFile = useMemo(() => file.type === 'archive' && isAudioArchive(file), [file]);
     // アイコン選択ロジック
     const Icon = (() => {
         if (file.type === 'video') return Play;
         if (file.type === 'image') return ImageIcon;
         if (file.type === 'audio') return Music;
         if (file.type === 'archive') {
-            return isAudioArchive(file) ? FileMusic : Archive;
+            return isAudioArchiveFile ? FileMusic : Archive;
         }
         return FileText;
     })();
@@ -417,6 +418,8 @@ export const FileCard = React.memo(({
     const [isHovered, setIsHovered] = useState(false);
     const [scrubIndex, setScrubIndex] = useState(0);
     const [preloadState, setPreloadState] = useState<'idle' | 'loading' | 'ready'>('idle');
+    const [archivePreviewFrames, setArchivePreviewFrames] = useState<string[]>([]);
+    const [archivePreviewFetchState, setArchivePreviewFetchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
     const preloadedImages = useRef<HTMLImageElement[]>([]);
     const hoverTimeoutRef = useRef<number | null>(null);
     const flipbookIntervalRef = useRef<number | null>(null);
@@ -489,6 +492,7 @@ export const FileCard = React.memo(({
     }, [file.metadata]);
 
     const archiveImageCount = getArchiveImageCount(file);
+    const canFlipbookArchive = file.type === 'archive' && !isAudioArchiveFile && (archiveImageCount ?? 0) > 1;
 
     // Phase 17-3: interval クリーンアップヘルパー
     const clearJumpInterval = useCallback(() => {
@@ -505,11 +509,37 @@ export const FileCard = React.memo(({
         }
     }, []);
 
+    const preloadFrameImages = useCallback((framePaths: string[]) => {
+        const images = framePaths.map((framePath) => {
+            const img = new Image();
+            img.src = toMediaUrl(framePath);
+            return img;
+        });
+        preloadedImages.current = images;
+
+        return Promise.all(images.map((img) =>
+            new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            })
+        ));
+    }, []);
+
     // プレビューフレームのパスをパース
     const previewFrames = useMemo(() => {
         if (!file.previewFrames) return [];
         return file.previewFrames.split(',').filter(Boolean);
     }, [file.previewFrames]);
+
+    const activePreviewFrames = useMemo(() => {
+        if (file.type === 'video') return previewFrames;
+        if (canFlipbookArchive) return archivePreviewFrames;
+        return [];
+    }, [file.type, previewFrames, canFlipbookArchive, archivePreviewFrames]);
+
+    const canScrubPreview = file.type === 'video';
+    const canFlipbookPreview = thumbnailAction === 'flipbook' && (file.type === 'video' || canFlipbookArchive);
+    const canHoverFramePreview = (thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview;
 
     const tagById = useMemo(
         () => new Map(allTags.map((tag) => [tag.id, tag])),
@@ -597,6 +627,13 @@ export const FileCard = React.memo(({
             }
         };
     }, []);
+
+    useEffect(() => {
+        setArchivePreviewFrames([]);
+        setArchivePreviewFetchState('idle');
+        setPreloadState('idle');
+        setScrubIndex(0);
+    }, [file.id]);
 
     useEffect(() => {
         if (!shouldShowHoverZoomPreview || !zoomButtonRef.current) {
@@ -790,31 +827,61 @@ export const FileCard = React.memo(({
                 setAnimatedPreviewSessionKey((prev) => prev + 1);
             }
 
-            // Scrub / 自動パラパラ: 動画で、まだロードしていない場合のみプリロード
             if (
-                (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook') &&
-                file.type === 'video' &&
-                previewFrames.length > 0 &&
+                canHoverFramePreview &&
+                activePreviewFrames.length > 0 &&
                 preloadState === 'idle'
             ) {
                 setPreloadState('loading');
+                void preloadFrameImages(activePreviewFrames).then(() => setPreloadState('ready'));
+                return;
+            }
 
-                const images = previewFrames.map((framePath) => {
-                    const img = new Image();
-                    img.src = toMediaUrl(framePath);
-                    return img;
-                });
-                preloadedImages.current = images;
+            if (
+                thumbnailAction === 'flipbook' &&
+                canFlipbookArchive &&
+                activePreviewFrames.length === 0 &&
+                archivePreviewFetchState === 'idle'
+            ) {
+                setArchivePreviewFetchState('loading');
+                setPreloadState('loading');
 
-                Promise.all(images.map(img =>
-                    new Promise(resolve => {
-                        img.onload = resolve;
-                        img.onerror = resolve;
+                void window.electronAPI.getArchivePreviewFrames(file.path, 6)
+                    .then((frames) => {
+                        if (frames.length === 0) {
+                            setArchivePreviewFrames([]);
+                            setArchivePreviewFetchState('error');
+                            setPreloadState('idle');
+                            return;
+                        }
+
+                        setArchivePreviewFrames(frames);
+                        setArchivePreviewFetchState('ready');
+                        return preloadFrameImages(frames).then(() => setPreloadState('ready'));
                     })
-                )).then(() => setPreloadState('ready'));
+                    .catch(() => {
+                        setArchivePreviewFrames([]);
+                        setArchivePreviewFetchState('error');
+                        setPreloadState('idle');
+                    });
             }
         }, 100);
-    }, [thumbnailAction, animatedImagePreviewMode, isAnimatedImage, file.type, file.id, previewFrames, preloadState, performanceMode, setHoveredPreview]);
+    }, [
+        thumbnailAction,
+        animatedImagePreviewMode,
+        isAnimatedImage,
+        file.type,
+        file.id,
+        file.path,
+        activePreviewFrames,
+        preloadState,
+        performanceMode,
+        setHoveredPreview,
+        canHoverFramePreview,
+        canFlipbookArchive,
+        archivePreviewFetchState,
+        preloadFrameImages,
+    ]);
 
     const handleMouseLeave = useCallback(() => {
         if (hoverTimeoutRef.current) {
@@ -840,23 +907,23 @@ export const FileCard = React.memo(({
 
     // Scrub: マウス位置からフレームインデックスを計算
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        if (thumbnailAction !== 'scrub' || preloadState !== 'ready' || previewFrames.length === 0) return;
+        if (thumbnailAction !== 'scrub' || !canScrubPreview || preloadState !== 'ready' || activePreviewFrames.length === 0) return;
 
         const rect = e.currentTarget.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const percentage = x / rect.width;
-        const index = Math.floor(percentage * previewFrames.length);
-        setScrubIndex(Math.max(0, Math.min(index, previewFrames.length - 1)));
-    }, [thumbnailAction, preloadState, previewFrames.length]);
+        const index = Math.floor(percentage * activePreviewFrames.length);
+        setScrubIndex(Math.max(0, Math.min(index, activePreviewFrames.length - 1)));
+    }, [thumbnailAction, canScrubPreview, preloadState, activePreviewFrames.length]);
 
     // 自動パラパラモード: ホバー中にプレビューフレームを自動再生
     useEffect(() => {
         const shouldFlipbook =
             isHovered &&
             thumbnailAction === 'flipbook' &&
-            file.type === 'video' &&
+            (file.type === 'video' || canFlipbookArchive) &&
             preloadState === 'ready' &&
-            previewFrames.length > 1;
+            activePreviewFrames.length > 1;
 
         if (!shouldFlipbook) {
             clearFlipbookInterval();
@@ -869,13 +936,13 @@ export const FileCard = React.memo(({
                 flipbookSpeed === 'fast' ? 140 :
                     220;
         flipbookIntervalRef.current = window.setInterval(() => {
-            setScrubIndex((prev) => (prev + 1) % previewFrames.length);
+            setScrubIndex((prev) => (prev + 1) % activePreviewFrames.length);
         }, flipbookIntervalMs);
 
         return () => {
             clearFlipbookInterval();
         };
-    }, [isHovered, thumbnailAction, file.type, preloadState, previewFrames.length, flipbookSpeed, clearFlipbookInterval]);
+    }, [isHovered, thumbnailAction, file.type, canFlipbookArchive, preloadState, activePreviewFrames.length, flipbookSpeed, clearFlipbookInterval]);
 
     // Phase 17-3: Video 要素の制御（3モード対応 + interval管理強化）
     useEffect(() => {
@@ -963,16 +1030,16 @@ export const FileCard = React.memo(({
         if (
             isHovered &&
             preloadState === 'ready' &&
-            previewFrames.length > 0 &&
-            (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook')
+            activePreviewFrames.length > 0 &&
+            ((thumbnailAction === 'scrub' && canScrubPreview) || thumbnailAction === 'flipbook')
         ) {
-            return previewFrames[scrubIndex];
+            return activePreviewFrames[scrubIndex];
         }
         if (shouldAnimateImagePreview) {
             return file.path;
         }
         return file.thumbnailPath;
-    }, [isHovered, preloadState, previewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, shouldAnimateImagePreview]);
+    }, [isHovered, preloadState, activePreviewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, canScrubPreview, shouldAnimateImagePreview]);
 
     const displayImageSrc = useMemo(() => {
         if (!displayImagePath) return '';
@@ -1154,7 +1221,7 @@ export const FileCard = React.memo(({
                 )}
 
                 {/* ローディングインジケーター（Scrub / 自動パラパラ ロード中） */}
-                {isHovered && preloadState === 'loading' && file.type === 'video' && (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook') && (
+                {isHovered && preloadState === 'loading' && canHoverFramePreview && (
                     <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
                         <Loader size={10} className="animate-spin" />
                         <span>Loading...</span>
@@ -1162,13 +1229,13 @@ export const FileCard = React.memo(({
                 )}
 
                 {/* スクラブ / 自動パラパラ 進捗バー */}
-                {isHovered && (thumbnailAction === 'scrub' || thumbnailAction === 'flipbook') && preloadState === 'ready' && previewFrames.length > 0 && (
+                {isHovered && canHoverFramePreview && preloadState === 'ready' && activePreviewFrames.length > 0 && (
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
                         <div
                             className="h-full bg-cyan-400 transition-all duration-100"
                             style={{
-                                width: `${previewFrames.length > 1
-                                    ? (scrubIndex / (previewFrames.length - 1)) * 100
+                                width: `${activePreviewFrames.length > 1
+                                    ? (scrubIndex / (activePreviewFrames.length - 1)) * 100
                                     : 0}%`
                             }}
                         />
@@ -1204,7 +1271,7 @@ export const FileCard = React.memo(({
                         </span>
                     ))}
                     {/* Phase 26: 音声書庫バッジ（Music アイコン） */}
-                    {!isSelected && file.type === 'archive' && isAudioArchive(file) && (
+                    {!isSelected && file.type === 'archive' && isAudioArchiveFile && (
                         <div className="bg-purple-800/80 rounded-sm p-0.5 opacity-90">
                             <Music size={12} className="text-white" strokeWidth={2.5} />
                         </div>
