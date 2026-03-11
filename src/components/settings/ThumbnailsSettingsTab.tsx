@@ -172,6 +172,26 @@ export const ThumbnailsSettingsTab = React.memo(({
                     </p>
                 </div>
 
+                {usesVideoFlipbook && (
+                    <div className="ml-6 mt-2">
+                        <label className="block text-sm font-medium text-surface-300 mb-1">
+                            動画の自動パラパラ速度
+                        </label>
+                        <select
+                            value={videoFlipbookSpeed}
+                            onChange={(e) => onVideoFlipbookSpeedChange(e.target.value as FlipbookSpeed)}
+                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                        >
+                            <option value="slow">遅い</option>
+                            <option value="normal">標準</option>
+                            <option value="fast">速い</option>
+                        </select>
+                        <p className="text-xs text-surface-500 mt-1">
+                            プレビューフレーム枚数が少ないほど速く見えやすいです。
+                        </p>
+                    </div>
+                )}
+
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-2">
                         書庫カードのホバー時動作
@@ -204,26 +224,6 @@ export const ThumbnailsSettingsTab = React.memo(({
                         画像を含む書庫カードだけに適用します。音声書庫は対象外です。
                     </p>
                 </div>
-
-                {usesVideoFlipbook && (
-                    <div className="ml-6 mt-2">
-                        <label className="block text-sm font-medium text-surface-300 mb-1">
-                            動画の自動パラパラ速度
-                        </label>
-                        <select
-                            value={videoFlipbookSpeed}
-                            onChange={(e) => onVideoFlipbookSpeedChange(e.target.value as FlipbookSpeed)}
-                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
-                        >
-                            <option value="slow">遅い</option>
-                            <option value="normal">標準</option>
-                            <option value="fast">速い</option>
-                        </select>
-                        <p className="text-xs text-surface-500 mt-1">
-                            プレビューフレーム枚数が少ないほど速く見えやすいです。
-                        </p>
-                    </div>
-                )}
 
                 {usesArchiveFlipbook && (
                     <div className="ml-6 mt-2">
