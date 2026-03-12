@@ -1,0 +1,103 @@
+name: "🐛 バグ報告"
+description: "再現した不具合や動かない挙動を報告します"
+title: "[バグ] "
+labels:
+  - "バグ"
+  - "要トリアージ"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ありがとうございます。できるだけそのまま再現できる形で書いてもらえると助かります。
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 緊急度
+      description: 困り度に近い感覚で選んでください
+      options:
+        - 高
+        - 中
+        - 低
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 発生箇所
+      options:
+        - ファイル一覧 / ファイルカード
+        - 重複チェック
+        - 左サイドバー
+        - 右パネル / ビューア
+        - 設定
+        - スキャン
+        - 更新
+        - その他
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: アプリのバージョン
+      placeholder: "例: 1.9.0"
+    validations:
+      required: false
+  - type: textarea
+    id: summary
+    attributes:
+      label: 何が起きたか
+      description: 一言でわかるように書いてください
+      placeholder: "例: 表示設定を保存しても再起動すると元に戻る"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: できるだけ上から順に書いてください
+      placeholder: |
+        1. アプリを起動する
+        2. 〜を開く
+        3. 〜を変更する
+        4. 再起動すると〜になる
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 本来どうなってほしかったか
+      placeholder: "例: 再起動後も並び替え設定が保持されてほしい"
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際にはどうなったか
+      placeholder: "例: 並び替え設定が初期状態に戻った"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境メモ
+      description: OS、保存モード、関係ありそうな条件があれば書いてください
+      placeholder: |
+        - OS:
+        - 保存モード:
+        - 補足:
+    validations:
+      required: false
+  - type: textarea
+    id: attachments
+    attributes:
+      label: スクリーンショット・ログ・補足
+      description: 画像やログがあれば貼ってください
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 確認
+      options:
+        - label: 既存 Issue を軽く検索し、同じ報告がないか確認しました
+          required: true

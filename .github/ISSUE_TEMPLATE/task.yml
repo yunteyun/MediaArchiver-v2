@@ -1,0 +1,51 @@
+name: "🛠 改善・内部タスク"
+description: "実装タスク、調査タスク、ドキュメント整備などを管理します"
+title: "[タスク] "
+labels:
+  - "改善"
+  - "要トリアージ"
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: 種別
+      options:
+        - 実装
+        - 調査
+        - リファクタリング
+        - ドキュメント
+        - リリース準備
+        - その他
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目的
+      placeholder: "例: GitHub Issues 中心の運用へ切り替える"
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: やること
+      placeholder: |
+        - [ ] 作業1
+        - [ ] 作業2
+        - [ ] 作業3
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了条件
+      placeholder: "例: Issue フォーム、README、運用ドキュメントがそろって更新されている"
+    validations:
+      required: true
+  - type: textarea
+    id: refs
+    attributes:
+      label: 関連情報
+      description: 関連ドキュメント、Issue、PR、コード箇所など
+    validations:
+      required: false

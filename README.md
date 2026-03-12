@@ -25,6 +25,11 @@ Electron + React で動作します。
 3. ZIPを選択して更新する
 4. アプリが再起動したら、ヘッダーのバージョン表示と通常操作を確認する
 
+### 不具合・要望の連絡先
+
+- 不具合、要望、気づきは [GitHub Issues](https://github.com/yunteyun/MediaArchiver-v2/issues) に集約します
+- 迷った場合は Issue 作成画面のテンプレートから近いものを選べば大丈夫です
+
 補足:
 - `update.bat` はアプリ本体と同じフォルダで使う前提です
 - `update.bat` は `MediaArchiver v2.exe` を自動終了して上書き更新します
@@ -93,7 +98,7 @@ npm run build:electron
 ### メモ類
 
 - `docs/user/アプリ使用メモ.md` : 利用者向けの使い方・更新手順
-- `docs/dev/operations/不具合・要望リスト.md` : 未解決の不具合・要望
+- `docs/dev/operations/github-issues-workflow.md` : GitHub Issues 中心の課題管理ルール
 - `docs/dev/notes/思考メモ.md` : 検討中のアイデア・比較メモ
 - `docs/project/ARCHITECTURE.md` / `docs/project/CONVENTIONS.md` : 開発時の基本設計と規約
 

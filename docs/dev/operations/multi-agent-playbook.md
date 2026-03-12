@@ -32,7 +32,7 @@
   - 依頼単位を切る
   - 担当ごとの触る範囲を決める
   - 競合が出た場合に優先順位を決める
-  - 最終差分を統合し、`ROADMAP.md` `CHANGELOG.md` `docs/dev/operations/不具合・要望リスト.md` の更新要否を判断する
+  - 最終差分を統合し、`ROADMAP.md` `CHANGELOG.md` `docs/dev/operations/github-issues-workflow.md` と GitHub Issues の更新要否を判断する
 - やらないこと:
   - 仕様が固まる前に複数役へ同時実装させる
   - 同じファイルを複数役へ編集依頼する
@@ -79,8 +79,8 @@
   - Lightbox / Center Viewer / RightPanel の責務基準
 - `docs/dev/operations/回帰確認チェックリスト.md`
   - UI 変更時の最低限の確認観点
-- `docs/dev/operations/不具合・要望リスト.md`
-  - 未解決課題と残件管理
+- `docs/dev/operations/github-issues-workflow.md`
+  - GitHub Issues 中心の未解決課題管理
 - `ROADMAP.md`
   - 進行中と予定の管理
 - `CHANGELOG.md`

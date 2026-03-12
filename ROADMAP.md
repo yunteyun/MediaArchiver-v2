@@ -13,3 +13,4 @@
 
 ## Backlog
 - 思考メモの採用済み項目分離（notes を未確定メモ中心に保つ）
+- GitHub Projects の列設計と自動化整理（Issue 運用を見やすく保つ）

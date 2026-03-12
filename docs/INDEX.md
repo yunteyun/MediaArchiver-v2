@@ -37,9 +37,9 @@
 
 ## docs/dev/operations
 
-- `docs/dev/operations/不具合・要望リスト.md`
-  - 未解決の不具合と要望のみを置く
-  - 解決済みは `CHANGELOG.md` へ移し、ここには残さない
+- `docs/dev/operations/github-issues-workflow.md`
+  - GitHub Issues 中心の課題管理ルール
+  - テンプレート、ラベル、Projects の運用目安
 - `docs/dev/operations/回帰確認チェックリスト.md`
   - UI 変更時の最低限の確認観点
   - リリース前のスモーク確認
@@ -89,6 +89,8 @@
   - 時限的だった UI/UX 計画の保管
 - `docs/archive/file_card_表示設計に関する将来要望まとめ.md`
   - 旧検討メモの保管
+- `docs/archive/不具合・要望リスト_legacy.md`
+  - GitHub Issues 移行前の旧課題メモ
 
 ## 参考扱い
 
@@ -102,7 +104,7 @@
 
 1. 実装完了後に `CHANGELOG.md` と `ROADMAP.md` を更新する
 2. `ROADMAP.md` には未完了の項目だけを書く
-3. 不具合や要望は `docs/dev/operations/不具合・要望リスト.md` に集約する
+3. 不具合や要望、気づき、内部タスクは GitHub Issues に集約する
 4. 使い方変更は `docs/user/アプリ使用メモ.md` を更新する
 5. 通常の開発作業は `main` を基準にし、大きい試作や隔離したい変更だけ `codex/*` ブランチを使う
 6. 新規文書はまず `docs/` 配下のどこへ置くかを決めてから作成する

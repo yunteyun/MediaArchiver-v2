@@ -1,0 +1,72 @@
+name: "✨ 要望"
+description: "追加してほしい機能や操作改善を提案します"
+title: "[要望] "
+labels:
+  - "要望"
+  - "要トリアージ"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        「どこが不便か」と「どうなると嬉しいか」が分かると整理しやすいです。
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      options:
+        - 高
+        - 中
+        - 低
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 関連する機能
+      options:
+        - ファイル一覧 / ファイルカード
+        - 重複チェック
+        - 左サイドバー
+        - 右パネル / ビューア
+        - 設定
+        - スキャン
+        - 更新
+        - タグ / 評価 / 検索
+        - その他
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 今どんな不便があるか
+      placeholder: "例: 重複が見つからなかったときに次の探し方へ進みにくい"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: どう変わってほしいか
+      placeholder: "例: 0件時に疑似候補検索へ進むボタンを表示してほしい"
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: それで何が良くなるか
+      placeholder: "例: 同じ検索をやり直さずに次の確認へ進める"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 代替案や補足
+      description: 他のやり方や参考アプリがあれば書いてください
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 確認
+      options:
+        - label: 既存 Issue を軽く検索し、同じ要望がないか確認しました
+          required: true

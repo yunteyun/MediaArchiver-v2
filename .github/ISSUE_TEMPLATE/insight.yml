@@ -1,0 +1,54 @@
+name: "💡 気づき・改善案"
+description: "使っていて気づいた改善案や違和感を残します"
+title: "[気づき] "
+labels:
+  - "気づき"
+  - "要トリアージ"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        まだ仕様や修正案が固まっていないメモでも大丈夫です。短くても残しておくと後で整理しやすくなります。
+  - type: dropdown
+    id: area
+    attributes:
+      label: 関連する機能
+      options:
+        - ファイル一覧 / ファイルカード
+        - 重複チェック
+        - 左サイドバー
+        - 右パネル / ビューア
+        - 設定
+        - スキャン
+        - 更新
+        - その他
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: 気づいたこと
+      placeholder: "例: 名前がかなり近いファイルでも類似候補に出ないことがある"
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: 改善できそうな方向
+      placeholder: "例: 類似判定の基準を見直す、候補の出し方を広げる"
+    validations:
+      required: false
+  - type: textarea
+    id: impact
+    attributes:
+      label: 困りごとや期待効果
+      placeholder: "例: 見つからない印象が強くなり、重複チェック機能を信用しにくい"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足
+      description: スクリーンショット、例、関連 Issue があれば書いてください
+    validations:
+      required: false
