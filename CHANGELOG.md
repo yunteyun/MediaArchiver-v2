@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - (なし)
 
 ### Changed
-- (なし)
+- バージョン命名規則を見直し、修正のみのリリースでも `d` は使わず `PATCH` を上げる運用へ統一した（表示への変更なし）。
 
 ### Fixed
 - (なし)
