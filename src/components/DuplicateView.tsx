@@ -248,6 +248,8 @@ export const DuplicateView: React.FC = () => {
 
     // 検索済みだが重複なし
     if (hasSearched && !isSearching && groups.length === 0) {
+        const alternateMode = isSimilarMode ? 'exact' : 'similar_name';
+        const alternateButtonLabel = isSimilarMode ? '完全一致へ戻る' : '類似候補を試す';
         return (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Copy className="w-16 h-16 text-surface-600 mb-4" />
@@ -259,13 +261,22 @@ export const DuplicateView: React.FC = () => {
                         ? 'このプロファイルには名前が近い候補がありません。'
                         : 'このプロファイルには重複するファイルがありません。'}
                 </p>
-                <button
-                    onClick={() => void startSearch(searchMode)}
-                    className="px-6 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                    <Copy className="w-5 h-5" />
-                    {viewCopy.retryButton}
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                        onClick={() => void startSearch(searchMode)}
+                        className="px-6 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                        <Copy className="w-5 h-5" />
+                        {viewCopy.retryButton}
+                    </button>
+                    <button
+                        onClick={() => void startSearch(alternateMode)}
+                        className="px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                        <Copy className="w-5 h-5" />
+                        {alternateButtonLabel}
+                    </button>
+                </div>
             </div>
         );
     }
