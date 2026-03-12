@@ -2,10 +2,10 @@
  * Header - 検索バーとソートメニューを含むヘッダー
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
-import { useUIStore } from '../stores/useUIStore';
-import { useSettingsStore, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
+import { useUIStore, type FileSortBy, type FileSortOrder } from '../stores/useUIStore';
+import { useSettingsStore, type DisplayMode, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { SearchBar } from './SearchBar';
 import {
@@ -43,6 +43,15 @@ const FILE_TYPE_FILTER_OPTIONS: Array<{
 
 const HEADER_DISPLAY_CONTROLS_OPEN_STORAGE_KEY = 'header.displayControls.open.v1';
 
+type ListDisplayDefaultsPatch = {
+    sortBy?: FileSortBy;
+    sortOrder?: FileSortOrder;
+    groupBy?: GroupBy;
+    activeDisplayPresetId?: string;
+    displayMode?: DisplayMode;
+    thumbnailPresentation?: ThumbnailPresentation;
+};
+
 function readInitialToggleOpen(storageKey: string, defaultValue: boolean): boolean {
     try {
         const raw = window.localStorage.getItem(storageKey);
@@ -69,12 +78,17 @@ export const Header = React.memo(() => {
     const setThumbnailPresentation = useUIStore((s) => s.setCurrentThumbnailPresentation);
     const resetListDisplayToDefaults = useUIStore((s) => s.applyListDisplayDefaults);
     const defaultSortBy = useSettingsStore((s) => s.sortBy);
+    const setDefaultSortBy = useSettingsStore((s) => s.setSortBy);
     const defaultSortOrder = useSettingsStore((s) => s.sortOrder);
+    const setDefaultSortOrder = useSettingsStore((s) => s.setSortOrder);
     const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
     const defaultGroupBy = useSettingsStore((s) => s.groupBy);
+    const setDefaultGroupBy = useSettingsStore((s) => s.setGroupBy);
     const defaultDisplayMode = useSettingsStore((s) => s.displayMode);
     const defaultActiveDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
+    const setDefaultActiveDisplayPreset = useSettingsStore((s) => s.setActiveDisplayPreset);
     const defaultThumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
+    const setDefaultThumbnailPresentation = useSettingsStore((s) => s.setThumbnailPresentation);
     const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
     const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
     const modeMenuRef = useRef<HTMLDivElement>(null);
@@ -119,6 +133,17 @@ export const Header = React.memo(() => {
             // ignore localStorage errors
         }
     }, [isDisplayControlsOpen]);
+
+    const persistListDisplayDefaults = useCallback(async (patch: ListDisplayDefaultsPatch) => {
+        try {
+            await window.electronAPI.setProfileScopedSettings({
+                listDisplayDefaults: patch,
+            });
+        } catch (error) {
+            console.error('Failed to persist list display defaults from header:', error);
+            useUIStore.getState().showToast('表示設定の保存に失敗しました', 'error');
+        }
+    }, []);
 
     return (
         <div className="px-4 py-2 bg-surface-900 border-b border-surface-700 space-y-2">
@@ -201,7 +226,7 @@ export const Header = React.memo(() => {
                             <div>
                                 <div className="text-xs font-medium text-surface-300">現在の一覧表示</div>
                                 <div className="text-[11px] text-surface-500">
-                                    ここでの変更は一時的です。既定値は設定画面の「一般 / 表示」で変更します。
+                                    ここでの変更は現在のプロファイルに保存されます。設定画面の「一般 / 表示」と同じ内容をすばやく調整できます。
                                 </div>
                             </div>
                             <button
@@ -256,6 +281,16 @@ export const Header = React.memo(() => {
                                                         baseDisplayMode: option.baseDisplayMode,
                                                         thumbnailPresentation: option.thumbnailPresentation,
                                                     });
+                                                    setDefaultActiveDisplayPreset({
+                                                        id: option.id,
+                                                        baseDisplayMode: option.baseDisplayMode,
+                                                        thumbnailPresentation: option.thumbnailPresentation,
+                                                    });
+                                                    void persistListDisplayDefaults({
+                                                        activeDisplayPresetId: option.id,
+                                                        displayMode: option.baseDisplayMode,
+                                                        thumbnailPresentation: option.thumbnailPresentation,
+                                                    });
                                                     setIsModeMenuOpen(false);
                                                 }}
                                                 className={`w-full flex items-center gap-2 px-4 py-2 hover:bg-surface-700 transition-colors text-sm ${isActive ? 'bg-primary-500/20 text-primary-300' : 'text-surface-200'}`}
@@ -274,7 +309,12 @@ export const Header = React.memo(() => {
                             <span className="text-surface-400 text-sm whitespace-nowrap">サムネ:</span>
                             <select
                                 value={thumbnailPresentation}
-                                onChange={(e) => setThumbnailPresentation(e.target.value as ThumbnailPresentation)}
+                                onChange={(e) => {
+                                    const value = e.target.value as ThumbnailPresentation;
+                                    setThumbnailPresentation(value);
+                                    setDefaultThumbnailPresentation(value);
+                                    void persistListDisplayDefaults({ thumbnailPresentation: value });
+                                }}
                                 className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
                             >
                                 {THUMBNAIL_PRESENTATION_OPTIONS.map((option) => (
@@ -290,7 +330,12 @@ export const Header = React.memo(() => {
                             <span className="text-surface-400 text-sm whitespace-nowrap">並び替え:</span>
                             <select
                                 value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                                onChange={(e) => {
+                                    const value = e.target.value as typeof sortBy;
+                                    setSortBy(value);
+                                    setDefaultSortBy(value);
+                                    void persistListDisplayDefaults({ sortBy: value });
+                                }}
                                 className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
                             >
                                 <option value="name">名前</option>
@@ -302,7 +347,12 @@ export const Header = React.memo(() => {
                                 <option value="lastAccessed">直近アクセス</option>
                             </select>
                             <button
-                                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                onClick={() => {
+                                    const nextSortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+                                    setSortOrder(nextSortOrder);
+                                    setDefaultSortOrder(nextSortOrder);
+                                    void persistListDisplayDefaults({ sortOrder: nextSortOrder });
+                                }}
                                 className="p-1.5 hover:bg-surface-700 rounded transition-colors text-surface-400 hover:text-white"
                                 title={sortOrder === 'asc' ? '昇順' : '降順'}
                             >
@@ -315,7 +365,12 @@ export const Header = React.memo(() => {
                             <span className="text-surface-400 text-sm whitespace-nowrap">グループ:</span>
                             <select
                                 value={groupBy}
-                                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                                onChange={(e) => {
+                                    const value = e.target.value as GroupBy;
+                                    setGroupBy(value);
+                                    setDefaultGroupBy(value);
+                                    void persistListDisplayDefaults({ groupBy: value });
+                                }}
                                 className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
                             >
                                 <option value="none">なし</option>

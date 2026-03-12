@@ -117,7 +117,7 @@ export const GeneralSettingsTab = React.memo(({
     <div className="px-4 py-4 space-y-6">
         <SettingsSection
             title="既定の一覧表示"
-            description={`ここで変更する内容は現在のプロファイルに保存されます。対象: ${activeProfileLabel}。ヘッダーでの変更は現在の一覧だけに適用されます。`}
+            description={`ここで変更する内容は現在のプロファイルに保存されます。対象: ${activeProfileLabel}。ヘッダーから変更した並び替えや表示モードも同じプロファイル設定へ保存されます。`}
             scope="profile"
             onReset={onResetListDisplayDefaults}
             className="border-primary-900/40 bg-primary-950/10"
