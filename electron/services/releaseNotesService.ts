@@ -10,20 +10,29 @@ export interface BundledReleaseNotesResult {
     error?: string;
 }
 
+function normalizeDisplayVersion(version: string): string {
+    return version.trim().replace(/^v/i, '').replace(/-d/i, 'd');
+}
+
 function getCandidatePaths(version: string): string[] {
-    const filename = `v${version}.md`;
+    const normalizedVersion = normalizeDisplayVersion(version);
+    const filenames = Array.from(new Set([
+        `v${version}.md`,
+        `v${normalizedVersion}.md`,
+    ]));
     if (app.isPackaged) {
-        return [path.join(process.resourcesPath, 'release-notes', filename)];
+        return filenames.map((filename) => path.join(process.resourcesPath, 'release-notes', filename));
     }
 
-    return [
+    return filenames.flatMap((filename) => ([
         path.join(process.cwd(), 'release-notes', filename),
         path.join(app.getAppPath(), 'release-notes', filename),
-    ];
+    ]));
 }
 
 export async function getBundledReleaseNotes(version = app.getVersion()): Promise<BundledReleaseNotesResult> {
     const candidates = getCandidatePaths(version);
+    const displayVersion = normalizeDisplayVersion(version);
 
     for (const candidatePath of candidates) {
         try {
@@ -31,7 +40,7 @@ export async function getBundledReleaseNotes(version = app.getVersion()): Promis
             const content = await fs.promises.readFile(candidatePath, 'utf8');
             return {
                 success: true,
-                version,
+                version: displayVersion,
                 path: candidatePath,
                 content: content.trim(),
             };
@@ -42,7 +51,7 @@ export async function getBundledReleaseNotes(version = app.getVersion()): Promis
 
     return {
         success: false,
-        version,
-        error: `同梱リリースノートが見つかりませんでした: v${version}`,
+        version: displayVersion,
+        error: `同梱リリースノートが見つかりませんでした: v${displayVersion}`,
     };
 }

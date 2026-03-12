@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
+- (なし)
+
+### Changed
+- (なし)
+
+### Fixed
+- (なし)
+
+---
+
+## [1.9.0d1] - 2026-03-12
+### Added
 - GitHub Issues 用の日本語 Issue Forms を追加し、不具合・要望・気づき・内部タスクを GitHub 上で受け付けられるようにした。
 
 ### Changed

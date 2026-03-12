@@ -18,6 +18,10 @@ interface ExternalApp {
 }
 let cachedExternalApps: ExternalApp[] = [];
 
+function normalizeDisplayVersion(version: string): string {
+    return version.trim().replace(/^v/i, '').replace(/-d/i, 'd');
+}
+
 // file.ts から参照するための getter
 export function getCachedExternalApps(): ExternalApp[] {
     return cachedExternalApps;
@@ -25,7 +29,7 @@ export function getCachedExternalApps(): ExternalApp[] {
 
 export function registerAppHandlers() {
     // アプリバージョンを返す（Phase 26）
-    ipcMain.handle('app:getVersion', () => app.getVersion());
+    ipcMain.handle('app:getVersion', () => normalizeDisplayVersion(app.getVersion()));
     ipcMain.handle('app:getBundledReleaseNotes', async (_event, version?: string) => {
         return getBundledReleaseNotes(version);
     });
