@@ -46,7 +46,7 @@ body:
     id: summary
     attributes:
       label: 何が起きたか
-      description: 一言でわかるように書いてください
+      description: 実際に起きた現象をそのまま書いてください
       placeholder: "例: 表示設定を保存しても再起動すると元に戻る"
     validations:
       required: true
@@ -67,13 +67,6 @@ body:
     attributes:
       label: 本来どうなってほしかったか
       placeholder: "例: 再起動後も並び替え設定が保持されてほしい"
-    validations:
-      required: true
-  - type: textarea
-    id: actual
-    attributes:
-      label: 実際にはどうなったか
-      placeholder: "例: 並び替え設定が初期状態に戻った"
     validations:
       required: true
   - type: textarea

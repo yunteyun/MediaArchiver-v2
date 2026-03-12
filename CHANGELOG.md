@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - 課題管理の案内先を見直し、未解決の不具合・要望メモ運用を GitHub Issues 中心へ移行した。
+- GitHub のバグ報告フォームを見直し、`何が起きたか` と重複しやすい `実際にはどうなったか` の入力欄を整理して報告しやすくした。
 
 ---
 
