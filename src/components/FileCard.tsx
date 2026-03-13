@@ -69,9 +69,9 @@ function isPerfDebugEnabled(): boolean {
 
 const ARCHIVE_PREVIEW_FRAME_COUNT = 8;
 const VIDEO_FLIPBOOK_INTERVAL_MS = {
-    slow: 520,
-    normal: 220,
-    fast: 140,
+    slow: 840,
+    normal: 520,
+    fast: 220,
 } as const;
 const ARCHIVE_FLIPBOOK_INTERVAL_MS = {
     slow: 760,
