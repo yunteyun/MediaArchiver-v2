@@ -7,13 +7,15 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { Plus, Check, Search } from 'lucide-react';
 import { useTagStore, Tag } from '../../stores/useTagStore';
+import { useToastStore } from '../../stores/useToastStore';
 import { TagBadge } from './TagBadge';
 
 interface TagSelectorProps {
     selectedTagIds: string[];
-    onAdd: (tagId: string) => void;
-    onRemove: (tagId: string) => void;
+    onAdd: (tagId: string) => void | Promise<void>;
+    onRemove: (tagId: string) => void | Promise<void>;
     editable?: boolean;
+    allowCreate?: boolean;
 }
 
 export const TagSelector = React.memo(({
@@ -21,22 +23,30 @@ export const TagSelector = React.memo(({
     onAdd,
     onRemove,
     editable = true,
+    allowCreate = false,
 }: TagSelectorProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
     const buttonRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
+    const createTag = useTagStore((s) => s.createTag);
     const categoryColorById = useMemo(() => new Map(categories.map(c => [c.id, c.color])), [categories]);
     const categorySortOrderById = useMemo(() => new Map(categories.map(c => [c.id, c.sortOrder])), [categories]);
+    const normalizedSearch = search.trim();
+    const normalizedSearchLower = normalizedSearch.toLowerCase();
 
     // Filter tags by search
-    const filteredTags = search
-        ? tags.filter(tag => tag.name.toLowerCase().includes(search.toLowerCase()))
+    const filteredTags = normalizedSearch
+        ? tags.filter(tag => tag.name.toLowerCase().includes(normalizedSearchLower))
         : tags;
+    const hasExactMatch = normalizedSearch.length > 0
+        && tags.some((tag) => tag.name.trim().toLowerCase() === normalizedSearchLower);
+    const canQuickCreate = editable && allowCreate && normalizedSearch.length > 0 && !hasExactMatch;
 
     // ドロップダウンの位置をボタンのDOMRectから計算（Portal用）
     const calcDropdownPosition = useCallback(() => {
@@ -105,11 +115,40 @@ export const TagSelector = React.memo(({
         };
     }, [isOpen, calcDropdownPosition]);
 
-    const handleTagClick = (tag: Tag) => {
-        if (selectedTagIds.includes(tag.id)) {
-            onRemove(tag.id);
-        } else {
-            onAdd(tag.id);
+    const handleTagClick = async (tag: Tag) => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            if (selectedTagIds.includes(tag.id)) {
+                await onRemove(tag.id);
+            } else {
+                await onAdd(tag.id);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleQuickCreateTag = async () => {
+        if (!canQuickCreate || isSubmitting) return;
+
+        setIsSubmitting(true);
+        try {
+            const newTag = await createTag(normalizedSearch, 'gray');
+            try {
+                await onAdd(newTag.id);
+                useToastStore.getState().success(`タグ「${newTag.name}」を作成して追加しました`);
+                setSearch('');
+                setIsOpen(false);
+            } catch (error) {
+                console.error('Failed to add newly created tag to file:', error);
+                useToastStore.getState().error(`タグ「${newTag.name}」は作成しましたが、このファイルへの追加に失敗しました`);
+            }
+        } catch (error) {
+            console.error('Failed to quick-create tag from selector:', error);
+            useToastStore.getState().error('タグの新規作成に失敗しました');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -162,6 +201,12 @@ export const TagSelector = React.memo(({
                         placeholder="タグを検索..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && canQuickCreate) {
+                                e.preventDefault();
+                                void handleQuickCreateTag();
+                            }
+                        }}
                         className="w-full pl-7 pr-2 py-1.5 text-sm bg-surface-900 border border-surface-600 rounded focus:outline-none focus:border-primary-500"
                         autoFocus
                     />
@@ -170,6 +215,27 @@ export const TagSelector = React.memo(({
 
             {/* Tag List */}
             <div className="max-h-96 overflow-auto p-2">
+                {canQuickCreate && (
+                    <div className="mb-2 rounded border border-primary-500/30 bg-primary-500/10 p-2">
+                        <button
+                            type="button"
+                            onClick={() => { void handleQuickCreateTag(); }}
+                            disabled={isSubmitting}
+                            className="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm text-surface-100 transition-colors hover:bg-surface-700/50 disabled:cursor-wait disabled:opacity-60"
+                        >
+                            <Plus size={14} className="mt-0.5 shrink-0 text-primary-300" />
+                            <div className="min-w-0">
+                                <div className="truncate">
+                                    「{normalizedSearch}」を新規タグとして作成して追加
+                                </div>
+                                <div className="mt-0.5 text-[11px] text-surface-400">
+                                    未分類 / グレーで作成します
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                )}
+
                 {/* Uncategorized tags */}
                 {uncategorizedTags.length > 0 && (
                     <div className="mb-2">
@@ -179,7 +245,7 @@ export const TagSelector = React.memo(({
                                     key={tag.id}
                                     tag={tag}
                                     isSelected={selectedTagIds.includes(tag.id)}
-                                    onClick={() => handleTagClick(tag)}
+                                    onClick={() => { void handleTagClick(tag); }}
                                 />
                             ))}
                         </div>
@@ -199,14 +265,14 @@ export const TagSelector = React.memo(({
                                     key={tag.id}
                                     tag={tag}
                                     isSelected={selectedTagIds.includes(tag.id)}
-                                    onClick={() => handleTagClick(tag)}
+                                    onClick={() => { void handleTagClick(tag); }}
                                 />
                             ))}
                         </div>
                     </div>
                 ))}
 
-                {filteredTags.length === 0 && (
+                {filteredTags.length === 0 && !canQuickCreate && (
                     <div className="text-center text-surface-500 text-sm py-4">
                         タグが見つかりません
                     </div>
@@ -239,6 +305,7 @@ export const TagSelector = React.memo(({
                 <button
                     ref={buttonRef}
                     onClick={handleToggle}
+                    disabled={isSubmitting}
                     className="flex items-center gap-1 text-sm text-surface-400 hover:text-surface-200 transition-colors"
                 >
                     <Plus size={14} />

@@ -68,6 +68,7 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                 onAdd={handleAddTag}
                 onRemove={handleRemoveTag}
                 editable={isEditMode}
+                allowCreate
             />
         </div>
     );
