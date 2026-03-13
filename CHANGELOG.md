@@ -20,6 +20,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.9.2] - 2026-03-13
+### Added
+- (なし)
+
+### Changed
+- (なし)
+
+### Fixed
+- Windows がダウンロード ZIP や展開済みファイルをブロックしている場合でも、`update.bat` で解除してから更新するようにし、更新後にアプリが起動しなくなる事故を起きにくくした。
+
+---
+
 ## [1.9.1] - 2026-03-13
 ### Added
 - (なし)

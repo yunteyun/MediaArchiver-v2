@@ -41,6 +41,9 @@ if not exist "%ZIP_PATH%" (
 set "TEMP_DIR=%TEMP%\MediaArchiverUpdate_%RANDOM%%RANDOM%"
 mkdir "%TEMP_DIR%" >nul 2>&1
 
+echo [INFO] Removing download block from ZIP (if present)...
+powershell -NoProfile -Command "try { Unblock-File -LiteralPath '%ZIP_PATH%' -ErrorAction SilentlyContinue } catch {}"
+
 powershell -NoProfile -Command "Expand-Archive -LiteralPath '%ZIP_PATH%' -DestinationPath '%TEMP_DIR%' -Force" 
 if errorlevel 1 (
   echo [ERROR] Failed to extract update ZIP.
@@ -60,6 +63,9 @@ if "%SRC_DIR%"=="" (
   pause
   exit /b 1
 )
+
+echo [INFO] Removing download block from extracted files (if present)...
+powershell -NoProfile -Command "try { Get-ChildItem -LiteralPath '%SRC_DIR%' -Recurse -File | Unblock-File -ErrorAction SilentlyContinue } catch {}"
 
 echo [INFO] Closing running app (if any)...
 taskkill /IM "%APP_EXE%" /F >nul 2>&1
