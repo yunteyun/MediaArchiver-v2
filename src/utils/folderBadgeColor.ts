@@ -36,8 +36,6 @@ const FOLDER_BADGE_COLOR_HEX: Record<string, string> = {
     rose: '#e11d48',
 };
 
-const LIGHT_BACKGROUND_COLORS = new Set(['orange', 'yellow', 'amber', 'lime']);
-
 function normalizeFolderBadgeColor(colorName?: string | null): string | null {
     if (!colorName) return null;
     const normalized = colorName.trim().toLowerCase();
@@ -56,6 +54,10 @@ export function resolveFolderBadgeColorHex(colorName?: string | null): string | 
     const normalized = normalizeFolderBadgeColor(colorName);
     if (!normalized) return null;
     return FOLDER_BADGE_COLOR_HEX[normalized] ?? null;
+}
+
+export function getFolderBadgeAccentColor(colorName?: string | null): string | undefined {
+    return resolveFolderBadgeColorHex(colorName) ?? undefined;
 }
 
 export function getFolderBadgePillStyle(colorName?: string | null): CSSProperties | undefined {

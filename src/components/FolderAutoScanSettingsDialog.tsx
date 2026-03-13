@@ -5,6 +5,7 @@ import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import {
     FOLDER_BADGE_COLOR_OPTIONS,
+    getFolderBadgeAccentColor,
     getFolderBadgePillStyle,
     resolveFolderBadgeColorHex,
 } from '../utils/folderBadgeColor';
@@ -160,7 +161,11 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                                     className="inline-flex min-w-0 items-center gap-1 rounded border border-surface-600/60 bg-surface-700/50 px-1.5 py-0.5 text-[11px] leading-none font-medium text-surface-200"
                                     style={getFolderBadgePillStyle(folderBadgeColor)}
                                 >
-                                    <FolderOpen size={11} className="shrink-0 text-surface-400" />
+                                    <FolderOpen
+                                        size={11}
+                                        className="shrink-0 text-surface-400"
+                                        style={folderBadgeColor ? { color: getFolderBadgeAccentColor(folderBadgeColor) } : undefined}
+                                    />
                                     <span className="truncate">{folder.name}</span>
                                 </span>
                             ) : (

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    getFolderBadgeAccentColor,
     getFolderBadgePillStyle,
     resolveFolderBadgeColorHex,
 } from '../folderBadgeColor';
@@ -21,5 +22,10 @@ describe('folderBadgeColor', () => {
             borderLeftWidth: '3px',
         });
         expect(getFolderBadgePillStyle(null)).toBeUndefined();
+    });
+
+    it('returns accent color for icon tinting', () => {
+        expect(getFolderBadgeAccentColor('green')).toBe('#16a34a');
+        expect(getFolderBadgeAccentColor(undefined)).toBeUndefined();
     });
 });

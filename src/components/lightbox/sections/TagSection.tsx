@@ -21,6 +21,7 @@ export const TagSection = React.memo<TagSectionProps>(({
                 selectedTagIds={selectedTagIds}
                 onAdd={onAdd}
                 onRemove={onRemove}
+                allowCreate
             />
         </div>
     );

@@ -10,6 +10,14 @@ import { useTagStore, Tag } from '../../stores/useTagStore';
 import { useToastStore } from '../../stores/useToastStore';
 import { TagBadge } from './TagBadge';
 
+const QUICK_CREATE_COLOR_OPTIONS = ['gray', 'blue', 'green', 'amber', 'pink', 'red'] as const;
+
+const colorSwatchClass = (color: string) =>
+    color === 'amber' ? 'bg-amber-600'
+        : color === 'yellow' ? 'bg-amber-500'
+            : color === 'lime' ? 'bg-lime-600'
+                : `bg-${color}-600`;
+
 interface TagSelectorProps {
     selectedTagIds: string[];
     onAdd: (tagId: string) => void | Promise<void>;
@@ -28,6 +36,7 @@ export const TagSelector = React.memo(({
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [quickCreateColor, setQuickCreateColor] = useState<string>('gray');
     const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
     const buttonRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -134,7 +143,7 @@ export const TagSelector = React.memo(({
 
         setIsSubmitting(true);
         try {
-            const newTag = await createTag(normalizedSearch, 'gray');
+            const newTag = await createTag(normalizedSearch, quickCreateColor);
             try {
                 await onAdd(newTag.id);
                 useToastStore.getState().success(`タグ「${newTag.name}」を作成して追加しました`);
@@ -179,13 +188,6 @@ export const TagSelector = React.memo(({
             });
     }, [selectedTagIds, tags, categorySortOrderById]);
 
-    // カテゴリ色 → CSS背景クラス
-    const colorBgClass = (color: string) =>
-        color === 'amber' ? 'bg-amber-600'
-            : color === 'yellow' ? 'bg-amber-500'
-                : color === 'lime' ? 'bg-lime-600'
-                    : `bg-${color}-600`;
-
     const dropdown = isOpen && editable && createPortal(
         <div
             ref={dropdownRef}
@@ -217,22 +219,43 @@ export const TagSelector = React.memo(({
             <div className="max-h-96 overflow-auto p-2">
                 {canQuickCreate && (
                     <div className="mb-2 rounded border border-primary-500/30 bg-primary-500/10 p-2">
-                        <button
-                            type="button"
-                            onClick={() => { void handleQuickCreateTag(); }}
-                            disabled={isSubmitting}
-                            className="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm text-surface-100 transition-colors hover:bg-surface-700/50 disabled:cursor-wait disabled:opacity-60"
-                        >
+                        <div className="space-y-2">
+                            <button
+                                type="button"
+                                onClick={() => { void handleQuickCreateTag(); }}
+                                disabled={isSubmitting}
+                                className="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm text-surface-100 transition-colors hover:bg-surface-700/50 disabled:cursor-wait disabled:opacity-60"
+                            >
                             <Plus size={14} className="mt-0.5 shrink-0 text-primary-300" />
                             <div className="min-w-0">
                                 <div className="truncate">
                                     「{normalizedSearch}」を新規タグとして作成して追加
                                 </div>
                                 <div className="mt-0.5 text-[11px] text-surface-400">
-                                    未分類 / グレーで作成します
+                                    未分類 / 下の色で作成します
                                 </div>
                             </div>
-                        </button>
+                            </button>
+                            <div className="flex flex-wrap gap-1.5 px-2">
+                                {QUICK_CREATE_COLOR_OPTIONS.map((color) => {
+                                    const isSelected = quickCreateColor === color;
+                                    return (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            onClick={() => setQuickCreateColor(color)}
+                                            className={`h-5 w-5 rounded-full border transition-all ${colorSwatchClass(color)} ${
+                                                isSelected
+                                                    ? 'border-white ring-2 ring-white/30'
+                                                    : 'border-white/15 hover:scale-105'
+                                            }`}
+                                            title={color}
+                                            aria-label={`作成色 ${color}`}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -256,7 +279,7 @@ export const TagSelector = React.memo(({
                 {categorizedGroups.map(({ category, tags }) => (
                     <div key={category.id} className="mb-2">
                         <div className="text-xs text-surface-500 font-medium mb-1 px-2 flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-sm flex-shrink-0 ${colorBgClass(category.color)}`} />
+                            <span className={`w-2 h-2 rounded-sm flex-shrink-0 ${colorSwatchClass(category.color)}`} />
                             {category.name}
                         </div>
                         <div className="grid grid-cols-2 gap-0.5">

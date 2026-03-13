@@ -179,6 +179,7 @@ export const ImageInfoPane = React.memo<ImageInfoPaneProps>(({ file }) => {
                         selectedTagIds={selectedTagIds}
                         onAdd={handleAddTag}
                         onRemove={handleRemoveTag}
+                        allowCreate
                     />
                 </div>
             </section>
