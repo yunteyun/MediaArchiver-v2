@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - (なし)
 
 ### Fixed
-- (なし)
+- コンテキストメニューの「移動先を選んで移動...」で開く移動先フォルダ選択ダイアログでも、左サイドバーと同じ配下ファイル数を表示するように戻した。
 
 ---
 

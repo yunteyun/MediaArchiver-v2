@@ -86,15 +86,18 @@ export const MoveFolderDialog = React.memo(({
     onMove,
 }: MoveFolderDialogProps) => {
     const [folders, setFolders] = useState<MediaFolder[]>([]);
+    const [folderRecursiveCountsByPath, setFolderRecursiveCountsByPath] = useState<Record<string, number>>({});
     const [selectedFolderSelection, setSelectedFolderSelection] = useState<string | null>(null);
 
     const loadFolders = useCallback(async () => {
-        const [registeredFolders, folderPaths] = await Promise.all([
+        const [registeredFolders, treeStats] = await Promise.all([
             window.electronAPI.getFolders(),
-            window.electronAPI.getFolderTreePaths(),
+            window.electronAPI.getFolderTreeStats(),
         ]);
+        const folderPaths = treeStats?.paths ?? [];
 
         setFolders(buildMoveDialogFolders(registeredFolders, folderPaths));
+        setFolderRecursiveCountsByPath(treeStats?.recursiveCountsByPath ?? {});
         setSelectedFolderSelection(null);
     }, []);
 
@@ -132,6 +135,7 @@ export const MoveFolderDialog = React.memo(({
                 <div className="flex-1 overflow-y-auto p-4">
                     <FolderTree
                         folders={folders}
+                        folderRecursiveCountsByPath={folderRecursiveCountsByPath}
                         currentFolderId={selectedFolderSelection}
                         onSelectFolder={setSelectedFolderSelection}
                         collapsed={false}
