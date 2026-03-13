@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - (なし)
+- 起動直後にスタイル読み込み前の白い画面が見えやすい問題を抑えるため、初期 HTML の背景と起動中プレースホルダーを追加した。
 
 ---
 

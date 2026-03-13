@@ -8,3 +8,13 @@ createRoot(document.getElementById('root')!).render(
         <App />
     </StrictMode>,
 );
+
+const bootSplash = document.getElementById('boot-splash');
+if (bootSplash) {
+    window.requestAnimationFrame(() => {
+        bootSplash.hidden = true;
+        window.setTimeout(() => {
+            bootSplash.remove();
+        }, 180);
+    });
+}
