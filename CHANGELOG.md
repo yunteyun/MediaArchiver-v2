@@ -20,6 +20,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.9.6] - 2026-03-14
+### Added
+- (なし)
+
+### Changed
+- (なし)
+
+### Fixed
+- リリース版に `preload.js` が欠けて `window.electronAPI` が作られず、更新後に UI が表示されなくなる問題を修正した。
+
+---
+
 ## [1.9.5] - 2026-03-14
 ### Added
 - (なし)

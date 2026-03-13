@@ -48,6 +48,21 @@ const DEV_SERVER_PROBE_TIMEOUT_MS = 1_500;
 const DEV_SERVER_RETRY_DELAY_MS = 750;
 const DEV_SERVER_MAX_LOAD_ATTEMPTS = 5;
 
+function resolvePreloadPath(): string {
+    const candidates = [
+        path.join(__dirname, 'preload.js'),
+        path.join(process.resourcesPath, 'dist-electron', 'preload.js'),
+    ];
+    const resolved = candidates.find((candidate) => fs.existsSync(candidate));
+
+    if (!resolved) {
+        logger.error('Preload entry not found in packaged build', { candidates });
+        return candidates[0]!;
+    }
+
+    return resolved;
+}
+
 function syncBundledUpdaterScript(): void {
     if (!app.isPackaged) {
         return;
@@ -253,7 +268,7 @@ const createWindow = async () => {
         height: 900,
         icon: getDevWindowIconPath(),
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: resolvePreloadPath(),
             contextIsolation: true,
             nodeIntegration: false,
             webSecurity: true, // ✅ SECURE: media:// プロトコルでローカルファイルに安全にアクセス

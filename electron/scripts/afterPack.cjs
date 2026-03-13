@@ -39,6 +39,12 @@ exports.default = async function afterPack(context) {
         'resources',
         'app.asar.unpacked'
     );
+    const preloadFallbackPath = path.join(
+        appOutDir,
+        'resources',
+        'dist-electron',
+        'preload.js'
+    );
 
     const binaries = REQUIRED_BINARIES[nodeplatform] || [];
     const errors = [];
@@ -62,6 +68,12 @@ exports.default = async function afterPack(context) {
         // ビルドを失敗させる（CI で事前検知）
         throw new Error(msg);
     }
+
+    if (!fs.existsSync(preloadFallbackPath)) {
+        throw new Error(`[afterPack] ❌ Missing preload fallback: ${preloadFallbackPath}`);
+    }
+
+    console.log('[afterPack] ✓ Found preload fallback: resources/dist-electron/preload.js');
 
     console.log(`[afterPack] ✓ All required binaries verified.`);
 };
