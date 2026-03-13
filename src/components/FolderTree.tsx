@@ -15,29 +15,6 @@ interface FolderTreeProps {
     onTogglePinnedSelection?: (selection: string) => void;
 }
 
-const COLLAPSED_FOLDER_IDS_STORAGE_KEY = 'sidebar.folderTree.collapsedFolders.v1';
-const COLLAPSED_DRIVES_STORAGE_KEY = 'sidebar.folderTree.collapsedDrives.v1';
-
-function readPersistedSet(key: string): Set<string> {
-    try {
-        const raw = window.localStorage.getItem(key);
-        if (!raw) return new Set();
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return new Set();
-        return new Set(parsed.filter((v): v is string => typeof v === 'string'));
-    } catch {
-        return new Set();
-    }
-}
-
-function writePersistedSet(key: string, values: Set<string>) {
-    try {
-        window.localStorage.setItem(key, JSON.stringify(Array.from(values)));
-    } catch {
-        // ignore localStorage failures
-    }
-}
-
 function collectInitialCollapsedFolderIds(treeByDrive: Map<string, FolderTreeNode[]>): Set<string> {
     const result = new Set<string>();
 
@@ -110,50 +87,33 @@ export const FolderTree = React.memo(({
     // ツリー構築（メモ化）- Phase 22-B: ドライブ別グループ化
     const treeByDrive = useMemo(() => buildFolderTreeByDrive(folders), [folders]);
 
-    // 折りたたみ状態（フォルダID の Set）
-    const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => readPersistedSet(COLLAPSED_FOLDER_IDS_STORAGE_KEY));
+    const buildInitialCollapsedDrives = useCallback(
+        () => new Set(Array.from(treeByDrive.keys())),
+        [treeByDrive]
+    );
 
-    // ドライブ単位の折りたたみ（Phase 22-B）
-    const [collapsedDrives, setCollapsedDrives] = useState<Set<string>>(() => readPersistedSet(COLLAPSED_DRIVES_STORAGE_KEY));
-    const initializedDriveCollapseRef = useRef(false);
+    // 折りたたみ状態（起動時は毎回閉じた状態から始める）
+    const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => collectInitialCollapsedFolderIds(treeByDrive));
+    const [collapsedDrives, setCollapsedDrives] = useState<Set<string>>(() => buildInitialCollapsedDrives());
+    const initializedCollapseRef = useRef(false);
+    const skippedInitialSelectionExpandRef = useRef(false);
 
     useEffect(() => {
-        if (initializedDriveCollapseRef.current) return;
+        if (initializedCollapseRef.current) return;
         if (treeByDrive.size === 0) return;
 
-        let hasPersisted = false;
-        try {
-            hasPersisted = window.localStorage.getItem(COLLAPSED_DRIVES_STORAGE_KEY) !== null;
-        } catch {
-            hasPersisted = false;
-        }
-        if (!hasPersisted) {
-            // 初回表示はドライブ配下を閉じて、情報量を抑える
-            setCollapsedDrives(new Set(Array.from(treeByDrive.keys())));
-        }
-
-        let hasPersistedFolderCollapse = false;
-        try {
-            hasPersistedFolderCollapse = window.localStorage.getItem(COLLAPSED_FOLDER_IDS_STORAGE_KEY) !== null;
-        } catch {
-            hasPersistedFolderCollapse = false;
-        }
-        if (!hasPersistedFolderCollapse) {
-            // 初回表示は子フォルダ以降（深い階層）を閉じる
-            setCollapsedFolders(collectInitialCollapsedFolderIds(treeByDrive));
-        }
-        initializedDriveCollapseRef.current = true;
-    }, [treeByDrive]);
+        // 起動時は毎回ドライブ配下と深い階層を閉じて、情報量を抑える
+        setCollapsedDrives(buildInitialCollapsedDrives());
+        setCollapsedFolders(collectInitialCollapsedFolderIds(treeByDrive));
+        initializedCollapseRef.current = true;
+    }, [buildInitialCollapsedDrives, treeByDrive]);
 
     useEffect(() => {
-        writePersistedSet(COLLAPSED_FOLDER_IDS_STORAGE_KEY, collapsedFolders);
-    }, [collapsedFolders]);
+        if (!skippedInitialSelectionExpandRef.current) {
+            skippedInitialSelectionExpandRef.current = true;
+            return;
+        }
 
-    useEffect(() => {
-        writePersistedSet(COLLAPSED_DRIVES_STORAGE_KEY, collapsedDrives);
-    }, [collapsedDrives]);
-
-    useEffect(() => {
         const lineage = findSelectedNodeLineage(treeByDrive, currentFolderId);
         if (!lineage) return;
 

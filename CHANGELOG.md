@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - (なし)
 
 ### Fixed
-- (なし)
+- 左サイドバーのフォルダツリーは起動時に毎回閉じた状態から始めるようにし、前回の選択や開閉状態の影響で子孫フォルダまで展開されたまま起動しにくくした。
 
 ---
 
