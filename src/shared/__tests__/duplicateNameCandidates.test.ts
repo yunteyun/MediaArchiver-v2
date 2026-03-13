@@ -122,4 +122,31 @@ describe('duplicateNameCandidates', () => {
         });
         expect(groups[0]?.files.map((file) => file.id)).toEqual(['a', 'b']);
     });
+
+    it('groups files by core name even when codec tags contain digits', () => {
+        const groups = buildSimilarNameCandidateGroups([
+            {
+                id: 'a',
+                name: 'Movie AV1.mkv',
+                path: 'C:\\library\\Movie AV1.mkv',
+                size: 120,
+                type: 'video' as const,
+            },
+            {
+                id: 'b',
+                name: 'Movie H264.mkv',
+                path: 'C:\\library\\Movie H264.mkv',
+                size: 110,
+                type: 'video' as const,
+            },
+        ]);
+
+        expect(groups).toHaveLength(1);
+        expect(groups[0]).toMatchObject({
+            matchKind: 'core_name',
+            matchLabel: '名前近似候補',
+            count: 2,
+        });
+        expect(groups[0]?.files.map((file) => file.id)).toEqual(['a', 'b']);
+    });
 });

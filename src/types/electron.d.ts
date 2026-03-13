@@ -17,7 +17,7 @@ import type {
     AutoOrganizeSettingsV1,
 } from './autoOrganize';
 import type { ExternalDisplayPresetListResult } from '../components/fileCard/displayModes';
-import type { DuplicateSearchMode } from '../shared/duplicateNameCandidates';
+import type { DuplicateSearchMode, SimilarNameMatchKind } from '../shared/duplicateNameCandidates';
 import type {
     Tag as RendererTagDefinition,
     TagCategory as RendererTagCategory,
@@ -527,7 +527,7 @@ interface DuplicateGroup {
     size: number;
     sizeMin: number;
     sizeMax: number;
-    matchKind: 'content_hash' | 'normalized_name' | 'numbered_series';
+    matchKind: 'content_hash' | SimilarNameMatchKind;
     matchLabel: string;
     files: DuplicateFileEntry[];
     count: number;

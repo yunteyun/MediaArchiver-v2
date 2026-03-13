@@ -84,12 +84,14 @@ function tokenizeNormalizedName(normalizedBaseName: string): string[] {
 
 function buildCoreNameValue(tokens: string[]): string {
     const filteredTokens = tokens
-        .map((token) => token.replace(/\d+/gu, ''))
-        .filter((token) =>
-            token.length >= 2 &&
-            !COMMON_MEDIA_NOISE_TOKENS.has(token) &&
-            !/^\d+$/u.test(token)
-        );
+        .flatMap((token) => {
+            if (/^\d+$/u.test(token) || COMMON_MEDIA_NOISE_TOKENS.has(token)) {
+                return [];
+            }
+
+            const normalizedToken = token.replace(/\d+/gu, '');
+            return normalizedToken.length >= 2 ? [normalizedToken] : [];
+        });
 
     return filteredTokens.join('');
 }

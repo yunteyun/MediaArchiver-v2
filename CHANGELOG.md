@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - バージョン命名規則を見直し、修正のみのリリースでも `d` は使わず `PATCH` を上げる運用へ統一した（表示への変更なし）。
 
 ### Fixed
-- (なし)
+- 重複チェックの類似候補検索で、AV1 / H264 / MP3 など数字付きの付加情報を含むファイル名でも同名候補を拾いやすくした。
 
 ---
 
