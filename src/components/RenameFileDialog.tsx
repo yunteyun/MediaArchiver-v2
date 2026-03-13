@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getEditableNameSelectionRange } from '../utils/fileNameSelection';
 
 interface RenameFileDialogProps {
     isOpen: boolean;
@@ -27,9 +28,17 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
 
     useEffect(() => {
         if (!isOpen) return;
-        inputRef.current?.focus();
-        inputRef.current?.select();
-    }, [isOpen]);
+        const input = inputRef.current;
+        if (!input) return;
+
+        const selection = getEditableNameSelectionRange(currentName);
+        const rafId = window.requestAnimationFrame(() => {
+            input.focus();
+            input.setSelectionRange(selection.start, selection.end);
+        });
+
+        return () => window.cancelAnimationFrame(rafId);
+    }, [currentName, isOpen]);
 
     const normalizedCurrentPath = currentPath.replace(/\\/g, '/');
     const parentPath = normalizedCurrentPath.includes('/')

@@ -19,6 +19,7 @@ import type { GridItem } from '../types/grid';
 import { groupFiles } from '../utils/groupFiles';
 import { buildVisibleFiles } from '../utils/fileListQuery';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
+import { buildOrderedFileIds, buildRangeSelectionIds } from '../utils/fileSelection';
 
 const CARD_GAP = 8;
 const GROUP_HEADER_HEIGHT = 40;
@@ -579,10 +580,8 @@ export const FileGrid = React.memo(() => {
 
     // Phase 16: パフォーマンス最適化 - 表示順のファイルIDリストを事前計算
     const orderedFileIds = useMemo(() => {
-        return gridItems
-            .filter(item => item.type === 'file')
-            .map(item => item.file.id);
-    }, [gridItems]);
+        return buildOrderedFileIds(gridItems, groupedFiles, groupBy !== 'none');
+    }, [gridItems, groupedFiles, groupBy]);
 
     const handleSelect = useCallback((id: string, mode: 'single' | 'toggle' | 'range') => {
         if (mode === 'single') {
@@ -590,17 +589,10 @@ export const FileGrid = React.memo(() => {
         } else if (mode === 'toggle') {
             toggleSelection(id);
         } else if (mode === 'range') {
-            // anchorId から指定位置までの範囲を計算
-            const anchorIndex = orderedFileIds.indexOf(anchorId || '');
-            const targetIndex = orderedFileIds.indexOf(id);
-
-            if (anchorIndex >= 0 && targetIndex >= 0) {
-                const start = Math.min(anchorIndex, targetIndex);
-                const end = Math.max(anchorIndex, targetIndex);
-                const rangeIds = orderedFileIds.slice(start, end + 1);
+            const rangeIds = buildRangeSelectionIds(orderedFileIds, anchorId, id);
+            if (rangeIds.length > 1) {
                 selectRange(rangeIds);
-            } else if (targetIndex >= 0) {
-                // anchor が見つからない場合は単一選択にフォールバック
+            } else if (rangeIds.length === 1) {
                 selectFile(id);
             }
         }

@@ -18,6 +18,7 @@ import {
     type FolderScanFileTypeOverrides,
     type FolderScanSettings,
 } from '../../src/shared/folderScanSettings';
+import { collectExistingFolderTreePaths } from '../../src/shared/folderTreePaths';
 
 const log = logger.scope('Database');
 
@@ -591,6 +592,10 @@ export function getFolderTreePaths(): string[] {
     const registeredPaths = new Set(folders.map((f) => normalizeDirPathForMatch(f.path)));
     const allPaths = new Set<string>(registeredPaths);
     const rootById = new Map(folders.map((f) => [f.id, normalizeDirPathForMatch(f.path)] as const));
+
+    for (const existingPath of collectExistingFolderTreePaths(folders.map((folder) => folder.path))) {
+        allPaths.add(normalizeDirPathForMatch(existingPath));
+    }
 
     const files = getFiles();
     for (const file of files) {

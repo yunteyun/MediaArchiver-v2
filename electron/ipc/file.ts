@@ -303,7 +303,7 @@ export function registerFileHandlers() {
         menuTemplate.push(
             { type: 'separator' },
             {
-                label: '移動',
+                label: '移動先を選んで移動...',
                 enabled: !isMultiple, // 複数選択時は無効（将来対応）
                 click: async () => {
                     const file = findFileById(fileId);
@@ -489,7 +489,7 @@ export function registerFileHandlers() {
             },
             { type: 'separator' },
             {
-                label: 'フォルダに移動',
+                label: '登録フォルダへすぐ移動',
                 submenu: getFolders().map(folder => ({
                     label: isMultiple ? `${folder.name} (${effectiveFileIds.length}件)` : folder.name,
                     click: async () => {
