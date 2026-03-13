@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - 重複チェックの類似候補検索で、AV1 / H264 / MP3 など数字付きの付加情報を含むファイル名でも同名候補を拾いやすくした。
+- 重複チェックの類似候補検索で、作品名中の数字だけが違う別ファイルまで連番候補としてまとまりにくいように見直した。
 
 ---
 

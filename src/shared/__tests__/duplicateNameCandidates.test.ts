@@ -15,8 +15,14 @@ describe('duplicateNameCandidates', () => {
     it('builds core-name keys even when media tags are mixed into the filename', () => {
         expect(getSimilarNameCandidateKeys('[Group] My File 01 1080p WEB-DL.mkv')).toEqual([
             { kind: 'normalized_name', value: 'groupmyfile011080pwebdl' },
-            { kind: 'numbered_series', value: 'groupmyfilepwebdl' },
             { kind: 'core_name', value: 'groupmyfile' },
+        ]);
+    });
+
+    it('does not treat digits inside the title as numbered-series suffixes', () => {
+        expect(getSimilarNameCandidateKeys('Room 1408 Director Cut.mkv')).toEqual([
+            { kind: 'normalized_name', value: 'room1408directorcut' },
+            { kind: 'core_name', value: 'roomdirectorcut' },
         ]);
     });
 

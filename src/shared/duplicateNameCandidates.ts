@@ -115,7 +115,7 @@ export function getSimilarNameCandidateKeys(fileName: string): SimilarNameCandid
         value: compactName,
     });
 
-    const seriesBase = compactName.replace(/\d+/gu, '');
+    const seriesBase = compactName.replace(/\d+$/u, '');
     if (seriesBase.length >= 5 && seriesBase !== compactName) {
         keys.set(`series:${seriesBase}`, {
             kind: 'numbered_series',
