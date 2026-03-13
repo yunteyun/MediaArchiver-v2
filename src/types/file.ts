@@ -41,6 +41,8 @@ export interface MediaFolder {
     last_scan_at?: number | null;
     last_scan_status?: string | null;
     last_scan_message?: string | null;
+    badgeColor?: string | null;
+    badge_color?: string | null;
     scanSettingsJson?: string | null; // renderer側で使うcamelCase（将来用）
     scan_settings_json?: string | null; // Electron IPC返却のsnake_case互換
 }

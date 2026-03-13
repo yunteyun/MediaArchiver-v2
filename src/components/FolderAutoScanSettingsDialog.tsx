@@ -4,6 +4,11 @@ import type { MediaFolder } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import {
+    FOLDER_BADGE_COLOR_OPTIONS,
+    getFolderBadgePillStyle,
+    resolveFolderBadgeColorHex,
+} from '../utils/folderBadgeColor';
+import {
     excludedSubdirectoriesToText,
     parseExcludedSubdirectoriesText,
     parseFolderScanSettingsJson,
@@ -37,12 +42,14 @@ export const FolderAutoScanSettingsDialog = React.memo(({
     });
     const [hasFileTypeOverrides, setHasFileTypeOverrides] = useState(false);
     const [excludedSubdirectoriesText, setExcludedSubdirectoriesText] = useState('');
+    const [folderBadgeColor, setFolderBadgeColor] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         if (!folder) return;
         setAutoScanEnabled((folder.auto_scan ?? folder.autoScan ?? 0) === 1);
         setWatchNewFilesEnabled((folder.watch_new_files ?? folder.watchNewFiles ?? 0) === 1);
+        setFolderBadgeColor(folder.badgeColor ?? folder.badge_color ?? null);
         const settings = parseFolderScanSettingsJson(folder.scan_settings_json ?? folder.scanSettingsJson);
         const overrides = settings.fileTypeOverrides ?? {};
         setFileTypeOverrides({
@@ -63,6 +70,7 @@ export const FolderAutoScanSettingsDialog = React.memo(({
             await Promise.all([
                 window.electronAPI.setFolderAutoScan(folder.id, autoScanEnabled),
                 window.electronAPI.setFolderWatchNewFiles(folder.id, watchNewFilesEnabled),
+                window.electronAPI.setFolderBadgeColor(folder.id, folderBadgeColor),
                 window.electronAPI.setFolderScanFileTypeOverrides(folder.id, {
                     video: fileTypeOverrides.video === profileFileTypeFilters.video ? null : fileTypeOverrides.video,
                     image: fileTypeOverrides.image === profileFileTypeFilters.image ? null : fileTypeOverrides.image,
@@ -74,12 +82,12 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                     parseExcludedSubdirectoriesText(excludedSubdirectoriesText)
                 ),
             ]);
-            useUIStore.getState().showToast('フォルダ別自動スキャン設定を保存しました', 'success');
+            useUIStore.getState().showToast('登録フォルダ設定を保存しました', 'success');
             onSaved?.();
             onClose();
         } catch (e) {
             console.error('Failed to save folder auto scan settings:', e);
-            useUIStore.getState().showToast('フォルダ別自動スキャン設定の保存に失敗しました', 'error');
+            useUIStore.getState().showToast('登録フォルダ設定の保存に失敗しました', 'error');
         } finally {
             setSaving(false);
         }
@@ -90,7 +98,7 @@ export const FolderAutoScanSettingsDialog = React.memo(({
             <div className="w-[560px] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-700 bg-surface-900 shadow-xl">
                 <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
                     <div className="min-w-0">
-                        <h2 className="text-base font-semibold text-white">フォルダ別 自動スキャン設定</h2>
+                        <h2 className="text-base font-semibold text-white">登録フォルダ設定</h2>
                         <p className="mt-0.5 truncate text-xs text-surface-400" title={folder.path}>{folder.path}</p>
                     </div>
                     <button
@@ -103,6 +111,63 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                 </div>
 
                 <div className="space-y-4 px-4 py-4">
+                    <div className="rounded-lg border border-surface-700 bg-surface-900/50 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <div>
+                                <div className="text-sm font-medium text-surface-200">フォルダバッジの色</div>
+                                <div className="text-xs text-surface-500">
+                                    この登録フォルダ配下のファイルカードで、フォルダバッジに同じ色を使います。
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setFolderBadgeColor(null)}
+                                className="rounded border border-surface-700 px-2 py-1 text-xs text-surface-300 hover:bg-surface-800 transition-colors"
+                            >
+                                未設定に戻す
+                            </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {FOLDER_BADGE_COLOR_OPTIONS.map((option) => {
+                                const isSelected = folderBadgeColor === option.value;
+                                const previewColor = resolveFolderBadgeColorHex(option.value) ?? '#4b5563';
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => setFolderBadgeColor(option.value)}
+                                        className={`inline-flex items-center gap-2 rounded border px-3 py-1.5 text-xs transition-colors ${
+                                            isSelected
+                                                ? 'border-primary-400 bg-primary-500/10 text-white'
+                                                : 'border-surface-700 bg-surface-900/30 text-surface-300 hover:bg-surface-800'
+                                        }`}
+                                    >
+                                        <span
+                                            className="h-3.5 w-3.5 rounded-full border border-white/20"
+                                            style={{ backgroundColor: previewColor }}
+                                        />
+                                        <span>{option.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="mt-3">
+                            <div className="text-[11px] text-surface-500 mb-1">プレビュー</div>
+                            {folderBadgeColor ? (
+                                <span
+                                    className="inline-flex min-w-0 items-center rounded border px-1.5 py-0.5 text-[11px] leading-none font-medium"
+                                    style={getFolderBadgePillStyle(folderBadgeColor)}
+                                >
+                                    <span className="truncate">{folder.name}</span>
+                                </span>
+                            ) : (
+                                <span className="text-xs text-surface-500">未設定のときは今まで通りの色です。</span>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="rounded-lg border border-surface-700 bg-surface-900/50 p-3">
                         <div className="text-sm font-medium text-surface-200">スキャン実行タイミング</div>
                         <div className="mt-3 space-y-3">

@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- (なし)
+- 登録フォルダごとにフォルダバッジの色を設定できるようにし、その配下のファイルカードでも保存先の系統を見分けやすくした。
 
 ### Changed
 - 動画カードのコマ送り速度プリセットを全体的に一段遅く見直し、`標準` でも内容を追いやすくした。

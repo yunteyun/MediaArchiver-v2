@@ -8,6 +8,7 @@ import {
     getFolderTreeRecursiveCountsByPath,
     getFolderThumbnails,
     setFolderAutoScanEnabled,
+    setFolderBadgeColor,
     setFolderExcludedSubdirectories,
     setFolderScanFileTypeOverride,
     setFolderWatchNewFilesEnabled
@@ -24,6 +25,12 @@ export function registerFolderHandlers() {
     ipcMain.handle('folder:setWatchNewFiles', async (_event, { folderId, enabled }: { folderId: string; enabled: boolean }) => {
         setFolderWatchNewFilesEnabled(folderId, enabled);
         syncFolderWatchers();
+        return { success: true };
+    });
+
+    ipcMain.handle('folder:setBadgeColor', async (event, { folderId, color }: { folderId: string; color: string | null }) => {
+        setFolderBadgeColor(folderId, color);
+        event.sender.send('folder:updated', folderId);
         return { success: true };
     });
 

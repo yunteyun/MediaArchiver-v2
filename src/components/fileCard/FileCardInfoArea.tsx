@@ -13,6 +13,7 @@ export interface FileCardInfoCommonProps {
     displayPreset: ResolvedFileCardDisplayPreset;
     infoAreaHeight: number;
     showFileSize: boolean;
+    folderBadgeColor?: string | null;
     TagSummaryRenderer: React.ComponentType<FileCardTagSummaryRendererProps>;
 }
 

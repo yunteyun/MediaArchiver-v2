@@ -102,7 +102,26 @@ export const FileGrid = React.memo(() => {
             }
         };
         loadFoldersAndMetadata();
+
+        const unsubscribeFolderUpdated = window.electronAPI.onFolderUpdated(() => {
+            void loadFoldersAndMetadata();
+        });
+
+        return () => {
+            unsubscribeFolderUpdated();
+        };
     }, [setFolderMetadata]);
+
+    const folderBadgeColorById = useMemo(() => {
+        return new Map(
+            folders
+                .filter((folder) => !folder.isVirtualFolder)
+                .map((folder) => [
+                    folder.id,
+                    folder.badgeColor ?? folder.badge_color ?? null,
+                ] as const)
+        );
+    }, [folders]);
 
     // Rating filter state
     const ratingAxes = useRatingStore((s) => s.axes);
@@ -699,6 +718,7 @@ export const FileGrid = React.memo(() => {
                                                 isSelected={selectedIds.has(file.id)}
                                                 isFocused={focusedId === file.id && !selectedIds.has(file.id)}
                                                 onSelect={handleSelect}
+                                                folderBadgeColor={file.rootFolderId ? (folderBadgeColorById.get(file.rootFolderId) ?? null) : null}
                                                 overallRating={overallRatingAxisId ? allFileRatings[file.id]?.[overallRatingAxisId] : undefined}
                                                 overallRatingAxis={overallRatingAxis}
                                             />
@@ -784,6 +804,7 @@ export const FileGrid = React.memo(() => {
                                                 isSelected={selectedIds.has(item.file.id)}
                                                 isFocused={focusedId === item.file.id && !selectedIds.has(item.file.id)}
                                                 onSelect={handleSelect}
+                                                folderBadgeColor={item.file.rootFolderId ? (folderBadgeColorById.get(item.file.rootFolderId) ?? null) : null}
                                                 overallRating={overallRatingAxisId ? allFileRatings[item.file.id]?.[overallRatingAxisId] : undefined}
                                                 overallRatingAxis={overallRatingAxis}
                                             />

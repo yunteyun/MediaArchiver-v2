@@ -198,6 +198,7 @@ declare global {
             getFolderTreeStats: () => Promise<{ paths: string[]; recursiveCountsByPath: Record<string, number> }>;
             setFolderAutoScan: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
             setFolderWatchNewFiles: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
+            setFolderBadgeColor: (folderId: string, color: string | null) => Promise<{ success: boolean }>;
             setFolderScanFileTypeOverrides: (
                 folderId: string,
                 overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
@@ -271,6 +272,7 @@ declare global {
             // Context Menu
             showFolderContextMenu: (folderId: string, path: string) => Promise<void>;
             onFolderDeleted: (callback: (folderId: string) => void) => () => void;
+            onFolderUpdated: (callback: (folderId: string) => void) => () => void;
             onFolderRescanComplete: (callback: (folderId: string) => void) => () => void;
 
             // File Context Menu

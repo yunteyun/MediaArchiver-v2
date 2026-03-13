@@ -52,6 +52,7 @@ export interface MediaFolder {
     name: string;
     path: string;
     created_at: number;
+    badge_color?: string | null;
 }
 /**
  * Phase 18-A: 外部アプリ起動カウントをインクリメント
@@ -97,6 +98,7 @@ export declare function getFileCleanupCandidatesByRootFolderId(rootFolderId: str
     type: 'video' | 'image' | 'archive' | 'audio';
 }>;
 export declare function addFolder(folderPath: string, name?: string): MediaFolder;
+export declare function setFolderBadgeColor(folderId: string, color: string | null): void;
 export declare function deleteFolder(id: string): void;
 /**
  * フォルダごとのファイル数を一括取得（Phase 12-4）

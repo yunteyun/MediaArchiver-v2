@@ -315,6 +315,7 @@ interface FileCardProps {
     isSelected: boolean;
     isFocused?: boolean;
     onSelect: (id: string, mode: 'single' | 'toggle' | 'range') => void;
+    folderBadgeColor?: string | null;
     overallRating?: number;
     overallRatingAxis?: {
         name: string;
@@ -331,6 +332,7 @@ export const FileCard = React.memo(({
     isSelected,
     isFocused = false,
     onSelect,
+    folderBadgeColor = null,
     overallRating,
     overallRatingAxis = null,
 }: FileCardProps) => {
@@ -1362,13 +1364,14 @@ export const FileCard = React.memo(({
             {/* 情報エリア - Phase 14: モード別レイアウト */}
             {showFileName && (
                 <div className={isDetailedHorizontalMode ? 'h-full flex-1 min-w-0 border-l border-surface-700/60' : ''}>
-                    <FileCardInfoArea
-                        file={file}
-                        displayPreset={displayPreset}
-                        infoAreaHeight={config.infoAreaHeight}
-                        showFileSize={showFileSize}
-                        TagSummaryRenderer={TagSummaryRenderer}
-                    />
+                <FileCardInfoArea
+                    file={file}
+                    displayPreset={displayPreset}
+                    infoAreaHeight={config.infoAreaHeight}
+                    showFileSize={showFileSize}
+                    folderBadgeColor={folderBadgeColor}
+                    TagSummaryRenderer={TagSummaryRenderer}
+                />
                 </div>
             )}
 

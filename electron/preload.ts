@@ -127,6 +127,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('folder:setAutoScan', { folderId, enabled }),
     setFolderWatchNewFiles: (folderId: string, enabled: boolean) =>
         ipcRenderer.invoke('folder:setWatchNewFiles', { folderId, enabled }),
+    setFolderBadgeColor: (folderId: string, color: string | null) =>
+        ipcRenderer.invoke('folder:setBadgeColor', { folderId, color }),
     setFolderScanFileTypeOverrides: (
         folderId: string,
         overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
@@ -203,6 +205,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('folder:showContextMenu', { folderId, path }),
 
     onFolderDeleted: (callback: (folderId: string) => void) => subscribe('folder:deleted', callback),
+    onFolderUpdated: (callback: (folderId: string) => void) => subscribe('folder:updated', callback),
 
     onFolderRescanComplete: (callback: (folderId: string) => void) => subscribe('folder:rescanComplete', callback),
 

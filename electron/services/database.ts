@@ -102,6 +102,7 @@ export interface MediaFolder {
     drive: string;              // Phase 22-C: ドライブ文字
     auto_scan?: number;         // 起動時スキャン対象
     watch_new_files?: number;   // 起動中の新規/更新検知スキャン
+    badge_color?: string | null;
     scan_settings_json?: string | null; // Phase 27: 登録フォルダごとのスキャン設定
     last_scan_at?: number | null;
     last_scan_status?: string | null;
@@ -760,6 +761,14 @@ export function setFolderAutoScanEnabled(folderId: string, enabled: boolean): vo
 export function setFolderWatchNewFilesEnabled(folderId: string, enabled: boolean): void {
     const db = getDb();
     db.prepare('UPDATE folders SET watch_new_files = ? WHERE id = ?').run(enabled ? 1 : 0, folderId);
+}
+
+export function setFolderBadgeColor(folderId: string, color: string | null): void {
+    const db = getDb();
+    const normalizedColor = typeof color === 'string' && color.trim().length > 0
+        ? color.trim().toLowerCase()
+        : null;
+    db.prepare('UPDATE folders SET badge_color = ? WHERE id = ?').run(normalizedColor, folderId);
 }
 
 export function getAutoScanFolders(): MediaFolder[] {

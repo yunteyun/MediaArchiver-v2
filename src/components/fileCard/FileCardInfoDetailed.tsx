@@ -2,6 +2,7 @@ import React from 'react';
 import { Eye } from 'lucide-react';
 import { formatFileSize } from '../../utils/groupFiles';
 import { getDisplayFolderName } from '../../utils/path';
+import { getFolderBadgePanelStyle, getFolderBadgePillStyle } from '../../utils/folderBadgeColor';
 import type { DetailedPanelBadgeKey } from './displayModes';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
@@ -25,6 +26,7 @@ type DetailedBadgeMetaRowProps = {
     fileSize?: number | null;
     createdDateLabel: string | null;
     folderName: string;
+    folderBadgeColor?: string | null;
 };
 
 type DetailedBottomRowProps = {
@@ -66,6 +68,7 @@ const DetailedBadgeMetaRow = React.memo(({
     fileSize,
     createdDateLabel,
     folderName,
+    folderBadgeColor,
 }: DetailedBadgeMetaRowProps) => {
     return (
         <div className="mt-0.5 mb-0.5 min-h-[16px] flex min-w-0 items-center gap-1 overflow-hidden">
@@ -80,7 +83,10 @@ const DetailedBadgeMetaRow = React.memo(({
                 </span>
             )}
             {folderName && (
-                <span className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${ui.folderBadgeMaxWidthClass}`}>
+                <span
+                    className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${ui.folderBadgeMaxWidthClass}`}
+                    style={getFolderBadgePillStyle(folderBadgeColor)}
+                >
                     <span className="truncate">{folderName}</span>
                 </span>
             )}
@@ -123,6 +129,7 @@ export const FileCardInfoDetailed = React.memo(({
     displayPreset,
     infoAreaHeight,
     showFileSize,
+    folderBadgeColor,
     TagSummaryRenderer,
 }: FileCardInfoCommonProps) => {
     const ui = getDetailedInfoUiConfig(displayPreset);
@@ -176,7 +183,8 @@ export const FileCardInfoDetailed = React.memo(({
                     {detailedPanelBadges.map((badge) => (
                         <div
                             key={badge.key}
-                            className="min-w-0 rounded bg-surface-700/60 px-1.5 py-1"
+                            className={`min-w-0 rounded px-1.5 py-1 ${badge.key === 'folder' ? 'border border-surface-600/60 bg-surface-700/60' : 'bg-surface-700/60'}`}
+                            style={badge.key === 'folder' ? getFolderBadgePanelStyle(folderBadgeColor) : undefined}
                             title={`${badge.label}: ${badge.value}`}
                         >
                             <div className="truncate text-[8px] leading-none text-surface-400">{badge.label}</div>
@@ -235,6 +243,7 @@ export const FileCardInfoDetailed = React.memo(({
                     fileSize={file.size}
                     createdDateLabel={createdDateLabel}
                     folderName={folderName}
+                    folderBadgeColor={folderBadgeColor}
                 />
             )}
             <DetailedBottomRow
