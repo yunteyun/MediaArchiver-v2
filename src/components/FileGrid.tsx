@@ -103,12 +103,23 @@ export const FileGrid = React.memo(() => {
         };
         loadFoldersAndMetadata();
 
-        const unsubscribeFolderUpdated = window.electronAPI.onFolderUpdated(() => {
+        const subscribeFolderUpdated = (
+            window.electronAPI as typeof window.electronAPI & {
+                onFolderUpdated?: (callback: (folderId: string) => void) => (() => void) | void;
+            }
+        ).onFolderUpdated;
+
+        if (typeof subscribeFolderUpdated !== 'function') {
+            console.warn('electronAPI.onFolderUpdated is unavailable; continuing without live folder refresh.');
+            return;
+        }
+
+        const unsubscribeFolderUpdated = subscribeFolderUpdated(() => {
             void loadFoldersAndMetadata();
         });
 
         return () => {
-            unsubscribeFolderUpdated();
+            unsubscribeFolderUpdated?.();
         };
     }, [setFolderMetadata]);
 

@@ -68,10 +68,15 @@ export const FolderAutoScanSettingsDialog = React.memo(({
     const handleSave = async () => {
         setSaving(true);
         try {
-            await Promise.all([
+            const setFolderBadgeColor = (
+                window.electronAPI as typeof window.electronAPI & {
+                    setFolderBadgeColor?: (folderId: string, color: string | null) => Promise<{ success: boolean }>;
+                }
+            ).setFolderBadgeColor;
+
+            const saveTasks = [
                 window.electronAPI.setFolderAutoScan(folder.id, autoScanEnabled),
                 window.electronAPI.setFolderWatchNewFiles(folder.id, watchNewFilesEnabled),
-                window.electronAPI.setFolderBadgeColor(folder.id, folderBadgeColor),
                 window.electronAPI.setFolderScanFileTypeOverrides(folder.id, {
                     video: fileTypeOverrides.video === profileFileTypeFilters.video ? null : fileTypeOverrides.video,
                     image: fileTypeOverrides.image === profileFileTypeFilters.image ? null : fileTypeOverrides.image,
@@ -82,7 +87,15 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                     folder.id,
                     parseExcludedSubdirectoriesText(excludedSubdirectoriesText)
                 ),
-            ]);
+            ];
+
+            if (typeof setFolderBadgeColor === 'function') {
+                saveTasks.push(setFolderBadgeColor(folder.id, folderBadgeColor));
+            } else if (folderBadgeColor) {
+                console.warn('electronAPI.setFolderBadgeColor is unavailable; skipping folder badge color save.');
+            }
+
+            await Promise.all(saveTasks);
             useUIStore.getState().showToast('登録フォルダ設定を保存しました', 'success');
             onSaved?.();
             onClose();
