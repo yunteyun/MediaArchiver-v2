@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
     getFolderBadgePillStyle,
-    getFolderBadgeTextColor,
     resolveFolderBadgeColorHex,
 } from '../folderBadgeColor';
 
@@ -16,14 +15,10 @@ describe('folderBadgeColor', () => {
         expect(resolveFolderBadgeColorHex('unknown')).toBeNull();
     });
 
-    it('uses dark text for bright badge colors', () => {
-        expect(getFolderBadgeTextColor('amber')).toBe('#1a1a2e');
-        expect(getFolderBadgeTextColor('blue')).toBe('#f8fafc');
-    });
-
-    it('builds colored pill styles only when a color is set', () => {
+    it('builds left-accent styles only when a color is set', () => {
         expect(getFolderBadgePillStyle('pink')).toMatchObject({
-            color: '#f8fafc',
+            borderLeftColor: '#db2777',
+            borderLeftWidth: '3px',
         });
         expect(getFolderBadgePillStyle(null)).toBeUndefined();
     });

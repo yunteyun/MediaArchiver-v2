@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { FolderOpen, X } from 'lucide-react';
 import type { MediaFolder } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -157,9 +157,10 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                             <div className="text-[11px] text-surface-500 mb-1">プレビュー</div>
                             {folderBadgeColor ? (
                                 <span
-                                    className="inline-flex min-w-0 items-center rounded border px-1.5 py-0.5 text-[11px] leading-none font-medium"
+                                    className="inline-flex min-w-0 items-center gap-1 rounded border border-surface-600/60 bg-surface-700/50 px-1.5 py-0.5 text-[11px] leading-none font-medium text-surface-200"
                                     style={getFolderBadgePillStyle(folderBadgeColor)}
                                 >
+                                    <FolderOpen size={11} className="shrink-0 text-surface-400" />
                                     <span className="truncate">{folder.name}</span>
                                 </span>
                             ) : (

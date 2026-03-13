@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, FolderOpen } from 'lucide-react';
 import { formatFileSize } from '../../utils/groupFiles';
 import { getDisplayFolderName } from '../../utils/path';
 import { getFolderBadgePanelStyle, getFolderBadgePillStyle } from '../../utils/folderBadgeColor';
@@ -84,9 +84,10 @@ const DetailedBadgeMetaRow = React.memo(({
             )}
             {folderName && (
                 <span
-                    className={`inline-flex min-w-0 shrink items-center px-1.5 py-0.5 rounded text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60 ${ui.folderBadgeMaxWidthClass}`}
+                    className={`inline-flex min-w-0 shrink items-center gap-1 rounded border border-surface-600/60 bg-surface-700/50 px-1.5 py-0.5 text-[8px] leading-none font-medium text-surface-200 ${ui.folderBadgeMaxWidthClass}`}
                     style={getFolderBadgePillStyle(folderBadgeColor)}
                 >
+                    <FolderOpen size={9} className="shrink-0 text-surface-400" />
                     <span className="truncate">{folderName}</span>
                 </span>
             )}
@@ -188,9 +189,16 @@ export const FileCardInfoDetailed = React.memo(({
                             title={`${badge.label}: ${badge.value}`}
                         >
                             <div className="truncate text-[8px] leading-none text-surface-400">{badge.label}</div>
-                            <div className={`mt-0.5 truncate text-[10px] font-semibold leading-tight text-surface-100 ${badge.key === 'folder' ? ui.folderBadgeMaxWidthClass : ''}`}>
-                                {badge.value}
-                            </div>
+                            {badge.key === 'folder' ? (
+                                <div className={`mt-0.5 flex min-w-0 items-center gap-1 text-[10px] font-semibold leading-tight text-surface-100 ${ui.folderBadgeMaxWidthClass}`}>
+                                    <FolderOpen size={11} className="shrink-0 text-surface-400" />
+                                    <span className="truncate">{badge.value}</span>
+                                </div>
+                            ) : (
+                                <div className="mt-0.5 truncate text-[10px] font-semibold leading-tight text-surface-100">
+                                    {badge.value}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>

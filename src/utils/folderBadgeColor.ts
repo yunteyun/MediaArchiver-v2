@@ -58,21 +58,14 @@ export function resolveFolderBadgeColorHex(colorName?: string | null): string | 
     return FOLDER_BADGE_COLOR_HEX[normalized] ?? null;
 }
 
-export function getFolderBadgeTextColor(colorName?: string | null): string {
-    const normalized = normalizeFolderBadgeColor(colorName);
-    if (normalized && LIGHT_BACKGROUND_COLORS.has(normalized)) {
-        return '#1a1a2e';
-    }
-    return '#f8fafc';
-}
-
 export function getFolderBadgePillStyle(colorName?: string | null): CSSProperties | undefined {
     const hex = resolveFolderBadgeColorHex(colorName);
     if (!hex) return undefined;
     return {
-        backgroundColor: hexToRgba(hex, 0.2),
-        borderColor: hexToRgba(hex, 0.42),
-        color: getFolderBadgeTextColor(colorName),
+        borderLeftColor: hex,
+        borderLeftWidth: '3px',
+        borderLeftStyle: 'solid',
+        boxShadow: `inset 0 0 0 1px ${hexToRgba(hex, 0.18)}`,
     };
 }
 
@@ -80,7 +73,9 @@ export function getFolderBadgePanelStyle(colorName?: string | null): CSSProperti
     const hex = resolveFolderBadgeColorHex(colorName);
     if (!hex) return undefined;
     return {
-        backgroundColor: hexToRgba(hex, 0.16),
-        borderColor: hexToRgba(hex, 0.36),
+        borderLeftColor: hex,
+        borderLeftWidth: '3px',
+        borderLeftStyle: 'solid',
+        boxShadow: `inset 0 0 0 1px ${hexToRgba(hex, 0.16)}`,
     };
 }
