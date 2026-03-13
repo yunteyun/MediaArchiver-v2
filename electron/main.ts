@@ -278,6 +278,7 @@ app.whenReady().then(async () => {
 
     // Phase 25: ストレージ設定を最初に初期化（二段階ロード）
     await initStorageConfig();
+    logger.refreshLogPath();
     logger.info('Storage config initialized');
 
     // Register custom protocol handler

@@ -55,10 +55,14 @@ function resolveLogsPath(): string {
     return path.join(candidateBase, 'logs');
 }
 
-const logsPath = resolveLogsPath();
-if (!fs.existsSync(logsPath)) {
-    fs.mkdirSync(logsPath, { recursive: true });
+function ensureLogsDirectory(targetPath: string): void {
+    if (!fs.existsSync(targetPath)) {
+        fs.mkdirSync(targetPath, { recursive: true });
+    }
 }
+
+let logsPath = path.join(app.getPath('userData'), 'logs');
+ensureLogsDirectory(logsPath);
 
 log.transports.file.resolvePathFn = () => {
     const date = new Date().toISOString().split('T')[0];
@@ -99,6 +103,23 @@ export const logger = {
             warn: (message: string, ...args: any[]) => log.warn(`[${moduleName}] ${message}`, ...args),
             error: (message: string, ...args: any[]) => log.error(`[${moduleName}] ${message}`, ...args),
         };
+    },
+
+    refreshLogPath: () => {
+        try {
+            const resolvedPath = resolveLogsPath();
+            if (resolvedPath === logsPath) {
+                return logsPath;
+            }
+
+            ensureLogsDirectory(resolvedPath);
+            logsPath = resolvedPath;
+            log.info(`[Logger] Switched log path to ${logsPath}`);
+            return logsPath;
+        } catch (error) {
+            log.warn('[Logger] Failed to switch log path, keeping bootstrap path', error);
+            return logsPath;
+        }
     },
 
     getLogPath: () => logsPath,

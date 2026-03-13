@@ -4,6 +4,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 set "APP_EXE=MediaArchiver v2.exe"
 set "APP_DIR=%~dp0"
 set "ZIP_PATH=%~1"
+set "MA_UPDATER_APP_EXE=%APP_EXE%"
 
 echo ==========================================
 echo MediaArchiver Update Tool
@@ -40,11 +41,13 @@ if not exist "%ZIP_PATH%" (
 
 set "TEMP_DIR=%TEMP%\MediaArchiverUpdate_%RANDOM%%RANDOM%"
 mkdir "%TEMP_DIR%" >nul 2>&1
+set "MA_UPDATER_ZIP=%ZIP_PATH%"
+set "MA_UPDATER_TEMP_DIR=%TEMP_DIR%"
 
 echo [INFO] Removing download block from ZIP (if present)...
-powershell -NoProfile -Command "try { Unblock-File -LiteralPath '%ZIP_PATH%' -ErrorAction SilentlyContinue } catch {}"
+powershell -NoProfile -Command "try { Unblock-File -LiteralPath $env:MA_UPDATER_ZIP -ErrorAction SilentlyContinue } catch {}"
 
-powershell -NoProfile -Command "Expand-Archive -LiteralPath '%ZIP_PATH%' -DestinationPath '%TEMP_DIR%' -Force" 
+powershell -NoProfile -Command "Expand-Archive -LiteralPath $env:MA_UPDATER_ZIP -DestinationPath $env:MA_UPDATER_TEMP_DIR -Force"
 if errorlevel 1 (
   echo [ERROR] Failed to extract update ZIP.
   rmdir /s /q "%TEMP_DIR%" >nul 2>&1
@@ -54,7 +57,7 @@ if errorlevel 1 (
 )
 
 set "SRC_DIR="
-for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$f=Get-ChildItem -Path '%TEMP_DIR%' -Recurse -Filter '%APP_EXE%' -File | Select-Object -First 1; if($f){ $f.DirectoryName }"`) do set "SRC_DIR=%%I"
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$f=Get-ChildItem -LiteralPath $env:MA_UPDATER_TEMP_DIR -Recurse -Filter $env:MA_UPDATER_APP_EXE -File | Select-Object -First 1; if($f){ [Console]::Write($f.DirectoryName) }"`) do set "SRC_DIR=%%I"
 
 if "%SRC_DIR%"=="" (
   echo [ERROR] Could not find %APP_EXE% inside ZIP.
@@ -64,8 +67,9 @@ if "%SRC_DIR%"=="" (
   exit /b 1
 )
 
+set "MA_UPDATER_SRC_DIR=%SRC_DIR%"
 echo [INFO] Removing download block from extracted files (if present)...
-powershell -NoProfile -Command "try { Get-ChildItem -LiteralPath '%SRC_DIR%' -Recurse -File | Unblock-File -ErrorAction SilentlyContinue } catch {}"
+powershell -NoProfile -Command "try { Get-ChildItem -LiteralPath $env:MA_UPDATER_SRC_DIR -Recurse -File | Unblock-File -ErrorAction SilentlyContinue } catch {}"
 
 echo [INFO] Closing running app (if any)...
 taskkill /IM "%APP_EXE%" /F >nul 2>&1
@@ -86,12 +90,26 @@ if %RC% GEQ 8 (
   exit /b 1
 )
 
-rmdir /s /q "%TEMP_DIR%" >nul 2>&1
+set "MA_UPDATER_NEW_UPDATER=%SRC_DIR%\update.bat"
+set "MA_UPDATER_TARGET_SCRIPT=%APP_DIR%update.bat"
+set "MA_UPDATER_TARGET_EXE=%APP_DIR%%APP_EXE%"
+set "HANDOFF_CMD=%TEMP%\MediaArchiverUpdateHandoff_%RANDOM%%RANDOM%.cmd"
+
+(
+  echo @echo off
+  echo setlocal EnableExtensions
+  echo ping 127.0.0.1 -n 2 ^>nul
+  echo if exist "%%MA_UPDATER_NEW_UPDATER%%" copy /y "%%MA_UPDATER_NEW_UPDATER%%" "%%MA_UPDATER_TARGET_SCRIPT%%" ^>nul
+  echo if exist "%%MA_UPDATER_TARGET_SCRIPT%%" powershell -NoProfile -Command "try { Unblock-File -LiteralPath $env:MA_UPDATER_TARGET_SCRIPT -ErrorAction SilentlyContinue } catch {}"
+  echo if exist "%%MA_UPDATER_TARGET_EXE%%" start "" "%%MA_UPDATER_TARGET_EXE%%"
+  echo rmdir /s /q "%%MA_UPDATER_TEMP_DIR%%" ^>nul 2^>^&1
+  echo del "%%~f0" ^>nul 2^>^&1
+) > "%HANDOFF_CMD%"
 
 echo [INFO] Update complete. Launching app...
 set "ELECTRON_RUN_AS_NODE="
 set "ELECTRON_ENABLE_LOGGING="
 set "ELECTRON_ENABLE_STACK_DUMPING="
 set "NODE_OPTIONS="
-start "" "%APP_DIR%%APP_EXE%"
+start "" /min cmd /c ""%HANDOFF_CMD%""
 exit /b 0
