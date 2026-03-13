@@ -48,6 +48,36 @@ const DEV_SERVER_PROBE_TIMEOUT_MS = 1_500;
 const DEV_SERVER_RETRY_DELAY_MS = 750;
 const DEV_SERVER_MAX_LOAD_ATTEMPTS = 5;
 
+function syncBundledUpdaterScript(): void {
+    if (!app.isPackaged) {
+        return;
+    }
+
+    const bundledUpdaterPath = path.join(process.resourcesPath, 'support', 'update.bat');
+    const targetUpdaterPath = path.join(path.dirname(app.getPath('exe')), 'update.bat');
+
+    if (!fs.existsSync(bundledUpdaterPath)) {
+        logger.warn(`[UpdaterSync] Bundled updater was not found: ${bundledUpdaterPath}`);
+        return;
+    }
+
+    try {
+        const bundledContent = fs.readFileSync(bundledUpdaterPath);
+        const currentContent = fs.existsSync(targetUpdaterPath)
+            ? fs.readFileSync(targetUpdaterPath)
+            : null;
+
+        if (currentContent && Buffer.compare(bundledContent, currentContent) === 0) {
+            return;
+        }
+
+        fs.copyFileSync(bundledUpdaterPath, targetUpdaterPath);
+        logger.info(`[UpdaterSync] Refreshed update.bat at ${targetUpdaterPath}`);
+    } catch (error) {
+        logger.warn('[UpdaterSync] Failed to refresh update.bat', error);
+    }
+}
+
 function getDevWindowIconPath(): string | undefined {
     if (!process.env.VITE_DEV_SERVER_URL) return undefined;
 
@@ -275,6 +305,7 @@ const createWindow = async () => {
 app.whenReady().then(async () => {
     logger.info('MediaArchiver starting...');
     logger.info(`Build marker: ${getBuildMarker()}`);
+    syncBundledUpdaterScript();
 
     // Phase 25: ストレージ設定を最初に初期化（二段階ロード）
     await initStorageConfig();

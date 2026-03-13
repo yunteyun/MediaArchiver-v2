@@ -14,22 +14,46 @@ export default defineConfig(async () => ({
                 entry: 'electron/bootstrap.ts',
                 vite: {
                     build: {
+                        emptyOutDir: true,
                         rollupOptions: {
                             external: electronExternal,
+                            output: {
+                                entryFileNames: '[name].js',
+                                chunkFileNames: '[name].js',
+                                assetFileNames: '[name][extname]',
+                            },
                         },
                     },
                 },
             },
             preload: {
                 input: 'electron/preload.ts',
+                vite: {
+                    build: {
+                        emptyOutDir: false,
+                        rollupOptions: {
+                            output: {
+                                entryFileNames: '[name].js',
+                                chunkFileNames: '[name].js',
+                                assetFileNames: '[name][extname]',
+                            },
+                        },
+                    },
+                },
             },
         })),
         ...electronFlat({
             entry: 'electron/utility/previewFrameWorker.ts',
             vite: {
                 build: {
+                    emptyOutDir: false,
                     rollupOptions: {
                         external: electronExternal,
+                        output: {
+                            entryFileNames: '[name].js',
+                            chunkFileNames: '[name].js',
+                            assetFileNames: '[name][extname]',
+                        },
                     },
                 },
             },
