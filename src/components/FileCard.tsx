@@ -156,7 +156,7 @@ const FileCardTagSummaryRow = React.memo(({
                         opacity: 0.85
                     }}
                 >
-                    <span className="truncate">#{tag.name}</span>
+                    <span className="truncate">{tag.name}</span>
                 </span>
             ))}
             {hiddenCount > 0 && (
@@ -1423,7 +1423,7 @@ export const FileCard = React.memo(({
                                     color: getTagTextColor(tag.categoryColor || tag.color || '')
                                 }}
                             >
-                                #{tag.name}
+                                {tag.name}
                             </span>
                         ))}
                     </div>
