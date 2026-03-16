@@ -87,25 +87,54 @@ export const TagSelector = React.memo(({
         const anchor = anchorElement ?? buttonRef.current;
         if (!anchor) return;
         const rect = anchor.getBoundingClientRect();
-        const dropdownHeight = 440; // max-h-96(384px) + 検索欄(~56px)
+        const dropdownHeight = 440; // 検索欄込みのおおよその最大高
         const dropdownWidth = 384;  // w-96
-        const spaceAbove = rect.top;
-        const spaceBelow = window.innerHeight - rect.bottom;
+        const gap = 6;
+        const viewportPadding = 8;
+        const minBelowHeight = 260;
+        const spaceAbove = rect.top - viewportPadding;
+        const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+        const spaceLeft = rect.left - viewportPadding;
 
-        // 上に十分なスペースがあれば上向き、なければ下向き
-        if (spaceAbove > dropdownHeight || spaceAbove > spaceBelow) {
+        const clampLeft = Math.max(
+            viewportPadding,
+            Math.min(rect.left, window.innerWidth - dropdownWidth - viewportPadding)
+        );
+        const clampTop = Math.max(
+            viewportPadding,
+            Math.min(rect.top, window.innerHeight - dropdownHeight - viewportPadding)
+        );
+
+        // 右パネル操作ではまず下に出し、縦が足りないときだけ左へ逃がす
+        if (spaceBelow >= minBelowHeight) {
             setDropdownStyle({
                 position: 'fixed',
-                bottom: window.innerHeight - rect.top + 4,
-                left: Math.min(rect.left, window.innerWidth - dropdownWidth - 8),
+                top: rect.bottom + gap,
+                left: clampLeft,
+                width: dropdownWidth,
+                zIndex: 9999,
+            });
+        } else if (spaceLeft >= dropdownWidth + gap) {
+            setDropdownStyle({
+                position: 'fixed',
+                top: clampTop,
+                left: Math.max(viewportPadding, rect.left - dropdownWidth - gap),
+                width: dropdownWidth,
+                zIndex: 9999,
+            });
+        } else if (spaceAbove > spaceBelow) {
+            setDropdownStyle({
+                position: 'fixed',
+                bottom: window.innerHeight - rect.top + gap,
+                left: clampLeft,
                 width: dropdownWidth,
                 zIndex: 9999,
             });
         } else {
             setDropdownStyle({
                 position: 'fixed',
-                top: rect.bottom + 4,
-                left: Math.min(rect.left, window.innerWidth - dropdownWidth - 8),
+                top: rect.bottom + gap,
+                left: clampLeft,
                 width: dropdownWidth,
                 zIndex: 9999,
             });
