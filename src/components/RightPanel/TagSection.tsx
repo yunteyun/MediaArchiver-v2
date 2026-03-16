@@ -4,7 +4,6 @@ import { useFileStore } from '../../stores/useFileStore';
 import { useTagStore } from '../../stores/useTagStore';
 import { useToastStore } from '../../stores/useToastStore';
 import { TagSelector } from '../tags/TagSelector';
-import { TagBadge } from '../tags/TagBadge';
 import type { MediaFile } from '../../types/file';
 
 interface TagSectionProps {
@@ -12,18 +11,53 @@ interface TagSectionProps {
     embedded?: boolean;
 }
 
+const categoryColorMap: Record<string, string> = {
+    gray: '#4b5563',
+    red: '#dc2626',
+    orange: '#ea580c',
+    amber: '#d97706',
+    yellow: '#f59e0b',
+    lime: '#65a30d',
+    green: '#16a34a',
+    emerald: '#059669',
+    teal: '#0d9488',
+    cyan: '#0891b2',
+    sky: '#0284c7',
+    blue: '#2563eb',
+    indigo: '#4f46e5',
+    violet: '#7c3aed',
+    purple: '#9333ea',
+    fuchsia: '#c026d3',
+    pink: '#db2777',
+    rose: '#e11d48',
+};
+
+function resolveCategoryAccentColor(colorName?: string): string {
+    if (!colorName) return categoryColorMap.gray;
+    const normalized = colorName.trim().toLowerCase();
+    return categoryColorMap[normalized] || colorName;
+}
+
 export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false }) => {
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
-    const tags = useTagStore((s) => s.tags);
+    const categories = useTagStore((s) => s.categories);
+    const loadTags = useTagStore((s) => s.loadTags);
+    const loadCategories = useTagStore((s) => s.loadCategories);
     const [isEditMode, setIsEditMode] = React.useState(false);
-    const QUICK_TAG_LIMIT = 8;
+    const [activeCategoryId, setActiveCategoryId] = React.useState<string | null>(null);
 
     const tagIds = fileTagsCache.get(file.id) ?? [];
 
     React.useEffect(() => {
         setIsEditMode(false);
+        setActiveCategoryId(null);
     }, [file.id]);
+
+    React.useEffect(() => {
+        void loadTags();
+        void loadCategories();
+    }, [loadCategories, loadTags]);
 
     const handleAddTag = async (tagId: string) => {
         try {
@@ -45,28 +79,10 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
         }
     };
 
-    const quickTags = React.useMemo(() => {
-        const selectedSet = new Set(tagIds);
-        const sortedTags = [...tags].sort((a, b) => {
-            const aSelected = selectedSet.has(a.id) ? 0 : 1;
-            const bSelected = selectedSet.has(b.id) ? 0 : 1;
-            if (aSelected !== bSelected) return aSelected - bSelected;
-            if ((a.sortOrder ?? 999) !== (b.sortOrder ?? 999)) {
-                return (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
-            }
-            return a.name.localeCompare(b.name, 'ja');
-        });
-
-        return sortedTags.slice(0, QUICK_TAG_LIMIT);
-    }, [tagIds, tags]);
-
-    const handleQuickTagToggle = async (tagId: string) => {
-        if (tagIds.includes(tagId)) {
-            await handleRemoveTag(tagId);
-            return;
-        }
-        await handleAddTag(tagId);
-    };
+    const sortedCategories = React.useMemo(
+        () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
+        [categories]
+    );
 
     return (
         <div className={embedded ? 'space-y-2' : 'px-4 py-3 space-y-2 border-b border-surface-700'}>
@@ -85,32 +101,53 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                     <span>{isEditMode ? '編集終了' : '編集'}</span>
                 </button>
             </div>
-            {quickTags.length > 0 && (
+            {sortedCategories.length > 0 && (
                 <div className="space-y-1">
                     <div className="text-[11px] text-surface-500">
-                        クイックタグ
+                        カテゴリ
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                        {quickTags.map((tag) => (
-                            <TagBadge
-                                key={tag.id}
-                                name={tag.name}
-                                color={tag.color}
-                                categoryColor={tag.categoryColor}
-                                icon={tag.icon}
-                                description={tag.description}
-                                selected={tagIds.includes(tag.id)}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActiveCategoryId(null);
+                                setIsEditMode(true);
+                            }}
+                            className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                activeCategoryId === null
+                                    ? 'border-primary-600 bg-primary-900/35 text-primary-100'
+                                    : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                            }`}
+                        >
+                            すべて
+                        </button>
+                        {sortedCategories.map((category) => (
+                            <button
+                                key={category.id}
+                                type="button"
                                 onClick={() => {
-                                    void handleQuickTagToggle(tag.id);
+                                    setActiveCategoryId(category.id);
+                                    setIsEditMode(true);
                                 }}
-                            />
+                                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                    activeCategoryId === category.id
+                                        ? 'border-primary-600 bg-primary-900/35 text-primary-100'
+                                        : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                                }`}
+                            >
+                                <span
+                                    className="h-2 w-2 rounded-sm"
+                                    style={{ backgroundColor: resolveCategoryAccentColor(category.color) }}
+                                />
+                                <span>{category.name}</span>
+                            </button>
                         ))}
                     </div>
                 </div>
             )}
             {!isEditMode && (
                 <p className="text-[11px] text-surface-500">
-                    編集ボタンを押すとタグの追加・削除ができます
+                    カテゴリを選んで編集すると、追加・削除するタグ候補を絞れます
                 </p>
             )}
             <TagSelector
@@ -119,6 +156,7 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                 onRemove={handleRemoveTag}
                 editable={isEditMode}
                 allowCreate
+                categoryFilterId={activeCategoryId}
             />
         </div>
     );

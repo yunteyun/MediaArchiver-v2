@@ -24,6 +24,7 @@ interface TagSelectorProps {
     onRemove: (tagId: string) => void | Promise<void>;
     editable?: boolean;
     allowCreate?: boolean;
+    categoryFilterId?: string | null;
 }
 
 export const TagSelector = React.memo(({
@@ -32,6 +33,7 @@ export const TagSelector = React.memo(({
     onRemove,
     editable = true,
     allowCreate = false,
+    categoryFilterId = null,
 }: TagSelectorProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -45,16 +47,22 @@ export const TagSelector = React.memo(({
     const categories = useTagStore((s) => s.categories);
     const createTag = useTagStore((s) => s.createTag);
     const categoryColorById = useMemo(() => new Map(categories.map(c => [c.id, c.color])), [categories]);
+    const categoryNameById = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
     const categorySortOrderById = useMemo(() => new Map(categories.map(c => [c.id, c.sortOrder])), [categories]);
     const normalizedSearch = search.trim();
     const normalizedSearchLower = normalizedSearch.toLowerCase();
+    const activeCategoryName = categoryFilterId ? categoryNameById.get(categoryFilterId) ?? '選択中カテゴリ' : '未分類';
+
+    const categoryFilteredTags = categoryFilterId
+        ? tags.filter((tag) => tag.categoryId === categoryFilterId)
+        : tags;
 
     // Filter tags by search
     const filteredTags = normalizedSearch
-        ? tags.filter(tag => tag.name.toLowerCase().includes(normalizedSearchLower))
-        : tags;
+        ? categoryFilteredTags.filter(tag => tag.name.toLowerCase().includes(normalizedSearchLower))
+        : categoryFilteredTags;
     const hasExactMatch = normalizedSearch.length > 0
-        && tags.some((tag) => tag.name.trim().toLowerCase() === normalizedSearchLower);
+        && categoryFilteredTags.some((tag) => tag.name.trim().toLowerCase() === normalizedSearchLower);
     const canQuickCreate = editable && allowCreate && normalizedSearch.length > 0 && !hasExactMatch;
 
     // ドロップダウンの位置をボタンのDOMRectから計算（Portal用）
@@ -143,7 +151,7 @@ export const TagSelector = React.memo(({
 
         setIsSubmitting(true);
         try {
-            const newTag = await createTag(normalizedSearch, quickCreateColor);
+            const newTag = await createTag(normalizedSearch, quickCreateColor, categoryFilterId ?? undefined);
             try {
                 await onAdd(newTag.id);
                 useToastStore.getState().success(`タグ「${newTag.name}」を作成して追加しました`);
@@ -232,7 +240,7 @@ export const TagSelector = React.memo(({
                                     「{normalizedSearch}」を新規タグとして作成して追加
                                 </div>
                                 <div className="mt-0.5 text-[11px] text-surface-400">
-                                    未分類 / 下の色で作成します
+                                    {activeCategoryName} / 下の色で作成します
                                 </div>
                             </div>
                             </button>
