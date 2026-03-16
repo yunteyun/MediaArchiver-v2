@@ -51,12 +51,14 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
     const loadCategories = useTagStore((s) => s.loadCategories);
     const [isEditMode, setIsEditMode] = React.useState(false);
     const [activeCategoryKey, setActiveCategoryKey] = React.useState<CategorySelection>(null);
+    const [selectorAnchorElement, setSelectorAnchorElement] = React.useState<HTMLElement | null>(null);
 
     const tagIds = fileTagsCache.get(file.id) ?? [];
 
     React.useEffect(() => {
         setIsEditMode(false);
         setActiveCategoryKey(null);
+        setSelectorAnchorElement(null);
     }, [file.id]);
 
     React.useEffect(() => {
@@ -99,9 +101,7 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
     const selectedCategoryFilterId = activeCategoryKey && activeCategoryKey !== ALL_CATEGORIES_KEY
         ? activeCategoryKey
         : null;
-    const isInlineSelectorOpen = isEditMode && (
-        sortedCategories.length === 0 || activeCategoryKey !== null
-    );
+    const isCategorySelectorOpen = isEditMode && activeCategoryKey !== null;
     const selectedTagsSorted = React.useMemo(() => {
         return tagIds
             .map((tagId) => tags.find((tag) => tag.id === tagId))
@@ -125,6 +125,7 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                             const next = !prev;
                             if (!next) {
                                 setActiveCategoryKey(null);
+                                setSelectorAnchorElement(null);
                             }
                             return next;
                         });
@@ -157,12 +158,16 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
             {isEditMode && sortedCategories.length > 0 && (
                 <div className="space-y-2 rounded-lg border border-surface-700 bg-surface-900/45 p-2">
                     <div className="text-[11px] text-surface-500">
-                        カテゴリを選ぶと、その中のタグ候補が下に表示されます
+                        カテゴリを選ぶと、その中のタグ候補がポップアップで開きます
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                         <button
                             type="button"
-                            onClick={() => setActiveCategoryKey(ALL_CATEGORIES_KEY)}
+                            onClick={(event) => {
+                                const nextKey = activeCategoryKey === ALL_CATEGORIES_KEY ? null : ALL_CATEGORIES_KEY;
+                                setActiveCategoryKey(nextKey);
+                                setSelectorAnchorElement(nextKey ? event.currentTarget : null);
+                            }}
                             className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
                                 activeCategoryKey === ALL_CATEGORIES_KEY
                                     ? 'border-primary-600 bg-primary-900/35 text-primary-100'
@@ -171,14 +176,18 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                         >
                             すべて
                         </button>
-                        {sortedCategories.map((category) => (
-                            <button
-                                key={category.id}
-                                type="button"
-                                onClick={() => setActiveCategoryKey(category.id)}
-                                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
-                                    activeCategoryKey === category.id
-                                        ? 'border-primary-600 bg-primary-900/35 text-primary-100'
+                            {sortedCategories.map((category) => (
+                                <button
+                                    key={category.id}
+                                    type="button"
+                                    onClick={(event) => {
+                                        const nextKey = activeCategoryKey === category.id ? null : category.id;
+                                        setActiveCategoryKey(nextKey);
+                                        setSelectorAnchorElement(nextKey ? event.currentTarget : null);
+                                    }}
+                                    className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                        activeCategoryKey === category.id
+                                            ? 'border-primary-600 bg-primary-900/35 text-primary-100'
                                         : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
                                 }`}
                             >
@@ -204,9 +213,17 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                 editable={isEditMode}
                 allowCreate
                 categoryFilterId={selectedCategoryFilterId}
-                displayMode="inline"
-                inlineOpen={isInlineSelectorOpen}
+                displayMode="dropdown"
                 showSelectedTags={false}
+                controlledOpen={sortedCategories.length > 0 ? isCategorySelectorOpen : undefined}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setActiveCategoryKey(null);
+                        setSelectorAnchorElement(null);
+                    }
+                }}
+                anchorElement={selectorAnchorElement}
+                hideTriggerButton={sortedCategories.length > 0}
             />
             {!isEditMode && (
                 <p className="text-[11px] text-surface-500">

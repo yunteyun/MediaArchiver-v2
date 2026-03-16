@@ -28,6 +28,10 @@ interface TagSelectorProps {
     displayMode?: 'dropdown' | 'inline';
     inlineOpen?: boolean;
     showSelectedTags?: boolean;
+    controlledOpen?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    anchorElement?: HTMLElement | null;
+    hideTriggerButton?: boolean;
 }
 
 export const TagSelector = React.memo(({
@@ -40,6 +44,10 @@ export const TagSelector = React.memo(({
     displayMode = 'dropdown',
     inlineOpen = false,
     showSelectedTags = true,
+    controlledOpen,
+    onOpenChange,
+    anchorElement = null,
+    hideTriggerButton = false,
 }: TagSelectorProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -59,6 +67,8 @@ export const TagSelector = React.memo(({
     const normalizedSearchLower = normalizedSearch.toLowerCase();
     const activeCategoryName = categoryFilterId ? categoryNameById.get(categoryFilterId) ?? '選択中カテゴリ' : '未分類';
     const isInlineMode = displayMode === 'inline';
+    const isControlledOpen = typeof controlledOpen === 'boolean';
+    const isSelectorOpen = isControlledOpen ? controlledOpen : isOpen;
 
     const categoryFilteredTags = categoryFilterId
         ? tags.filter((tag) => tag.categoryId === categoryFilterId)
@@ -74,8 +84,9 @@ export const TagSelector = React.memo(({
 
     // ドロップダウンの位置をボタンのDOMRectから計算（Portal用）
     const calcDropdownPosition = useCallback(() => {
-        if (!buttonRef.current) return;
-        const rect = buttonRef.current.getBoundingClientRect();
+        const anchor = anchorElement ?? buttonRef.current;
+        if (!anchor) return;
+        const rect = anchor.getBoundingClientRect();
         const dropdownHeight = 440; // max-h-96(384px) + 検索欄(~56px)
         const dropdownWidth = 384;  // w-96
         const spaceAbove = rect.top;
@@ -99,15 +110,27 @@ export const TagSelector = React.memo(({
                 zIndex: 9999,
             });
         }
-    }, []);
+    }, [anchorElement]);
+
+    const closeSelector = useCallback(() => {
+        if (isControlledOpen) {
+            onOpenChange?.(false);
+            return;
+        }
+        setIsOpen(false);
+    }, [isControlledOpen, onOpenChange]);
 
     const handleToggle = () => {
         if (!editable) return;
         if (isInlineMode) return;
-        if (!isOpen) {
+        if (!isSelectorOpen) {
             calcDropdownPosition();
         }
-        setIsOpen(prev => !prev);
+        if (isControlledOpen) {
+            onOpenChange?.(!isSelectorOpen);
+        } else {
+            setIsOpen(prev => !prev);
+        }
         setSearch('');
     };
 
@@ -119,19 +142,19 @@ export const TagSelector = React.memo(({
                 buttonRef.current && !buttonRef.current.contains(target) &&
                 dropdownRef.current && !dropdownRef.current.contains(target)
             ) {
-                setIsOpen(false);
+                closeSelector();
             }
         };
-        if (!isInlineMode && isOpen) {
+        if (!isInlineMode && isSelectorOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isInlineMode, isOpen]);
+    }, [closeSelector, isInlineMode, isSelectorOpen]);
 
     // スクロールやリサイズで位置を再計算
     useEffect(() => {
         if (isInlineMode) return;
-        if (!isOpen) return;
+        if (!isSelectorOpen) return;
         const update = () => calcDropdownPosition();
         window.addEventListener('scroll', update, true);
         window.addEventListener('resize', update);
@@ -139,14 +162,22 @@ export const TagSelector = React.memo(({
             window.removeEventListener('scroll', update, true);
             window.removeEventListener('resize', update);
         };
-    }, [isInlineMode, isOpen, calcDropdownPosition]);
+    }, [isInlineMode, isSelectorOpen, calcDropdownPosition]);
+
+    useEffect(() => {
+        if (!isInlineMode && isSelectorOpen) {
+            calcDropdownPosition();
+        }
+    }, [calcDropdownPosition, isInlineMode, isSelectorOpen]);
 
     useEffect(() => {
         setSearch('');
         if (!isInlineMode || !inlineOpen) {
-            setIsOpen(false);
+            if (!isControlledOpen) {
+                setIsOpen(false);
+            }
         }
-    }, [categoryFilterId, inlineOpen, isInlineMode]);
+    }, [categoryFilterId, inlineOpen, isControlledOpen, isInlineMode]);
 
     const handleTagClick = async (tag: Tag) => {
         if (isSubmitting) return;
@@ -172,7 +203,7 @@ export const TagSelector = React.memo(({
                 await onAdd(newTag.id);
                 useToastStore.getState().success(`タグ「${newTag.name}」を作成して追加しました`);
                 setSearch('');
-                setIsOpen(false);
+                closeSelector();
             } catch (error) {
                 console.error('Failed to add newly created tag to file:', error);
                 useToastStore.getState().error(`タグ「${newTag.name}」は作成しましたが、このファイルへの追加に失敗しました`);
@@ -235,7 +266,7 @@ export const TagSelector = React.memo(({
                             }
                         }}
                         className="w-full pl-7 pr-2 py-1.5 text-sm bg-surface-900 border border-surface-600 rounded focus:outline-none focus:border-primary-500"
-                        autoFocus={isInlineMode ? inlineOpen : isOpen}
+                        autoFocus={isInlineMode ? inlineOpen : isSelectorOpen}
                     />
                 </div>
             </div>
@@ -326,7 +357,7 @@ export const TagSelector = React.memo(({
         </div>
     );
 
-    const dropdown = !isInlineMode && isOpen && editable
+    const dropdown = !isInlineMode && isSelectorOpen && editable
         ? createPortal(selectorPanel, document.body)
         : null;
 
@@ -351,7 +382,7 @@ export const TagSelector = React.memo(({
             )}
 
             {/* Add Tag Button */}
-            {editable && !isInlineMode && (
+            {editable && !isInlineMode && !hideTriggerButton && (
                 <button
                     ref={buttonRef}
                     onClick={handleToggle}
