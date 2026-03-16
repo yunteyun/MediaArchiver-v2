@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useFileStore } from '../../stores/useFileStore';
 import { useTagStore, type Tag } from '../../stores/useTagStore';
 import { useToastStore } from '../../stores/useToastStore';
@@ -50,14 +50,12 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
     const loadTags = useTagStore((s) => s.loadTags);
     const loadCategories = useTagStore((s) => s.loadCategories);
     const [isEditMode, setIsEditMode] = React.useState(false);
-    const [isCategoryPanelOpen, setIsCategoryPanelOpen] = React.useState(false);
     const [activeCategoryKey, setActiveCategoryKey] = React.useState<CategorySelection>(null);
 
     const tagIds = fileTagsCache.get(file.id) ?? [];
 
     React.useEffect(() => {
         setIsEditMode(false);
-        setIsCategoryPanelOpen(false);
         setActiveCategoryKey(null);
     }, [file.id]);
 
@@ -102,7 +100,7 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
         ? activeCategoryKey
         : null;
     const isInlineSelectorOpen = isEditMode && (
-        sortedCategories.length === 0 || (isCategoryPanelOpen && activeCategoryKey !== null)
+        sortedCategories.length === 0 || activeCategoryKey !== null
     );
     const selectedTagsSorted = React.useMemo(() => {
         return tagIds
@@ -126,7 +124,6 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                         setIsEditMode((prev) => {
                             const next = !prev;
                             if (!next) {
-                                setIsCategoryPanelOpen(false);
                                 setActiveCategoryKey(null);
                             }
                             return next;
@@ -158,65 +155,44 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                 ))}
             </div>
             {isEditMode && sortedCategories.length > 0 && (
-                <div className="space-y-2">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setIsCategoryPanelOpen((prev) => {
-                                const next = !prev;
-                                if (!next) {
-                                    setActiveCategoryKey(null);
-                                }
-                                return next;
-                            });
-                        }}
-                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-700 hover:text-surface-100"
-                    >
-                        {isCategoryPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                        <span>{isCategoryPanelOpen ? 'カテゴリを閉じる' : 'カテゴリから追加'}</span>
-                    </button>
-
-                    {isCategoryPanelOpen && (
-                        <div className="space-y-2 rounded-lg border border-surface-700 bg-surface-900/45 p-2">
-                            <div className="text-[11px] text-surface-500">
-                                カテゴリを選ぶと、その中のタグ候補が下に表示されます
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveCategoryKey(ALL_CATEGORIES_KEY)}
-                                    className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
-                                        activeCategoryKey === ALL_CATEGORIES_KEY
-                                            ? 'border-primary-600 bg-primary-900/35 text-primary-100'
-                                            : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
-                                    }`}
-                                >
-                                    すべて
-                                </button>
-                                {sortedCategories.map((category) => (
-                                    <button
-                                        key={category.id}
-                                        type="button"
-                                        onClick={() => setActiveCategoryKey(category.id)}
-                                        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
-                                            activeCategoryKey === category.id
-                                                ? 'border-primary-600 bg-primary-900/35 text-primary-100'
-                                                : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
-                                        }`}
-                                    >
-                                        <span
-                                            className="h-2 w-2 rounded-sm"
-                                            style={{ backgroundColor: resolveCategoryAccentColor(category.color) }}
-                                        />
-                                        <span>{category.name}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            {activeCategoryKey === null && (
-                                <div className="text-[11px] text-surface-500">
-                                    まだカテゴリは選ばれていません
-                                </div>
-                            )}
+                <div className="space-y-2 rounded-lg border border-surface-700 bg-surface-900/45 p-2">
+                    <div className="text-[11px] text-surface-500">
+                        カテゴリを選ぶと、その中のタグ候補が下に表示されます
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                        <button
+                            type="button"
+                            onClick={() => setActiveCategoryKey(ALL_CATEGORIES_KEY)}
+                            className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                activeCategoryKey === ALL_CATEGORIES_KEY
+                                    ? 'border-primary-600 bg-primary-900/35 text-primary-100'
+                                    : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                            }`}
+                        >
+                            すべて
+                        </button>
+                        {sortedCategories.map((category) => (
+                            <button
+                                key={category.id}
+                                type="button"
+                                onClick={() => setActiveCategoryKey(category.id)}
+                                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                    activeCategoryKey === category.id
+                                        ? 'border-primary-600 bg-primary-900/35 text-primary-100'
+                                        : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                                }`}
+                            >
+                                <span
+                                    className="h-2 w-2 rounded-sm"
+                                    style={{ backgroundColor: resolveCategoryAccentColor(category.color) }}
+                                />
+                                <span>{category.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {activeCategoryKey === null && (
+                        <div className="text-[11px] text-surface-500">
+                            まだカテゴリは選ばれていません
                         </div>
                     )}
                 </div>
