@@ -3,7 +3,7 @@
  * Portal化によりoverflow:autoな親コンテナでもドロップダウンが隠れない
  */
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Check, Search } from 'lucide-react';
 import { useTagStore, Tag } from '../../stores/useTagStore';
@@ -69,6 +69,7 @@ export const TagSelector = React.memo(({
     const isInlineMode = displayMode === 'inline';
     const isControlledOpen = typeof controlledOpen === 'boolean';
     const isSelectorOpen = isControlledOpen ? controlledOpen : isOpen;
+    const hasDropdownPosition = isInlineMode || Object.keys(dropdownStyle).length > 0;
 
     const categoryFilteredTags = categoryFilterId
         ? tags.filter((tag) => tag.categoryId === categoryFilterId)
@@ -142,6 +143,7 @@ export const TagSelector = React.memo(({
     }, [anchorElement]);
 
     const closeSelector = useCallback(() => {
+        setDropdownStyle({});
         if (isControlledOpen) {
             onOpenChange?.(false);
             return;
@@ -206,7 +208,7 @@ export const TagSelector = React.memo(({
         };
     }, [isInlineMode, isSelectorOpen, calcDropdownPosition]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!isInlineMode && isSelectorOpen) {
             calcDropdownPosition();
         }
@@ -291,7 +293,11 @@ export const TagSelector = React.memo(({
             className={`bg-surface-800 border border-surface-700 rounded-lg overflow-hidden ${
                 isInlineMode ? '' : 'shadow-xl'
             }`}
-            style={isInlineMode ? undefined : dropdownStyle}
+            style={isInlineMode ? undefined : {
+                ...dropdownStyle,
+                visibility: hasDropdownPosition ? 'visible' : 'hidden',
+            }}
+            data-ignore-global-escape="true"
         >
             <div className="p-2 border-b border-surface-700">
                 <div className="relative">

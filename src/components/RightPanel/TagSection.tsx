@@ -156,7 +156,10 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                 ))}
             </div>
             {isEditMode && sortedCategories.length > 0 && (
-                <div className="space-y-2 rounded-lg border border-surface-700 bg-surface-900/45 p-2">
+                <div
+                    className="space-y-2 rounded-lg border border-surface-700 bg-surface-900/45 p-2"
+                    data-ignore-global-escape="true"
+                >
                     <div className="text-[11px] text-surface-500">
                         カテゴリを選ぶと、その中のタグ候補がポップアップで開きます
                     </div>

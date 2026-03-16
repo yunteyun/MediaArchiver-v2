@@ -22,6 +22,7 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         const target = e.target as HTMLElement;
         const isInputElement = ['INPUT', 'TEXTAREA'].includes(target.tagName);
+        const ignoreGlobalEscape = target.closest('[data-ignore-global-escape="true"]') !== null;
 
         // 入力フォームでは Escape と Ctrl+系以外は無視
         if (isInputElement && e.key !== 'Escape' && !e.ctrlKey && !e.metaKey) {
@@ -52,9 +53,16 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
         // 入力フォームでは以下のショートカットを無視
         if (isInputElement) {
             if (e.key === 'Escape') {
+                if (ignoreGlobalEscape) {
+                    return;
+                }
                 handlers.onEscape?.();
                 (target as HTMLInputElement).blur();
             }
+            return;
+        }
+
+        if (e.key === 'Escape' && ignoreGlobalEscape) {
             return;
         }
 
