@@ -239,6 +239,12 @@ declare global {
 
             // File Operations
             updateFileNotes: (fileId: string, notes: string) => Promise<{ success: boolean }>;
+            updateFilePlaybackPosition: (fileId: string, playbackPositionSeconds: number | null) => Promise<{
+                success: boolean;
+                error?: string;
+                playbackPositionSeconds: number | null;
+                playbackPositionUpdatedAt: number | null;
+            }>;
             renameFile: (fileId: string, newName: string) => Promise<{ success: boolean; newName?: string; newPath?: string; error?: string }>;
 
             // Dialog

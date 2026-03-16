@@ -33,6 +33,7 @@ interface FileState {
     incrementAccessCount: (fileId: string, lastAccessedAt: number) => void;
     // Phase 18-A: 外部アプリ起動トラッキング
     updateFileExternalOpenCount: (fileId: string, count: number, timestamp: number) => void;
+    updatePlaybackPosition: (fileId: string, seconds: number | null, updatedAt: number | null) => void;
 }
 
 const FILE_TAG_CACHE_RELOAD_DEBOUNCE_MS = 250;
@@ -193,6 +194,29 @@ export const useFileStore = create<FileState>((set, get) => ({
             const newFileMap = new Map(state.fileMap);
             const updated = newFileMap.get(fileId);
             if (updated) newFileMap.set(fileId, { ...updated, externalOpenCount: count, lastExternalOpenedAt: timestamp });
+            return { files: updatedFiles, fileMap: newFileMap };
+        }),
+
+    updatePlaybackPosition: (fileId: string, seconds: number | null, updatedAt: number | null) =>
+        set((state) => {
+            const updatedFiles = state.files.map(file =>
+                file.id === fileId
+                    ? {
+                        ...file,
+                        playbackPositionSeconds: seconds,
+                        playbackPositionUpdatedAt: updatedAt,
+                    }
+                    : file
+            );
+            const newFileMap = new Map(state.fileMap);
+            const updated = newFileMap.get(fileId);
+            if (updated) {
+                newFileMap.set(fileId, {
+                    ...updated,
+                    playbackPositionSeconds: seconds,
+                    playbackPositionUpdatedAt: updatedAt,
+                });
+            }
             return { files: updatedFiles, fileMap: newFileMap };
         }),
 }));

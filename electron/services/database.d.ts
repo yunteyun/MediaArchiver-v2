@@ -32,6 +32,8 @@ export interface MediaFile {
     lastAccessedAt?: number | null;
     externalOpenCount?: number;
     lastExternalOpenedAt?: number | null;
+    playbackPositionSeconds?: number | null;
+    playbackPositionUpdatedAt?: number | null;
 }
 export interface ScannerFileRecord {
     id: string;
@@ -82,6 +84,10 @@ export declare function updateFileHash(id: string, hash: string): void;
 export declare function updateFileMetadata(id: string, metadataJson: string): void;
 export declare function updateFileAllPaths(id: string, pathVal: string, thumbPath: string, previewFrames: string): void;
 export declare function updateFileNotes(id: string, notes: string): void;
+export declare function updateFilePlaybackPosition(id: string, playbackPositionSeconds: number | null): {
+    playbackPositionSeconds: number | null;
+    playbackPositionUpdatedAt: number | null;
+};
 export declare function findFileById(id: string): MediaFile | undefined;
 export declare function updateFileThumbnail(id: string, thumbnailPath: string): void;
 export declare function updateFilePreviewFrames(id: string, previewFrames: string): void;

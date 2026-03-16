@@ -167,6 +167,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === File Operations ===
     updateFileNotes: (fileId: string, notes: string) =>
         ipcRenderer.invoke('file:updateNotes', { fileId, notes }),
+    updateFilePlaybackPosition: (fileId: string, playbackPositionSeconds: number | null) =>
+        ipcRenderer.invoke('file:updatePlaybackPosition', { fileId, playbackPositionSeconds }),
     renameFile: (fileId: string, newName: string) =>
         ipcRenderer.invoke('file:rename', { fileId, newName }),
 

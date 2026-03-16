@@ -8,6 +8,7 @@ import { EditMetaSection } from './EditMetaSection';
 import { MemoSection } from './MemoSection';
 import { BasicInfoSection } from './BasicInfoSection';
 import { ArchivePreviewSection } from './ArchivePreviewSection';
+import { PlaybackResumeSection } from './PlaybackResumeSection';
 import type { MediaFolder } from '../../types/file';
 import { completeUiPerfTrace } from '../../utils/perfDebug';
 
@@ -61,6 +62,7 @@ export const RightPanel: React.FC = () => {
                     <div className="flex-1 overflow-y-auto">
                         <PreviewSection file={file} />
                         <FileHeaderSection file={file} />
+                        <PlaybackResumeSection file={file} />
                         <EditMetaSection file={file} />
                         <MemoSection file={file} />
                         <ArchivePreviewSection file={file} />

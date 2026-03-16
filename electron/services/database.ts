@@ -54,6 +54,8 @@ export interface MediaFile {
     // Phase 18-A: 外部アプリ起動トラッキング
     externalOpenCount?: number;
     lastExternalOpenedAt?: number | null;
+    playbackPositionSeconds?: number | null;
+    playbackPositionUpdatedAt?: number | null;
 }
 
 interface FileRow {
@@ -76,6 +78,8 @@ interface FileRow {
     last_accessed_at?: number | null;
     external_open_count?: number;
     last_external_opened_at?: number | null;
+    playback_position_seconds?: number | null;
+    playback_position_updated_at?: number | null;
 }
 
 export interface ScannerFileRecord {
@@ -191,6 +195,8 @@ function mapRow(f: FileRow): MediaFile {
         // Phase 18-A: 外部アプリ起動トラッキング
         externalOpenCount: f.external_open_count || 0,
         lastExternalOpenedAt: f.last_external_opened_at || null,
+        playbackPositionSeconds: typeof f.playback_position_seconds === 'number' ? f.playback_position_seconds : null,
+        playbackPositionUpdatedAt: typeof f.playback_position_updated_at === 'number' ? f.playback_position_updated_at : null,
         tags: [],
     };
 }
@@ -524,6 +530,40 @@ export function updateFileAllPaths(id: string, pathVal: string, thumbPath: strin
 export function updateFileNotes(id: string, notes: string) {
     const db = getDb();
     db.prepare('UPDATE files SET notes = ? WHERE id = ?').run(notes, id);
+}
+
+export function updateFilePlaybackPosition(id: string, playbackPositionSeconds: number | null): {
+    playbackPositionSeconds: number | null;
+    playbackPositionUpdatedAt: number | null;
+} {
+    const db = getDb();
+
+    if (typeof playbackPositionSeconds === 'number' && Number.isFinite(playbackPositionSeconds)) {
+        const normalizedSeconds = Math.max(0, Math.round(playbackPositionSeconds * 10) / 10);
+        const updatedAt = Date.now();
+        db.prepare(`
+            UPDATE files
+            SET playback_position_seconds = ?,
+                playback_position_updated_at = ?
+            WHERE id = ?
+        `).run(normalizedSeconds, updatedAt, id);
+        return {
+            playbackPositionSeconds: normalizedSeconds,
+            playbackPositionUpdatedAt: updatedAt,
+        };
+    }
+
+    db.prepare(`
+        UPDATE files
+        SET playback_position_seconds = NULL,
+            playback_position_updated_at = NULL
+        WHERE id = ?
+    `).run(id);
+
+    return {
+        playbackPositionSeconds: null,
+        playbackPositionUpdatedAt: null,
+    };
 }
 
 export function findFileById(id: string): MediaFile | undefined {

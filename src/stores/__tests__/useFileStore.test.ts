@@ -24,6 +24,8 @@ function createFile(overrides: Partial<MediaFile> = {}): MediaFile {
         lastAccessedAt: overrides.lastAccessedAt ?? null,
         externalOpenCount: overrides.externalOpenCount ?? 0,
         lastExternalOpenedAt: overrides.lastExternalOpenedAt ?? null,
+        playbackPositionSeconds: overrides.playbackPositionSeconds ?? null,
+        playbackPositionUpdatedAt: overrides.playbackPositionUpdatedAt ?? null,
     };
 }
 
@@ -123,5 +125,20 @@ describe('useFileStore', () => {
         expect(state.fileMap.has('file-1')).toBe(false);
         expect(Array.from(state.selectedIds)).toEqual(['file-2']);
         expect(state.fileTagsCache.has('file-1')).toBe(false);
+    });
+
+    it('updates playback position in both files and fileMap', () => {
+        const original = createFile({ id: 'file-1', type: 'video' });
+        useFileStore.setState({
+            files: [original],
+            fileMap: new Map([[original.id, original]]),
+        });
+
+        useFileStore.getState().updatePlaybackPosition('file-1', 123.4, 456);
+
+        expect(useFileStore.getState().files[0]?.playbackPositionSeconds).toBe(123.4);
+        expect(useFileStore.getState().files[0]?.playbackPositionUpdatedAt).toBe(456);
+        expect(useFileStore.getState().fileMap.get('file-1')?.playbackPositionSeconds).toBe(123.4);
+        expect(useFileStore.getState().fileMap.get('file-1')?.playbackPositionUpdatedAt).toBe(456);
     });
 });

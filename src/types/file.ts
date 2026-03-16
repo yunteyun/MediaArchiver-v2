@@ -21,6 +21,8 @@ export interface MediaFile {
     // Phase 18-A: 外部アプリ起動トラッキング
     externalOpenCount: number;
     lastExternalOpenedAt: number | null;
+    playbackPositionSeconds?: number | null;
+    playbackPositionUpdatedAt?: number | null;
 }
 
 export interface MediaFolder {

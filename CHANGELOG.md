@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- (なし)
+- 動画を中央ビューアで見た位置を自動で覚え、右パネルから続き再生や保存位置クリアをできるようにした。
 
 ### Changed
 - (なし)

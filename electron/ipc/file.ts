@@ -1,5 +1,5 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog, clipboard, nativeImage } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles, getFilesByFolderIds } from '../services/database';
+import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles, getFilesByFolderIds, updateFilePlaybackPosition } from '../services/database';
 import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
@@ -765,6 +765,37 @@ export function registerFileHandlers() {
             }
             return { success: false, error: err?.message || 'ファイル名の変更に失敗しました' };
         }
+    });
+
+    ipcMain.handle('file:updatePlaybackPosition', async (_event, {
+        fileId,
+        playbackPositionSeconds,
+    }: {
+        fileId: string;
+        playbackPositionSeconds: number | null;
+    }) => {
+        const file = findFileById(fileId);
+        if (!file) {
+            return {
+                success: false,
+                error: 'ファイルが見つかりません',
+                playbackPositionSeconds: null,
+                playbackPositionUpdatedAt: null,
+            };
+        }
+
+        const result = updateFilePlaybackPosition(
+            fileId,
+            typeof playbackPositionSeconds === 'number' && Number.isFinite(playbackPositionSeconds)
+                ? playbackPositionSeconds
+                : null,
+        );
+
+        return {
+            success: true,
+            playbackPositionSeconds: result.playbackPositionSeconds,
+            playbackPositionUpdatedAt: result.playbackPositionUpdatedAt,
+        };
     });
 
     // Phase 22-C: ドライブ配下の全ファイル取得

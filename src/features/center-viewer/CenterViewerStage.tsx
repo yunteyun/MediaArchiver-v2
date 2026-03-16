@@ -4,6 +4,7 @@ import type { MediaFile } from '../../types/file';
 import type { LightboxOpenMode } from '../../stores/useUIStore';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { isAudioArchive } from '../../utils/fileHelpers';
+import { useFileStore } from '../../stores/useFileStore';
 
 const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
 const ARCHIVE_PREVIEW_LIMIT = 6;
@@ -30,6 +31,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     audioVolume,
     startTimeSeconds,
 }) => {
+    const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const [hasError, setHasError] = useState(false);
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
     const [archiveLoading, setArchiveLoading] = useState(false);
@@ -43,6 +45,9 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const [archiveAudioAutoPlay, setArchiveAudioAutoPlay] = useState(true);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const lastPersistedPlaybackPositionRef = useRef<number | null>(typeof file.playbackPositionSeconds === 'number'
+        ? file.playbackPositionSeconds
+        : null);
 
     const kind = useMemo<'image' | 'video' | 'audio' | 'archive' | 'unsupported'>(() => {
         if (file.type === 'video') return 'video';
@@ -117,6 +122,66 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     }, [file.id, videoVolume]);
 
     useEffect(() => {
+        lastPersistedPlaybackPositionRef.current = typeof file.playbackPositionSeconds === 'number'
+            ? file.playbackPositionSeconds
+            : null;
+    }, [file.id, file.playbackPositionSeconds]);
+
+    const normalizePlaybackPosition = React.useCallback((currentTime: number, duration?: number | null): number | null => {
+        if (!Number.isFinite(currentTime) || currentTime < 5) {
+            return null;
+        }
+
+        if (typeof duration === 'number' && Number.isFinite(duration) && duration > 0) {
+            if (duration - currentTime <= 15) {
+                return null;
+            }
+            return Math.max(0, Math.min(duration, currentTime));
+        }
+
+        return Math.max(0, currentTime);
+    }, []);
+
+    const persistPlaybackPosition = React.useCallback(async (
+        currentTime: number,
+        duration?: number | null,
+        force: boolean = false,
+    ) => {
+        if (file.type !== 'video') return;
+
+        const normalizedPosition = normalizePlaybackPosition(currentTime, duration);
+        const lastPosition = lastPersistedPlaybackPositionRef.current;
+
+        if (!force) {
+            if (normalizedPosition === null && lastPosition === null) {
+                return;
+            }
+
+            if (
+                normalizedPosition !== null
+                && lastPosition !== null
+                && Math.abs(normalizedPosition - lastPosition) < 10
+            ) {
+                return;
+            }
+        }
+
+        try {
+            const result = await window.electronAPI.updateFilePlaybackPosition(file.id, normalizedPosition);
+            if (!result.success) return;
+
+            lastPersistedPlaybackPositionRef.current = result.playbackPositionSeconds ?? null;
+            updatePlaybackPosition(
+                file.id,
+                result.playbackPositionSeconds ?? null,
+                result.playbackPositionUpdatedAt ?? null,
+            );
+        } catch (error) {
+            console.error('Failed to persist playback position in center viewer:', error);
+        }
+    }, [file.id, file.type, normalizePlaybackPosition, updatePlaybackPosition]);
+
+    useEffect(() => {
         const video = videoRef.current;
         if (!video || file.type !== 'video' || startTimeSeconds == null || !Number.isFinite(startTimeSeconds)) {
             return;
@@ -139,6 +204,14 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
             video.removeEventListener('loadedmetadata', seekToStartTime);
         };
     }, [file.id, file.type, startTimeSeconds]);
+
+    useEffect(() => {
+        return () => {
+            const video = videoRef.current;
+            if (!video || file.type !== 'video') return;
+            void persistPlaybackPosition(video.currentTime, video.duration, true);
+        };
+    }, [file.id, file.type, persistPlaybackPosition]);
 
     useEffect(() => {
         if (audioRef.current) {
@@ -188,6 +261,15 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 className="pointer-events-auto max-h-full max-w-full"
                 controls
                 autoPlay
+                onTimeUpdate={(event) => {
+                    void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration);
+                }}
+                onPause={(event) => {
+                    void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration, true);
+                }}
+                onEnded={(event) => {
+                    void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration, true);
+                }}
                 onError={() => setHasError(true)}
             />
         );

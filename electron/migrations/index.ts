@@ -25,6 +25,7 @@ import { addFolderWatchNewFiles } from './012_folder_watch_new_files';
 import { addFolderLastScanStatus } from './013_folder_last_scan_status';
 import { removeLegacyRatingTags } from './014_remove_legacy_rating_tags';
 import { addFolderBadgeColor } from './015_add_folder_badge_color';
+import { addPlaybackPosition } from './016_add_playback_position';
 // 将来のマイグレーション:
 // import { xxx } from './010_xxx';
 
@@ -51,6 +52,7 @@ const MIGRATIONS: Migration[] = [
     addFolderLastScanStatus, // Folder scan status
     removeLegacyRatingTags, // Remove legacy preset star rating tags
     addFolderBadgeColor, // Folder badge color
+    addPlaybackPosition, // Video playback resume position
 ];
 
 /**
