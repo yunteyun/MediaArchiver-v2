@@ -58,6 +58,16 @@ export interface MediaFile {
     playbackPositionUpdatedAt?: number | null;
 }
 
+export interface PlaybackBookmark {
+    id: string;
+    file_id: string;
+    time_seconds: number;
+    created_at: number;
+    fileId?: string;
+    timeSeconds?: number;
+    createdAt?: number;
+}
+
 interface FileRow {
     id: string;
     name: string;
@@ -427,6 +437,8 @@ export function deleteFile(id: string) {
         }
     }
 
+    db.prepare('DELETE FROM playback_bookmarks WHERE file_id = ?').run(id);
+
     // DBレコード削除
     db.prepare('DELETE FROM files WHERE id = ?').run(id);
 
@@ -564,6 +576,65 @@ export function updateFilePlaybackPosition(id: string, playbackPositionSeconds: 
         playbackPositionSeconds: null,
         playbackPositionUpdatedAt: null,
     };
+}
+
+function mapPlaybackBookmarkRow(row: PlaybackBookmark): PlaybackBookmark {
+    return {
+        id: row.id,
+        file_id: row.file_id,
+        time_seconds: row.time_seconds,
+        created_at: row.created_at,
+        fileId: row.file_id,
+        timeSeconds: row.time_seconds,
+        createdAt: row.created_at,
+    };
+}
+
+export function getPlaybackBookmarks(fileId: string): PlaybackBookmark[] {
+    const db = getDb();
+    const rows = db.prepare(`
+        SELECT id, file_id, time_seconds, created_at
+        FROM playback_bookmarks
+        WHERE file_id = ?
+        ORDER BY time_seconds ASC, created_at ASC
+    `).all(fileId) as PlaybackBookmark[];
+
+    return rows.map((row) => mapPlaybackBookmarkRow(row));
+}
+
+export function createPlaybackBookmark(fileId: string, timeSeconds: number): PlaybackBookmark {
+    const db = getDb();
+    const normalizedSeconds = Math.max(0, Math.round(timeSeconds * 10) / 10);
+    const existing = db.prepare(`
+        SELECT id, file_id, time_seconds, created_at
+        FROM playback_bookmarks
+        WHERE file_id = ? AND time_seconds = ?
+        LIMIT 1
+    `).get(fileId, normalizedSeconds) as PlaybackBookmark | undefined;
+
+    if (existing) {
+        return mapPlaybackBookmarkRow(existing);
+    }
+
+    const bookmark: PlaybackBookmark = {
+        id: uuidv4(),
+        file_id: fileId,
+        time_seconds: normalizedSeconds,
+        created_at: Date.now(),
+    };
+
+    db.prepare(`
+        INSERT INTO playback_bookmarks (id, file_id, time_seconds, created_at)
+        VALUES (?, ?, ?, ?)
+    `).run(bookmark.id, bookmark.file_id, bookmark.time_seconds, bookmark.created_at);
+
+    return mapPlaybackBookmarkRow(bookmark);
+}
+
+export function deletePlaybackBookmark(bookmarkId: string): boolean {
+    const db = getDb();
+    const result = db.prepare('DELETE FROM playback_bookmarks WHERE id = ?').run(bookmarkId);
+    return result.changes > 0;
 }
 
 export function findFileById(id: string): MediaFile | undefined {

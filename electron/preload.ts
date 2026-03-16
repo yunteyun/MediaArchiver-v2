@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
-import type { MediaFile } from '../src/types/file';
+import type { MediaFile, PlaybackBookmark } from '../src/types/file';
 import type { ExternalApp, ScanExclusionRules } from '../src/stores/useSettingsStore';
 import type { ScanProgress } from '../src/stores/useUIStore';
 import type { SmartFolderConditionV1 } from '../src/stores/useSmartFolderStore';
@@ -169,6 +169,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('file:updateNotes', { fileId, notes }),
     updateFilePlaybackPosition: (fileId: string, playbackPositionSeconds: number | null) =>
         ipcRenderer.invoke('file:updatePlaybackPosition', { fileId, playbackPositionSeconds }),
+    getPlaybackBookmarks: (fileId: string) =>
+        ipcRenderer.invoke('file:getPlaybackBookmarks', { fileId }) as Promise<PlaybackBookmark[]>,
+    createPlaybackBookmark: (fileId: string, timeSeconds: number) =>
+        ipcRenderer.invoke('file:createPlaybackBookmark', { fileId, timeSeconds }) as Promise<{
+            success: boolean;
+            error?: string;
+            bookmark: PlaybackBookmark | null;
+        }>,
+    deletePlaybackBookmark: (bookmarkId: string) =>
+        ipcRenderer.invoke('file:deletePlaybackBookmark', { bookmarkId }) as Promise<{
+            success: boolean;
+            error?: string;
+        }>,
     renameFile: (fileId: string, newName: string) =>
         ipcRenderer.invoke('file:rename', { fileId, newName }),
 

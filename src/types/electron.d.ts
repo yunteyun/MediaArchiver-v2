@@ -1,4 +1,4 @@
-import type { MediaFile, MediaFolder } from './file';
+import type { MediaFile, MediaFolder, PlaybackBookmark } from './file';
 import type {
     ExternalApp as SettingsExternalApp,
     ScanExclusionRules as SettingsScanExclusionRules,
@@ -244,6 +244,16 @@ declare global {
                 error?: string;
                 playbackPositionSeconds: number | null;
                 playbackPositionUpdatedAt: number | null;
+            }>;
+            getPlaybackBookmarks: (fileId: string) => Promise<PlaybackBookmark[]>;
+            createPlaybackBookmark: (fileId: string, timeSeconds: number) => Promise<{
+                success: boolean;
+                error?: string;
+                bookmark: PlaybackBookmark | null;
+            }>;
+            deletePlaybackBookmark: (bookmarkId: string) => Promise<{
+                success: boolean;
+                error?: string;
             }>;
             renameFile: (fileId: string, newName: string) => Promise<{ success: boolean; newName?: string; newPath?: string; error?: string }>;
 

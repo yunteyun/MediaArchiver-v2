@@ -25,6 +25,13 @@ export interface MediaFile {
     playbackPositionUpdatedAt?: number | null;
 }
 
+export interface PlaybackBookmark {
+    id: string;
+    fileId: string;
+    timeSeconds: number;
+    createdAt: number;
+}
+
 export interface MediaFolder {
     id: string;
     name: string;

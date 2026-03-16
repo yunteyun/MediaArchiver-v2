@@ -3,27 +3,10 @@ import type { MediaFile } from '../../types/file';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { SectionTitle } from './SectionTitle';
+import { formatPlaybackTime, formatPlaybackUpdatedAt } from '../../utils/playbackTime';
 
 interface PlaybackResumeSectionProps {
     file: MediaFile;
-}
-
-function formatPlaybackTime(seconds: number): string {
-    const totalSeconds = Math.max(0, Math.floor(seconds));
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const remain = totalSeconds % 60;
-
-    if (hours > 0) {
-        return `${hours}:${String(minutes).padStart(2, '0')}:${String(remain).padStart(2, '0')}`;
-    }
-
-    return `${minutes}:${String(remain).padStart(2, '0')}`;
-}
-
-function formatUpdatedAt(timestamp: number | null | undefined): string | null {
-    if (!timestamp || !Number.isFinite(timestamp)) return null;
-    return new Date(timestamp).toLocaleString('ja-JP');
 }
 
 export const PlaybackResumeSection = React.memo<PlaybackResumeSectionProps>(({ file }) => {
@@ -43,7 +26,7 @@ export const PlaybackResumeSection = React.memo<PlaybackResumeSectionProps>(({ f
         ? file.playbackPositionSeconds
         : null;
     const hasSavedPosition = savedPosition !== null && savedPosition > 0;
-    const updatedAt = formatUpdatedAt(file.playbackPositionUpdatedAt);
+    const updatedAt = formatPlaybackUpdatedAt(file.playbackPositionUpdatedAt);
 
     const handleResume = () => {
         if (!hasSavedPosition || savedPosition === null) return;

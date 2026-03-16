@@ -26,6 +26,7 @@ import { addFolderLastScanStatus } from './013_folder_last_scan_status';
 import { removeLegacyRatingTags } from './014_remove_legacy_rating_tags';
 import { addFolderBadgeColor } from './015_add_folder_badge_color';
 import { addPlaybackPosition } from './016_add_playback_position';
+import { addPlaybackBookmarks } from './017_add_playback_bookmarks';
 // 将来のマイグレーション:
 // import { xxx } from './010_xxx';
 
@@ -53,6 +54,7 @@ const MIGRATIONS: Migration[] = [
     removeLegacyRatingTags, // Remove legacy preset star rating tags
     addFolderBadgeColor, // Folder badge color
     addPlaybackPosition, // Video playback resume position
+    addPlaybackBookmarks, // Video scene bookmarks
 ];
 
 /**

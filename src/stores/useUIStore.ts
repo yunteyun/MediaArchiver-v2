@@ -60,6 +60,7 @@ interface UIState {
     lightboxFile: MediaFile | null;
     lightboxOpenMode: LightboxOpenMode;
     lightboxStartTime: number | null;
+    lightboxCurrentTime: number | null;
     searchQuery: string;
     searchTarget: SearchTarget;
     searchExtraConditions: SearchCondition[];
@@ -96,6 +97,7 @@ interface UIState {
     setViewMode: (mode: 'grid' | 'list') => void;
     openLightbox: (file: MediaFile, mode?: LightboxOpenMode, startTime?: number | null) => void;
     closeLightbox: () => void;
+    setLightboxCurrentTime: (timeSeconds: number | null) => void;
     setSearchQuery: (query: string) => void;
     setSearchTarget: (target: SearchTarget) => void;
     setSearchConditions: (conditions: SearchCondition[]) => void;
@@ -147,6 +149,7 @@ export const useUIStore = create<UIState>((set) => ({
     lightboxFile: null,
     lightboxOpenMode: 'default',
     lightboxStartTime: null,
+    lightboxCurrentTime: null,
     searchQuery: '',
     searchTarget: 'fileName',
     searchExtraConditions: [],
@@ -184,9 +187,10 @@ export const useUIStore = create<UIState>((set) => ({
     setViewMode: (viewMode) => set({ viewMode }),
     openLightbox: (file, mode = 'default', startTime = null) => {
         beginUiPerfTrace('center-viewer-open', { fileId: file.id, fileType: file.type, mode });
-        set({ lightboxFile: file, lightboxOpenMode: mode, lightboxStartTime: startTime });
+        set({ lightboxFile: file, lightboxOpenMode: mode, lightboxStartTime: startTime, lightboxCurrentTime: null });
     },
-    closeLightbox: () => set({ lightboxFile: null, lightboxOpenMode: 'default', lightboxStartTime: null }),
+    closeLightbox: () => set({ lightboxFile: null, lightboxOpenMode: 'default', lightboxStartTime: null, lightboxCurrentTime: null }),
+    setLightboxCurrentTime: (lightboxCurrentTime) => set({ lightboxCurrentTime }),
     setSearchQuery: (query) => set({ searchQuery: query }),
     setSearchTarget: (target) => set({ searchTarget: target }),
     setSearchConditions: (conditions) => set(() => {
@@ -233,6 +237,7 @@ export const useUIStore = create<UIState>((set) => ({
         lightboxFile: null,
         lightboxOpenMode: 'default',
         lightboxStartTime: null,
+        lightboxCurrentTime: null,
         searchQuery: '',
         searchTarget: DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget,
         searchExtraConditions: [],

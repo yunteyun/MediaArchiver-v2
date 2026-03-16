@@ -9,6 +9,7 @@ function resetUiStore() {
         lightboxFile: null,
         lightboxOpenMode: 'default',
         lightboxStartTime: null,
+        lightboxCurrentTime: null,
         searchQuery: '',
         searchTarget: 'fileName',
         searchExtraConditions: [],
@@ -218,6 +219,7 @@ describe('useUIStore', () => {
             lightboxFile: { id: 'f1' } as never,
             lightboxOpenMode: 'archive-image',
             lightboxStartTime: 10,
+            lightboxCurrentTime: 25,
             searchQuery: 'hero',
             searchTarget: 'folderName',
             searchExtraConditions: [{ text: 'team', target: 'fileName' }],
@@ -257,6 +259,7 @@ describe('useUIStore', () => {
         expect(state.lightboxFile).toBeNull();
         expect(state.lightboxOpenMode).toBe('default');
         expect(state.lightboxStartTime).toBeNull();
+        expect(state.lightboxCurrentTime).toBeNull();
         expect(state.searchQuery).toBe('');
         expect(state.searchTarget).toBe('fileName');
         expect(state.searchExtraConditions).toEqual([]);
@@ -291,5 +294,21 @@ describe('useUIStore', () => {
 
         useUIStore.getState().setRatingQuickFilter('midOrAbove');
         expect(useUIStore.getState().ratingQuickFilter).toBe('midOrAbove');
+    });
+
+    it('clears current playback time when the lightbox closes', () => {
+        useUIStore.setState({
+            lightboxFile: { id: 'video-1' } as never,
+            lightboxOpenMode: 'default',
+            lightboxStartTime: 12,
+            lightboxCurrentTime: 34,
+        });
+
+        useUIStore.getState().closeLightbox();
+
+        const state = useUIStore.getState();
+        expect(state.lightboxFile).toBeNull();
+        expect(state.lightboxStartTime).toBeNull();
+        expect(state.lightboxCurrentTime).toBeNull();
     });
 });

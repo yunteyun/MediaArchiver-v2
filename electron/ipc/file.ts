@@ -1,5 +1,21 @@
 import { ipcMain, Menu, shell, BrowserWindow, dialog, clipboard, nativeImage } from 'electron';
-import { deleteFile, findFileById, updateFileThumbnail, updateFilePreviewFrames, incrementAccessCount, incrementExternalOpenCount, updateFileLocation, updateFileNameAndPath, getFolders, getFiles, getFilesByFolderIds, updateFilePlaybackPosition } from '../services/database';
+import {
+    createPlaybackBookmark,
+    deleteFile,
+    deletePlaybackBookmark,
+    findFileById,
+    getFolders,
+    getFiles,
+    getFilesByFolderIds,
+    getPlaybackBookmarks,
+    incrementAccessCount,
+    incrementExternalOpenCount,
+    updateFileLocation,
+    updateFileNameAndPath,
+    updateFilePlaybackPosition,
+    updateFilePreviewFrames,
+    updateFileThumbnail,
+} from '../services/database';
 import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
@@ -795,6 +811,68 @@ export function registerFileHandlers() {
             success: true,
             playbackPositionSeconds: result.playbackPositionSeconds,
             playbackPositionUpdatedAt: result.playbackPositionUpdatedAt,
+        };
+    });
+
+    ipcMain.handle('file:getPlaybackBookmarks', async (_event, { fileId }: { fileId: string }) => {
+        const file = findFileById(fileId);
+        if (!file) {
+            return [];
+        }
+
+        return getPlaybackBookmarks(fileId).map((bookmark) => ({
+            id: bookmark.id,
+            fileId: bookmark.fileId ?? bookmark.file_id,
+            timeSeconds: bookmark.timeSeconds ?? bookmark.time_seconds,
+            createdAt: bookmark.createdAt ?? bookmark.created_at,
+        }));
+    });
+
+    ipcMain.handle('file:createPlaybackBookmark', async (_event, {
+        fileId,
+        timeSeconds,
+    }: {
+        fileId: string;
+        timeSeconds: number;
+    }) => {
+        const file = findFileById(fileId);
+        if (!file) {
+            return {
+                success: false,
+                error: 'ファイルが見つかりません',
+                bookmark: null,
+            };
+        }
+
+        if (!Number.isFinite(timeSeconds) || timeSeconds < 0) {
+            return {
+                success: false,
+                error: '再生位置が不正です',
+                bookmark: null,
+            };
+        }
+
+        const bookmark = createPlaybackBookmark(fileId, timeSeconds);
+        return {
+            success: true,
+            bookmark: {
+                id: bookmark.id,
+                fileId: bookmark.fileId ?? bookmark.file_id,
+                timeSeconds: bookmark.timeSeconds ?? bookmark.time_seconds,
+                createdAt: bookmark.createdAt ?? bookmark.created_at,
+            },
+        };
+    });
+
+    ipcMain.handle('file:deletePlaybackBookmark', async (_event, { bookmarkId }: { bookmarkId: string }) => {
+        if (!bookmarkId || typeof bookmarkId !== 'string') {
+            return { success: false, error: 'ブックマークが不正です' };
+        }
+
+        const deleted = deletePlaybackBookmark(bookmarkId);
+        return {
+            success: deleted,
+            error: deleted ? undefined : 'ブックマークが見つかりません',
         };
     });
 

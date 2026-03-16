@@ -5,6 +5,7 @@ import type { LightboxOpenMode } from '../../stores/useUIStore';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { isAudioArchive } from '../../utils/fileHelpers';
 import { useFileStore } from '../../stores/useFileStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
 const ARCHIVE_PREVIEW_LIMIT = 6;
@@ -32,6 +33,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     startTimeSeconds,
 }) => {
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
+    const setLightboxCurrentTime = useUIStore((state) => state.setLightboxCurrentTime);
     const [hasError, setHasError] = useState(false);
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
     const [archiveLoading, setArchiveLoading] = useState(false);
@@ -61,6 +63,16 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     useEffect(() => {
         setHasError(false);
     }, [file.id, file.path]);
+
+    useEffect(() => {
+        if (file.type !== 'video') {
+            setLightboxCurrentTime(null);
+        }
+
+        return () => {
+            setLightboxCurrentTime(null);
+        };
+    }, [file.id, file.type, setLightboxCurrentTime]);
 
     useEffect(() => {
         setSelectedArchiveFrameIndex(null);
@@ -192,6 +204,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 return;
             }
             video.currentTime = Math.max(0, Math.min(video.duration, startTimeSeconds));
+            setLightboxCurrentTime(video.currentTime);
         };
 
         if (video.readyState >= 1) {
@@ -203,7 +216,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         return () => {
             video.removeEventListener('loadedmetadata', seekToStartTime);
         };
-    }, [file.id, file.type, startTimeSeconds]);
+    }, [file.id, file.type, setLightboxCurrentTime, startTimeSeconds]);
 
     useEffect(() => {
         return () => {
@@ -262,12 +275,18 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 controls
                 autoPlay
                 onTimeUpdate={(event) => {
+                    setLightboxCurrentTime(event.currentTarget.currentTime);
                     void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration);
                 }}
+                onLoadedMetadata={(event) => {
+                    setLightboxCurrentTime(event.currentTarget.currentTime);
+                }}
                 onPause={(event) => {
+                    setLightboxCurrentTime(event.currentTarget.currentTime);
                     void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration, true);
                 }}
                 onEnded={(event) => {
+                    setLightboxCurrentTime(event.currentTarget.currentTime);
                     void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration, true);
                 }}
                 onError={() => setHasError(true)}
