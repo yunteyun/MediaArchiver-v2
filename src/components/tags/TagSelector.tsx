@@ -167,8 +167,9 @@ export const TagSelector = React.memo(({
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as Node;
+            const anchor = anchorElement ?? buttonRef.current;
             if (
-                buttonRef.current && !buttonRef.current.contains(target) &&
+                anchor && !anchor.contains(target) &&
                 dropdownRef.current && !dropdownRef.current.contains(target)
             ) {
                 closeSelector();
@@ -178,6 +179,18 @@ export const TagSelector = React.memo(({
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [anchorElement, closeSelector, isInlineMode, isSelectorOpen]);
+
+    useEffect(() => {
+        if (isInlineMode || !isSelectorOpen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeSelector();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
     }, [closeSelector, isInlineMode, isSelectorOpen]);
 
     // スクロールやリサイズで位置を再計算
