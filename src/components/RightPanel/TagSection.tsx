@@ -1,8 +1,9 @@
 import React from 'react';
-import { Check, Pencil } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { useFileStore } from '../../stores/useFileStore';
-import { useTagStore } from '../../stores/useTagStore';
+import { useTagStore, type Tag } from '../../stores/useTagStore';
 import { useToastStore } from '../../stores/useToastStore';
+import { TagBadge } from '../tags/TagBadge';
 import { TagSelector } from '../tags/TagSelector';
 import type { MediaFile } from '../../types/file';
 
@@ -10,6 +11,9 @@ interface TagSectionProps {
     file: MediaFile;
     embedded?: boolean;
 }
+
+const ALL_CATEGORIES_KEY = '__all__';
+type CategorySelection = string | typeof ALL_CATEGORIES_KEY | null;
 
 const categoryColorMap: Record<string, string> = {
     gray: '#4b5563',
@@ -41,17 +45,20 @@ function resolveCategoryAccentColor(colorName?: string): string {
 export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false }) => {
     const fileTagsCache = useFileStore((s) => s.fileTagsCache);
     const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
+    const tags = useTagStore((s) => s.tags);
     const categories = useTagStore((s) => s.categories);
     const loadTags = useTagStore((s) => s.loadTags);
     const loadCategories = useTagStore((s) => s.loadCategories);
     const [isEditMode, setIsEditMode] = React.useState(false);
-    const [activeCategoryId, setActiveCategoryId] = React.useState<string | null>(null);
+    const [isCategoryPanelOpen, setIsCategoryPanelOpen] = React.useState(false);
+    const [activeCategoryKey, setActiveCategoryKey] = React.useState<CategorySelection>(null);
 
     const tagIds = fileTagsCache.get(file.id) ?? [];
 
     React.useEffect(() => {
         setIsEditMode(false);
-        setActiveCategoryId(null);
+        setIsCategoryPanelOpen(false);
+        setActiveCategoryKey(null);
     }, [file.id]);
 
     React.useEffect(() => {
@@ -83,13 +90,48 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
         () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
         [categories]
     );
+    const categoryColorById = React.useMemo(
+        () => new Map(categories.map((category) => [category.id, category.color])),
+        [categories]
+    );
+    const categorySortOrderById = React.useMemo(
+        () => new Map(categories.map((category) => [category.id, category.sortOrder])),
+        [categories]
+    );
+    const selectedCategoryFilterId = activeCategoryKey && activeCategoryKey !== ALL_CATEGORIES_KEY
+        ? activeCategoryKey
+        : null;
+    const isInlineSelectorOpen = isEditMode && (
+        sortedCategories.length === 0 || (isCategoryPanelOpen && activeCategoryKey !== null)
+    );
+    const selectedTagsSorted = React.useMemo(() => {
+        return tagIds
+            .map((tagId) => tags.find((tag) => tag.id === tagId))
+            .filter((tag): tag is Tag => !!tag)
+            .slice()
+            .sort((a, b) => {
+                const aCatOrder = a.categoryId ? (categorySortOrderById.get(a.categoryId) ?? 999) : Number.MAX_SAFE_INTEGER;
+                const bCatOrder = b.categoryId ? (categorySortOrderById.get(b.categoryId) ?? 999) : Number.MAX_SAFE_INTEGER;
+                if (aCatOrder !== bCatOrder) return aCatOrder - bCatOrder;
+                return (a.sortOrder ?? 999) - (b.sortOrder ?? 999);
+            });
+    }, [tagIds, tags, categorySortOrderById]);
 
     return (
         <div className={embedded ? 'space-y-2' : 'px-4 py-3 space-y-2 border-b border-surface-700'}>
             <div className="flex items-center justify-between gap-2">
                 {!embedded && <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">タグ</h3>}
                 <button
-                    onClick={() => setIsEditMode((prev) => !prev)}
+                    onClick={() => {
+                        setIsEditMode((prev) => {
+                            const next = !prev;
+                            if (!next) {
+                                setIsCategoryPanelOpen(false);
+                                setActiveCategoryKey(null);
+                            }
+                            return next;
+                        });
+                    }}
                     className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] transition-colors ${
                         isEditMode
                             ? 'bg-primary-600 text-white hover:bg-primary-500'
@@ -101,54 +143,83 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                     <span>{isEditMode ? '編集終了' : '編集'}</span>
                 </button>
             </div>
-            {sortedCategories.length > 0 && (
-                <div className="space-y-1">
-                    <div className="text-[11px] text-surface-500">
-                        カテゴリ
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setActiveCategoryId(null);
-                                setIsEditMode(true);
-                            }}
-                            className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
-                                activeCategoryId === null
-                                    ? 'border-primary-600 bg-primary-900/35 text-primary-100'
-                                    : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
-                            }`}
-                        >
-                            すべて
-                        </button>
-                        {sortedCategories.map((category) => (
-                            <button
-                                key={category.id}
-                                type="button"
-                                onClick={() => {
-                                    setActiveCategoryId(category.id);
-                                    setIsEditMode(true);
-                                }}
-                                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
-                                    activeCategoryId === category.id
-                                        ? 'border-primary-600 bg-primary-900/35 text-primary-100'
-                                        : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
-                                }`}
-                            >
-                                <span
-                                    className="h-2 w-2 rounded-sm"
-                                    style={{ backgroundColor: resolveCategoryAccentColor(category.color) }}
-                                />
-                                <span>{category.name}</span>
-                            </button>
-                        ))}
-                    </div>
+            <div className="flex flex-wrap gap-1">
+                {selectedTagsSorted.map((tag) => (
+                    <TagBadge
+                        key={tag.id}
+                        name={tag.name}
+                        color={tag.color}
+                        categoryColor={tag.categoryColor || (tag.categoryId ? categoryColorById.get(tag.categoryId) : undefined)}
+                        icon={tag.icon}
+                        description={tag.description}
+                        removable={isEditMode}
+                        onRemove={isEditMode ? () => { void handleRemoveTag(tag.id); } : undefined}
+                    />
+                ))}
+            </div>
+            {isEditMode && sortedCategories.length > 0 && (
+                <div className="space-y-2">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCategoryPanelOpen((prev) => {
+                                const next = !prev;
+                                if (!next) {
+                                    setActiveCategoryKey(null);
+                                }
+                                return next;
+                            });
+                        }}
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-700 hover:text-surface-100"
+                    >
+                        {isCategoryPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                        <span>{isCategoryPanelOpen ? 'カテゴリを閉じる' : 'カテゴリから追加'}</span>
+                    </button>
+
+                    {isCategoryPanelOpen && (
+                        <div className="space-y-2 rounded-lg border border-surface-700 bg-surface-900/45 p-2">
+                            <div className="text-[11px] text-surface-500">
+                                カテゴリを選ぶと、その中のタグ候補が下に表示されます
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveCategoryKey(ALL_CATEGORIES_KEY)}
+                                    className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                        activeCategoryKey === ALL_CATEGORIES_KEY
+                                            ? 'border-primary-600 bg-primary-900/35 text-primary-100'
+                                            : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                                    }`}
+                                >
+                                    すべて
+                                </button>
+                                {sortedCategories.map((category) => (
+                                    <button
+                                        key={category.id}
+                                        type="button"
+                                        onClick={() => setActiveCategoryKey(category.id)}
+                                        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                            activeCategoryKey === category.id
+                                                ? 'border-primary-600 bg-primary-900/35 text-primary-100'
+                                                : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                                        }`}
+                                    >
+                                        <span
+                                            className="h-2 w-2 rounded-sm"
+                                            style={{ backgroundColor: resolveCategoryAccentColor(category.color) }}
+                                        />
+                                        <span>{category.name}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {activeCategoryKey === null && (
+                                <div className="text-[11px] text-surface-500">
+                                    まだカテゴリは選ばれていません
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
-            )}
-            {!isEditMode && (
-                <p className="text-[11px] text-surface-500">
-                    カテゴリを選んで編集すると、追加・削除するタグ候補を絞れます
-                </p>
             )}
             <TagSelector
                 selectedTagIds={tagIds}
@@ -156,8 +227,16 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                 onRemove={handleRemoveTag}
                 editable={isEditMode}
                 allowCreate
-                categoryFilterId={activeCategoryId}
+                categoryFilterId={selectedCategoryFilterId}
+                displayMode="inline"
+                inlineOpen={isInlineSelectorOpen}
+                showSelectedTags={false}
             />
+            {!isEditMode && (
+                <p className="text-[11px] text-surface-500">
+                    編集から開くと、カテゴリごとに絞ってタグを追加できます
+                </p>
+            )}
         </div>
     );
 });

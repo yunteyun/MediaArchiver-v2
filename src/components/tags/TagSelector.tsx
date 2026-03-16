@@ -25,6 +25,9 @@ interface TagSelectorProps {
     editable?: boolean;
     allowCreate?: boolean;
     categoryFilterId?: string | null;
+    displayMode?: 'dropdown' | 'inline';
+    inlineOpen?: boolean;
+    showSelectedTags?: boolean;
 }
 
 export const TagSelector = React.memo(({
@@ -34,6 +37,9 @@ export const TagSelector = React.memo(({
     editable = true,
     allowCreate = false,
     categoryFilterId = null,
+    displayMode = 'dropdown',
+    inlineOpen = false,
+    showSelectedTags = true,
 }: TagSelectorProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -52,6 +58,7 @@ export const TagSelector = React.memo(({
     const normalizedSearch = search.trim();
     const normalizedSearchLower = normalizedSearch.toLowerCase();
     const activeCategoryName = categoryFilterId ? categoryNameById.get(categoryFilterId) ?? '選択中カテゴリ' : '未分類';
+    const isInlineMode = displayMode === 'inline';
 
     const categoryFilteredTags = categoryFilterId
         ? tags.filter((tag) => tag.categoryId === categoryFilterId)
@@ -96,6 +103,7 @@ export const TagSelector = React.memo(({
 
     const handleToggle = () => {
         if (!editable) return;
+        if (isInlineMode) return;
         if (!isOpen) {
             calcDropdownPosition();
         }
@@ -114,14 +122,15 @@ export const TagSelector = React.memo(({
                 setIsOpen(false);
             }
         };
-        if (isOpen) {
+        if (!isInlineMode && isOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
+    }, [isInlineMode, isOpen]);
 
     // スクロールやリサイズで位置を再計算
     useEffect(() => {
+        if (isInlineMode) return;
         if (!isOpen) return;
         const update = () => calcDropdownPosition();
         window.addEventListener('scroll', update, true);
@@ -130,7 +139,14 @@ export const TagSelector = React.memo(({
             window.removeEventListener('scroll', update, true);
             window.removeEventListener('resize', update);
         };
-    }, [isOpen, calcDropdownPosition]);
+    }, [isInlineMode, isOpen, calcDropdownPosition]);
+
+    useEffect(() => {
+        setSearch('');
+        if (!isInlineMode || !inlineOpen) {
+            setIsOpen(false);
+        }
+    }, [categoryFilterId, inlineOpen, isInlineMode]);
 
     const handleTagClick = async (tag: Tag) => {
         if (isSubmitting) return;
@@ -196,13 +212,14 @@ export const TagSelector = React.memo(({
             });
     }, [selectedTagIds, tags, categorySortOrderById]);
 
-    const dropdown = isOpen && editable && createPortal(
+    const selectorPanel = (
         <div
-            ref={dropdownRef}
-            className="bg-surface-800 border border-surface-700 rounded-lg shadow-xl overflow-hidden"
-            style={dropdownStyle}
+            ref={isInlineMode ? undefined : dropdownRef}
+            className={`bg-surface-800 border border-surface-700 rounded-lg overflow-hidden ${
+                isInlineMode ? '' : 'shadow-xl'
+            }`}
+            style={isInlineMode ? undefined : dropdownStyle}
         >
-            {/* Search */}
             <div className="p-2 border-b border-surface-700">
                 <div className="relative">
                     <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-surface-400" />
@@ -218,12 +235,11 @@ export const TagSelector = React.memo(({
                             }
                         }}
                         className="w-full pl-7 pr-2 py-1.5 text-sm bg-surface-900 border border-surface-600 rounded focus:outline-none focus:border-primary-500"
-                        autoFocus
+                        autoFocus={isInlineMode ? inlineOpen : isOpen}
                     />
                 </div>
             </div>
 
-            {/* Tag List */}
             <div className="max-h-96 overflow-auto p-2">
                 {canQuickCreate && (
                     <div className="mb-2 rounded border border-primary-500/30 bg-primary-500/10 p-2">
@@ -234,15 +250,15 @@ export const TagSelector = React.memo(({
                                 disabled={isSubmitting}
                                 className="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm text-surface-100 transition-colors hover:bg-surface-700/50 disabled:cursor-wait disabled:opacity-60"
                             >
-                            <Plus size={14} className="mt-0.5 shrink-0 text-primary-300" />
-                            <div className="min-w-0">
-                                <div className="truncate">
-                                    「{normalizedSearch}」を新規タグとして作成して追加
+                                <Plus size={14} className="mt-0.5 shrink-0 text-primary-300" />
+                                <div className="min-w-0">
+                                    <div className="truncate">
+                                        「{normalizedSearch}」を新規タグとして作成して追加
+                                    </div>
+                                    <div className="mt-0.5 text-[11px] text-surface-400">
+                                        {activeCategoryName} / 下の色で作成します
+                                    </div>
                                 </div>
-                                <div className="mt-0.5 text-[11px] text-surface-400">
-                                    {activeCategoryName} / 下の色で作成します
-                                </div>
-                            </div>
                             </button>
                             <div className="flex flex-wrap gap-1.5 px-2">
                                 {QUICK_CREATE_COLOR_OPTIONS.map((color) => {
@@ -267,7 +283,6 @@ export const TagSelector = React.memo(({
                     </div>
                 )}
 
-                {/* Uncategorized tags */}
                 {uncategorizedTags.length > 0 && (
                     <div className="mb-2">
                         <div className="grid grid-cols-2 gap-0.5">
@@ -283,7 +298,6 @@ export const TagSelector = React.memo(({
                     </div>
                 )}
 
-                {/* Categorized tags */}
                 {categorizedGroups.map(({ category, tags }) => (
                     <div key={category.id} className="mb-2">
                         <div className="text-xs text-surface-500 font-medium mb-1 px-2 flex items-center gap-1.5">
@@ -309,30 +323,35 @@ export const TagSelector = React.memo(({
                     </div>
                 )}
             </div>
-        </div>,
-        document.body
+        </div>
     );
+
+    const dropdown = !isInlineMode && isOpen && editable
+        ? createPortal(selectorPanel, document.body)
+        : null;
 
     return (
         <div className="relative">
             {/* Selected Tags Display */}
-            <div className="flex flex-wrap gap-1 mb-2">
-                {selectedTagsSorted.map(tag => (
-                    <TagBadge
-                        key={tag.id}
-                        name={tag.name}
-                        color={tag.color}
-                        categoryColor={tag.categoryColor || (tag.categoryId ? categoryColorById.get(tag.categoryId) : undefined)}
-                        icon={tag.icon}
-                        description={tag.description}
-                        removable={editable}
-                        onRemove={editable ? () => onRemove(tag.id) : undefined}
-                    />
-                ))}
-            </div>
+            {showSelectedTags && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                    {selectedTagsSorted.map(tag => (
+                        <TagBadge
+                            key={tag.id}
+                            name={tag.name}
+                            color={tag.color}
+                            categoryColor={tag.categoryColor || (tag.categoryId ? categoryColorById.get(tag.categoryId) : undefined)}
+                            icon={tag.icon}
+                            description={tag.description}
+                            removable={editable}
+                            onRemove={editable ? () => onRemove(tag.id) : undefined}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Add Tag Button */}
-            {editable && (
+            {editable && !isInlineMode && (
                 <button
                     ref={buttonRef}
                     onClick={handleToggle}
@@ -344,7 +363,8 @@ export const TagSelector = React.memo(({
                 </button>
             )}
 
-            {/* Dropdown - Portal経由でbody直下に配置（overflowクリップ回避） */}
+            {editable && isInlineMode && inlineOpen && selectorPanel}
+
             {dropdown}
         </div>
     );
