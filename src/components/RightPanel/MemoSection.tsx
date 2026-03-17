@@ -1,6 +1,7 @@
 import React from 'react';
 import type { MediaFile, PlaybackBookmark } from '../../types/file';
 import { useFileStore } from '../../stores/useFileStore';
+import { useUIStore } from '../../stores/useUIStore';
 import { SectionTitle } from './SectionTitle';
 
 interface MemoSectionProps {
@@ -9,11 +10,13 @@ interface MemoSectionProps {
 
 export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
     const refreshFile = useFileStore((state) => state.refreshFile);
+    const openLightbox = useUIStore((state) => state.openLightbox);
     const [notes, setNotes] = React.useState(file.notes || '');
     const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'saved'>('idle');
     const [isOpen, setIsOpen] = React.useState(false);
     const [playbackBookmarks, setPlaybackBookmarks] = React.useState<PlaybackBookmark[]>([]);
     const [isBookmarksLoading, setIsBookmarksLoading] = React.useState(false);
+    const [isBookmarkListOpen, setIsBookmarkListOpen] = React.useState(false);
     const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     React.useEffect(() => {
@@ -27,6 +30,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
 
     React.useEffect(() => {
         setIsOpen(false);
+        setIsBookmarkListOpen(false);
     }, [file.id]);
 
     React.useEffect(() => {
@@ -158,24 +162,33 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
                     />
                     {file.type === 'video' && (
                         <div className="space-y-2 rounded-lg border border-surface-700 bg-surface-950/70 px-3 py-3">
-                            <div className="flex items-center justify-between gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setIsBookmarkListOpen((prev) => !prev)}
+                                className="flex w-full items-center justify-between gap-3 text-left"
+                            >
                                 <p className="text-xs font-medium text-surface-300">見どころメモ</p>
-                                <span className="text-[11px] text-surface-500">
-                                    {isBookmarksLoading
-                                        ? '読み込み中...'
-                                        : notedBookmarks.length > 0
-                                            ? `${notedBookmarks.length} 件`
-                                            : playbackBookmarks.length > 0
-                                                ? `見どころ ${playbackBookmarks.length} 件`
-                                                : 'なし'}
-                                </span>
-                            </div>
-                            {notedBookmarks.length > 0 ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] text-surface-500">
+                                        {isBookmarksLoading
+                                            ? '読み込み中...'
+                                            : notedBookmarks.length > 0
+                                                ? `${notedBookmarks.length} 件`
+                                                : playbackBookmarks.length > 0
+                                                    ? `見どころ ${playbackBookmarks.length} 件`
+                                                    : 'なし'}
+                                    </span>
+                                    <span className="text-surface-500">{isBookmarkListOpen ? '−' : '+'}</span>
+                                </div>
+                            </button>
+                            {isBookmarkListOpen && (notedBookmarks.length > 0 ? (
                                 <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
                                     {notedBookmarks.map((bookmark) => (
-                                        <div
+                                        <button
+                                            type="button"
                                             key={bookmark.id}
-                                            className="rounded-md border border-surface-700 bg-surface-900/70 px-2.5 py-2"
+                                            onClick={() => openLightbox(file, 'default', bookmark.timeSeconds)}
+                                            className="block w-full rounded-md border border-surface-700 bg-surface-900/70 px-2.5 py-2 text-left transition-colors hover:bg-surface-800"
                                         >
                                             <div className="text-[11px] font-semibold text-surface-300">
                                                 {formatBookmarkTime(bookmark.timeSeconds)}
@@ -183,7 +196,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
                                             <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-surface-400">
                                                 {bookmark.note}
                                             </p>
-                                        </div>
+                                        </button>
                                     ))}
                                 </div>
                             ) : (
@@ -192,7 +205,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
                                         ? '見どころはありますが、メモはまだありません。'
                                         : '見どころメモはまだありません。'}
                                 </p>
-                            )}
+                            ))}
                         </div>
                     )}
                 </div>
