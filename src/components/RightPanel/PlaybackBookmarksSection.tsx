@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import type { MediaFile, PlaybackBookmark } from '../../types/file';
+import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatPlaybackTime } from '../../utils/playbackTime';
 
@@ -22,9 +23,11 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     open,
     onClose,
 }) => {
+    const refreshFile = useFileStore((state) => state.refreshFile);
     const openLightbox = useUIStore((state) => state.openLightbox);
     const lightboxFile = useUIStore((state) => state.lightboxFile);
     const lightboxCurrentTime = useUIStore((state) => state.lightboxCurrentTime);
+    const showToast = useUIStore((state) => state.showToast);
     const [bookmarks, setBookmarks] = React.useState<PlaybackBookmark[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
     const [isAdding, setIsAdding] = React.useState(false);
@@ -32,6 +35,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     const [editingBookmarkId, setEditingBookmarkId] = React.useState<string | null>(null);
     const [editingNote, setEditingNote] = React.useState('');
     const [savingBookmarkId, setSavingBookmarkId] = React.useState<string | null>(null);
+    const [settingRepresentativeBookmarkId, setSettingRepresentativeBookmarkId] = React.useState<string | null>(null);
     const [popoverStyle, setPopoverStyle] = React.useState<React.CSSProperties>({});
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -154,6 +158,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         setEditingBookmarkId(null);
         setEditingNote('');
         setSavingBookmarkId(null);
+        setSettingRepresentativeBookmarkId(null);
     }, [file.id, open]);
 
     if (file.type !== 'video' || !open || !anchorElement) {
@@ -226,6 +231,26 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         }
     };
 
+    const handleSetBookmarkRepresentative = async (bookmark: PlaybackBookmark) => {
+        if (settingRepresentativeBookmarkId === bookmark.id) return;
+        setSettingRepresentativeBookmarkId(bookmark.id);
+        try {
+            const result = await window.electronAPI.setRepresentativeThumbnail(file.id, bookmark.timeSeconds);
+            if (!result.success) {
+                showToast(result.error || '表紙の固定に失敗しました', 'error');
+                return;
+            }
+
+            await refreshFile(file.id);
+            showToast('見どころを表紙にしました', 'success', 2000);
+        } catch (error) {
+            console.error('Failed to set representative thumbnail from bookmark:', error);
+            showToast('表紙の固定に失敗しました', 'error');
+        } finally {
+            setSettingRepresentativeBookmarkId(null);
+        }
+    };
+
     const bookmarkRows = bookmarks.map((bookmark) => (
         <div
             key={bookmark.id}
@@ -251,6 +276,31 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                     className="rounded-md border border-primary-700 bg-primary-900/25 px-2 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/45"
                 >
                     ここから開く
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        void handleSetBookmarkRepresentative(bookmark);
+                    }}
+                    disabled={settingRepresentativeBookmarkId === bookmark.id}
+                    className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    title="この見どころを表紙にする"
+                    aria-label="この見どころを表紙にする"
+                >
+                    {settingRepresentativeBookmarkId === bookmark.id ? (
+                        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" opacity="0.35" />
+                            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                    ) : (
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M4 7h16" />
+                            <path d="M7 4h10" />
+                            <path d="M6 10h12v8H6z" />
+                            <path d="M12 13v2" />
+                            <path d="M11 14h2" />
+                        </svg>
+                    )}
                 </button>
                 <button
                     type="button"

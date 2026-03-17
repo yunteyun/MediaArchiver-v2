@@ -130,6 +130,8 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
         }
     };
 
+    const representativeButtonDisabled = isSavingRepresentative || isRestoringRepresentative;
+
     useEffect(() => {
         const video = videoRef.current;
         if (!video || !isVideo) return;
@@ -365,20 +367,46 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                         <button
                             type="button"
                             onClick={handleSetRepresentativeThumbnail}
-                            disabled={!canSetRepresentativeThumbnail || isSavingRepresentative || isRestoringRepresentative}
-                            className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-200 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-50"
-                            title={canSetRepresentativeThumbnail ? '中央ビューアの現在位置を表紙に固定' : '中央ビューアで動画を開いているときに使えます'}
+                            disabled={!canSetRepresentativeThumbnail || representativeButtonDisabled}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-surface-700 bg-surface-900 text-surface-200 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={canSetRepresentativeThumbnail ? '中央ビューアの今の場面を表紙にする' : '中央ビューアで動画を開いているときに使えます'}
+                            aria-label={canSetRepresentativeThumbnail ? '今の場面を表紙にする' : '中央ビューアで動画を開いているときに使えます'}
                         >
-                            {isSavingRepresentative ? '保存中...' : '今の場面を表紙にする'}
+                            {isSavingRepresentative ? (
+                                <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" opacity="0.35" />
+                                    <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                                </svg>
+                            ) : (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M4 7h16" />
+                                    <path d="M7 4h10" />
+                                    <path d="M6 10h12v8H6z" />
+                                    <path d="M12 13v2" />
+                                    <path d="M11 14h2" />
+                                </svg>
+                            )}
                         </button>
                         {file.thumbnailLocked && (
                             <button
                                 type="button"
                                 onClick={handleRestoreAutoThumbnail}
-                                disabled={isRestoringRepresentative || isSavingRepresentative}
-                                className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={representativeButtonDisabled}
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-surface-700 bg-surface-900 text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                title="自動サムネイルへ戻す"
+                                aria-label="自動サムネイルへ戻す"
                             >
-                                {isRestoringRepresentative ? '戻し中...' : '自動へ戻す'}
+                                {isRestoringRepresentative ? (
+                                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" opacity="0.35" />
+                                        <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                                    </svg>
+                                ) : (
+                                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <path d="M3 12a9 9 0 1 0 3-6.7" />
+                                        <path d="M3 4v5h5" />
+                                    </svg>
+                                )}
                             </button>
                         )}
                     </div>
