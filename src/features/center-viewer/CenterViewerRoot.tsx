@@ -4,18 +4,23 @@ import { useFileStore } from '../../stores/useFileStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { CenterViewerStage } from './CenterViewerStage';
+import { CenterViewerPlaybackOverlay } from './CenterViewerPlaybackOverlay';
 import { completeUiPerfTrace } from '../../utils/perfDebug';
 
 export const CenterViewerRoot = React.memo(() => {
-    const lightboxFile = useUIStore((state) => state.lightboxFile);
+    const rawLightboxFile = useUIStore((state) => state.lightboxFile);
     const lightboxOpenMode = useUIStore((state) => state.lightboxOpenMode);
     const lightboxStartTime = useUIStore((state) => state.lightboxStartTime);
     const closeLightbox = useUIStore((state) => state.closeLightbox);
     const files = useFileStore((state) => state.files);
+    const fileMap = useFileStore((state) => state.fileMap);
     const incrementAccessCount = useFileStore((state) => state.incrementAccessCount);
     const setFocusedId = useFileStore((state) => state.setFocusedId);
     const videoVolume = useSettingsStore((state) => state.videoVolume);
     const audioVolume = useSettingsStore((state) => state.audioVolume);
+    const lightboxFile = rawLightboxFile
+        ? (fileMap.get(rawLightboxFile.id) ?? rawLightboxFile)
+        : null;
 
     const currentIndex = useMemo(() => {
         if (!lightboxFile) return -1;
@@ -99,6 +104,9 @@ export const CenterViewerRoot = React.memo(() => {
             </div>
 
             <div className="pointer-events-none absolute inset-0">
+                {lightboxFile && (
+                    <CenterViewerPlaybackOverlay file={lightboxFile} />
+                )}
                 <button
                     type="button"
                     onClick={closeLightbox}
