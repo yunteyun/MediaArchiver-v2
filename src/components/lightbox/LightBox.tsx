@@ -12,8 +12,12 @@ import { LightBoxImageV2 } from './v2/LightBoxImageV2';
 const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
 
 export const LightBox = React.memo(() => {
-    const lightboxFile = useUIStore((s) => s.lightboxFile);
-    const lightboxFileId = lightboxFile?.id ?? null;
+    const rawLightboxFile = useUIStore((s) => s.lightboxFile);
+    const fileMap = useFileStore((s) => s.fileMap);
+    const lightboxFile = rawLightboxFile
+        ? (fileMap.get(rawLightboxFile.id) ?? rawLightboxFile)
+        : null;
+    const lightboxFileId = lightboxFile?.id ?? rawLightboxFile?.id ?? null;
     const lightboxOpenMode = useUIStore((s) => s.lightboxOpenMode);
     const closeLightbox = useUIStore((s) => s.closeLightbox);
     const files = useFileStore((s) => s.files);

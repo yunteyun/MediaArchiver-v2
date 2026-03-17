@@ -1,5 +1,6 @@
 import React from 'react';
 import { TagSection } from './sections/TagSection';
+import { PlaybackSection } from './sections/PlaybackSection';
 import { MemoSection } from './sections/MemoSection';
 import { MetaSection } from './sections/MetaSection';
 import { StatsSection } from './sections/StatsSection';
@@ -51,6 +52,11 @@ export const InfoPanel = React.memo<InfoPanelProps>(({
                         onRemove={onRemoveTag}
                     />
                 </div>
+                {file.type === 'video' && (
+                    <div className="border-t border-white/10 pt-4">
+                        <PlaybackSection file={file} />
+                    </div>
+                )}
                 <div className="border-t border-white/10 pt-4">
                     <MemoSection
                         notes={notes}
