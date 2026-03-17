@@ -104,6 +104,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
             clearTimeout(saveTimerRef.current);
             saveTimerRef.current = null;
         }
+        setIsNoteEditorOpen(false);
         void saveNotes(notes);
     }, [notes, saveNotes]);
 
@@ -153,42 +154,57 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
             {isOpen && (
                 <div className="space-y-3 pt-3">
                     <div className="space-y-2">
-                        <button
-                            type="button"
-                            onClick={() => setIsNoteEditorOpen((prev) => !prev)}
-                            className="block w-full rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-left transition-colors hover:bg-surface-900"
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-medium text-surface-300">ファイルメモ</p>
-                                    <p
-                                        className="mt-1 overflow-hidden whitespace-pre-wrap break-words text-xs leading-5 text-surface-400"
-                                        style={{
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: isNoteEditorOpen ? 'unset' : 4,
-                                            WebkitBoxOrient: 'vertical',
-                                        }}
-                                    >
-                                        {notes.trim() || 'クリックでメモを入力'}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2 pt-0.5">
-                                    <span className="text-[11px] text-surface-500">
-                                        {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '保存済み' : ''}
+                        {isNoteEditorOpen ? (
+                            <div className="rounded-lg border border-surface-700 bg-surface-950 px-3 py-2">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-medium text-surface-300">ファイルメモ</p>
+                                        <p className="mt-1 text-[11px] text-surface-500">
+                                            入力を終えると自動で閉じます
+                                        </p>
+                                    </div>
+                                    <span className="pt-0.5 text-[11px] text-surface-500">
+                                        {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '保存済み' : '編集中'}
                                     </span>
-                                    <span className="text-surface-500">{isNoteEditorOpen ? '−' : '+'}</span>
                                 </div>
+                                <textarea
+                                    value={notes}
+                                    onChange={(event) => handleChange(event.target.value)}
+                                    onBlur={handleBlur}
+                                    rows={5}
+                                    autoFocus
+                                    placeholder="メモを入力..."
+                                    className="mt-2 w-full resize-y border-0 bg-transparent px-0 py-0 text-sm text-surface-100 placeholder:text-surface-500 focus:outline-none"
+                                />
                             </div>
-                        </button>
-                        {isNoteEditorOpen && (
-                            <textarea
-                                value={notes}
-                                onChange={(event) => handleChange(event.target.value)}
-                                onBlur={handleBlur}
-                                rows={5}
-                                placeholder="メモを入力..."
-                                className="w-full resize-y rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
-                            />
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setIsNoteEditorOpen(true)}
+                                className="block w-full rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-left transition-colors hover:bg-surface-900"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-medium text-surface-300">ファイルメモ</p>
+                                        <p
+                                            className="mt-1 overflow-hidden whitespace-pre-wrap break-words text-xs leading-5 text-surface-400"
+                                            style={{
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 4,
+                                                WebkitBoxOrient: 'vertical',
+                                            }}
+                                        >
+                                            {notes.trim() || 'クリックでメモを入力'}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-0.5">
+                                        <span className="text-[11px] text-surface-500">
+                                            {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '保存済み' : ''}
+                                        </span>
+                                        <span className="text-surface-500">+</span>
+                                    </div>
+                                </div>
+                            </button>
                         )}
                     </div>
                     {file.type === 'video' && (
