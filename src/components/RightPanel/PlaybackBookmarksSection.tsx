@@ -36,6 +36,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     const [editingNote, setEditingNote] = React.useState('');
     const [savingBookmarkId, setSavingBookmarkId] = React.useState<string | null>(null);
     const [settingRepresentativeBookmarkId, setSettingRepresentativeBookmarkId] = React.useState<string | null>(null);
+    const [highlightedBookmarkId, setHighlightedBookmarkId] = React.useState<string | null>(null);
     const [popoverStyle, setPopoverStyle] = React.useState<React.CSSProperties>({});
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -159,7 +160,22 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         setEditingNote('');
         setSavingBookmarkId(null);
         setSettingRepresentativeBookmarkId(null);
+        setHighlightedBookmarkId(null);
     }, [file.id, open]);
+
+    React.useEffect(() => {
+        if (!highlightedBookmarkId) return;
+
+        const timeoutId = window.setTimeout(() => {
+            setHighlightedBookmarkId((current) => (
+                current === highlightedBookmarkId ? null : current
+            ));
+        }, 1600);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [highlightedBookmarkId]);
 
     if (file.type !== 'video' || !open || !anchorElement) {
         return null;
@@ -181,6 +197,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                 }
                 return next.sort((a, b) => a.timeSeconds - b.timeSeconds || a.createdAt - b.createdAt);
             });
+            setHighlightedBookmarkId(result.bookmark.id);
         } catch (error) {
             console.error('Failed to create playback bookmark:', error);
         } finally {
@@ -203,6 +220,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     };
 
     const handleStartEdit = (bookmark: PlaybackBookmark) => {
+        if (editingBookmarkId === bookmark.id) return;
         setEditingBookmarkId(bookmark.id);
         setEditingNote(bookmark.note ?? '');
     };
@@ -251,34 +269,59 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         }
     };
 
-    const bookmarkRows = bookmarks.map((bookmark) => (
-        <div
-            key={bookmark.id}
-            className="space-y-2 rounded-md border border-surface-700 bg-surface-900/60 px-3 py-2.5"
-        >
-            <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-surface-100">
-                        {formatPlaybackTime(bookmark.timeSeconds)}
-                    </div>
-                    {editingBookmarkId !== bookmark.id && bookmark.note && (
-                        <div className="mt-1 truncate text-[11px] text-surface-400" title={bookmark.note}>
-                            {bookmark.note}
+    const bookmarkRows = bookmarks.map((bookmark) => {
+        const isEditing = editingBookmarkId === bookmark.id;
+        const hasNote = Boolean(bookmark.note?.trim());
+        const isHighlighted = highlightedBookmarkId === bookmark.id;
+        const isNearCurrentPosition = activeCurrentTime !== null
+            && Math.abs(bookmark.timeSeconds - activeCurrentTime) < 3;
+
+        const containerClassName = [
+            'rounded-md border px-3 transition-colors',
+            isEditing || hasNote ? 'space-y-2 py-2.5' : 'space-y-1.5 py-2',
+            isHighlighted
+                ? 'border-primary-500 bg-primary-950/30 shadow-[0_0_0_1px_rgba(59,130,246,0.25)]'
+                : isNearCurrentPosition
+                    ? 'border-primary-700/80 bg-primary-950/15'
+                    : 'border-surface-700 bg-surface-900/60',
+        ].join(' ');
+
+        return (
+            <div
+                key={bookmark.id}
+                className={containerClassName}
+            >
+                <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                            <div className="text-sm font-semibold text-surface-100">
+                                {formatPlaybackTime(bookmark.timeSeconds)}
+                            </div>
+                            {isNearCurrentPosition && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-primary-700/80 bg-primary-900/25 px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary-200">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-primary-300" aria-hidden="true" />
+                                    近い
+                                </span>
+                            )}
                         </div>
-                    )}
+                        {!isEditing && hasNote && (
+                            <div className="truncate text-[11px] text-surface-400" title={bookmark.note ?? undefined}>
+                                {bookmark.note}
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            openLightbox(file, 'default', bookmark.timeSeconds);
+                            onClose();
+                        }}
+                        className="rounded-md border border-primary-700 bg-primary-900/25 px-2 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/45"
+                    >
+                        ここから開く
+                    </button>
                 </div>
-                <button
-                    type="button"
-                    onClick={() => {
-                        openLightbox(file, 'default', bookmark.timeSeconds);
-                        onClose();
-                    }}
-                    className="rounded-md border border-primary-700 bg-primary-900/25 px-2 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/45"
-                >
-                    ここから開く
-                </button>
-            </div>
-            <div className="flex justify-end gap-1.5">
+                <div className="flex justify-end gap-1.5">
                 <button
                     type="button"
                     onClick={() => {
@@ -306,28 +349,15 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                 </button>
                 <button
                     type="button"
-                    onClick={() => {
-                        if (editingBookmarkId === bookmark.id) {
-                            handleCancelEdit();
-                            return;
-                        }
-                        handleStartEdit(bookmark);
-                    }}
+                    onClick={() => handleStartEdit(bookmark)}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-surface-700 bg-surface-900 text-surface-300 transition-colors hover:bg-surface-800"
-                    title={editingBookmarkId === bookmark.id ? 'メモ編集を閉じる' : 'メモを編集する'}
-                    aria-label={editingBookmarkId === bookmark.id ? 'メモ編集を閉じる' : 'メモを編集する'}
+                    title="メモを編集する"
+                    aria-label="メモを編集する"
                 >
-                    {editingBookmarkId === bookmark.id ? (
-                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M18 6 6 18" />
-                            <path d="m6 6 12 12" />
-                        </svg>
-                    ) : (
-                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="m4 20 4.5-1 9-9-3.5-3.5-9 9L4 20Z" />
-                            <path d="M13.5 6.5 17 10" />
-                        </svg>
-                    )}
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="m4 20 4.5-1 9-9-3.5-3.5-9 9L4 20Z" />
+                        <path d="M13.5 6.5 17 10" />
+                    </svg>
                 </button>
                 <button
                     type="button"
@@ -352,39 +382,40 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                         </svg>
                     )}
                 </button>
-            </div>
-            {editingBookmarkId === bookmark.id && (
-                <div className="space-y-2">
-                    <input
-                        type="text"
-                        value={editingNote}
-                        onChange={(event) => setEditingNote(event.target.value.slice(0, 80))}
-                        placeholder="メモを一言残す（任意）"
-                        className="w-full rounded-md border border-surface-700 bg-surface-950 px-3 py-2 text-xs text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
-                    />
-                    <div className="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={handleCancelEdit}
-                            className="rounded-md border border-surface-700 bg-surface-900 px-2.5 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800"
-                        >
-                            キャンセル
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                void handleSaveNote(bookmark.id);
-                            }}
-                            disabled={savingBookmarkId === bookmark.id}
-                            className="rounded-md border border-primary-700 bg-primary-900/30 px-2.5 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {savingBookmarkId === bookmark.id ? '保存中...' : '保存'}
-                        </button>
-                    </div>
                 </div>
-            )}
-        </div>
-    ));
+                {isEditing && (
+                    <div className="space-y-2">
+                        <input
+                            type="text"
+                            value={editingNote}
+                            onChange={(event) => setEditingNote(event.target.value.slice(0, 80))}
+                            placeholder="メモを一言残す（任意）"
+                            className="w-full rounded-md border border-surface-700 bg-surface-950 px-3 py-2 text-xs text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
+                        />
+                        <div className="flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                className="rounded-md border border-surface-700 bg-surface-900 px-2.5 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800"
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void handleSaveNote(bookmark.id);
+                                }}
+                                disabled={savingBookmarkId === bookmark.id}
+                                className="rounded-md border border-primary-700 bg-primary-900/30 px-2.5 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {savingBookmarkId === bookmark.id ? '保存中...' : '保存'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    });
 
     return createPortal(
         <div
