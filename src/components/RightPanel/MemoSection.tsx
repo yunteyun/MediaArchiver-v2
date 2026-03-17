@@ -14,9 +14,9 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
     const [notes, setNotes] = React.useState(file.notes || '');
     const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'saved'>('idle');
     const [isOpen, setIsOpen] = React.useState(false);
+    const [isNoteEditorOpen, setIsNoteEditorOpen] = React.useState(false);
     const [playbackBookmarks, setPlaybackBookmarks] = React.useState<PlaybackBookmark[]>([]);
     const [isBookmarksLoading, setIsBookmarksLoading] = React.useState(false);
-    const [isBookmarkListOpen, setIsBookmarkListOpen] = React.useState(false);
     const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     React.useEffect(() => {
@@ -30,7 +30,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
 
     React.useEffect(() => {
         setIsOpen(false);
-        setIsBookmarkListOpen(false);
+        setIsNoteEditorOpen(false);
     }, [file.id]);
 
     React.useEffect(() => {
@@ -152,36 +152,60 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
             </button>
             {isOpen && (
                 <div className="space-y-3 pt-3">
-                    <textarea
-                        value={notes}
-                        onChange={(event) => handleChange(event.target.value)}
-                        onBlur={handleBlur}
-                        rows={5}
-                        placeholder="メモを入力..."
-                        className="w-full resize-y rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
-                    />
+                    <div className="space-y-2">
+                        <button
+                            type="button"
+                            onClick={() => setIsNoteEditorOpen((prev) => !prev)}
+                            className="block w-full rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-left transition-colors hover:bg-surface-900"
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-medium text-surface-300">ファイルメモ</p>
+                                    <p
+                                        className="mt-1 overflow-hidden whitespace-pre-wrap break-words text-xs leading-5 text-surface-400"
+                                        style={{
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: isNoteEditorOpen ? 'unset' : 4,
+                                            WebkitBoxOrient: 'vertical',
+                                        }}
+                                    >
+                                        {notes.trim() || 'クリックでメモを入力'}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 pt-0.5">
+                                    <span className="text-[11px] text-surface-500">
+                                        {saveStatus === 'saving' ? '保存中…' : saveStatus === 'saved' ? '保存済み' : ''}
+                                    </span>
+                                    <span className="text-surface-500">{isNoteEditorOpen ? '−' : '+'}</span>
+                                </div>
+                            </div>
+                        </button>
+                        {isNoteEditorOpen && (
+                            <textarea
+                                value={notes}
+                                onChange={(event) => handleChange(event.target.value)}
+                                onBlur={handleBlur}
+                                rows={5}
+                                placeholder="メモを入力..."
+                                className="w-full resize-y rounded-lg border border-surface-700 bg-surface-950 px-3 py-2 text-sm text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
+                            />
+                        )}
+                    </div>
                     {file.type === 'video' && (
                         <div className="space-y-2 rounded-lg border border-surface-700 bg-surface-950/70 px-3 py-3">
-                            <button
-                                type="button"
-                                onClick={() => setIsBookmarkListOpen((prev) => !prev)}
-                                className="flex w-full items-center justify-between gap-3 text-left"
-                            >
+                            <div className="flex items-center justify-between gap-3">
                                 <p className="text-xs font-medium text-surface-300">見どころメモ</p>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[11px] text-surface-500">
-                                        {isBookmarksLoading
-                                            ? '読み込み中...'
-                                            : notedBookmarks.length > 0
-                                                ? `${notedBookmarks.length} 件`
-                                                : playbackBookmarks.length > 0
-                                                    ? `見どころ ${playbackBookmarks.length} 件`
-                                                    : 'なし'}
-                                    </span>
-                                    <span className="text-surface-500">{isBookmarkListOpen ? '−' : '+'}</span>
-                                </div>
-                            </button>
-                            {isBookmarkListOpen && (notedBookmarks.length > 0 ? (
+                                <span className="text-[11px] text-surface-500">
+                                    {isBookmarksLoading
+                                        ? '読み込み中...'
+                                        : notedBookmarks.length > 0
+                                            ? `${notedBookmarks.length} 件`
+                                            : playbackBookmarks.length > 0
+                                                ? `見どころ ${playbackBookmarks.length} 件`
+                                                : 'なし'}
+                                </span>
+                            </div>
+                            {notedBookmarks.length > 0 ? (
                                 <div className="max-h-40 space-y-2 overflow-y-auto pr-1">
                                     {notedBookmarks.map((bookmark) => (
                                         <button
@@ -205,7 +229,7 @@ export const MemoSection = React.memo<MemoSectionProps>(({ file }) => {
                                         ? '見どころはありますが、メモはまだありません。'
                                         : '見どころメモはまだありません。'}
                                 </p>
-                            ))}
+                            )}
                         </div>
                     )}
                 </div>
