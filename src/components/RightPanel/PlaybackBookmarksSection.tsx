@@ -29,7 +29,9 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     const [isLoading, setIsLoading] = React.useState(false);
     const [isAdding, setIsAdding] = React.useState(false);
     const [deletingBookmarkId, setDeletingBookmarkId] = React.useState<string | null>(null);
-    const [bookmarkNote, setBookmarkNote] = React.useState('');
+    const [editingBookmarkId, setEditingBookmarkId] = React.useState<string | null>(null);
+    const [editingNote, setEditingNote] = React.useState('');
+    const [savingBookmarkId, setSavingBookmarkId] = React.useState<string | null>(null);
     const [popoverStyle, setPopoverStyle] = React.useState<React.CSSProperties>({});
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -149,7 +151,9 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     React.useEffect(() => {
         if (!open) return;
         setDeletingBookmarkId(null);
-        setBookmarkNote('');
+        setEditingBookmarkId(null);
+        setEditingNote('');
+        setSavingBookmarkId(null);
     }, [file.id, open]);
 
     if (file.type !== 'video' || !open || !anchorElement) {
@@ -160,7 +164,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         if (!canAddBookmark || activeCurrentTime === null || isAdding) return;
         setIsAdding(true);
         try {
-            const result = await window.electronAPI.createPlaybackBookmark(file.id, activeCurrentTime, bookmarkNote);
+            const result = await window.electronAPI.createPlaybackBookmark(file.id, activeCurrentTime);
             if (!result.success || !result.bookmark) return;
             setBookmarks((current) => {
                 const next = [...current];
@@ -172,7 +176,6 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                 }
                 return next.sort((a, b) => a.timeSeconds - b.timeSeconds || a.createdAt - b.createdAt);
             });
-            setBookmarkNote('');
         } catch (error) {
             console.error('Failed to create playback bookmark:', error);
         } finally {
@@ -194,41 +197,115 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         }
     };
 
+    const handleStartEdit = (bookmark: PlaybackBookmark) => {
+        setEditingBookmarkId(bookmark.id);
+        setEditingNote(bookmark.note ?? '');
+    };
+
+    const handleCancelEdit = () => {
+        setEditingBookmarkId(null);
+        setEditingNote('');
+        setSavingBookmarkId(null);
+    };
+
+    const handleSaveNote = async (bookmarkId: string) => {
+        if (!bookmarkId || savingBookmarkId === bookmarkId) return;
+        setSavingBookmarkId(bookmarkId);
+        try {
+            const result = await window.electronAPI.updatePlaybackBookmarkNote(bookmarkId, editingNote);
+            if (!result.success || !result.bookmark) return;
+            setBookmarks((current) => current.map((bookmark) => (
+                bookmark.id === bookmarkId ? result.bookmark! : bookmark
+            )));
+            setEditingBookmarkId(null);
+            setEditingNote('');
+        } catch (error) {
+            console.error('Failed to update playback bookmark note:', error);
+        } finally {
+            setSavingBookmarkId(null);
+        }
+    };
+
     const bookmarkRows = bookmarks.map((bookmark) => (
         <div
             key={bookmark.id}
-            className="flex items-center gap-2 rounded-md border border-surface-700 bg-surface-900/60 px-2 py-1.5"
+            className="space-y-2 rounded-md border border-surface-700 bg-surface-900/60 px-2 py-2"
         >
-            <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-surface-100">
-                    {formatPlaybackTime(bookmark.timeSeconds)}
-                </div>
-                {bookmark.note && (
-                    <div className="truncate text-[11px] text-surface-400" title={bookmark.note}>
-                        {bookmark.note}
+            <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-surface-100">
+                        {formatPlaybackTime(bookmark.timeSeconds)}
                     </div>
-                )}
+                    {editingBookmarkId !== bookmark.id && bookmark.note && (
+                        <div className="truncate text-[11px] text-surface-400" title={bookmark.note}>
+                            {bookmark.note}
+                        </div>
+                    )}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => {
+                        openLightbox(file, 'default', bookmark.timeSeconds);
+                        onClose();
+                    }}
+                    className="rounded-md border border-primary-700 bg-primary-900/25 px-2 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/45"
+                >
+                    ここから開く
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (editingBookmarkId === bookmark.id) {
+                            handleCancelEdit();
+                            return;
+                        }
+                        handleStartEdit(bookmark);
+                    }}
+                    className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800"
+                >
+                    {editingBookmarkId === bookmark.id ? '閉じる' : 'メモ'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        void handleDeleteBookmark(bookmark.id);
+                    }}
+                    disabled={deletingBookmarkId === bookmark.id}
+                    className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                    {deletingBookmarkId === bookmark.id ? '削除中...' : '削除'}
+                </button>
             </div>
-            <button
-                type="button"
-                onClick={() => {
-                    openLightbox(file, 'default', bookmark.timeSeconds);
-                    onClose();
-                }}
-                className="rounded-md border border-primary-700 bg-primary-900/25 px-2 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/45"
-            >
-                ここから開く
-            </button>
-            <button
-                type="button"
-                onClick={() => {
-                    void handleDeleteBookmark(bookmark.id);
-                }}
-                disabled={deletingBookmarkId === bookmark.id}
-                className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-                {deletingBookmarkId === bookmark.id ? '削除中...' : '削除'}
-            </button>
+            {editingBookmarkId === bookmark.id && (
+                <div className="space-y-2">
+                    <input
+                        type="text"
+                        value={editingNote}
+                        onChange={(event) => setEditingNote(event.target.value.slice(0, 80))}
+                        placeholder="メモを一言残す（任意）"
+                        className="w-full rounded-md border border-surface-700 bg-surface-950 px-3 py-2 text-xs text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="rounded-md border border-surface-700 bg-surface-900 px-2.5 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800"
+                        >
+                            キャンセル
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                void handleSaveNote(bookmark.id);
+                            }}
+                            disabled={savingBookmarkId === bookmark.id}
+                            className="rounded-md border border-primary-700 bg-primary-900/30 px-2.5 py-1 text-[11px] font-medium text-primary-100 transition-colors hover:bg-primary-900/50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {savingBookmarkId === bookmark.id ? '保存中...' : '保存'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     ));
 
@@ -266,14 +343,6 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                 >
                     {isAdding ? '追加中...' : '今の位置を追加'}
                 </button>
-
-                <input
-                    type="text"
-                    value={bookmarkNote}
-                    onChange={(event) => setBookmarkNote(event.target.value.slice(0, 80))}
-                    placeholder="メモを一言残す（任意）"
-                    className="w-full rounded-md border border-surface-700 bg-surface-950 px-3 py-2 text-xs text-surface-100 placeholder:text-surface-500 focus:border-primary-500 focus:outline-none"
-                />
 
                 {isLoading ? (
                     <p className="text-xs text-surface-500">読み込み中...</p>

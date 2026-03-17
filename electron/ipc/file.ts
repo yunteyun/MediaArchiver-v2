@@ -12,6 +12,7 @@ import {
     incrementExternalOpenCount,
     updateFileLocation,
     updateFileNameAndPath,
+    updatePlaybackBookmarkNote,
     updateFilePlaybackPosition,
     updateFilePreviewFrames,
     updateFileThumbnail,
@@ -877,6 +878,34 @@ export function registerFileHandlers() {
         return {
             success: deleted,
             error: deleted ? undefined : 'ブックマークが見つかりません',
+        };
+    });
+
+    ipcMain.handle('file:updatePlaybackBookmarkNote', async (_event, {
+        bookmarkId,
+        note,
+    }: {
+        bookmarkId: string;
+        note?: string | null;
+    }) => {
+        if (!bookmarkId || typeof bookmarkId !== 'string') {
+            return { success: false, error: 'ブックマークが不正です', bookmark: null };
+        }
+
+        const bookmark = updatePlaybackBookmarkNote(bookmarkId, note);
+        if (!bookmark) {
+            return { success: false, error: 'ブックマークが見つかりません', bookmark: null };
+        }
+
+        return {
+            success: true,
+            bookmark: {
+                id: bookmark.id,
+                fileId: bookmark.fileId ?? bookmark.file_id,
+                timeSeconds: bookmark.timeSeconds ?? bookmark.time_seconds,
+                createdAt: bookmark.createdAt ?? bookmark.created_at,
+                note: bookmark.note ?? null,
+            },
         };
     });
 

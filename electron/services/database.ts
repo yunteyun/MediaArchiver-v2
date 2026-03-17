@@ -654,6 +654,32 @@ export function deletePlaybackBookmark(bookmarkId: string): boolean {
     return result.changes > 0;
 }
 
+export function updatePlaybackBookmarkNote(bookmarkId: string, note?: string | null): PlaybackBookmark | null {
+    const db = getDb();
+    const normalizedNote = typeof note === 'string' && note.trim().length > 0 ? note.trim().slice(0, 80) : null;
+    const existing = db.prepare(`
+        SELECT id, file_id, time_seconds, created_at, note
+        FROM playback_bookmarks
+        WHERE id = ?
+        LIMIT 1
+    `).get(bookmarkId) as PlaybackBookmark | undefined;
+
+    if (!existing) {
+        return null;
+    }
+
+    db.prepare(`
+        UPDATE playback_bookmarks
+        SET note = ?
+        WHERE id = ?
+    `).run(normalizedNote, bookmarkId);
+
+    return mapPlaybackBookmarkRow({
+        ...existing,
+        note: normalizedNote,
+    });
+}
+
 export function findFileById(id: string): MediaFile | undefined {
     const db = getDb();
     const row = db.prepare('SELECT * FROM files WHERE id = ?').get(id) as FileRow | undefined;

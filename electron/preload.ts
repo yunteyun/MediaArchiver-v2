@@ -182,6 +182,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
             success: boolean;
             error?: string;
         }>,
+    updatePlaybackBookmarkNote: (bookmarkId: string, note?: string | null) =>
+        ipcRenderer.invoke('file:updatePlaybackBookmarkNote', { bookmarkId, note }) as Promise<{
+            success: boolean;
+            error?: string;
+            bookmark: PlaybackBookmark | null;
+        }>,
     renameFile: (fileId: string, newName: string) =>
         ipcRenderer.invoke('file:rename', { fileId, newName }),
 

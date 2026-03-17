@@ -255,6 +255,11 @@ declare global {
                 success: boolean;
                 error?: string;
             }>;
+            updatePlaybackBookmarkNote: (bookmarkId: string, note?: string | null) => Promise<{
+                success: boolean;
+                error?: string;
+                bookmark: PlaybackBookmark | null;
+            }>;
             renameFile: (fileId: string, newName: string) => Promise<{ success: boolean; newName?: string; newPath?: string; error?: string }>;
 
             // Dialog
