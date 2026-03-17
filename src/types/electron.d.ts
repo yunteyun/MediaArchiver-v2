@@ -266,6 +266,12 @@ declare global {
                 thumbnailPath?: string;
                 thumbnailLocked?: boolean;
             }>;
+            setRepresentativeThumbnailFromSource: (fileId: string, sourcePath: string) => Promise<{
+                success: boolean;
+                error?: string;
+                thumbnailPath?: string;
+                thumbnailLocked?: boolean;
+            }>;
             restoreAutoThumbnail: (fileId: string) => Promise<{
                 success: boolean;
                 error?: string;

@@ -18,7 +18,13 @@ import {
     updateFileThumbnail,
     updateFileThumbnailState,
 } from '../services/database';
-import { generateThumbnail, generatePreviewFrames, generateVideoThumbnailAtTime, regenerateAllThumbnails } from '../services/thumbnail';
+import {
+    generateRepresentativeThumbnailFromImage,
+    generateThumbnail,
+    generatePreviewFrames,
+    generateVideoThumbnailAtTime,
+    regenerateAllThumbnails
+} from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
 import sharp from 'sharp';
@@ -990,6 +996,47 @@ export function registerFileHandlers() {
             success: true,
             thumbnailPath: nextThumbnailPath,
             thumbnailLocked: false,
+        };
+    });
+
+    ipcMain.handle('file:setRepresentativeThumbnailFromSource', async (_event, {
+        fileId,
+        sourcePath,
+    }: {
+        fileId: string;
+        sourcePath: string;
+    }) => {
+        const file = findFileById(fileId);
+        if (!file) {
+            return { success: false, error: 'ファイルが見つかりません' };
+        }
+
+        if (file.type !== 'archive') {
+            return { success: false, error: '書庫以外には使えません' };
+        }
+
+        if (!sourcePath || typeof sourcePath !== 'string' || !existsSync(sourcePath)) {
+            return { success: false, error: '表紙に使う画像が見つかりません' };
+        }
+
+        const nextThumbnailPath = await generateRepresentativeThumbnailFromImage(
+            sourcePath,
+            getThumbnailResolution(),
+        );
+        if (!nextThumbnailPath) {
+            return { success: false, error: '代表サムネイルを作れませんでした' };
+        }
+
+        const oldThumbnailPath = file.thumbnail_path ?? null;
+        updateFileThumbnailState(fileId, nextThumbnailPath, true);
+        if (oldThumbnailPath && oldThumbnailPath !== nextThumbnailPath) {
+            deleteThumbnailFile(oldThumbnailPath);
+        }
+
+        return {
+            success: true,
+            thumbnailPath: nextThumbnailPath,
+            thumbnailLocked: true,
         };
     });
 

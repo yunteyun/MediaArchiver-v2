@@ -218,6 +218,36 @@ export async function generateVideoThumbnailAtTime(
     }
 }
 
+export async function generateRepresentativeThumbnailFromImage(
+    imagePath: string,
+    resolution: number = 320
+): Promise<string | null> {
+    const outputPath = createThumbnailOutputPath('manual', '.webp', getCurrentProfileIdForThumbnails());
+    const perfStartedAt = startPerfTimer();
+
+    try {
+        await sharp(imagePath)
+            .resize(resolution, null, { fit: 'inside', withoutEnlargement: true })
+            .webp({ quality: THUMBNAIL_WEBP_QUALITY.archive })
+            .toFile(outputPath);
+
+        logPerf('thumbnail.generateRepresentativeThumbnailFromImage', perfStartedAt, {
+            file: path.basename(imagePath),
+            ok: true,
+            mode: 'sharp',
+        });
+        return outputPath;
+    } catch (error) {
+        log.error('Error generating representative thumbnail from image:', error);
+        logPerf('thumbnail.generateRepresentativeThumbnailFromImage', perfStartedAt, {
+            file: path.basename(imagePath),
+            ok: false,
+            mode: 'sharp',
+        });
+        return null;
+    }
+}
+
 /**
  * 動画サムネイルを WebP で生成
  * ffmpeg の screenshots API は PNG 固定のため -vcodec libwebp 方式を使用

@@ -195,6 +195,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
             thumbnailPath?: string;
             thumbnailLocked?: boolean;
         }>,
+    setRepresentativeThumbnailFromSource: (fileId: string, sourcePath: string) =>
+        ipcRenderer.invoke('file:setRepresentativeThumbnailFromSource', { fileId, sourcePath }) as Promise<{
+            success: boolean;
+            error?: string;
+            thumbnailPath?: string;
+            thumbnailLocked?: boolean;
+        }>,
     restoreAutoThumbnail: (fileId: string) =>
         ipcRenderer.invoke('file:restoreAutoThumbnail', { fileId }) as Promise<{
             success: boolean;
