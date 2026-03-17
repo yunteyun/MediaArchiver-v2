@@ -63,6 +63,7 @@ export interface PlaybackBookmark {
     file_id: string;
     time_seconds: number;
     created_at: number;
+    note?: string | null;
     fileId?: string;
     timeSeconds?: number;
     createdAt?: number;
@@ -584,6 +585,7 @@ function mapPlaybackBookmarkRow(row: PlaybackBookmark): PlaybackBookmark {
         file_id: row.file_id,
         time_seconds: row.time_seconds,
         created_at: row.created_at,
+        note: typeof row.note === 'string' && row.note.trim().length > 0 ? row.note.trim() : null,
         fileId: row.file_id,
         timeSeconds: row.time_seconds,
         createdAt: row.created_at,
@@ -593,7 +595,7 @@ function mapPlaybackBookmarkRow(row: PlaybackBookmark): PlaybackBookmark {
 export function getPlaybackBookmarks(fileId: string): PlaybackBookmark[] {
     const db = getDb();
     const rows = db.prepare(`
-        SELECT id, file_id, time_seconds, created_at
+        SELECT id, file_id, time_seconds, created_at, note
         FROM playback_bookmarks
         WHERE file_id = ?
         ORDER BY time_seconds ASC, created_at ASC
@@ -602,17 +604,31 @@ export function getPlaybackBookmarks(fileId: string): PlaybackBookmark[] {
     return rows.map((row) => mapPlaybackBookmarkRow(row));
 }
 
-export function createPlaybackBookmark(fileId: string, timeSeconds: number): PlaybackBookmark {
+export function createPlaybackBookmark(fileId: string, timeSeconds: number, note?: string | null): PlaybackBookmark {
     const db = getDb();
     const normalizedSeconds = Math.max(0, Math.round(timeSeconds * 10) / 10);
+    const normalizedNote = typeof note === 'string' && note.trim().length > 0 ? note.trim().slice(0, 80) : null;
     const existing = db.prepare(`
-        SELECT id, file_id, time_seconds, created_at
+        SELECT id, file_id, time_seconds, created_at, note
         FROM playback_bookmarks
         WHERE file_id = ? AND time_seconds = ?
         LIMIT 1
     `).get(fileId, normalizedSeconds) as PlaybackBookmark | undefined;
 
     if (existing) {
+        if (normalizedNote !== (existing.note ?? null)) {
+            db.prepare(`
+                UPDATE playback_bookmarks
+                SET note = ?
+                WHERE id = ?
+            `).run(normalizedNote, existing.id);
+
+            return mapPlaybackBookmarkRow({
+                ...existing,
+                note: normalizedNote,
+            });
+        }
+
         return mapPlaybackBookmarkRow(existing);
     }
 
@@ -621,12 +637,13 @@ export function createPlaybackBookmark(fileId: string, timeSeconds: number): Pla
         file_id: fileId,
         time_seconds: normalizedSeconds,
         created_at: Date.now(),
+        note: normalizedNote,
     };
 
     db.prepare(`
-        INSERT INTO playback_bookmarks (id, file_id, time_seconds, created_at)
-        VALUES (?, ?, ?, ?)
-    `).run(bookmark.id, bookmark.file_id, bookmark.time_seconds, bookmark.created_at);
+        INSERT INTO playback_bookmarks (id, file_id, time_seconds, created_at, note)
+        VALUES (?, ?, ?, ?, ?)
+    `).run(bookmark.id, bookmark.file_id, bookmark.time_seconds, bookmark.created_at, bookmark.note ?? null);
 
     return mapPlaybackBookmarkRow(bookmark);
 }

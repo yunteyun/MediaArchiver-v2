@@ -171,8 +171,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('file:updatePlaybackPosition', { fileId, playbackPositionSeconds }),
     getPlaybackBookmarks: (fileId: string) =>
         ipcRenderer.invoke('file:getPlaybackBookmarks', { fileId }) as Promise<PlaybackBookmark[]>,
-    createPlaybackBookmark: (fileId: string, timeSeconds: number) =>
-        ipcRenderer.invoke('file:createPlaybackBookmark', { fileId, timeSeconds }) as Promise<{
+    createPlaybackBookmark: (fileId: string, timeSeconds: number, note?: string | null) =>
+        ipcRenderer.invoke('file:createPlaybackBookmark', { fileId, timeSeconds, note }) as Promise<{
             success: boolean;
             error?: string;
             bookmark: PlaybackBookmark | null;

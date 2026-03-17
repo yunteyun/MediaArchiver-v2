@@ -825,15 +825,18 @@ export function registerFileHandlers() {
             fileId: bookmark.fileId ?? bookmark.file_id,
             timeSeconds: bookmark.timeSeconds ?? bookmark.time_seconds,
             createdAt: bookmark.createdAt ?? bookmark.created_at,
+            note: bookmark.note ?? null,
         }));
     });
 
     ipcMain.handle('file:createPlaybackBookmark', async (_event, {
         fileId,
         timeSeconds,
+        note,
     }: {
         fileId: string;
         timeSeconds: number;
+        note?: string | null;
     }) => {
         const file = findFileById(fileId);
         if (!file) {
@@ -852,7 +855,7 @@ export function registerFileHandlers() {
             };
         }
 
-        const bookmark = createPlaybackBookmark(fileId, timeSeconds);
+        const bookmark = createPlaybackBookmark(fileId, timeSeconds, note);
         return {
             success: true,
             bookmark: {
@@ -860,6 +863,7 @@ export function registerFileHandlers() {
                 fileId: bookmark.fileId ?? bookmark.file_id,
                 timeSeconds: bookmark.timeSeconds ?? bookmark.time_seconds,
                 createdAt: bookmark.createdAt ?? bookmark.created_at,
+                note: bookmark.note ?? null,
             },
         };
     });

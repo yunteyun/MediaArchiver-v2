@@ -30,6 +30,7 @@ export interface PlaybackBookmark {
     fileId: string;
     timeSeconds: number;
     createdAt: number;
+    note?: string | null;
 }
 
 export interface MediaFolder {

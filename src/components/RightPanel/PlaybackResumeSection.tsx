@@ -105,9 +105,6 @@ export const PlaybackResumeSection = React.memo<PlaybackResumeSectionProps>(({ f
             ) : (
                 <div className="space-y-2">
                     <SectionTitle>再開位置</SectionTitle>
-                    <p className="text-xs leading-5 text-surface-500">
-                        動画を中央ビューアで見た位置を自動で覚えます。見終わり付近まで再生した場合は自動で消えます。
-                    </p>
                     <div className="flex justify-start">
                         <button
                             ref={bookmarksButtonRef}

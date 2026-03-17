@@ -246,7 +246,7 @@ declare global {
                 playbackPositionUpdatedAt: number | null;
             }>;
             getPlaybackBookmarks: (fileId: string) => Promise<PlaybackBookmark[]>;
-            createPlaybackBookmark: (fileId: string, timeSeconds: number) => Promise<{
+            createPlaybackBookmark: (fileId: string, timeSeconds: number, note?: string | null) => Promise<{
                 success: boolean;
                 error?: string;
                 bookmark: PlaybackBookmark | null;
