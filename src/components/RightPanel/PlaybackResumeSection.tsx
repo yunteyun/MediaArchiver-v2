@@ -3,6 +3,7 @@ import type { MediaFile } from '../../types/file';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { SectionTitle } from './SectionTitle';
+import { PlaybackBookmarksPopover } from './PlaybackBookmarksSection';
 import { formatPlaybackTime, formatPlaybackUpdatedAt } from '../../utils/playbackTime';
 
 interface PlaybackResumeSectionProps {
@@ -13,9 +14,12 @@ export const PlaybackResumeSection = React.memo<PlaybackResumeSectionProps>(({ f
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const openLightbox = useUIStore((state) => state.openLightbox);
     const [isClearing, setIsClearing] = React.useState(false);
+    const [isBookmarksOpen, setIsBookmarksOpen] = React.useState(false);
+    const bookmarksButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
     React.useEffect(() => {
         setIsClearing(false);
+        setIsBookmarksOpen(false);
     }, [file.id]);
 
     if (file.type !== 'video') {
@@ -77,6 +81,18 @@ export const PlaybackResumeSection = React.memo<PlaybackResumeSectionProps>(({ f
                             続きから開く
                         </button>
                         <button
+                            ref={bookmarksButtonRef}
+                            type="button"
+                            onClick={() => setIsBookmarksOpen((prev) => !prev)}
+                            className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                isBookmarksOpen
+                                    ? 'border-primary-700 bg-primary-900/30 text-primary-100'
+                                    : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                            }`}
+                        >
+                            見どころ
+                        </button>
+                        <button
                             type="button"
                             onClick={handleClear}
                             disabled={isClearing}
@@ -87,13 +103,33 @@ export const PlaybackResumeSection = React.memo<PlaybackResumeSectionProps>(({ f
                     </div>
                 </>
             ) : (
-                <div className="space-y-1">
+                <div className="space-y-2">
                     <SectionTitle>再開位置</SectionTitle>
                     <p className="text-xs leading-5 text-surface-500">
                         動画を中央ビューアで見た位置を自動で覚えます。見終わり付近まで再生した場合は自動で消えます。
                     </p>
+                    <div className="flex justify-start">
+                        <button
+                            ref={bookmarksButtonRef}
+                            type="button"
+                            onClick={() => setIsBookmarksOpen((prev) => !prev)}
+                            className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                                isBookmarksOpen
+                                    ? 'border-primary-700 bg-primary-900/30 text-primary-100'
+                                    : 'border-surface-700 bg-surface-900 text-surface-300 hover:bg-surface-800'
+                            }`}
+                        >
+                            見どころ
+                        </button>
+                    </div>
                 </div>
             )}
+            <PlaybackBookmarksPopover
+                file={file}
+                anchorElement={bookmarksButtonRef.current}
+                open={isBookmarksOpen}
+                onClose={() => setIsBookmarksOpen(false)}
+            />
         </section>
     );
 });
