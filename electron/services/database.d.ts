@@ -23,6 +23,8 @@ export interface MediaFile {
     is_animated?: number;
     isAnimated?: boolean;
     thumbnailPath?: string;
+    thumbnail_locked?: number;
+    thumbnailLocked?: boolean;
     previewFrames?: string;
     rootFolderId?: string;
     contentHash?: string;
@@ -48,6 +50,7 @@ export interface ScannerFileRecord {
     metadata?: string;
     mtime_ms?: number;
     is_animated?: number;
+    thumbnail_locked?: number;
 }
 export interface MediaFolder {
     id: string;
@@ -90,6 +93,7 @@ export declare function updateFilePlaybackPosition(id: string, playbackPositionS
 };
 export declare function findFileById(id: string): MediaFile | undefined;
 export declare function updateFileThumbnail(id: string, thumbnailPath: string): void;
+export declare function updateFileThumbnailState(id: string, thumbnailPath: string, locked: boolean): void;
 export declare function updateFilePreviewFrames(id: string, previewFrames: string): void;
 export declare function incrementAccessCount(id: string): {
     accessCount: number;

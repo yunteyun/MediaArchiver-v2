@@ -20,7 +20,9 @@ export const RightPanel: React.FC = () => {
     const [folderPathById, setFolderPathById] = React.useState<Map<string, string>>(new Map());
 
     // 中央カラム内ビューア表示中は、そのファイルを優先して右パネルへ表示する
-    const file = lightboxFile ?? (focusedId ? fileMap.get(focusedId) : undefined);
+    const file = lightboxFile
+        ? (fileMap.get(lightboxFile.id) ?? lightboxFile)
+        : (focusedId ? fileMap.get(focusedId) : undefined);
     const rootFolderPath = file?.rootFolderId ? (folderPathById.get(file.rootFolderId) ?? null) : null;
 
     React.useEffect(() => {

@@ -464,7 +464,14 @@ async function scanDirectoryInternal(
 
                     // All media types need thumbnails (video, image, archive, audio)
                     const isMedia = type === 'video' || type === 'image' || type === 'archive' || type === 'audio';
-                    const hasThumbnail = !!existing?.thumbnail_path;
+                    const hasThumbnail = !!existing?.thumbnail_path && (() => {
+                        try {
+                            return fs.existsSync(existing.thumbnail_path);
+                        } catch {
+                            return false;
+                        }
+                    })();
+                    const hasLockedThumbnail = existing?.thumbnail_locked === 1 && hasThumbnail;
 
                     // Check if preview frames actually exist on disk (not just in DB)
                     let hasPreviewFrames = false;
@@ -527,7 +534,8 @@ async function scanDirectoryInternal(
                     }
 
                     // Generate thumbnail if missing
-                    let thumbnailPath = existing?.thumbnail_path;
+                    let thumbnailPath = hasThumbnail ? existing?.thumbnail_path : undefined;
+                    let thumbnailLocked = hasLockedThumbnail ? 1 : 0;
                     if (!thumbnailPath) {
                         try {
                             if (onProgress) {
@@ -543,7 +551,10 @@ async function scanDirectoryInternal(
                             // p-limitで同時実行数を制限（CPU負荷軽減）
                             const generated = await thumbnailLimit(() => generateThumbnail(fullPath, state.runtimeSettings.thumbnailResolution));
                             if (isScanCancelled(state.cancellationToken)) return;
-                            if (generated) thumbnailPath = generated;
+                            if (generated) {
+                                thumbnailPath = generated;
+                                thumbnailLocked = 0;
+                            }
                         } catch (e) {
                             log.error('Thumbnail generation failed:', e);
                         }
@@ -692,6 +703,7 @@ async function scanDirectoryInternal(
                         tags: existing ? db.getTagIdsByFileId(existing.id) : [],
                         duration: duration,
                         thumbnail_path: thumbnailPath,
+                        thumbnail_locked: thumbnailLocked,
                         preview_frames: previewFrames,
                         content_hash: existing?.content_hash,
                         metadata: metadata,

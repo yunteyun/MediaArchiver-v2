@@ -16,14 +16,15 @@ import {
     updateFilePlaybackPosition,
     updateFilePreviewFrames,
     updateFileThumbnail,
+    updateFileThumbnailState,
 } from '../services/database';
-import { generateThumbnail, generatePreviewFrames, regenerateAllThumbnails } from '../services/thumbnail';
+import { generateThumbnail, generatePreviewFrames, generateVideoThumbnailAtTime, regenerateAllThumbnails } from '../services/thumbnail';
 import { getPreviewFrameCount, getThumbnailResolution } from '../services/scanner';
 import path from 'path';
 import sharp from 'sharp';
 import { spawn } from 'child_process';
 import { access } from 'fs/promises';
-import { constants as fsConstants } from 'fs';
+import { constants as fsConstants, existsSync, unlinkSync } from 'fs';
 import { getCachedExternalApps } from './app';
 import { deleteFileSafe, moveFileToFolder, relocateFile, validateNewFileName } from '../services/fileOperationService';
 
@@ -221,6 +222,18 @@ async function openFilenameSearch(destination: SearchDestination, filePath: stri
 async function openImageSearch(destination: SearchDestination, imagePaths: string[]): Promise<void> {
     await copyImageToClipboard(imagePaths);
     await shell.openExternal(destination.url);
+}
+
+function deleteThumbnailFile(thumbnailPath?: string | null) {
+    if (!thumbnailPath || !existsSync(thumbnailPath)) {
+        return;
+    }
+
+    try {
+        unlinkSync(thumbnailPath);
+    } catch (error) {
+        console.warn('Failed to delete thumbnail file:', thumbnailPath, error);
+    }
 }
 
 export function registerFileHandlers() {
@@ -448,7 +461,11 @@ export function registerFileHandlers() {
                         // サムネイル生成
                         const thumbnailPath = await generateThumbnail(filePath, getThumbnailResolution());
                         if (thumbnailPath) {
-                            updateFileThumbnail(fileId, thumbnailPath);
+                            const oldThumbnailPath = file.thumbnail_path ?? null;
+                            updateFileThumbnailState(fileId, thumbnailPath, false);
+                            if (oldThumbnailPath && oldThumbnailPath !== thumbnailPath) {
+                                deleteThumbnailFile(oldThumbnailPath);
+                            }
                         }
 
                         // 動画ファイルの場合はプレビューフレームも再生成
@@ -909,6 +926,73 @@ export function registerFileHandlers() {
         };
     });
 
+    ipcMain.handle('file:setRepresentativeThumbnail', async (_event, {
+        fileId,
+        timeSeconds,
+    }: {
+        fileId: string;
+        timeSeconds: number;
+    }) => {
+        const file = findFileById(fileId);
+        if (!file) {
+            return { success: false, error: 'ファイルが見つかりません' };
+        }
+
+        if (file.type !== 'video') {
+            return { success: false, error: '動画以外には使えません' };
+        }
+
+        if (!Number.isFinite(timeSeconds) || timeSeconds < 0) {
+            return { success: false, error: '再生位置が不正です' };
+        }
+
+        const nextThumbnailPath = await generateVideoThumbnailAtTime(
+            file.path,
+            timeSeconds,
+            getThumbnailResolution(),
+        );
+
+        if (!nextThumbnailPath) {
+            return { success: false, error: '代表サムネイルを作れませんでした' };
+        }
+
+        const oldThumbnailPath = file.thumbnail_path ?? null;
+        updateFileThumbnailState(fileId, nextThumbnailPath, true);
+        if (oldThumbnailPath && oldThumbnailPath !== nextThumbnailPath) {
+            deleteThumbnailFile(oldThumbnailPath);
+        }
+
+        return {
+            success: true,
+            thumbnailPath: nextThumbnailPath,
+            thumbnailLocked: true,
+        };
+    });
+
+    ipcMain.handle('file:restoreAutoThumbnail', async (_event, { fileId }: { fileId: string }) => {
+        const file = findFileById(fileId);
+        if (!file) {
+            return { success: false, error: 'ファイルが見つかりません' };
+        }
+
+        const nextThumbnailPath = await generateThumbnail(file.path, getThumbnailResolution());
+        if (!nextThumbnailPath) {
+            return { success: false, error: '自動サムネイルを作れませんでした' };
+        }
+
+        const oldThumbnailPath = file.thumbnail_path ?? null;
+        updateFileThumbnailState(fileId, nextThumbnailPath, false);
+        if (oldThumbnailPath && oldThumbnailPath !== nextThumbnailPath) {
+            deleteThumbnailFile(oldThumbnailPath);
+        }
+
+        return {
+            success: true,
+            thumbnailPath: nextThumbnailPath,
+            thumbnailLocked: false,
+        };
+    });
+
     // Phase 22-C: ドライブ配下の全ファイル取得
     ipcMain.handle('getFilesByDrive', async (_, drive: string) => {
         const folders = getFolders().filter(f => f.drive === drive);
@@ -960,6 +1044,7 @@ export function registerFileHandlers() {
                 path: f.path,
                 type: f.type,
                 thumbnailPath: f.thumbnail_path ?? null,
+                thumbnailLocked: f.thumbnailLocked ?? false,
             })),
             async (fileId, newThumbnailPath) => {
                 updateFileThumbnail(fileId, newThumbnailPath);

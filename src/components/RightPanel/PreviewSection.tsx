@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { toMediaUrl } from '../../utils/mediaPath';
 import {
@@ -15,9 +16,12 @@ interface PreviewSectionProps {
 }
 
 export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
+    const refreshFile = useFileStore((s) => s.refreshFile);
     const openLightbox = useUIStore((s) => s.openLightbox);
     const lightboxFile = useUIStore((s) => s.lightboxFile);
+    const lightboxCurrentTime = useUIStore((s) => s.lightboxCurrentTime);
     const setPreviewContext = useUIStore((s) => s.setPreviewContext);
+    const showToast = useUIStore((s) => s.showToast);
     const videoVolume = useSettingsStore((s) => s.videoVolume);
     const rightPanelVideoMuted = useSettingsStore((s) => s.rightPanelVideoMuted);
     const rightPanelVideoPreviewMode = useSettingsStore((s) => s.rightPanelVideoPreviewMode);
@@ -29,9 +33,14 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
     const lastActivePreviewModeRef = useRef<'loop' | 'long'>(
         rightPanelVideoPreviewMode === 'long' ? 'long' : 'loop'
     );
+    const [isSavingRepresentative, setIsSavingRepresentative] = React.useState(false);
+    const [isRestoringRepresentative, setIsRestoringRepresentative] = React.useState(false);
 
     const isVideo = file.type === 'video';
     const isCenterViewerOpen = Boolean(lightboxFile);
+    const isCenterViewerTarget = lightboxFile?.id === file.id;
+    const hasCurrentPlaybackTime = typeof lightboxCurrentTime === 'number' && Number.isFinite(lightboxCurrentTime);
+    const canSetRepresentativeThumbnail = isVideo && isCenterViewerTarget && hasCurrentPlaybackTime;
     // GIF/WebP アニメーション: サムネイルではなく元ファイルを直接表示
     const isAnimated = file.isAnimated === true;
 
@@ -79,6 +88,46 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
 
     const handlePreviewClick = () => {
         openLightbox(file);
+    };
+
+    const handleSetRepresentativeThumbnail = async () => {
+        if (!canSetRepresentativeThumbnail || isSavingRepresentative || !hasCurrentPlaybackTime) return;
+        setIsSavingRepresentative(true);
+        try {
+            const result = await window.electronAPI.setRepresentativeThumbnail(file.id, lightboxCurrentTime);
+            if (!result.success) {
+                showToast(result.error || '表紙の固定に失敗しました', 'error');
+                return;
+            }
+
+            await refreshFile(file.id);
+            showToast('今の場面を表紙にしました', 'success', 2000);
+        } catch (error) {
+            console.error('Failed to set representative thumbnail:', error);
+            showToast('表紙の固定に失敗しました', 'error');
+        } finally {
+            setIsSavingRepresentative(false);
+        }
+    };
+
+    const handleRestoreAutoThumbnail = async () => {
+        if (!file.thumbnailLocked || isRestoringRepresentative) return;
+        setIsRestoringRepresentative(true);
+        try {
+            const result = await window.electronAPI.restoreAutoThumbnail(file.id);
+            if (!result.success) {
+                showToast(result.error || '自動サムネイルへ戻せませんでした', 'error');
+                return;
+            }
+
+            await refreshFile(file.id);
+            showToast('自動サムネイルへ戻しました', 'success', 2000);
+        } catch (error) {
+            console.error('Failed to restore auto thumbnail:', error);
+            showToast('自動サムネイルへ戻せませんでした', 'error');
+        } finally {
+            setIsRestoringRepresentative(false);
+        }
     };
 
     useEffect(() => {
@@ -307,6 +356,34 @@ export const PreviewSection = React.memo<PreviewSectionProps>(({ file }) => {
                     </div>
                 )}
             </div>
+            {isVideo && (
+                <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 text-[11px] text-surface-400">
+                        {file.thumbnailLocked ? '表紙: 固定中' : '表紙: 自動'}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={handleSetRepresentativeThumbnail}
+                            disabled={!canSetRepresentativeThumbnail || isSavingRepresentative || isRestoringRepresentative}
+                            className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-200 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={canSetRepresentativeThumbnail ? '中央ビューアの現在位置を表紙に固定' : '中央ビューアで動画を開いているときに使えます'}
+                        >
+                            {isSavingRepresentative ? '保存中...' : '今の場面を表紙にする'}
+                        </button>
+                        {file.thumbnailLocked && (
+                            <button
+                                type="button"
+                                onClick={handleRestoreAutoThumbnail}
+                                disabled={isRestoringRepresentative || isSavingRepresentative}
+                                className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {isRestoringRepresentative ? '戻し中...' : '自動へ戻す'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
         </section>
     );
 });

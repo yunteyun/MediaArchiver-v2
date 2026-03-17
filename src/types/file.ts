@@ -23,6 +23,7 @@ export interface MediaFile {
     lastExternalOpenedAt: number | null;
     playbackPositionSeconds?: number | null;
     playbackPositionUpdatedAt?: number | null;
+    thumbnailLocked?: boolean;
 }
 
 export interface PlaybackBookmark {

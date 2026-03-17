@@ -34,6 +34,7 @@ function mapFileForRenderer(f: DatabaseMediaFile): RendererMediaFile {
         lastExternalOpenedAt: f.lastExternalOpenedAt ?? null,
         playbackPositionSeconds: f.playbackPositionSeconds ?? null,
         playbackPositionUpdatedAt: f.playbackPositionUpdatedAt ?? null,
+        thumbnailLocked: f.thumbnailLocked ?? (f.thumbnail_locked === 1),
     };
 }
 

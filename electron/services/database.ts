@@ -43,6 +43,8 @@ export interface MediaFile {
     // Phase 15-2: フロントエンド用 camelCase エイリアス
     isAnimated?: boolean;
     thumbnailPath?: string;
+    thumbnail_locked?: number;
+    thumbnailLocked?: boolean;
     previewFrames?: string;
     rootFolderId?: string;
     contentHash?: string;
@@ -91,6 +93,7 @@ interface FileRow {
     last_external_opened_at?: number | null;
     playback_position_seconds?: number | null;
     playback_position_updated_at?: number | null;
+    thumbnail_locked?: number;
 }
 
 export interface ScannerFileRecord {
@@ -106,6 +109,7 @@ export interface ScannerFileRecord {
     metadata?: string;
     mtime_ms?: number;
     is_animated?: number;
+    thumbnail_locked?: number;
 }
 
 export interface MediaFolder {
@@ -192,9 +196,11 @@ function mapRow(f: FileRow): MediaFile {
         mtime_ms: f.mtime_ms,
         notes: f.notes,
         is_animated: f.is_animated,
+        thumbnail_locked: f.thumbnail_locked,
         // Phase 15-2: フロントエンド用 camelCase フィールド
         isAnimated: f.is_animated === 1,
         thumbnailPath: f.thumbnail_path,
+        thumbnailLocked: f.thumbnail_locked === 1,
         previewFrames: f.preview_frames,
         rootFolderId: f.root_folder_id,
         contentHash: f.content_hash,
@@ -303,6 +309,7 @@ export function findFileScanRecordByPath(filePath: string): ScannerFileRecord | 
     const db = getDb();
     const row = db.prepare(`
         SELECT id, path, size, type, duration, thumbnail_path, preview_frames, root_folder_id, content_hash, metadata, mtime_ms, is_animated
+             , thumbnail_locked
         FROM files
         WHERE path = ?
     `).get(filePath) as ScannerFileRecord | undefined;
@@ -320,6 +327,7 @@ export function findFileScanRecordByPath(filePath: string): ScannerFileRecord | 
         metadata: row.metadata,
         mtime_ms: row.mtime_ms,
         is_animated: row.is_animated,
+        thumbnail_locked: row.thumbnail_locked,
     };
 }
 
@@ -348,7 +356,8 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
                 preview_frames = COALESCE(?, preview_frames),
                 metadata = COALESCE(?, metadata),
                 type = COALESCE(?, type),
-                is_animated = COALESCE(?, is_animated)
+                is_animated = COALESCE(?, is_animated),
+                thumbnail_locked = COALESCE(?, thumbnail_locked)
             WHERE id = ?
         `);
 
@@ -362,6 +371,7 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
             fileData.metadata,
             fileData.type,
             fileData.is_animated,
+            fileData.thumbnail_locked,
             existing.id
         );
 
@@ -372,8 +382,8 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
             INSERT INTO files (
                 id, name, path, size, type, created_at, 
                 duration, thumbnail_path, preview_frames, 
-                root_folder_id, content_hash, metadata, mtime_ms, is_animated
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                root_folder_id, content_hash, metadata, mtime_ms, is_animated, thumbnail_locked
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
@@ -390,7 +400,8 @@ export function insertFile(fileData: Partial<MediaFile> & { name: string; path: 
             fileData.content_hash,
             fileData.metadata,
             fileData.mtime_ms,
-            fileData.is_animated
+            fileData.is_animated,
+            fileData.thumbnail_locked ?? 0
         );
 
         return {
@@ -477,7 +488,8 @@ export function upsertFileRecord(
                 preview_frames = COALESCE(?, preview_frames),
                 metadata = COALESCE(?, metadata),
                 type = COALESCE(?, type),
-                is_animated = COALESCE(?, is_animated)
+                is_animated = COALESCE(?, is_animated),
+                thumbnail_locked = COALESCE(?, thumbnail_locked)
             WHERE id = ?
         `).run(
             fileData.size,
@@ -489,6 +501,7 @@ export function upsertFileRecord(
             fileData.metadata,
             fileData.type,
             fileData.is_animated,
+            fileData.thumbnail_locked,
             existingId
         );
         return;
@@ -498,8 +511,8 @@ export function upsertFileRecord(
         INSERT INTO files (
             id, name, path, size, type, created_at,
             duration, thumbnail_path, preview_frames,
-            root_folder_id, content_hash, metadata, mtime_ms, is_animated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            root_folder_id, content_hash, metadata, mtime_ms, is_animated, thumbnail_locked
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         uuidv4(),
         fileData.name,
@@ -514,7 +527,8 @@ export function upsertFileRecord(
         fileData.content_hash,
         fileData.metadata,
         fileData.mtime_ms,
-        fileData.is_animated
+        fileData.is_animated,
+        fileData.thumbnail_locked ?? 0
     );
 }
 
@@ -693,6 +707,16 @@ export function findFileById(id: string): MediaFile | undefined {
 export function updateFileThumbnail(id: string, thumbnailPath: string) {
     const db = getDb();
     db.prepare('UPDATE files SET thumbnail_path = ? WHERE id = ?').run(thumbnailPath, id);
+}
+
+export function updateFileThumbnailState(id: string, thumbnailPath: string, locked: boolean) {
+    const db = getDb();
+    db.prepare(`
+        UPDATE files
+        SET thumbnail_path = ?,
+            thumbnail_locked = ?
+        WHERE id = ?
+    `).run(thumbnailPath, locked ? 1 : 0, id);
 }
 
 export function updateFilePreviewFrames(id: string, previewFrames: string) {

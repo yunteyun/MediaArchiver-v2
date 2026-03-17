@@ -188,6 +188,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
             error?: string;
             bookmark: PlaybackBookmark | null;
         }>,
+    setRepresentativeThumbnail: (fileId: string, timeSeconds: number) =>
+        ipcRenderer.invoke('file:setRepresentativeThumbnail', { fileId, timeSeconds }) as Promise<{
+            success: boolean;
+            error?: string;
+            thumbnailPath?: string;
+            thumbnailLocked?: boolean;
+        }>,
+    restoreAutoThumbnail: (fileId: string) =>
+        ipcRenderer.invoke('file:restoreAutoThumbnail', { fileId }) as Promise<{
+            success: boolean;
+            error?: string;
+            thumbnailPath?: string;
+            thumbnailLocked?: boolean;
+        }>,
     renameFile: (fileId: string, newName: string) =>
         ipcRenderer.invoke('file:rename', { fileId, newName }),
 

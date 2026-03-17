@@ -164,6 +164,60 @@ export async function generateThumbnail(filePath: string, resolution: number = 3
     return null;
 }
 
+export async function generateVideoThumbnailAtTime(
+    videoPath: string,
+    timeSeconds: number,
+    resolution: number = 320
+): Promise<string | null> {
+    const outputPath = createThumbnailOutputPath('manual', '.webp', getCurrentProfileIdForThumbnails());
+    const perfStartedAt = startPerfTimer();
+
+    try {
+        const normalizedTime = Number.isFinite(timeSeconds) ? Math.max(0, timeSeconds) : 0;
+        return await new Promise((resolve) => {
+            ffmpeg(videoPath)
+                .seekInput(normalizedTime)
+                .outputOptions([
+                    '-vframes', '1',
+                    '-vf', `scale=${resolution}:-1`,
+                    '-vcodec', 'libwebp',
+                    '-quality', String(THUMBNAIL_WEBP_QUALITY.video),
+                    '-threads', '1',
+                ])
+                .output(outputPath)
+                .on('end', () => {
+                    logPerf('thumbnail.generateVideoThumbnailAtTime', perfStartedAt, {
+                        file: path.basename(videoPath),
+                        ok: true,
+                        mode: 'inline',
+                        timeSeconds: Number(normalizedTime.toFixed(1)),
+                    });
+                    resolve(outputPath);
+                })
+                .on('error', (error) => {
+                    log.error('Error generating representative thumbnail:', error);
+                    logPerf('thumbnail.generateVideoThumbnailAtTime', perfStartedAt, {
+                        file: path.basename(videoPath),
+                        ok: false,
+                        mode: 'inline',
+                        timeSeconds: Number(normalizedTime.toFixed(1)),
+                    });
+                    resolve(null);
+                })
+                .run();
+        });
+    } catch (error) {
+        log.error('generateVideoThumbnailAtTime exception:', error);
+        logPerf('thumbnail.generateVideoThumbnailAtTime', perfStartedAt, {
+            file: path.basename(videoPath),
+            ok: false,
+            mode: 'inline',
+            timeSeconds: Number((Number.isFinite(timeSeconds) ? timeSeconds : 0).toFixed(1)),
+        });
+        return null;
+    }
+}
+
 /**
  * 動画サムネイルを WebP で生成
  * ffmpeg の screenshots API は PNG 固定のため -vcodec libwebp 方式を使用
@@ -714,7 +768,7 @@ export async function checkIsAnimated(filePath: string): Promise<boolean> {
  * @param onProgress 進捗コールバック
  */
 export async function regenerateAllThumbnails(
-    files: { id: string; path: string; type: string; thumbnailPath: string | null }[],
+    files: { id: string; path: string; type: string; thumbnailPath: string | null; thumbnailLocked?: boolean }[],
     updateDB: (fileId: string, newThumbnailPath: string) => Promise<void>,
     onProgress: (current: number, total: number) => void
 ): Promise<{ success: number; failed: number }> {
@@ -727,6 +781,10 @@ export async function regenerateAllThumbnails(
 
         await Promise.all(batch.map(async (file) => {
             try {
+                if (file.thumbnailLocked) {
+                    return;
+                }
+
                 const oldPath = file.thumbnailPath;
 
                 // 1. 新WebP生成

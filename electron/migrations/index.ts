@@ -28,6 +28,7 @@ import { addFolderBadgeColor } from './015_add_folder_badge_color';
 import { addPlaybackPosition } from './016_add_playback_position';
 import { addPlaybackBookmarks } from './017_add_playback_bookmarks';
 import { addPlaybackBookmarkNote } from './018_add_playback_bookmark_note';
+import { addThumbnailLock } from './019_add_thumbnail_lock';
 // 将来のマイグレーション:
 // import { xxx } from './010_xxx';
 
@@ -57,6 +58,7 @@ const MIGRATIONS: Migration[] = [
     addPlaybackPosition, // Video playback resume position
     addPlaybackBookmarks, // Video scene bookmarks
     addPlaybackBookmarkNote, // Video scene bookmark note
+    addThumbnailLock, // Manual representative thumbnail lock
 ];
 
 /**

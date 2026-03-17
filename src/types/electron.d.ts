@@ -260,6 +260,18 @@ declare global {
                 error?: string;
                 bookmark: PlaybackBookmark | null;
             }>;
+            setRepresentativeThumbnail: (fileId: string, timeSeconds: number) => Promise<{
+                success: boolean;
+                error?: string;
+                thumbnailPath?: string;
+                thumbnailLocked?: boolean;
+            }>;
+            restoreAutoThumbnail: (fileId: string) => Promise<{
+                success: boolean;
+                error?: string;
+                thumbnailPath?: string;
+                thumbnailLocked?: boolean;
+            }>;
             renameFile: (fileId: string, newName: string) => Promise<{ success: boolean; newName?: string; newPath?: string; error?: string }>;
 
             // Dialog
