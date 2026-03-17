@@ -14,7 +14,7 @@ export default defineConfig(async () => ({
                 entry: 'electron/bootstrap.ts',
                 vite: {
                     build: {
-                        emptyOutDir: true,
+                        emptyOutDir: false,
                         rollupOptions: {
                             external: electronExternal,
                             output: {

@@ -1,4 +1,5 @@
 import { utilityProcess, type UtilityProcess } from 'electron';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from './logger';
@@ -19,8 +20,25 @@ import type {
 } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('PreviewFrameWorkerService');
-const workerScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'previewFrameWorker.js');
 const PREVIEW_FRAME_JOB_TIMEOUT_MS = 90_000;
+
+function resolveWorkerScriptPath(): string {
+    const candidates = [
+        path.join(path.dirname(fileURLToPath(import.meta.url)), 'previewFrameWorker.js'),
+        path.join(process.resourcesPath, 'dist-electron', 'previewFrameWorker.js'),
+        path.join(process.resourcesPath, 'app.asar.unpacked', 'dist-electron', 'previewFrameWorker.js'),
+    ];
+    const resolved = candidates.find((candidate) => fs.existsSync(candidate));
+
+    if (!resolved) {
+        log.error('Preview frame worker entry not found in packaged build', { candidates });
+        return candidates[0]!;
+    }
+
+    return resolved;
+}
+
+const workerScriptPath = resolveWorkerScriptPath();
 
 interface QueuedPreviewFrameJob {
     request: PreviewFrameJobRequest | VideoThumbnailJobRequest | VideoDurationJobRequest | AudioThumbnailJobRequest | MediaMetadataJobRequest;
