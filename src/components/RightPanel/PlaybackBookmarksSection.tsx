@@ -12,8 +12,8 @@ interface PlaybackBookmarksPopoverProps {
     onClose: () => void;
 }
 
-const POPOVER_WIDTH = 320;
-const POPOVER_HEIGHT = 412;
+const POPOVER_WIDTH = 360;
+const POPOVER_HEIGHT = 432;
 const VIEWPORT_PADDING = 12;
 const POPOVER_GAP = 8;
 
@@ -254,15 +254,15 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     const bookmarkRows = bookmarks.map((bookmark) => (
         <div
             key={bookmark.id}
-            className="space-y-2 rounded-md border border-surface-700 bg-surface-900/60 px-2 py-2"
+            className="space-y-2 rounded-md border border-surface-700 bg-surface-900/60 px-3 py-2.5"
         >
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-surface-100">
                         {formatPlaybackTime(bookmark.timeSeconds)}
                     </div>
                     {editingBookmarkId !== bookmark.id && bookmark.note && (
-                        <div className="truncate text-[11px] text-surface-400" title={bookmark.note}>
+                        <div className="mt-1 truncate text-[11px] text-surface-400" title={bookmark.note}>
                             {bookmark.note}
                         </div>
                     )}
@@ -277,13 +277,15 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                 >
                     ここから開く
                 </button>
+            </div>
+            <div className="flex justify-end gap-1.5">
                 <button
                     type="button"
                     onClick={() => {
                         void handleSetBookmarkRepresentative(bookmark);
                     }}
                     disabled={settingRepresentativeBookmarkId === bookmark.id}
-                    className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-surface-700 bg-surface-900 text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
                     title="この見どころを表紙にする"
                     aria-label="この見どころを表紙にする"
                 >
@@ -311,9 +313,21 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                         }
                         handleStartEdit(bookmark);
                     }}
-                    className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-surface-700 bg-surface-900 text-surface-300 transition-colors hover:bg-surface-800"
+                    title={editingBookmarkId === bookmark.id ? 'メモ編集を閉じる' : 'メモを編集する'}
+                    aria-label={editingBookmarkId === bookmark.id ? 'メモ編集を閉じる' : 'メモを編集する'}
                 >
-                    {editingBookmarkId === bookmark.id ? '閉じる' : 'メモ'}
+                    {editingBookmarkId === bookmark.id ? (
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    ) : (
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="m4 20 4.5-1 9-9-3.5-3.5-9 9L4 20Z" />
+                            <path d="M13.5 6.5 17 10" />
+                        </svg>
+                    )}
                 </button>
                 <button
                     type="button"
@@ -321,9 +335,22 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                         void handleDeleteBookmark(bookmark.id);
                     }}
                     disabled={deletingBookmarkId === bookmark.id}
-                    className="rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-surface-700 bg-surface-900 text-surface-300 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    title="この見どころを削除"
+                    aria-label="この見どころを削除"
                 >
-                    {deletingBookmarkId === bookmark.id ? '削除中...' : '削除'}
+                    {deletingBookmarkId === bookmark.id ? (
+                        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" opacity="0.35" />
+                            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                    ) : (
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M4 7h16" />
+                            <path d="M9 7V5h6v2" />
+                            <path d="M7 7l1 12h8l1-12" />
+                        </svg>
+                    )}
                 </button>
             </div>
             {editingBookmarkId === bookmark.id && (
