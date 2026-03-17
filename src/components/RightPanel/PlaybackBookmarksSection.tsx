@@ -16,6 +16,10 @@ const POPOVER_WIDTH = 360;
 const POPOVER_HEIGHT = 432;
 const VIEWPORT_PADDING = 12;
 const POPOVER_GAP = 8;
+const BOOKMARK_DUPLICATE_THRESHOLD_SECONDS = 2;
+const BOOKMARK_SORT_STORAGE_KEY = 'playback-bookmarks-sort-mode';
+
+type BookmarkSortMode = 'timeline' | 'recent';
 
 export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps>(({
     file,
@@ -37,6 +41,14 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     const [savingBookmarkId, setSavingBookmarkId] = React.useState<string | null>(null);
     const [settingRepresentativeBookmarkId, setSettingRepresentativeBookmarkId] = React.useState<string | null>(null);
     const [highlightedBookmarkId, setHighlightedBookmarkId] = React.useState<string | null>(null);
+    const [sortMode, setSortMode] = React.useState<BookmarkSortMode>(() => {
+        try {
+            const stored = window.localStorage.getItem(BOOKMARK_SORT_STORAGE_KEY);
+            return stored === 'recent' ? 'recent' : 'timeline';
+        } catch {
+            return 'timeline';
+        }
+    });
     const [popoverStyle, setPopoverStyle] = React.useState<React.CSSProperties>({});
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -44,6 +56,15 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         ? Math.max(0, lightboxCurrentTime)
         : null;
     const canAddBookmark = activeCurrentTime !== null;
+    const sortBookmarks = React.useCallback((items: PlaybackBookmark[]) => {
+        const next = [...items];
+        if (sortMode === 'recent') {
+            return next.sort((a, b) => b.createdAt - a.createdAt || a.timeSeconds - b.timeSeconds);
+        }
+
+        return next.sort((a, b) => a.timeSeconds - b.timeSeconds || a.createdAt - b.createdAt);
+    }, [sortMode]);
+    const sortedBookmarks = React.useMemo(() => sortBookmarks(bookmarks), [bookmarks, sortBookmarks]);
 
     const updatePopoverPosition = React.useCallback(() => {
         if (!anchorElement) {
@@ -88,9 +109,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
             try {
                 const result = await window.electronAPI.getPlaybackBookmarks(file.id);
                 if (!disposed) {
-                    setBookmarks(
-                        [...result].sort((a, b) => a.timeSeconds - b.timeSeconds || a.createdAt - b.createdAt)
-                    );
+                    setBookmarks(result);
                 }
             } catch (error) {
                 console.error('Failed to load playback bookmarks:', error);
@@ -164,6 +183,14 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     }, [file.id, open]);
 
     React.useEffect(() => {
+        try {
+            window.localStorage.setItem(BOOKMARK_SORT_STORAGE_KEY, sortMode);
+        } catch {
+            // Ignore storage failures and keep the current in-memory setting.
+        }
+    }, [sortMode]);
+
+    React.useEffect(() => {
         if (!highlightedBookmarkId) return;
 
         const timeoutId = window.setTimeout(() => {
@@ -183,6 +210,18 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
 
     const handleAddBookmark = async () => {
         if (!canAddBookmark || activeCurrentTime === null || isAdding) return;
+
+        const nearbyBookmark = bookmarks.find((bookmark) => (
+            Math.abs(bookmark.timeSeconds - activeCurrentTime) < BOOKMARK_DUPLICATE_THRESHOLD_SECONDS
+        ));
+        if (nearbyBookmark) {
+            setHighlightedBookmarkId(nearbyBookmark.id);
+            if (Math.abs(nearbyBookmark.timeSeconds - activeCurrentTime) >= 0.2) {
+                showToast('近い見どころがあるため、そちらを使います', 'info', 1800);
+            }
+            return;
+        }
+
         setIsAdding(true);
         try {
             const result = await window.electronAPI.createPlaybackBookmark(file.id, activeCurrentTime);
@@ -195,7 +234,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                 } else {
                     next.push(result.bookmark!);
                 }
-                return next.sort((a, b) => a.timeSeconds - b.timeSeconds || a.createdAt - b.createdAt);
+                return next;
             });
             setHighlightedBookmarkId(result.bookmark.id);
         } catch (error) {
@@ -269,7 +308,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         }
     };
 
-    const bookmarkRows = bookmarks.map((bookmark) => {
+    const bookmarkRows = sortedBookmarks.map((bookmark) => {
         const isEditing = editingBookmarkId === bookmark.id;
         const hasNote = Boolean(bookmark.note?.trim());
         const isHighlighted = highlightedBookmarkId === bookmark.id;
@@ -441,16 +480,29 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
                     )}
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => {
-                        void handleAddBookmark();
-                    }}
-                    disabled={!canAddBookmark || isAdding}
-                    className="w-full rounded-md border border-surface-700 bg-surface-950 px-2.5 py-1.5 text-xs font-medium text-surface-200 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                    {isAdding ? '追加中...' : '今の位置を追加'}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            void handleAddBookmark();
+                        }}
+                        disabled={!canAddBookmark || isAdding}
+                        className="min-w-0 flex-1 rounded-md border border-surface-700 bg-surface-950 px-2.5 py-1.5 text-xs font-medium text-surface-200 transition-colors hover:bg-surface-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isAdding ? '追加中...' : '今の位置を追加'}
+                    </button>
+                    {bookmarks.length > 1 && (
+                        <button
+                            type="button"
+                            onClick={() => setSortMode((current) => (current === 'timeline' ? 'recent' : 'timeline'))}
+                            className="shrink-0 rounded-md border border-surface-700 bg-surface-950 px-2.5 py-1.5 text-[11px] font-medium text-surface-300 transition-colors hover:bg-surface-800"
+                            title="見どころの表示順を切り替える"
+                            aria-label="見どころの表示順を切り替える"
+                        >
+                            {sortMode === 'timeline' ? '時刻順' : '新しい順'}
+                        </button>
+                    )}
+                </div>
 
                 {isLoading ? (
                     <p className="text-xs text-surface-500">読み込み中...</p>
