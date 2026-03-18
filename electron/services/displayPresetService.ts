@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
 import type { ExternalDisplayPresetManifest } from '../../src/components/fileCard/displayModes';
+import { getBasePath } from './storageConfig';
 
 const VALID_DISPLAY_MODES = new Set([
     'standard',
@@ -367,12 +368,38 @@ function normalizeManifest(raw: unknown): NormalizeManifestResult {
 }
 
 export function getDisplayPresetDirectory(): string {
+    return path.join(getBasePath(), 'display-presets');
+}
+
+function getLegacyDisplayPresetDirectory(): string {
     return path.join(app.getPath('userData'), 'display-presets');
+}
+
+function migrateLegacyDisplayPresetDirectory(targetDirectory: string): void {
+    const legacyDirectory = getLegacyDisplayPresetDirectory();
+
+    if (legacyDirectory === targetDirectory || !fs.existsSync(legacyDirectory)) {
+        return;
+    }
+
+    for (const entry of fs.readdirSync(legacyDirectory, { withFileTypes: true })) {
+        if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== '.json') continue;
+
+        const legacyPath = path.join(legacyDirectory, entry.name);
+        const targetPath = path.join(targetDirectory, entry.name);
+
+        if (fs.existsSync(targetPath)) {
+            continue;
+        }
+
+        fs.copyFileSync(legacyPath, targetPath);
+    }
 }
 
 function ensureDisplayPresetDirectory(): string {
     const directory = getDisplayPresetDirectory();
     fs.mkdirSync(directory, { recursive: true });
+    migrateLegacyDisplayPresetDirectory(directory);
 
     const defaultManifests = [
         {

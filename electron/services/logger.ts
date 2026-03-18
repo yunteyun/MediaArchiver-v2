@@ -55,13 +55,17 @@ function resolveLogsPath(): string {
     return path.join(candidateBase, 'logs');
 }
 
+function resolveBootstrapLogsPath(): string {
+    return path.join(app.getPath('userData'), 'bootstrap-logs', getRuntimeScope());
+}
+
 function ensureLogsDirectory(targetPath: string): void {
     if (!fs.existsSync(targetPath)) {
         fs.mkdirSync(targetPath, { recursive: true });
     }
 }
 
-let logsPath = path.join(app.getPath('userData'), 'logs');
+let logsPath = resolveBootstrapLogsPath();
 ensureLogsDirectory(logsPath);
 
 log.transports.file.resolvePathFn = () => {

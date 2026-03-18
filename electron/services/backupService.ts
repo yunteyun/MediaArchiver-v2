@@ -50,6 +50,10 @@ export const DEFAULT_BACKUP_SETTINGS: BackupSettings = {
 // --- Helper Functions ---
 
 function getBackupSettingsPath(): string {
+    return path.join(getBasePath(), BACKUP_SETTINGS_FILENAME);
+}
+
+function getLegacyBackupSettingsPath(): string {
     return path.join(app.getPath('userData'), BACKUP_SETTINGS_FILENAME);
 }
 
@@ -149,8 +153,33 @@ function reloadWindowsAfterRestoreInDev(): void {
 
 export function loadBackupSettings(): BackupSettings {
     const settingsPath = getBackupSettingsPath();
+    const legacySettingsPath = getLegacyBackupSettingsPath();
+
+    if (!fs.existsSync(settingsPath) && fs.existsSync(legacySettingsPath)) {
+        try {
+            const parsed = JSON.parse(fs.readFileSync(legacySettingsPath, 'utf-8')) as Partial<BackupSettings>;
+            const normalized = normalizeBackupSettings(parsed);
+            fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+            fs.writeFileSync(settingsPath, JSON.stringify(normalized, null, 2), 'utf-8');
+            log.info(`Migrated backup settings to current storage path: ${settingsPath}`);
+            return normalized;
+        } catch (error) {
+            log.warn('Failed to migrate legacy backup settings. Falling back to legacy read.', error);
+        }
+    }
+
     if (!fs.existsSync(settingsPath)) {
-        return { ...DEFAULT_BACKUP_SETTINGS };
+        if (!fs.existsSync(legacySettingsPath)) {
+            return { ...DEFAULT_BACKUP_SETTINGS };
+        }
+
+        try {
+            const parsed = JSON.parse(fs.readFileSync(legacySettingsPath, 'utf-8')) as Partial<BackupSettings>;
+            return normalizeBackupSettings(parsed);
+        } catch (error) {
+            log.warn('Failed to read legacy backup settings. Falling back to defaults.', error);
+            return { ...DEFAULT_BACKUP_SETTINGS };
+        }
     }
 
     try {
@@ -165,6 +194,7 @@ export function loadBackupSettings(): BackupSettings {
 export function saveBackupSettings(settings: BackupSettings): BackupSettings {
     const normalized = normalizeBackupSettings(settings);
     const settingsPath = getBackupSettingsPath();
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
     fs.writeFileSync(settingsPath, JSON.stringify(normalized, null, 2), 'utf-8');
     return normalized;
 }
