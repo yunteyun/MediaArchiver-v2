@@ -34,12 +34,14 @@ Electron + React で動作します。
 - `update.bat` はアプリ本体と同じフォルダで使う前提です
 - `update.bat` は `MediaArchiver v2.exe` を自動終了して上書き更新します
 - 詳細手順は `docs/user/アプリ使用メモ.md` を参照してください
+- 保存場所とログの整理は `docs/user/保存場所とログ.md` を参照してください
 
 ### 保存場所・ログについて（要点）
 
 - 保存先は設定で変更できます
 - `install` モードでは、アプリフォルダ配下の `data` を使用します
 - ログは保存モードに応じた場所に保存されます（例: `data/logs`）
+- 起動しない時は `AppData\\Roaming\\media-archiver-v2\\bootstrap-logs` を見ると原因を追いやすいです
 
 ## 開発者向け
 
