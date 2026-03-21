@@ -23,12 +23,64 @@ const REQUIRED_BINARIES = {
     ],
 };
 
+function removeIfExists(targetPath) {
+    if (!fs.existsSync(targetPath)) {
+        return;
+    }
+    fs.rmSync(targetPath, { recursive: true, force: true });
+    console.log(`[afterPack] Removed: ${targetPath}`);
+}
+
+function pruneWindowsOnlyArtifacts(appOutDir) {
+    const unpackedNodeModulesDir = path.join(
+        appOutDir,
+        'resources',
+        'app.asar.unpacked',
+        'node_modules'
+    );
+
+    const removeTargets = [
+        path.join(unpackedNodeModulesDir, '7zip-bin', 'linux'),
+        path.join(unpackedNodeModulesDir, '7zip-bin', 'mac'),
+        path.join(unpackedNodeModulesDir, '7zip-bin', 'win', 'arm64'),
+        path.join(unpackedNodeModulesDir, '7zip-bin', 'win', 'ia32'),
+        path.join(unpackedNodeModulesDir, 'ffprobe-static', 'bin', 'darwin'),
+        path.join(unpackedNodeModulesDir, 'ffprobe-static', 'bin', 'linux'),
+        path.join(unpackedNodeModulesDir, 'ffprobe-static', 'bin', 'win32', 'ia32'),
+    ];
+
+    for (const targetPath of removeTargets) {
+        removeIfExists(targetPath);
+    }
+}
+
+function pruneBundledReleaseNotes(appOutDir, version) {
+    const releaseNotesDir = path.join(appOutDir, 'resources', 'release-notes');
+    if (!fs.existsSync(releaseNotesDir)) {
+        return;
+    }
+
+    const normalizedVersion = String(version).trim().replace(/^v/i, '').replace(/-d/i, 'd');
+    const keepFiles = new Set([
+        `v${version}.md`,
+        `v${normalizedVersion}.md`,
+    ]);
+
+    for (const entry of fs.readdirSync(releaseNotesDir, { withFileTypes: true })) {
+        if (!entry.isFile() || keepFiles.has(entry.name)) {
+            continue;
+        }
+        removeIfExists(path.join(releaseNotesDir, entry.name));
+    }
+}
+
 /**
  * @param {import('electron-builder').AfterPackContext} context
  */
 exports.default = async function afterPack(context) {
     const { appOutDir, packager } = context;
     const platform = packager.platform.name; // 'windows' | 'mac' | 'linux'
+    const version = packager.appInfo.version;
 
     // electron-builder プラットフォーム名を Node.js 形式に変換
     const platformMap = { windows: 'win32', mac: 'darwin', linux: 'linux' };
@@ -73,6 +125,11 @@ exports.default = async function afterPack(context) {
     }
 
     console.log('[afterPack] ✓ Found preload fallback: resources/dist-electron/preload.js');
+
+    if (nodeplatform === 'win32') {
+        pruneWindowsOnlyArtifacts(appOutDir);
+    }
+    pruneBundledReleaseNotes(appOutDir, version);
 
     console.log(`[afterPack] ✓ All required binaries verified.`);
 };

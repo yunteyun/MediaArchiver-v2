@@ -10,6 +10,8 @@ node_modules/
 dist/
 dist-electron/
 out/
+vite.config.d.ts
+build-errors.txt
 
 # Editor directories
 .idea/
@@ -37,3 +39,6 @@ temp/
 
 # Electron Builder output
 release/
+
+# Local/private notes
+個人的メモ（参照不要）.md
