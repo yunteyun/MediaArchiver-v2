@@ -186,11 +186,34 @@ export const Header = React.memo(() => {
         setSortOrder,
     ]);
 
+    const activeListDisplayPresetValue = activeListDisplayPresetId ?? '__custom__';
+
     return (
         <div className="px-4 py-2 bg-surface-900 border-b border-surface-700 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
                 {/* Search Bar */}
                 <SearchBar />
+
+                <div className="flex items-center gap-2 rounded border border-surface-700 bg-surface-900/50 px-2 py-1.5">
+                    <span className="text-surface-400 text-sm whitespace-nowrap">一覧:</span>
+                    <select
+                        value={activeListDisplayPresetValue}
+                        onChange={(e) => {
+                            const value = e.target.value as ListDisplayPresetId | '__custom__';
+                            if (value === '__custom__') return;
+                            applyListDisplayPreset(value);
+                        }}
+                        className="min-w-[140px] rounded border border-surface-600 bg-surface-800 px-3 py-1 text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                        title="一覧の見方をすばやく切り替え"
+                    >
+                        {LIST_DISPLAY_PRESETS.map((preset) => (
+                            <option key={preset.id} value={preset.id}>
+                                {preset.label}
+                            </option>
+                        ))}
+                        <option value="__custom__">カスタム</option>
+                    </select>
+                </div>
 
                 {/* File Type Filter */}
                 <div className="flex items-center gap-2 rounded border border-surface-700 bg-surface-900/50 px-2 py-1.5">
@@ -294,28 +317,6 @@ export const Header = React.memo(() => {
                             >
                                 検索対象を既定値へ
                             </button>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 border-b border-surface-800 px-1 pb-2">
-                            <span className="text-xs font-medium text-surface-300 whitespace-nowrap">表示プリセット:</span>
-                            {LIST_DISPLAY_PRESETS.map((preset) => {
-                                const active = activeListDisplayPresetId === preset.id;
-                                return (
-                                    <button
-                                        key={preset.id}
-                                        type="button"
-                                        onClick={() => applyListDisplayPreset(preset.id)}
-                                        className={`rounded px-2.5 py-1 text-xs transition-colors ${
-                                            active
-                                                ? 'bg-primary-600 text-white'
-                                                : 'bg-surface-800 text-surface-300 hover:bg-surface-700'
-                                        }`}
-                                        title={preset.description}
-                                    >
-                                        {preset.label}
-                                    </button>
-                                );
-                            })}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">
