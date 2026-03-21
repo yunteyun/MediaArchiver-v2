@@ -7,6 +7,7 @@ import { isAudioArchive } from '../../utils/fileHelpers';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT, resolveLightboxMediaKind } from '../../components/lightbox/shared/lightboxShared';
+import { resolveArchiveDetailKeyboardAction } from '../../components/lightbox/shared/viewerKeyboard';
 
 interface CenterViewerStageProps {
     file: MediaFile;
@@ -227,6 +228,44 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         }
     }, [audioVolume, file.id]);
 
+    useEffect(() => {
+        if (kind !== 'archive' || selectedArchiveFrameIndex == null) {
+            return;
+        }
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const action = resolveArchiveDetailKeyboardAction(event);
+            if (action === null) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (action === 'back_to_grid') {
+                setSelectedArchiveFrameIndex(null);
+                return;
+            }
+
+            setSelectedArchiveFrameIndex((current) => {
+                if (current == null) {
+                    return current;
+                }
+
+                if (action === 'previous') {
+                    return Math.max(0, current - 1);
+                }
+
+                return Math.min(archiveFrames.length - 1, current + 1);
+            });
+        };
+
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown, true);
+        };
+    }, [archiveFrames.length, kind, selectedArchiveFrameIndex]);
+
     const handleSelectArchiveAudio = async (entry: string, index: number) => {
         try {
             const extractedPath = await window.electronAPI.extractArchiveAudioFile(file.path, entry);
@@ -420,6 +459,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                                 グリッドへ戻る
                             </button>
                             <div className="flex items-center gap-2">
+                                <span className="text-xs text-surface-400">Esc で戻る</span>
                                 <button
                                     type="button"
                                     onClick={() => setSelectedArchiveFrameIndex((prev) => {

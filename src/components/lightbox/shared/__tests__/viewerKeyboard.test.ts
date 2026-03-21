@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveViewerKeyboardAction } from '../viewerKeyboard';
+import { resolveArchiveDetailKeyboardAction, resolveViewerKeyboardAction } from '../viewerKeyboard';
 
 function createKeyboardEventLike(overrides: Partial<KeyboardEvent> & { key: string }) {
     return {
@@ -33,5 +33,20 @@ describe('resolveViewerKeyboardAction', () => {
         expect(resolveViewerKeyboardAction(createKeyboardEventLike({ key: 'ArrowLeft', target: input }), 'image')).toBeNull();
         expect(resolveViewerKeyboardAction(createKeyboardEventLike({ key: 'ArrowRight', ctrlKey: true }), 'image')).toBeNull();
         expect(resolveViewerKeyboardAction(createKeyboardEventLike({ key: 'ArrowRight', shiftKey: true }), 'image')).toBeNull();
+    });
+});
+
+describe('resolveArchiveDetailKeyboardAction', () => {
+    it('maps escape and arrows for archive detail mode', () => {
+        expect(resolveArchiveDetailKeyboardAction(createKeyboardEventLike({ key: 'Escape' }))).toBe('back_to_grid');
+        expect(resolveArchiveDetailKeyboardAction(createKeyboardEventLike({ key: 'ArrowLeft' }))).toBe('previous');
+        expect(resolveArchiveDetailKeyboardAction(createKeyboardEventLike({ key: 'ArrowRight' }))).toBe('next');
+    });
+
+    it('ignores editable targets and modifier keys', () => {
+        const input = globalThis.document?.createElement('input') ?? ({ tagName: 'INPUT', isContentEditable: false } as HTMLElement);
+        expect(resolveArchiveDetailKeyboardAction(createKeyboardEventLike({ key: 'Escape', target: input }))).toBeNull();
+        expect(resolveArchiveDetailKeyboardAction(createKeyboardEventLike({ key: 'ArrowLeft', metaKey: true }))).toBeNull();
+        expect(resolveArchiveDetailKeyboardAction(createKeyboardEventLike({ key: 'ArrowRight', shiftKey: true }))).toBeNull();
     });
 });

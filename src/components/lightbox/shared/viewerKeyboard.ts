@@ -1,6 +1,7 @@
 import type { MediaFile } from '../../../types/file';
 
 export type ViewerKeyboardAction = 'close' | 'previous' | 'next' | null;
+export type ArchiveDetailKeyboardAction = 'back_to_grid' | 'previous' | 'next' | null;
 
 function isEditableElement(target: EventTarget | null): boolean {
     if (!target || typeof target !== 'object') {
@@ -34,6 +35,32 @@ export function resolveViewerKeyboardAction(
 
     if (fileType === 'video') {
         return null;
+    }
+
+    if (event.key === 'ArrowLeft') {
+        return 'previous';
+    }
+
+    if (event.key === 'ArrowRight') {
+        return 'next';
+    }
+
+    return null;
+}
+
+export function resolveArchiveDetailKeyboardAction(
+    event: Pick<KeyboardEvent, 'key' | 'defaultPrevented' | 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'target'>,
+): ArchiveDetailKeyboardAction {
+    if (event.defaultPrevented || isEditableElement(event.target)) {
+        return null;
+    }
+
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return null;
+    }
+
+    if (event.key === 'Escape') {
+        return 'back_to_grid';
     }
 
     if (event.key === 'ArrowLeft') {
