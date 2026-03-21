@@ -77,4 +77,80 @@ describe('useSmartFolderStore', () => {
         expect(useRatingStore.getState().ratingFilter).toEqual({});
         expect(useSmartFolderStore.getState().activeSmartFolderId).toBeNull();
     });
+
+    it('reloads smart folders after moving one up or down', async () => {
+        const hostWindow = globalThis as typeof globalThis & {
+            window?: { electronAPI?: unknown };
+            electronAPI?: unknown;
+        };
+        const originalWindow = hostWindow.window;
+        const originalElectronApi = hostWindow.window?.electronAPI ?? hostWindow.electronAPI;
+        const nextFolders = [
+            {
+                id: 'smart-2',
+                name: 'B',
+                sortOrder: 0,
+                createdAt: 1,
+                updatedAt: 2,
+                condition: {
+                    folderSelection: null,
+                    text: '',
+                    textMatchTarget: 'fileName',
+                    textConditions: [],
+                    ratingQuickFilter: 'none',
+                    tags: { ids: [], mode: 'OR' },
+                    ratings: {},
+                    types: ['video', 'image', 'archive', 'audio'],
+                },
+            },
+            {
+                id: 'smart-1',
+                name: 'A',
+                sortOrder: 1,
+                createdAt: 1,
+                updatedAt: 2,
+                condition: {
+                    folderSelection: null,
+                    text: '',
+                    textMatchTarget: 'fileName',
+                    textConditions: [],
+                    ratingQuickFilter: 'none',
+                    tags: { ids: [], mode: 'OR' },
+                    ratings: {},
+                    types: ['video', 'image', 'archive', 'audio'],
+                },
+            },
+        ];
+
+        useSmartFolderStore.setState({
+            smartFolders: [
+                nextFolders[1],
+                nextFolders[0],
+            ],
+        });
+
+        hostWindow.window = {
+            electronAPI: {
+                ...(originalElectronApi as object | undefined),
+                moveSmartFolder: async () => nextFolders[0],
+                getSmartFolders: async () => nextFolders,
+            },
+        };
+        hostWindow.electronAPI = hostWindow.window.electronAPI;
+
+        await useSmartFolderStore.getState().moveSmartFolder('smart-2', 'up');
+
+        expect(useSmartFolderStore.getState().smartFolders.map((item) => item.id)).toEqual(['smart-2', 'smart-1']);
+
+        if (originalWindow) {
+            hostWindow.window = originalWindow;
+        } else {
+            delete hostWindow.window;
+        }
+        if (originalElectronApi) {
+            hostWindow.electronAPI = originalElectronApi;
+        } else {
+            delete hostWindow.electronAPI;
+        }
+    });
 });

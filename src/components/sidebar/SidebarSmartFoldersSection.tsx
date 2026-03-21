@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookmarkPlus, Copy, Pencil, Sparkles, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookmarkPlus, Copy, Pencil, Sparkles, Trash2, X } from 'lucide-react';
 import type { SmartFolderV1 } from '../../stores/useSmartFolderStore';
 import { useRatingDisplay } from '../ratings/useRatingDisplay';
 
@@ -17,6 +17,7 @@ interface SidebarSmartFoldersSectionProps {
     onOpenTemplateSmartFolderEditor: (templateKey: 'midOrAbove' | 'unrated') => void;
     onApplySmartFolder: (smartFolderId: string) => void;
     onDuplicateSmartFolder: (smartFolderId: string) => void;
+    onMoveSmartFolder: (smartFolderId: string, direction: 'up' | 'down') => void;
     onOpenEditSmartFolderEditor: (smartFolderId: string) => void;
     onDeleteSmartFolder: (smartFolderId: string, smartFolderName: string) => void;
 }
@@ -35,6 +36,7 @@ export const SidebarSmartFoldersSection = React.memo(({
     onOpenTemplateSmartFolderEditor,
     onApplySmartFolder,
     onDuplicateSmartFolder,
+    onMoveSmartFolder,
     onOpenEditSmartFolderEditor,
     onDeleteSmartFolder,
 }: SidebarSmartFoldersSectionProps) => {
@@ -118,8 +120,10 @@ export const SidebarSmartFoldersSection = React.memo(({
                     <div className="text-xs text-surface-500 px-2 py-1">保存済み条件はありません</div>
                 ) : (
                     <div className="space-y-1">
-                        {smartFolders.map((smartFolder) => {
+                        {smartFolders.map((smartFolder, index) => {
                             const isActive = activeSmartFolderId === smartFolder.id;
+                            const canMoveUp = index > 0;
+                            const canMoveDown = index < smartFolders.length - 1;
                             return (
                                 <div
                                     key={smartFolder.id}
@@ -151,6 +155,24 @@ export const SidebarSmartFoldersSection = React.memo(({
                                         </span>
                                     </button>
                                     <span className="inline-flex items-center gap-1 flex-shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => onMoveSmartFolder(smartFolder.id, 'up')}
+                                            className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'} ${canMoveUp ? '' : 'opacity-40 cursor-default'}`}
+                                            title="上へ移動"
+                                            disabled={!canMoveUp}
+                                        >
+                                            <ArrowUp size={11} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onMoveSmartFolder(smartFolder.id, 'down')}
+                                            className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'} ${canMoveDown ? '' : 'opacity-40 cursor-default'}`}
+                                            title="下へ移動"
+                                            disabled={!canMoveDown}
+                                        >
+                                            <ArrowDown size={11} />
+                                        </button>
                                         <button
                                             type="button"
                                             onClick={() => onDuplicateSmartFolder(smartFolder.id)}

@@ -418,6 +418,7 @@ declare global {
                 };
             }) => Promise<SmartFolderV1>;
             deleteSmartFolder: (id: string) => Promise<{ success: boolean }>;
+            moveSmartFolder: (id: string, direction: 'up' | 'down') => Promise<SmartFolderV1>;
             getAutoOrganizeRules: () => Promise<AutoOrganizeRuleV1[]>;
             getAutoOrganizeSettings: () => Promise<AutoOrganizeSettingsV1>;
             updateAutoOrganizeSettings: (updates: Partial<AutoOrganizeSettingsV1>) => Promise<AutoOrganizeSettingsV1>;

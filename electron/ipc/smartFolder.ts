@@ -4,6 +4,7 @@ import {
     deleteSmartFolder,
     getAllSmartFolders,
     getSmartFolderById,
+    moveSmartFolder,
     updateSmartFolder,
 } from '../services/smartFolderService';
 import { logger } from '../services/logger';
@@ -63,6 +64,15 @@ export function registerSmartFolderHandlers(): void {
             return deleteSmartFolder(id);
         } catch (error: any) {
             log.error(`smartFolder:delete error: ${error.message}`);
+            throw error;
+        }
+    });
+
+    ipcMain.handle('smartFolder:move', async (_event, payload: { id: string; direction: 'up' | 'down' }) => {
+        try {
+            return moveSmartFolder(payload.id, payload.direction);
+        } catch (error: any) {
+            log.error(`smartFolder:move error: ${error.message}`);
             throw error;
         }
     });

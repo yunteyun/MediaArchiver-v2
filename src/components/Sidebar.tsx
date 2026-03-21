@@ -396,6 +396,7 @@ export const Sidebar = React.memo(() => {
     const createSmartFolder = useSmartFolderStore((s) => s.createSmartFolder);
     const updateSmartFolder = useSmartFolderStore((s) => s.updateSmartFolder);
     const deleteSmartFolder = useSmartFolderStore((s) => s.deleteSmartFolder);
+    const moveSmartFolder = useSmartFolderStore((s) => s.moveSmartFolder);
     const applySmartFolder = useSmartFolderStore((s) => s.applySmartFolder);
 
     const [tagManagerOpen, setTagManagerOpen] = useState(false);
@@ -573,6 +574,15 @@ export const Sidebar = React.memo(() => {
             window.alert('スマートフォルダの複製に失敗しました');
         }
     }, [createSmartFolder, smartFolders]);
+
+    const handleMoveSmartFolder = useCallback(async (id: string, direction: 'up' | 'down') => {
+        try {
+            await moveSmartFolder(id, direction);
+        } catch (error) {
+            console.error('Failed to move smart folder:', error);
+            window.alert('スマートフォルダの並び替えに失敗しました');
+        }
+    }, [moveSmartFolder]);
 
     const handleSubmitSmartFolderEditor = useCallback(async (
         payload: {
@@ -833,6 +843,7 @@ export const Sidebar = React.memo(() => {
                     onOpenTemplateSmartFolderEditor={handleOpenTemplateSmartFolderEditor}
                     onApplySmartFolder={(smartFolderId) => { void handleApplySmartFolder(smartFolderId); }}
                     onDuplicateSmartFolder={(smartFolderId) => { void handleDuplicateSmartFolder(smartFolderId); }}
+                    onMoveSmartFolder={(smartFolderId, direction) => { void handleMoveSmartFolder(smartFolderId, direction); }}
                     onOpenEditSmartFolderEditor={handleOpenEditSmartFolderEditor}
                     onDeleteSmartFolder={(smartFolderId, smartFolderName) => {
                         void handleDeleteSmartFolder(smartFolderId, smartFolderName);

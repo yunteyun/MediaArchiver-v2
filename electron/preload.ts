@@ -448,6 +448,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         }
     ) => ipcRenderer.invoke('smartFolder:update', payload),
     deleteSmartFolder: (id: string) => ipcRenderer.invoke('smartFolder:delete', id),
+    moveSmartFolder: (id: string, direction: 'up' | 'down') =>
+        ipcRenderer.invoke('smartFolder:move', { id, direction }),
     getAutoOrganizeRules: () => ipcRenderer.invoke('autoOrganize:getAll') as Promise<AutoOrganizeRuleV1[]>,
     getAutoOrganizeSettings: () => ipcRenderer.invoke('autoOrganize:getSettings') as Promise<AutoOrganizeSettingsV1>,
     updateAutoOrganizeSettings: (updates: Partial<AutoOrganizeSettingsV1>) =>

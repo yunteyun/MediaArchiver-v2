@@ -304,3 +304,31 @@ export function deleteSmartFolder(id: string): { success: boolean } {
     writeStore(store);
     return { success: true };
 }
+
+export function moveSmartFolder(id: string, direction: 'up' | 'down'): SmartFolderV1 {
+    const store = readStore();
+    const index = store.items.findIndex((item) => item.id === id);
+    if (index < 0) {
+        throw new Error('スマートフォルダが見つかりません');
+    }
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= store.items.length) {
+        return store.items[index]!;
+    }
+
+    const nextItems = [...store.items];
+    const current = nextItems[index]!;
+    const target = nextItems[targetIndex]!;
+    nextItems[index] = { ...target, sortOrder: index, updatedAt: target.updatedAt };
+    nextItems[targetIndex] = { ...current, sortOrder: targetIndex, updatedAt: Date.now() };
+
+    store.items = nextItems.map((item, order) => ({ ...item, sortOrder: order }));
+    writeStore(store);
+
+    const moved = store.items.find((item) => item.id === id);
+    if (!moved) {
+        throw new Error('スマートフォルダ移動後の整合性エラー');
+    }
+    return moved;
+}

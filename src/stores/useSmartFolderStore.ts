@@ -82,6 +82,7 @@ interface SmartFolderState {
     ) => Promise<SmartFolderV1>;
     renameSmartFolder: (id: string, name: string) => Promise<SmartFolderV1>;
     deleteSmartFolder: (id: string) => Promise<boolean>;
+    moveSmartFolder: (id: string, direction: 'up' | 'down') => Promise<void>;
     applySmartFolder: (id: string, options?: SmartFolderApplyOptions) => Promise<boolean>;
     setActiveSmartFolderId: (id: string | null) => void;
 }
@@ -213,6 +214,17 @@ export const useSmartFolderStore = create<SmartFolderState>((set, get) => ({
                 activeSmartFolderId: state.activeSmartFolderId === id ? null : state.activeSmartFolderId,
             }));
             return true;
+        } finally {
+            set({ isMutating: false });
+        }
+    },
+
+    moveSmartFolder: async (id, direction) => {
+        set({ isMutating: true });
+        try {
+            await window.electronAPI.moveSmartFolder(id, direction);
+            const smartFolders = await window.electronAPI.getSmartFolders();
+            set({ smartFolders });
         } finally {
             set({ isMutating: false });
         }
