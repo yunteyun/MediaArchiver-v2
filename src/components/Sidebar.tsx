@@ -295,23 +295,24 @@ type SmartFolderEditorState =
 
 const SIDEBAR_SECTION_STATE_STORAGE_KEY = 'sidebar.sectionState.v1';
 
-function readSidebarSectionState(): { filtersOpen: boolean; toolsOpen: boolean } {
+function readSidebarSectionState(): { smartFoldersOpen: boolean; filtersOpen: boolean; toolsOpen: boolean } {
     try {
         const raw = window.localStorage.getItem(SIDEBAR_SECTION_STATE_STORAGE_KEY);
         if (!raw) {
-            return { filtersOpen: false, toolsOpen: false };
+            return { smartFoldersOpen: true, filtersOpen: false, toolsOpen: false };
         }
         const parsed = JSON.parse(raw);
         return {
+            smartFoldersOpen: parsed?.smartFoldersOpen !== false,
             filtersOpen: parsed?.filtersOpen !== false,
             toolsOpen: parsed?.toolsOpen !== false,
         };
     } catch {
-        return { filtersOpen: false, toolsOpen: false };
+        return { smartFoldersOpen: true, filtersOpen: false, toolsOpen: false };
     }
 }
 
-function writeSidebarSectionState(state: { filtersOpen: boolean; toolsOpen: boolean }) {
+function writeSidebarSectionState(state: { smartFoldersOpen: boolean; filtersOpen: boolean; toolsOpen: boolean }) {
     try {
         window.localStorage.setItem(SIDEBAR_SECTION_STATE_STORAGE_KEY, JSON.stringify(state));
     } catch {
@@ -760,7 +761,16 @@ export const Sidebar = React.memo(() => {
             ? ` ${selectedTagIds.length + activeRatingFilterCount + (ratingQuickFilter !== 'none' ? 1 : 0)}`
             : ''}`
         : null;
+    const smartFoldersSectionBadge = activeSmartFolder
+        ? '適用中'
+        : smartFolders.length > 0
+            ? `${smartFolders.length}件`
+            : null;
     const toolsSectionBadge = hasToolAlert ? '通知あり' : null;
+
+    const toggleSmartFoldersSection = useCallback(() => {
+        setSectionState((prev) => ({ ...prev, smartFoldersOpen: !prev.smartFoldersOpen }));
+    }, []);
 
     const toggleFiltersSection = useCallback(() => {
         setSectionState((prev) => ({ ...prev, filtersOpen: !prev.filtersOpen }));
@@ -829,26 +839,36 @@ export const Sidebar = React.memo(() => {
                     onTogglePinnedSelection={togglePinnedSelection}
                 />
 
-                <SidebarSmartFoldersSection
-                    sidebarCollapsed={sidebarCollapsed}
-                    activeSmartFolder={activeSmartFolder}
-                    activeSmartFolderConditionStatus={activeSmartFolderConditionStatus}
-                    smartFolderMutating={smartFolderMutating}
-                    smartFolderLoading={smartFolderLoading}
-                    smartFolders={smartFolders}
-                    activeSmartFolderId={activeSmartFolderId}
-                    smartFolderPreviewMap={smartFolderPreviewMap}
-                    onClearSmartFolderConditions={() => { void handleClearSmartFolderConditions(); }}
-                    onOpenCreateSmartFolderEditor={handleOpenCreateSmartFolderEditor}
-                    onOpenTemplateSmartFolderEditor={handleOpenTemplateSmartFolderEditor}
-                    onApplySmartFolder={(smartFolderId) => { void handleApplySmartFolder(smartFolderId); }}
-                    onDuplicateSmartFolder={(smartFolderId) => { void handleDuplicateSmartFolder(smartFolderId); }}
-                    onMoveSmartFolder={(smartFolderId, direction) => { void handleMoveSmartFolder(smartFolderId, direction); }}
-                    onOpenEditSmartFolderEditor={handleOpenEditSmartFolderEditor}
-                    onDeleteSmartFolder={(smartFolderId, smartFolderName) => {
-                        void handleDeleteSmartFolder(smartFolderId, smartFolderName);
-                    }}
-                />
+                {!sidebarCollapsed && (
+                    <SidebarToggleSection
+                        icon={BookmarkPlus}
+                        title="スマートフォルダ"
+                        isOpen={sectionState.smartFoldersOpen}
+                        badge={smartFoldersSectionBadge}
+                        onToggle={toggleSmartFoldersSection}
+                    >
+                        <SidebarSmartFoldersSection
+                            sidebarCollapsed={sidebarCollapsed}
+                            activeSmartFolder={activeSmartFolder}
+                            activeSmartFolderConditionStatus={activeSmartFolderConditionStatus}
+                            smartFolderMutating={smartFolderMutating}
+                            smartFolderLoading={smartFolderLoading}
+                            smartFolders={smartFolders}
+                            activeSmartFolderId={activeSmartFolderId}
+                            smartFolderPreviewMap={smartFolderPreviewMap}
+                            onClearSmartFolderConditions={() => { void handleClearSmartFolderConditions(); }}
+                            onOpenCreateSmartFolderEditor={handleOpenCreateSmartFolderEditor}
+                            onOpenTemplateSmartFolderEditor={handleOpenTemplateSmartFolderEditor}
+                            onApplySmartFolder={(smartFolderId) => { void handleApplySmartFolder(smartFolderId); }}
+                            onDuplicateSmartFolder={(smartFolderId) => { void handleDuplicateSmartFolder(smartFolderId); }}
+                            onMoveSmartFolder={(smartFolderId, direction) => { void handleMoveSmartFolder(smartFolderId, direction); }}
+                            onOpenEditSmartFolderEditor={handleOpenEditSmartFolderEditor}
+                            onDeleteSmartFolder={(smartFolderId, smartFolderName) => {
+                                void handleDeleteSmartFolder(smartFolderId, smartFolderName);
+                            }}
+                        />
+                    </SidebarToggleSection>
+                )}
 
                 {/* Tag Filter Panel */}
                 {!sidebarCollapsed && (
