@@ -54,6 +54,30 @@ function pruneWindowsOnlyArtifacts(appOutDir) {
     }
 }
 
+function pruneRuntimePackageExtras(appOutDir) {
+    const unpackedNodeModulesDir = path.join(
+        appOutDir,
+        'resources',
+        'app.asar.unpacked',
+        'node_modules'
+    );
+
+    const removeTargets = [
+        path.join(unpackedNodeModulesDir, 'better-sqlite3', 'deps'),
+        path.join(unpackedNodeModulesDir, 'better-sqlite3', 'src'),
+        path.join(unpackedNodeModulesDir, 'sharp', 'install'),
+        path.join(unpackedNodeModulesDir, 'sharp', 'src'),
+        path.join(unpackedNodeModulesDir, 'ffmpeg-static', 'install.js'),
+        path.join(unpackedNodeModulesDir, 'ffmpeg-static', 'example.js'),
+        path.join(unpackedNodeModulesDir, 'ffmpeg-static', 'ffmpeg.exe.README'),
+        path.join(unpackedNodeModulesDir, '7zip-bin', '7x.sh'),
+    ];
+
+    for (const targetPath of removeTargets) {
+        removeIfExists(targetPath);
+    }
+}
+
 function pruneBundledReleaseNotes(appOutDir, version) {
     const releaseNotesDir = path.join(appOutDir, 'resources', 'release-notes');
     if (!fs.existsSync(releaseNotesDir)) {
@@ -129,6 +153,7 @@ exports.default = async function afterPack(context) {
     if (nodeplatform === 'win32') {
         pruneWindowsOnlyArtifacts(appOutDir);
     }
+    pruneRuntimePackageExtras(appOutDir);
     pruneBundledReleaseNotes(appOutDir, version);
 
     console.log(`[afterPack] ✓ All required binaries verified.`);

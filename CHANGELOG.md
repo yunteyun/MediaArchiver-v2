@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Electron 配下に残っていた自動生成の型定義ファイルを git 管理から外し、リポジトリ内で必要なソースと生成物が混ざりにくい状態へ整理した。
 - Node 側の TypeScript 設定を型チェック用に整理し、Electron と共有ロジックをまたぐ範囲を `npm run typecheck:node` で確認できるようにした。
 - 文字化けしていた旧 `CHANGELOG` / `ROADMAP` 保管文書は、参照用の要約版へ書き直して読みやすくした。
+- 過去の `DEV_LOG` は `.agent/devlog` と役割が重複していたため archive から外し、配布ビルドでは `better-sqlite3` などの実行時に不要な補助ファイルも削除するようにした。
 
 ### Fixed
 - ルート直下に残っていた開発中の不要ファイルや私的メモを整理し、配布や保守の判断をしやすくした。

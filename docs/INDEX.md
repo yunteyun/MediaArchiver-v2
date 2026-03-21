@@ -87,8 +87,6 @@
   - 旧変更履歴の保管
 - `docs/archive/ROADMAP_legacy.md`
   - 旧ロードマップの保管
-- `docs/archive/DEV_LOG.md`
-  - 過去の開発日誌
 - `docs/archive/ui-ux-improvement-plan-v1.md`
   - 時限的だった UI/UX 計画の保管
 - `docs/archive/file_card_表示設計に関する将来要望まとめ.md`
