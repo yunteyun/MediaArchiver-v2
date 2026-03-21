@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
     ArrowDown,
     ArrowUp,
@@ -25,8 +26,23 @@ interface SmartFolderSummaryItem {
 }
 
 interface SmartFolderSummary {
-    tooltip: string;
+    details: string[];
     items: SmartFolderSummaryItem[];
+}
+
+interface SmartFolderTooltipState {
+    smartFolderId: string;
+    smartFolderName: string;
+    anchorRect: DOMRect;
+    details: string[];
+}
+
+interface SmartFolderActionMenuState {
+    smartFolderId: string;
+    smartFolderName: string;
+    anchorRect: DOMRect;
+    canMoveUp: boolean;
+    canMoveDown: boolean;
 }
 
 interface SidebarSmartFoldersSectionProps {
@@ -67,9 +83,9 @@ export const SidebarSmartFoldersSection = React.memo(({
     onDeleteSmartFolder,
 }: SidebarSmartFoldersSectionProps) => {
     const { getQuickFilterLabel } = useRatingDisplay();
-    if (sidebarCollapsed) {
-        return null;
-    }
+    const [tooltipState, setTooltipState] = React.useState<SmartFolderTooltipState | null>(null);
+    const [actionMenuState, setActionMenuState] = React.useState<SmartFolderActionMenuState | null>(null);
+    const actionMenuRef = React.useRef<HTMLDivElement | null>(null);
 
     const getSummaryIcon = (kind: SmartFolderSummaryItem['kind']) => {
         switch (kind) {
@@ -90,7 +106,240 @@ export const SidebarSmartFoldersSection = React.memo(({
         }
     };
 
+    React.useEffect(() => {
+        if (!actionMenuState) return undefined;
+
+        const handlePointerDown = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (actionMenuRef.current?.contains(target)) return;
+            setActionMenuState(null);
+        };
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setActionMenuState(null);
+            }
+        };
+
+        const handleViewportChange = () => {
+            setActionMenuState(null);
+            setTooltipState(null);
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('scroll', handleViewportChange, true);
+        window.addEventListener('keydown', handleEscape);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            window.removeEventListener('resize', handleViewportChange);
+            window.removeEventListener('scroll', handleViewportChange, true);
+            window.removeEventListener('keydown', handleEscape);
+        };
+    }, [actionMenuState]);
+
+    React.useEffect(() => {
+        if (!tooltipState) return undefined;
+
+        const handleViewportChange = () => {
+            setTooltipState(null);
+        };
+
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('scroll', handleViewportChange, true);
+
+        return () => {
+            window.removeEventListener('resize', handleViewportChange);
+            window.removeEventListener('scroll', handleViewportChange, true);
+        };
+    }, [tooltipState]);
+
+    const openTooltip = React.useCallback((
+        smartFolderId: string,
+        smartFolderName: string,
+        details: string[],
+        anchorRect: DOMRect
+    ) => {
+        setTooltipState({
+            smartFolderId,
+            smartFolderName,
+            anchorRect,
+            details,
+        });
+    }, []);
+
+    const closeTooltip = React.useCallback((smartFolderId: string) => {
+        setTooltipState((prev) => (prev?.smartFolderId === smartFolderId ? null : prev));
+    }, []);
+
+    const handleOpenActionMenu = React.useCallback((
+        event: React.MouseEvent<HTMLButtonElement>,
+        smartFolderId: string,
+        smartFolderName: string,
+        canMoveUp: boolean,
+        canMoveDown: boolean
+    ) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const rect = event.currentTarget.getBoundingClientRect();
+        setActionMenuState((prev) => (
+            prev?.smartFolderId === smartFolderId
+                ? null
+                : {
+                    smartFolderId,
+                    smartFolderName,
+                    anchorRect: rect,
+                    canMoveUp,
+                    canMoveDown,
+                }
+        ));
+    }, []);
+
+    const renderTooltip = () => {
+        if (!tooltipState) return null;
+
+        const tooltipWidth = 280;
+        const tooltipHeightEstimate = 112 + Math.max(0, tooltipState.details.length - 3) * 20;
+        const viewportPadding = 12;
+        const gap = 8;
+        const showBelow = window.innerHeight - tooltipState.anchorRect.bottom >= tooltipHeightEstimate
+            || tooltipState.anchorRect.top < tooltipHeightEstimate;
+        const top = showBelow
+            ? Math.min(
+                tooltipState.anchorRect.bottom + gap,
+                window.innerHeight - tooltipHeightEstimate - viewportPadding
+            )
+            : Math.max(viewportPadding, tooltipState.anchorRect.top - tooltipHeightEstimate - gap);
+        const left = Math.min(
+            Math.max(viewportPadding, tooltipState.anchorRect.left),
+            window.innerWidth - tooltipWidth - viewportPadding
+        );
+
+        return createPortal(
+            <div
+                className="pointer-events-none fixed rounded-lg border border-surface-600 bg-surface-900/95 px-3 py-2 text-xs text-surface-200 shadow-xl"
+                style={{ top, left, width: tooltipWidth, zIndex: 'var(--z-dropdown)' }}
+            >
+                <div className="mb-1 font-medium text-white">{tooltipState.smartFolderName}</div>
+                <div className="space-y-1 text-[11px] leading-4 text-surface-300">
+                    {tooltipState.details.map((detail, index) => (
+                        <div key={`${tooltipState.smartFolderId}-detail-${index}`}>{detail}</div>
+                    ))}
+                </div>
+            </div>,
+            document.body
+        );
+    };
+
+    const renderActionMenu = () => {
+        if (!actionMenuState) return null;
+
+        const menuWidth = 168;
+        const menuHeightEstimate = 200;
+        const viewportPadding = 12;
+        const gap = 8;
+        const showBelow = window.innerHeight - actionMenuState.anchorRect.bottom >= menuHeightEstimate
+            || actionMenuState.anchorRect.top < menuHeightEstimate;
+        const top = showBelow
+            ? Math.min(
+                actionMenuState.anchorRect.bottom + gap,
+                window.innerHeight - menuHeightEstimate - viewportPadding
+            )
+            : Math.max(viewportPadding, actionMenuState.anchorRect.top - menuHeightEstimate - gap);
+        const left = Math.min(
+            Math.max(viewportPadding, actionMenuState.anchorRect.right - menuWidth),
+            window.innerWidth - menuWidth - viewportPadding
+        );
+
+        const closeMenu = () => setActionMenuState(null);
+
+        return createPortal(
+            <div
+                ref={actionMenuRef}
+                className="fixed rounded-lg border border-surface-600 bg-surface-900 p-1.5 shadow-xl"
+                style={{ top, left, width: menuWidth, zIndex: 'var(--z-dropdown)' }}
+            >
+                <div className="px-2 py-1 text-[11px] font-medium text-surface-400">
+                    {actionMenuState.smartFolderName}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => {
+                        closeMenu();
+                        onOpenEditSmartFolderEditor(actionMenuState.smartFolderId);
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-surface-200 hover:bg-surface-800"
+                >
+                    <Pencil size={12} />
+                    条件を編集
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        closeMenu();
+                        onDuplicateSmartFolder(actionMenuState.smartFolderId);
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-surface-200 hover:bg-surface-800"
+                >
+                    <Copy size={12} />
+                    複製
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        closeMenu();
+                        onMoveSmartFolder(actionMenuState.smartFolderId, 'up');
+                    }}
+                    disabled={!actionMenuState.canMoveUp}
+                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs ${
+                        actionMenuState.canMoveUp
+                            ? 'text-surface-200 hover:bg-surface-800'
+                            : 'cursor-default text-surface-500'
+                    }`}
+                >
+                    <ArrowUp size={12} />
+                    上へ移動
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        closeMenu();
+                        onMoveSmartFolder(actionMenuState.smartFolderId, 'down');
+                    }}
+                    disabled={!actionMenuState.canMoveDown}
+                    className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs ${
+                        actionMenuState.canMoveDown
+                            ? 'text-surface-200 hover:bg-surface-800'
+                            : 'cursor-default text-surface-500'
+                    }`}
+                >
+                    <ArrowDown size={12} />
+                    下へ移動
+                </button>
+                <div className="my-1 border-t border-surface-700" />
+                <button
+                    type="button"
+                    onClick={() => {
+                        closeMenu();
+                        onDeleteSmartFolder(actionMenuState.smartFolderId, actionMenuState.smartFolderName);
+                    }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs text-red-300 hover:bg-surface-800"
+                >
+                    <Trash2 size={12} />
+                    削除
+                </button>
+            </div>,
+            document.body
+        );
+    };
+
+    if (sidebarCollapsed) {
+        return null;
+    }
+
     return (
+        <>
         <div className="px-2 pb-1">
             <div className="mb-2 flex items-center justify-end gap-1">
                 {activeSmartFolder && (
@@ -184,12 +433,14 @@ export const SidebarSmartFoldersSection = React.memo(({
                                         onApplySmartFolder(smartFolder.id);
                                     }}
                                     className="min-w-0 flex-1 text-left"
-                                    title={[
-                                        isActive
-                                            ? `${smartFolder.name}（再クリックで解除）`
-                                            : `${smartFolder.name}（クリックで適用）`,
-                                        summary?.tooltip,
-                                    ].filter(Boolean).join(' / ')}
+                                    onMouseEnter={(event) => {
+                                        if (!summary) return;
+                                        openTooltip(smartFolder.id, smartFolder.name, summary.details, event.currentTarget.getBoundingClientRect());
+                                    }}
+                                    onMouseLeave={() => closeTooltip(smartFolder.id)}
+                                    aria-label={isActive
+                                        ? `${smartFolder.name}（再クリックで解除）`
+                                        : `${smartFolder.name}（クリックで適用）`}
                                 >
                                     <span className="block truncate">{smartFolder.name}</span>
                                     <span className="mt-1 flex items-center gap-1.5">
@@ -203,7 +454,6 @@ export const SidebarSmartFoldersSection = React.memo(({
                                                             ? 'bg-blue-500/25 text-blue-50'
                                                             : 'bg-surface-800 text-surface-400'
                                                     }`}
-                                                    title={item.detail}
                                                 >
                                                     <Icon size={10} />
                                                     {item.shortLabel && <span>{item.shortLabel}</span>}
@@ -215,45 +465,13 @@ export const SidebarSmartFoldersSection = React.memo(({
                                 <span className="inline-flex flex-shrink-0 items-center gap-1">
                                     <button
                                         type="button"
-                                        onClick={() => onMoveSmartFolder(smartFolder.id, 'up')}
-                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'} ${canMoveUp ? '' : 'cursor-default opacity-40'}`}
-                                        title="上へ移動"
-                                        disabled={!canMoveUp}
-                                    >
-                                        <ArrowUp size={11} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => onMoveSmartFolder(smartFolder.id, 'down')}
-                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'} ${canMoveDown ? '' : 'cursor-default opacity-40'}`}
-                                        title="下へ移動"
-                                        disabled={!canMoveDown}
-                                    >
-                                        <ArrowDown size={11} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => onDuplicateSmartFolder(smartFolder.id)}
+                                        onClick={(event) => {
+                                            handleOpenActionMenu(event, smartFolder.id, smartFolder.name, canMoveUp, canMoveDown);
+                                        }}
                                         className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
-                                        title="複製"
-                                    >
-                                        <Copy size={11} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenEditSmartFolderEditor(smartFolder.id)}
-                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
-                                        title="条件編集"
+                                        title="操作を開く"
                                     >
                                         <Pencil size={11} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => onDeleteSmartFolder(smartFolder.id, smartFolder.name)}
-                                        className={`rounded p-1 ${isActive ? 'hover:bg-blue-500/40' : 'hover:bg-surface-700'}`}
-                                        title="削除"
-                                    >
-                                        <Trash2 size={11} />
                                     </button>
                                 </span>
                             </div>
@@ -262,6 +480,9 @@ export const SidebarSmartFoldersSection = React.memo(({
                 </div>
             )}
         </div>
+        {renderTooltip()}
+        {renderActionMenu()}
+        </>
     );
 });
 

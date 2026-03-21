@@ -48,7 +48,7 @@ interface SmartFolderSummaryItem {
 }
 
 interface SmartFolderSummary {
-    tooltip: string;
+    details: string[];
     items: SmartFolderSummaryItem[];
 }
 
@@ -171,7 +171,7 @@ function buildSmartFolderSummary(
     }
 
     return {
-        tooltip: details.join(' / '),
+        details,
         items,
     };
 }
