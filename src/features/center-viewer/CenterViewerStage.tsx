@@ -219,8 +219,8 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     }, [file.id, file.type, setLightboxCurrentTime, startTimeSeconds]);
 
     useEffect(() => {
+        const video = videoRef.current;
         return () => {
-            const video = videoRef.current;
             if (!video || file.type !== 'video') return;
             void persistPlaybackPosition(video.currentTime, video.duration, true);
         };

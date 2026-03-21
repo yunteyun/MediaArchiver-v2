@@ -13,10 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - (なし)
 
 ### Changed
-- (なし)
+- 動画の `再開 / 見どころ` まわりの並び順保持と内部処理を共通化し、将来の調整で画面ごとの差が出にくいよう整理した（表示への変更なし）。
 
 ### Fixed
-- (なし)
+- 開発用スクリプトを含めて lint が通る状態へ戻し、中央ビューアで Hook 順序違反が起きうる実装を修正した。
 
 ---
 

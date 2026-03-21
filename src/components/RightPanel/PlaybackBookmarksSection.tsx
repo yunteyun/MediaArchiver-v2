@@ -4,6 +4,13 @@ import type { MediaFile, PlaybackBookmark } from '../../types/file';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { formatPlaybackTime } from '../../utils/playbackTime';
+import {
+    BOOKMARK_DUPLICATE_THRESHOLD_SECONDS,
+    type BookmarkSortMode,
+    getInitialBookmarkSortMode,
+    persistBookmarkSortMode,
+    sortPlaybackBookmarks,
+} from '../../utils/playbackBookmarks';
 
 interface PlaybackBookmarksPopoverProps {
     file: MediaFile;
@@ -16,11 +23,6 @@ const POPOVER_WIDTH = 360;
 const POPOVER_HEIGHT = 432;
 const VIEWPORT_PADDING = 12;
 const POPOVER_GAP = 8;
-const BOOKMARK_DUPLICATE_THRESHOLD_SECONDS = 2;
-const BOOKMARK_SORT_STORAGE_KEY = 'playback-bookmarks-sort-mode';
-
-type BookmarkSortMode = 'timeline' | 'recent';
-
 export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps>(({
     file,
     anchorElement,
@@ -41,14 +43,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     const [savingBookmarkId, setSavingBookmarkId] = React.useState<string | null>(null);
     const [settingRepresentativeBookmarkId, setSettingRepresentativeBookmarkId] = React.useState<string | null>(null);
     const [highlightedBookmarkId, setHighlightedBookmarkId] = React.useState<string | null>(null);
-    const [sortMode, setSortMode] = React.useState<BookmarkSortMode>(() => {
-        try {
-            const stored = window.localStorage.getItem(BOOKMARK_SORT_STORAGE_KEY);
-            return stored === 'recent' ? 'recent' : 'timeline';
-        } catch {
-            return 'timeline';
-        }
-    });
+    const [sortMode, setSortMode] = React.useState<BookmarkSortMode>(() => getInitialBookmarkSortMode());
     const [popoverStyle, setPopoverStyle] = React.useState<React.CSSProperties>({});
     const popoverRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -56,15 +51,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
         ? Math.max(0, lightboxCurrentTime)
         : null;
     const canAddBookmark = activeCurrentTime !== null;
-    const sortBookmarks = React.useCallback((items: PlaybackBookmark[]) => {
-        const next = [...items];
-        if (sortMode === 'recent') {
-            return next.sort((a, b) => b.createdAt - a.createdAt || a.timeSeconds - b.timeSeconds);
-        }
-
-        return next.sort((a, b) => a.timeSeconds - b.timeSeconds || a.createdAt - b.createdAt);
-    }, [sortMode]);
-    const sortedBookmarks = React.useMemo(() => sortBookmarks(bookmarks), [bookmarks, sortBookmarks]);
+    const sortedBookmarks = React.useMemo(() => sortPlaybackBookmarks(bookmarks, sortMode), [bookmarks, sortMode]);
 
     const updatePopoverPosition = React.useCallback(() => {
         if (!anchorElement) {
@@ -183,11 +170,7 @@ export const PlaybackBookmarksPopover = React.memo<PlaybackBookmarksPopoverProps
     }, [file.id, open]);
 
     React.useEffect(() => {
-        try {
-            window.localStorage.setItem(BOOKMARK_SORT_STORAGE_KEY, sortMode);
-        } catch {
-            // Ignore storage failures and keep the current in-memory setting.
-        }
+        persistBookmarkSortMode(sortMode);
     }, [sortMode]);
 
     React.useEffect(() => {

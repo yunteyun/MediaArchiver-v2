@@ -3,11 +3,13 @@ import type { MediaFile, PlaybackBookmark } from '../../../types/file';
 import { useFileStore } from '../../../stores/useFileStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { formatPlaybackTime, formatPlaybackUpdatedAt } from '../../../utils/playbackTime';
-
-const BOOKMARK_DUPLICATE_THRESHOLD_SECONDS = 2;
-const BOOKMARK_SORT_STORAGE_KEY = 'playback-bookmarks-sort-mode';
-
-type BookmarkSortMode = 'timeline' | 'recent';
+import {
+    BOOKMARK_DUPLICATE_THRESHOLD_SECONDS,
+    type BookmarkSortMode,
+    getInitialBookmarkSortMode,
+    persistBookmarkSortMode,
+    sortPlaybackBookmarks,
+} from '../../../utils/playbackBookmarks';
 
 interface PlaybackSectionProps {
     file: MediaFile;
@@ -30,14 +32,7 @@ export const PlaybackSection = React.memo<PlaybackSectionProps>(({ file }) => {
     const [savingBookmarkId, setSavingBookmarkId] = React.useState<string | null>(null);
     const [settingRepresentativeBookmarkId, setSettingRepresentativeBookmarkId] = React.useState<string | null>(null);
     const [highlightedBookmarkId, setHighlightedBookmarkId] = React.useState<string | null>(null);
-    const [sortMode, setSortMode] = React.useState<BookmarkSortMode>(() => {
-        try {
-            const stored = window.localStorage.getItem(BOOKMARK_SORT_STORAGE_KEY);
-            return stored === 'recent' ? 'recent' : 'timeline';
-        } catch {
-            return 'timeline';
-        }
-    });
+    const [sortMode, setSortMode] = React.useState<BookmarkSortMode>(() => getInitialBookmarkSortMode());
 
     const activeCurrentTime = lightboxFile?.id === file.id && typeof lightboxCurrentTime === 'number' && Number.isFinite(lightboxCurrentTime)
         ? Math.max(0, lightboxCurrentTime)
@@ -47,15 +42,7 @@ export const PlaybackSection = React.memo<PlaybackSectionProps>(({ file }) => {
         : null;
     const hasSavedPosition = savedPosition !== null && savedPosition > 0;
     const updatedAt = formatPlaybackUpdatedAt(file.playbackPositionUpdatedAt);
-    const sortBookmarks = React.useCallback((items: PlaybackBookmark[]) => {
-        const next = [...items];
-        if (sortMode === 'recent') {
-            return next.sort((a, b) => b.createdAt - a.createdAt || a.timeSeconds - b.timeSeconds);
-        }
-
-        return next.sort((a, b) => a.timeSeconds - b.timeSeconds || a.createdAt - b.createdAt);
-    }, [sortMode]);
-    const sortedBookmarks = React.useMemo(() => sortBookmarks(bookmarks), [bookmarks, sortBookmarks]);
+    const sortedBookmarks = React.useMemo(() => sortPlaybackBookmarks(bookmarks, sortMode), [bookmarks, sortMode]);
 
     React.useEffect(() => {
         let disposed = false;
@@ -105,11 +92,7 @@ export const PlaybackSection = React.memo<PlaybackSectionProps>(({ file }) => {
     }, [file.id]);
 
     React.useEffect(() => {
-        try {
-            window.localStorage.setItem(BOOKMARK_SORT_STORAGE_KEY, sortMode);
-        } catch {
-            // Ignore storage failures and keep the current in-memory setting.
-        }
+        persistBookmarkSortMode(sortMode);
     }, [sortMode]);
 
     React.useEffect(() => {

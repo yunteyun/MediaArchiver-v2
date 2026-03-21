@@ -885,11 +885,8 @@ export const FileCard = React.memo(({
             }
         }, 100);
     }, [
-        thumbnailAction,
-        archiveThumbnailAction,
         animatedImagePreviewMode,
         isAnimatedImage,
-        file.type,
         file.id,
         file.path,
         activePreviewFrames,

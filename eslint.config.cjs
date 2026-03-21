@@ -36,7 +36,7 @@ module.exports = tseslint.config(
     },
   },
   {
-    files: ['electron/**/*.ts', 'electron/**/*.cjs', 'vite.config.ts', 'tailwind.config.js', 'postcss.config.cjs'],
+    files: ['electron/**/*.ts', 'electron/**/*.cjs', 'scripts/**/*.cjs', 'vite.config.ts', 'tailwind.config.js', 'postcss.config.cjs'],
     languageOptions: {
       globals: {
         ...globals.node,

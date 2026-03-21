@@ -53,7 +53,7 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
     const [activeCategoryKey, setActiveCategoryKey] = React.useState<CategorySelection>(null);
     const [selectorAnchorElement, setSelectorAnchorElement] = React.useState<HTMLElement | null>(null);
 
-    const tagIds = fileTagsCache.get(file.id) ?? [];
+    const tagIds = React.useMemo(() => fileTagsCache.get(file.id) ?? [], [file.id, fileTagsCache]);
 
     React.useEffect(() => {
         setIsEditMode(false);
