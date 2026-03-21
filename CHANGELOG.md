@@ -20,6 +20,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.10.4] - 2026-03-21
+### Added
+- (なし)
+
+### Changed
+- (なし)
+
+### Fixed
+- 更新後の配布版で起動時に必要な内部モジュールを見失い、アプリを開けなくなる問題を修正した。
+
+---
+
 ## [1.10.3] - 2026-03-21
 ### Added
 - (なし)

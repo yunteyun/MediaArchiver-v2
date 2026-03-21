@@ -1,7 +1,7 @@
 {
     "name": "media-archiver-v2",
     "private": true,
-    "version": "1.10.3",
+    "version": "1.10.4",
     "main": "bootstrap.cjs",
     "scripts": {
         "dev": "node -e \"const path=require('node:path');const pkg=process.env.npm_package_json||path.join(process.cwd(),'package.json');const normalized=pkg.startsWith('\\\\\\\\?\\\\')?pkg.slice(4):pkg;require(path.join(path.dirname(normalized),'scripts','run-vite.cjs'));\" --",
@@ -88,10 +88,6 @@
             {
                 "from": "dist",
                 "to": "dist"
-            },
-            {
-                "from": "dist-electron/main.js",
-                "to": "dist-electron/main.js"
             },
             {
                 "from": "dist-electron/preload.js",

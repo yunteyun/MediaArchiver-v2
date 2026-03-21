@@ -31,10 +31,6 @@ function appendStartupLog(label, detail) {
 }
 
 function resolveMainEntryPath() {
-    if (app.isPackaged) {
-        return path.join(process.resourcesPath, "dist-electron", "main.js");
-    }
-
     return path.join(__dirname, "dist-electron", "main.js");
 }
 
