@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { Plus, ChevronLeft, ChevronRight, Loader2, CheckCircle2, AlertCircle, Filter, Wrench, ChevronDown, BookmarkPlus } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore, type SearchCondition, type SearchTarget } from '../stores/useUIStore';
-import { useTagStore } from '../stores/useTagStore';
+import { useTagStore, type Tag } from '../stores/useTagStore';
 import { useRatingStore } from '../stores/useRatingStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { clearAppliedSmartFolderState, useSmartFolderStore } from '../stores/useSmartFolderStore';
@@ -84,6 +84,7 @@ function resolveSmartFolderFolderLabel(folderSelection: string | null, folders: 
 function buildSmartFolderSummary(
     condition: SmartFolderConditionV1,
     folders: MediaFolder[],
+    tags: Tag[],
     ratingDisplayThresholds: ReturnType<typeof useSettingsStore.getState>['ratingDisplayThresholds']
 ): SmartFolderSummary {
     const details: string[] = [];
@@ -113,7 +114,12 @@ function buildSmartFolderSummary(
     }
 
     if (condition.tags.ids.length > 0) {
-        const detail = `タグ: ${condition.tags.mode} ${condition.tags.ids.length}件`;
+        const selectedTagNames = condition.tags.ids
+            .map((tagId) => tags.find((tag) => tag.id === tagId)?.name ?? '不明タグ')
+            .filter((name, index, array) => array.indexOf(name) === index);
+        const detail = selectedTagNames.length > 0
+            ? `タグ: ${condition.tags.mode} ${condition.tags.ids.length}件（${selectedTagNames.join(' / ')}）`
+            : `タグ: ${condition.tags.mode} ${condition.tags.ids.length}件`;
         details.push(detail);
         items.push({
             kind: 'tags',
@@ -684,11 +690,11 @@ export const Sidebar = React.memo(() => {
         smartFolders.forEach((smartFolder) => {
             map.set(
                 smartFolder.id,
-                buildSmartFolderSummary(smartFolder.condition, folders, ratingDisplayThresholds)
+                buildSmartFolderSummary(smartFolder.condition, folders, tags, ratingDisplayThresholds)
             );
         });
         return map;
-    }, [smartFolders, folders, ratingDisplayThresholds]);
+    }, [smartFolders, folders, tags, ratingDisplayThresholds]);
 
     const activeSmartFolder = useMemo(() => {
         if (!activeSmartFolderId) return null;
