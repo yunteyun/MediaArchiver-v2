@@ -104,7 +104,9 @@ function normalizeTextConditions(input: unknown, fallbackText?: string, fallback
 
 function normalizeCondition(input: unknown): SmartFolderConditionV1 {
     const candidate = input && typeof input === 'object' ? (input as Partial<SmartFolderConditionV1>) : {};
-    const tagsCandidate = candidate.tags && typeof candidate.tags === 'object' ? candidate.tags : {};
+    const tagsCandidate: Partial<SmartFolderConditionV1['tags']> = candidate.tags && typeof candidate.tags === 'object'
+        ? candidate.tags as Partial<SmartFolderConditionV1['tags']>
+        : {};
     const ratingsCandidate = candidate.ratings && typeof candidate.ratings === 'object' ? candidate.ratings : {};
 
     const ratings: Record<string, { min?: number; max?: number }> = {};

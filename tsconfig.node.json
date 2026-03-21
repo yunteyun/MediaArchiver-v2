@@ -3,7 +3,8 @@
         "composite": true,
         "target": "ES2022",
         "lib": [
-            "ES2023"
+            "ES2023",
+            "DOM"
         ],
         "module": "ESNext",
         "skipLibCheck": true,
@@ -11,8 +12,12 @@
         "allowImportingTsExtensions": true,
         "isolatedModules": true,
         "moduleDetection": "force",
-        "emitDeclarationOnly": true,
-        "declaration": true,
+        "noEmit": true,
+        "jsx": "react-jsx",
+        "types": [
+            "node",
+            "vite/client"
+        ],
         "strict": false,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
@@ -20,6 +25,17 @@
     },
     "include": [
         "vite.config.ts",
-        "electron"
+        "electron",
+        "src/components/Toast.tsx",
+        "src/components/fileCard/**/*.ts",
+        "src/components/lightbox/shared/**/*.ts",
+        "src/shared/**/*.ts",
+        "src/stores/**/*.ts",
+        "src/types/**/*.ts",
+        "src/utils/fileListQuery.ts",
+        "src/utils/perfDebug.ts"
+    ],
+    "exclude": [
+        "**/__tests__/**"
     ]
 }

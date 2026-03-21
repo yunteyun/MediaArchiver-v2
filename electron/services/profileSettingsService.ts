@@ -147,11 +147,11 @@ function normalizeFileTypeFilters(input: unknown): FileTypeCategoryFilters {
 
 function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettingsV1 {
     const candidate = (input && typeof input === 'object') ? (input as Partial<ProfileScopedSettingsV1>) : {};
-    const listDisplayDefaults = candidate.listDisplayDefaults && typeof candidate.listDisplayDefaults === 'object'
-        ? candidate.listDisplayDefaults
+    const listDisplayDefaults: Partial<ProfileScopedSettingsV1['listDisplayDefaults']> = candidate.listDisplayDefaults && typeof candidate.listDisplayDefaults === 'object'
+        ? candidate.listDisplayDefaults as Partial<ProfileScopedSettingsV1['listDisplayDefaults']>
         : {};
-    const fileCardSettings = candidate.fileCardSettings && typeof candidate.fileCardSettings === 'object'
-        ? candidate.fileCardSettings
+    const fileCardSettings: Partial<ProfileScopedSettingsV1['fileCardSettings']> = candidate.fileCardSettings && typeof candidate.fileCardSettings === 'object'
+        ? candidate.fileCardSettings as Partial<ProfileScopedSettingsV1['fileCardSettings']>
         : {};
     const rawDefaultExternalApps = candidate.defaultExternalApps && typeof candidate.defaultExternalApps === 'object'
         ? candidate.defaultExternalApps

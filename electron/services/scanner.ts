@@ -718,6 +718,7 @@ async function scanDirectoryInternal(
                         state.committedCount += committedCount;
                         state.pendingWrites = [];
                         onBatchCommitted?.({
+                            jobId: state.jobId,
                             rootFolderId,
                             scanPath: dirPath,
                             committedCount,

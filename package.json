@@ -12,7 +12,8 @@
         "lint": "eslint .",
         "preview": "node -e \"const path=require('node:path');const pkg=process.env.npm_package_json||path.join(process.cwd(),'package.json');const normalized=pkg.startsWith('\\\\\\\\?\\\\')?pkg.slice(4):pkg;require(path.join(path.dirname(normalized),'scripts','run-vite.cjs'));\" -- preview",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "typecheck:node": "tsc -p tsconfig.node.json --pretty false"
     },
     "dependencies": {
         "@tanstack/react-virtual": "^3.13.18",

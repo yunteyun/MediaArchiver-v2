@@ -11,6 +11,7 @@ import {
 import { beginUiPerfTrace } from '../utils/perfDebug';
 import type { RatingQuickFilter } from '../shared/ratingQuickFilter';
 export type { RatingQuickFilter } from '../shared/ratingQuickFilter';
+export type { SearchTarget } from './useSettingsStore';
 
 export interface ScanProgress {
     jobId?: string;
@@ -194,10 +195,12 @@ export const useUIStore = create<UIState>((set) => ({
     setSearchQuery: (query) => set({ searchQuery: query }),
     setSearchTarget: (target) => set({ searchTarget: target }),
     setSearchConditions: (conditions) => set(() => {
-        const normalized = conditions
+        const normalized: SearchCondition[] = conditions
             .map((condition) => ({
                 text: typeof condition?.text === 'string' ? condition.text : '',
-                target: condition?.target === 'folderName' ? 'folderName' : 'fileName',
+                target: condition?.target === 'folderName'
+                    ? ('folderName' as SearchTarget)
+                    : ('fileName' as SearchTarget),
             }))
             .filter((condition) => condition.text.trim().length > 0);
 

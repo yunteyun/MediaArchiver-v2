@@ -55,6 +55,7 @@ Electron + React で動作します。
 ```bash
 npm install
 npm run dev
+npm run typecheck:node
 ```
 
 ### ビルド

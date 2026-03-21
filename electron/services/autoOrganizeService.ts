@@ -22,6 +22,7 @@ import type {
     AutoOrganizeSettingsV1,
     AutoOrganizeTriggerSource,
 } from '../../src/types/autoOrganize';
+import type { MediaFile as RendererMediaFile } from '../../src/types/file';
 import type { MediaFile } from './database';
 import { dbManager } from './databaseManager';
 import { getFiles, getFolders, getFolderById, updateFileLocation, updateFileNameAndPath, type MediaFolder } from './database';
@@ -229,7 +230,9 @@ function normalizeTextConditions(input: unknown, fallbackText?: string, fallback
 
 function normalizeCondition(input: unknown): AutoOrganizeConditionV1 {
     const candidate = input && typeof input === 'object' ? (input as Partial<AutoOrganizeConditionV1>) : {};
-    const tagsCandidate = candidate.tags && typeof candidate.tags === 'object' ? candidate.tags : {};
+    const tagsCandidate: Partial<AutoOrganizeConditionV1['tags']> = candidate.tags && typeof candidate.tags === 'object'
+        ? candidate.tags as Partial<AutoOrganizeConditionV1['tags']>
+        : {};
     const ratingsCandidate = candidate.ratings && typeof candidate.ratings === 'object' ? candidate.ratings : {};
 
     const ratings: Record<string, { min?: number; max?: number }> = {};
@@ -501,6 +504,34 @@ function filterFilesBySelection(
     return files.filter((file) => matchesFolderSelection(file, selection, descendantsById));
 }
 
+function toRendererMediaFile(file: MediaFile): RendererMediaFile {
+    return {
+        id: file.id,
+        name: file.name,
+        path: file.path,
+        size: file.size,
+        type: file.type,
+        createdAt: file.createdAt ?? file.created_at,
+        duration: file.duration,
+        thumbnailPath: file.thumbnailPath ?? file.thumbnail_path,
+        previewFrames: file.previewFrames ?? file.preview_frames,
+        rootFolderId: file.rootFolderId ?? file.root_folder_id,
+        tags: file.tags,
+        contentHash: file.contentHash ?? file.content_hash,
+        metadata: file.metadata,
+        mtimeMs: file.mtimeMs ?? file.mtime_ms,
+        notes: file.notes,
+        isAnimated: file.isAnimated ?? file.is_animated === 1,
+        accessCount: file.accessCount ?? 0,
+        lastAccessedAt: file.lastAccessedAt ?? null,
+        externalOpenCount: file.externalOpenCount ?? 0,
+        lastExternalOpenedAt: file.lastExternalOpenedAt ?? null,
+        playbackPositionSeconds: file.playbackPositionSeconds ?? null,
+        playbackPositionUpdatedAt: file.playbackPositionUpdatedAt ?? null,
+        thumbnailLocked: file.thumbnailLocked ?? file.thumbnail_locked === 1,
+    };
+}
+
 function toSearchConditions(condition: AutoOrganizeConditionV1): FileSearchCondition[] {
     return normalizeTextConditions(condition.textConditions, condition.text, condition.textMatchTarget).map((item) => ({
         text: item.text,
@@ -724,7 +755,7 @@ function evaluateRules(ruleIds?: string[], options: EvaluateRulesOptions = {}): 
         summariesMap.set(rule.id, summary);
 
         const scopedFiles = filterFilesBySelection(allFiles, rule.condition.folderSelection, descendantsById);
-        const matchedFiles = buildVisibleFiles(scopedFiles, {
+        const matchedFileIdSet = new Set(buildVisibleFiles(scopedFiles.map(toRendererMediaFile), {
             sortBy: 'date',
             sortOrder: 'desc',
             fileTagsCache: fileTagCache,
@@ -737,7 +768,8 @@ function evaluateRules(ruleIds?: string[], options: EvaluateRulesOptions = {}): 
             ratingDisplayThresholds,
             searchConditions: toSearchConditions(rule.condition),
             selectedFileTypes: rule.condition.types,
-        });
+        }).map((file) => file.id));
+        const matchedFiles = scopedFiles.filter((file) => matchedFileIdSet.has(file.id));
 
         const targetFolder = rule.action.move.enabled
             ? foldersById.get(rule.action.move.targetFolderId)
