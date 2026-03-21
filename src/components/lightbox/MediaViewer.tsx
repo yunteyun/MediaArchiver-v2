@@ -3,6 +3,7 @@ import { Loader2, Archive, Music } from 'lucide-react';
 import { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import type { LightboxOpenMode } from '../../stores/useUIStore';
+import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT } from './shared/lightboxShared';
 
 interface MediaViewerProps {
     file: MediaFile;
@@ -13,9 +14,20 @@ interface MediaViewerProps {
     selectedArchiveImage: string | null;
     onSelectArchiveImage: (imagePath: string | null) => void;
     onRequestClose: () => void;
+    onErrorMessage: (message: string) => void;
 }
 
-export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode, videoVolume, audioVolume, onVolumeChange, selectedArchiveImage, onSelectArchiveImage, onRequestClose }) => {
+export const MediaViewer = React.memo<MediaViewerProps>(({
+    file,
+    archiveOpenMode,
+    videoVolume,
+    audioVolume,
+    onVolumeChange,
+    selectedArchiveImage,
+    onSelectArchiveImage,
+    onRequestClose,
+    onErrorMessage,
+}) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
     const boundedMediaStyle: React.CSSProperties = {
@@ -66,7 +78,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
 
             // 画像プレビューと音声ファイルリストを並行取得
             Promise.all([
-                window.electronAPI.getArchivePreviewFrames(file.path, 6),
+                window.electronAPI.getArchivePreviewFrames(file.path, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT),
                 window.electronAPI.getArchiveAudioFiles(file.path)
             ])
                 .then(([frames, audioFiles]) => {
@@ -75,6 +87,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                 })
                 .catch((err) => {
                     console.error('Failed to get archive contents:', err);
+                    onErrorMessage('書庫プレビューの読み込みに失敗しました');
                 })
                 .finally(() => {
                     setArchiveLoading(false);
@@ -88,7 +101,7 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
             setArchiveAudioCurrentTime(0);
             setArchiveAudioIsPlaying(false);
         }
-    }, [file, onSelectArchiveImage])
+    }, [file, onErrorMessage, onSelectArchiveImage]);
 
     // Keyboard controls for video playback
     useEffect(() => {
@@ -203,6 +216,8 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                     setCurrentAudioIndex(nextIndex);
                     setArchiveAudioCurrentTime(0);
                     setArchiveAudioIsPlaying(true);
+                } else {
+                    onErrorMessage('書庫内音声の読み込みに失敗しました');
                 }
             }
         };
@@ -315,6 +330,8 @@ export const MediaViewer = React.memo<MediaViewerProps>(({ file, archiveOpenMode
                                                                 setCurrentAudioIndex(index);
                                                                 setArchiveAudioCurrentTime(0);
                                                                 setArchiveAudioIsPlaying(true);
+                                                            } else {
+                                                                onErrorMessage('書庫内音声の読み込みに失敗しました');
                                                             }
                                                         }}
                                                     >

@@ -8,8 +8,7 @@ import { MediaViewer } from './MediaViewer';
 import { ControlOverlay } from './ControlOverlay';
 import { InfoPanel } from './InfoPanel';
 import { LightBoxImageV2 } from './v2/LightBoxImageV2';
-
-const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
+import { isImageLikeFile } from './shared/lightboxShared';
 
 export const LightBox = React.memo(() => {
     const rawLightboxFile = useUIStore((s) => s.lightboxFile);
@@ -20,6 +19,7 @@ export const LightBox = React.memo(() => {
     const lightboxFileId = lightboxFile?.id ?? rawLightboxFile?.id ?? null;
     const lightboxOpenMode = useUIStore((s) => s.lightboxOpenMode);
     const closeLightbox = useUIStore((s) => s.closeLightbox);
+    const showToast = useUIStore((s) => s.showToast);
     const files = useFileStore((s) => s.files);
     const updateFileTagCache = useFileStore((s) => s.updateFileTagCache);
     const incrementAccessCount = useFileStore((s) => s.incrementAccessCount);
@@ -93,8 +93,9 @@ export const LightBox = React.memo(() => {
             }
         } catch (err) {
             console.error('Quick tag failed:', err);
+            showToast('タグの更新に失敗しました', 'error');
         }
-    }, [lightboxFile, tags, fileTagIds, updateFileTagCache]);
+    }, [fileTagIds, lightboxFile, showToast, tags, updateFileTagCache]);
 
     // メモ保存（debounce）
     const saveNotes = useCallback(async (value: string) => {
@@ -107,8 +108,9 @@ export const LightBox = React.memo(() => {
         } catch (err) {
             console.error('Failed to save notes:', err);
             setNotesSaveStatus('idle');
+            showToast('メモの保存に失敗しました', 'error');
         }
-    }, [lightboxFile]);
+    }, [lightboxFile, showToast]);
 
     const handleNotesChange = useCallback((value: string) => {
         setNotes(value);
@@ -134,20 +136,30 @@ export const LightBox = React.memo(() => {
     // タグ追加
     const handleAddTag = useCallback(async (tagId: string) => {
         if (!lightboxFile) return;
-        await window.electronAPI.addTagToFile(lightboxFile.id, tagId);
-        const newTagIds = [...fileTagIds, tagId];
-        setFileTagIds(newTagIds);
-        updateFileTagCache(lightboxFile.id, newTagIds);
-    }, [lightboxFile, fileTagIds, updateFileTagCache]);
+        try {
+            await window.electronAPI.addTagToFile(lightboxFile.id, tagId);
+            const newTagIds = [...fileTagIds, tagId];
+            setFileTagIds(newTagIds);
+            updateFileTagCache(lightboxFile.id, newTagIds);
+        } catch (error) {
+            console.error('Failed to add tag in lightbox:', error);
+            showToast('タグの追加に失敗しました', 'error');
+        }
+    }, [fileTagIds, lightboxFile, showToast, updateFileTagCache]);
 
     // タグ削除
     const handleRemoveTag = useCallback(async (tagId: string) => {
         if (!lightboxFile) return;
-        await window.electronAPI.removeTagFromFile(lightboxFile.id, tagId);
-        const newTagIds = fileTagIds.filter(id => id !== tagId);
-        setFileTagIds(newTagIds);
-        updateFileTagCache(lightboxFile.id, newTagIds);
-    }, [lightboxFile, fileTagIds, updateFileTagCache]);
+        try {
+            await window.electronAPI.removeTagFromFile(lightboxFile.id, tagId);
+            const newTagIds = fileTagIds.filter(id => id !== tagId);
+            setFileTagIds(newTagIds);
+            updateFileTagCache(lightboxFile.id, newTagIds);
+        } catch (error) {
+            console.error('Failed to remove tag in lightbox:', error);
+            showToast('タグの削除に失敗しました', 'error');
+        }
+    }, [fileTagIds, lightboxFile, showToast, updateFileTagCache]);
 
     // 音量変更
     const handleVolumeChange = useCallback((mediaType: 'video' | 'audio', volume: number) => {
@@ -195,7 +207,11 @@ export const LightBox = React.memo(() => {
             loadCategories();
             window.electronAPI.getFileTagIds(lightboxFile.id)
                 .then(setFileTagIds)
-                .catch(console.error);
+                .catch((error) => {
+                    console.error('Failed to load file tags in lightbox:', error);
+                    setFileTagIds([]);
+                    showToast('タグ情報の読み込みに失敗しました', 'error');
+                });
             // メモを読み込み
             setNotes(lightboxFile.notes || '');
             setNotesSaveStatus('idle');
@@ -203,7 +219,7 @@ export const LightBox = React.memo(() => {
             setFileTagIds([]);
             setNotes('');
         }
-    }, [lightboxFile, loadTags, loadCategories]);
+    }, [lightboxFile, loadCategories, loadTags, showToast]);
 
     // Phase 17: Lightbox表示時にアクセスカウント
     useEffect(() => {
@@ -230,9 +246,7 @@ export const LightBox = React.memo(() => {
 
     if (!lightboxFile) return null;
 
-    const imageLikeByName = IMAGE_LIKE_EXT_RE.test(lightboxFile.name ?? '');
-    const imageLikeByPath = IMAGE_LIKE_EXT_RE.test(lightboxFile.path ?? '');
-    const useImageLightboxV2 = lightboxFile.type === 'image' || imageLikeByName || imageLikeByPath;
+    const useImageLightboxV2 = isImageLikeFile(lightboxFile);
 
     if (useImageLightboxV2) {
         return (
@@ -322,6 +336,7 @@ export const LightBox = React.memo(() => {
                                 selectedArchiveImage={selectedArchiveImage}
                                 onSelectArchiveImage={setSelectedArchiveImage}
                                 onRequestClose={handleCloseRequest}
+                                onErrorMessage={(message) => showToast(message, 'error')}
                             />
                         </div>
                     </div>

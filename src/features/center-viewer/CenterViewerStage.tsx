@@ -6,9 +6,7 @@ import { toMediaUrl } from '../../utils/mediaPath';
 import { isAudioArchive } from '../../utils/fileHelpers';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
-
-const IMAGE_LIKE_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|apng)$/i;
-const ARCHIVE_PREVIEW_LIMIT = 6;
+import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT, resolveLightboxMediaKind } from '../../components/lightbox/shared/lightboxShared';
 
 interface CenterViewerStageProps {
     file: MediaFile;
@@ -34,6 +32,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 }) => {
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const setLightboxCurrentTime = useUIStore((state) => state.setLightboxCurrentTime);
+    const showToast = useUIStore((state) => state.showToast);
     const [hasError, setHasError] = useState(false);
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
     const [archiveLoading, setArchiveLoading] = useState(false);
@@ -52,13 +51,8 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         : null);
 
     const kind = useMemo<'image' | 'video' | 'audio' | 'archive' | 'unsupported'>(() => {
-        if (file.type === 'video') return 'video';
-        if (file.type === 'audio') return 'audio';
-        if (file.type === 'archive') return 'archive';
-        if (file.type === 'image') return 'image';
-        if (IMAGE_LIKE_EXT_RE.test(file.name ?? '') || IMAGE_LIKE_EXT_RE.test(file.path ?? '')) return 'image';
-        return 'unsupported';
-    }, [file.name, file.path, file.type]);
+        return resolveLightboxMediaKind(file);
+    }, [file]);
 
     useEffect(() => {
         setHasError(false);
@@ -101,11 +95,11 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
 
             try {
                 const [frames, audioEntries] = await Promise.all([
-                    window.electronAPI.getArchivePreviewFrames(file.path, ARCHIVE_PREVIEW_LIMIT),
+                    window.electronAPI.getArchivePreviewFrames(file.path, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT),
                     window.electronAPI.getArchiveAudioFiles(file.path),
                 ]);
                 if (disposed) return;
-                setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean).slice(0, ARCHIVE_PREVIEW_LIMIT) : []);
+                setArchiveFrames(Array.isArray(frames) ? frames.filter(Boolean).slice(0, LIGHTBOX_ARCHIVE_PREVIEW_LIMIT) : []);
                 setArchiveAudioEntries(Array.isArray(audioEntries) ? audioEntries.filter(Boolean) : []);
             } catch (error) {
                 if (disposed) return;
@@ -113,6 +107,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 setArchiveFrames([]);
                 setArchiveAudioEntries([]);
                 setArchiveError('書庫プレビューの取得に失敗しました');
+                showToast('書庫プレビューの取得に失敗しました', 'error');
             } finally {
                 if (!disposed) {
                     setArchiveLoading(false);
@@ -125,7 +120,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         return () => {
             disposed = true;
         };
-    }, [file.path, kind]);
+    }, [file.path, kind, showToast]);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -235,13 +230,17 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const handleSelectArchiveAudio = async (entry: string, index: number) => {
         try {
             const extractedPath = await window.electronAPI.extractArchiveAudioFile(file.path, entry);
-            if (!extractedPath) return;
+            if (!extractedPath) {
+                showToast('書庫内音声の読み込みに失敗しました', 'error');
+                return;
+            }
             setCurrentArchiveAudioPath(extractedPath);
             setCurrentArchiveAudioIndex(index);
             setArchiveAudioCurrentTime(0);
             setArchiveAudioIsPlaying(true);
         } catch (error) {
             console.error('Failed to extract archive audio file in center viewer:', error);
+            showToast('書庫内音声の読み込みに失敗しました', 'error');
         }
     };
 

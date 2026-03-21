@@ -6,7 +6,7 @@ import {
     LIGHTBOX_OVERLAY_OPACITY_MAX,
     LIGHTBOX_OVERLAY_OPACITY_MIN,
     LIGHTBOX_OVERLAY_OPACITY_STEP,
-} from '../../features/lightbox-clean/constants';
+} from '../lightbox/shared/lightboxShared';
 import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
 import { SettingsSection } from './SettingsSection';
 

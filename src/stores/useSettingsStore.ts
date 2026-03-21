@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import {
     LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
     clampOverlayOpacity,
-} from '../features/lightbox-clean/constants';
+} from '../components/lightbox/shared/lightboxShared';
 import type { DisplayPresetSelection } from '../components/fileCard/displayModes';
 import {
     DEFAULT_SCAN_EXCLUSION_RULES,
