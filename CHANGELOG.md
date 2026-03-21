@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - 配布ビルド後に Windows で使わない他OS向けバイナリと旧リリースノートを削除し、ZIP 配布版を軽くした。
+- 用語集と README の案内を現行 UI に合わせて見直し、`中央ビューア` 表記とユーザー向け説明書の参照先を分かりやすくした。
 
 ### Fixed
 - ルート直下に残っていた開発中の不要ファイルや私的メモを整理し、配布や保守の判断をしやすくした。
