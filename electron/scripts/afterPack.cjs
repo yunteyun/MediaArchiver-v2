@@ -45,6 +45,12 @@ exports.default = async function afterPack(context) {
         'dist-electron',
         'preload.js'
     );
+    const mainFallbackPath = path.join(
+        appOutDir,
+        'resources',
+        'dist-electron',
+        'main.js'
+    );
 
     const binaries = REQUIRED_BINARIES[nodeplatform] || [];
     const errors = [];
@@ -73,6 +79,11 @@ exports.default = async function afterPack(context) {
         throw new Error(`[afterPack] ❌ Missing preload fallback: ${preloadFallbackPath}`);
     }
 
+    if (!fs.existsSync(mainFallbackPath)) {
+        throw new Error(`[afterPack] ❌ Missing main fallback: ${mainFallbackPath}`);
+    }
+
+    console.log('[afterPack] ✓ Found main fallback: resources/dist-electron/main.js');
     console.log('[afterPack] ✓ Found preload fallback: resources/dist-electron/preload.js');
 
     console.log(`[afterPack] ✓ All required binaries verified.`);

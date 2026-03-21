@@ -160,9 +160,6 @@ export const TagSection = React.memo<TagSectionProps>(({ file, embedded = false 
                     className="space-y-2 rounded-lg border border-surface-700 bg-surface-900/45 p-2"
                     data-ignore-global-escape="true"
                 >
-                    <div className="text-[11px] text-surface-500">
-                        カテゴリを選ぶと、その中のタグ候補がポップアップで開きます
-                    </div>
                     <div className="flex flex-wrap gap-1.5">
                         <button
                             type="button"
