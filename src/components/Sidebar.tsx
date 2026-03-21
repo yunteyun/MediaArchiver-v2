@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Loader2, CheckCircle2, AlertCircle, Filter, Wrench, ChevronDown } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Loader2, CheckCircle2, AlertCircle, Filter, Wrench, ChevronDown, BookmarkPlus } from 'lucide-react';
 import { useFileStore } from '../stores/useFileStore';
 import { useUIStore, type SearchCondition, type SearchTarget } from '../stores/useUIStore';
 import { useTagStore } from '../stores/useTagStore';
@@ -848,6 +848,18 @@ export const Sidebar = React.memo(() => {
                         badge={filterSectionBadge}
                         onToggle={toggleFiltersSection}
                     >
+                        <div className="px-2 pb-1">
+                            <button
+                                type="button"
+                                onClick={handleOpenCreateSmartFolderEditor}
+                                className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] text-surface-300 transition-colors hover:bg-surface-800"
+                                title="今の見方をスマートフォルダとして保存"
+                                disabled={smartFolderMutating}
+                            >
+                                <BookmarkPlus size={12} />
+                                今の見方を保存
+                            </button>
+                        </div>
                         <TagFilterPanel onOpenManager={() => setTagManagerOpen(true)} />
                         <RatingFilterPanel />
                     </SidebarToggleSection>
