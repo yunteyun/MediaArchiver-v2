@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowUp, ArrowDown, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
+import { ArrowUp, ArrowDown, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp, SlidersHorizontal, RotateCcw } from 'lucide-react';
 import { useUIStore, type FileSortBy, type FileSortOrder } from '../stores/useUIStore';
 import { useSettingsStore, type DateGroupingMode, type DisplayMode, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
@@ -66,6 +66,11 @@ function readInitialToggleOpen(storageKey: string, defaultValue: boolean): boole
 }
 
 export const Header = React.memo(() => {
+    const searchQuery = useUIStore((s) => s.searchQuery);
+    const searchTarget = useUIStore((s) => s.searchTarget);
+    const clearSearchConditions = useUIStore((s) => s.clearSearchConditions);
+    const ratingQuickFilter = useUIStore((s) => s.ratingQuickFilter);
+    const setRatingQuickFilter = useUIStore((s) => s.setRatingQuickFilter);
     const sortBy = useUIStore((s) => s.currentSortBy);
     const sortOrder = useUIStore((s) => s.currentSortOrder);
     const setSortBy = useUIStore((s) => s.setCurrentSortBy);
@@ -187,6 +192,10 @@ export const Header = React.memo(() => {
     ]);
 
     const activeListDisplayPresetValue = activeListDisplayPresetId ?? '__custom__';
+    const hasActiveSavedFilters = searchQuery.trim().length > 0
+        || searchTarget !== defaultSearchTarget
+        || ratingQuickFilter !== 'none'
+        || hasActiveTypeFilter;
 
     return (
         <div className="px-4 py-2 bg-surface-900 border-b border-surface-700 space-y-2">
@@ -271,6 +280,22 @@ export const Header = React.memo(() => {
                     </select>
                 </div>
 
+                {hasActiveSavedFilters && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            clearSearchConditions(defaultSearchTarget);
+                            clearFileTypeFilter();
+                            setRatingQuickFilter('none');
+                        }}
+                        className="inline-flex items-center gap-1 rounded border border-surface-700 bg-surface-800 px-2.5 py-1.5 text-xs text-surface-300 transition-colors hover:bg-surface-700 hover:text-surface-100"
+                        title="検索と絞り込みを初期状態へ戻す"
+                    >
+                        <RotateCcw size={12} />
+                        <span>絞り込み解除</span>
+                    </button>
+                )}
+
                 <button
                     type="button"
                     onClick={() => setIsDisplayControlsOpen((prev) => !prev)}
@@ -311,11 +336,13 @@ export const Header = React.memo(() => {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    useUIStore.getState().clearSearchConditions(defaultSearchTarget);
+                                    clearSearchConditions(defaultSearchTarget);
+                                    clearFileTypeFilter();
+                                    setRatingQuickFilter('none');
                                 }}
                                 className="rounded border border-surface-700 bg-surface-800 px-2.5 py-1 text-xs text-surface-200 transition-colors hover:bg-surface-700"
                             >
-                                検索対象を既定値へ
+                                絞り込みを初期化
                             </button>
                         </div>
 
