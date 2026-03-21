@@ -3,24 +3,49 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from './logger';
+import { resolvePreviewWorkerLane, type PreviewWorkerLane } from '../../src/shared/previewWorkerQueue';
 import type {
     AudioThumbnailJobRequest,
-    AudioThumbnailJobSuccess,
     MediaMetadataJobRequest,
-    MediaMetadataJobSuccess,
     PreviewFrameJobRequest,
-    PreviewFrameJobSuccess,
     PreviewFrameWorkerMessage,
     VideoDurationJobRequest,
-    VideoDurationJobSuccess,
     VideoThumbnailJobRequest,
-    VideoThumbnailJobSuccess,
     WorkerJobFailure,
     ExtractedMediaMetadata,
 } from '../utility/previewFrameWorkerTypes';
 
 const log = logger.scope('PreviewFrameWorkerService');
 const PREVIEW_FRAME_JOB_TIMEOUT_MS = 90_000;
+
+type WorkerRequest =
+    | PreviewFrameJobRequest
+    | VideoThumbnailJobRequest
+    | VideoDurationJobRequest
+    | AudioThumbnailJobRequest
+    | MediaMetadataJobRequest;
+
+type WorkerResult = string[] | string | number | ExtractedMediaMetadata | null;
+
+interface QueuedPreviewFrameJob {
+    request: WorkerRequest;
+    resolve: (result: WorkerResult) => void;
+    reject: (error: Error) => void;
+}
+
+interface WorkerLaneState {
+    lane: PreviewWorkerLane;
+    serviceName: string;
+    worker: UtilityProcess | null;
+    workerReady: boolean;
+    workerStartupPromise: Promise<void> | null;
+    resolveWorkerStartup: (() => void) | null;
+    rejectWorkerStartup: ((error: Error) => void) | null;
+    activeJob: QueuedPreviewFrameJob | null;
+    activeJobTimeout: NodeJS.Timeout | null;
+    isDisposing: boolean;
+    queuedJobs: QueuedPreviewFrameJob[];
+}
 
 function resolveWorkerScriptPath(): string {
     const candidates = [
@@ -40,331 +65,294 @@ function resolveWorkerScriptPath(): string {
 
 const workerScriptPath = resolveWorkerScriptPath();
 
-interface QueuedPreviewFrameJob {
-    request: PreviewFrameJobRequest | VideoThumbnailJobRequest | VideoDurationJobRequest | AudioThumbnailJobRequest | MediaMetadataJobRequest;
-    resolve: (result: string[] | string | number | ExtractedMediaMetadata | null) => void;
-    reject: (error: Error) => void;
+function createWorkerLaneState(lane: PreviewWorkerLane, serviceName: string): WorkerLaneState {
+    return {
+        lane,
+        serviceName,
+        worker: null,
+        workerReady: false,
+        workerStartupPromise: null,
+        resolveWorkerStartup: null,
+        rejectWorkerStartup: null,
+        activeJob: null,
+        activeJobTimeout: null,
+        isDisposing: false,
+        queuedJobs: [],
+    };
 }
 
-let previewFrameWorker: UtilityProcess | null = null;
-let workerReady = false;
-let workerStartupPromise: Promise<void> | null = null;
-let resolveWorkerStartup: (() => void) | null = null;
-let rejectWorkerStartup: ((error: Error) => void) | null = null;
-let activeJob: QueuedPreviewFrameJob | null = null;
-let activeJobTimeout: NodeJS.Timeout | null = null;
-let isDisposing = false;
-// Step 1 is intentionally FIFO/serial so performance regressions stay easy to isolate.
-const queuedJobs: QueuedPreviewFrameJob[] = [];
+const workerLanes: Record<PreviewWorkerLane, WorkerLaneState> = {
+    heavy: createWorkerLaneState('heavy', 'ffmpeg-preview-frame-worker-heavy'),
+    read: createWorkerLaneState('read', 'ffmpeg-preview-frame-worker-read'),
+};
 
 function toError(error: unknown): Error {
     return error instanceof Error ? error : new Error(String(error));
 }
 
-function clearActiveJobTimeout(): void {
-    if (activeJobTimeout) {
-        clearTimeout(activeJobTimeout);
-        activeJobTimeout = null;
+function clearActiveJobTimeout(state: WorkerLaneState): void {
+    if (state.activeJobTimeout) {
+        clearTimeout(state.activeJobTimeout);
+        state.activeJobTimeout = null;
     }
 }
 
-function flushWorkerStream(level: 'info' | 'warn', chunk: unknown): void {
+function flushWorkerStream(state: WorkerLaneState, level: 'info' | 'warn', chunk: unknown): void {
     const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk ?? '');
     const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 
     lines.forEach((line) => {
         if (level === 'warn') {
-            log.warn(`[worker] ${line}`);
+            log.warn(`[${state.lane}] ${line}`);
         } else {
-            log.info(`[worker] ${line}`);
+            log.info(`[${state.lane}] ${line}`);
         }
     });
 }
 
-function resetStartupState(): void {
-    workerStartupPromise = null;
-    resolveWorkerStartup = null;
-    rejectWorkerStartup = null;
+function resetStartupState(state: WorkerLaneState): void {
+    state.workerStartupPromise = null;
+    state.resolveWorkerStartup = null;
+    state.rejectWorkerStartup = null;
 }
 
-function rejectAllJobs(error: Error): void {
-    clearActiveJobTimeout();
+function rejectAllJobs(state: WorkerLaneState, error: Error): void {
+    clearActiveJobTimeout(state);
 
-    if (activeJob) {
-        activeJob.reject(error);
-        activeJob = null;
+    if (state.activeJob) {
+        state.activeJob.reject(error);
+        state.activeJob = null;
     }
 
-    while (queuedJobs.length > 0) {
-        const queuedJob = queuedJobs.shift();
+    while (state.queuedJobs.length > 0) {
+        const queuedJob = state.queuedJobs.shift();
         queuedJob?.reject(error);
     }
 }
 
-function dispatchNextJob(): void {
-    if (!previewFrameWorker || !workerReady || activeJob || queuedJobs.length === 0) {
+function dispatchNextJob(state: WorkerLaneState): void {
+    if (!state.worker || !state.workerReady || state.activeJob || state.queuedJobs.length === 0) {
         return;
     }
 
-    activeJob = queuedJobs.shift() ?? null;
-    if (!activeJob) {
+    state.activeJob = state.queuedJobs.shift() ?? null;
+    if (!state.activeJob) {
         return;
     }
 
-    activeJobTimeout = setTimeout(() => {
-        const requestId = activeJob?.request.requestId ?? 'unknown';
-        const timeoutError = new Error(`Preview frame worker timed out after ${PREVIEW_FRAME_JOB_TIMEOUT_MS}ms (requestId=${requestId}).`);
+    state.activeJobTimeout = setTimeout(() => {
+        const requestId = state.activeJob?.request.requestId ?? 'unknown';
+        const timeoutError = new Error(
+            `Preview frame worker timed out after ${PREVIEW_FRAME_JOB_TIMEOUT_MS}ms (lane=${state.lane}, requestId=${requestId}).`
+        );
         log.warn(timeoutError.message);
 
-        if (previewFrameWorker) {
-            previewFrameWorker.kill();
-            previewFrameWorker = null;
-        }
-
-        workerReady = false;
-        rejectAllJobs(timeoutError);
+        state.worker?.kill();
+        state.worker = null;
+        state.workerReady = false;
+        rejectAllJobs(state, timeoutError);
     }, PREVIEW_FRAME_JOB_TIMEOUT_MS);
 
-    previewFrameWorker.postMessage(activeJob.request);
+    state.worker.postMessage(state.activeJob.request);
 }
 
-function handleWorkerMessage(message: PreviewFrameWorkerMessage): void {
+function handleWorkerMessage(state: WorkerLaneState, message: PreviewFrameWorkerMessage): void {
     if (!message) return;
 
     if (message.type === 'worker:ready') {
-        workerReady = true;
-        resolveWorkerStartup?.();
-        resetStartupState();
-        dispatchNextJob();
+        state.workerReady = true;
+        state.resolveWorkerStartup?.();
+        resetStartupState(state);
+        dispatchNextJob(state);
         return;
     }
 
-    if (!activeJob || message.requestId !== activeJob.request.requestId) {
-        log.warn(`Received unexpected worker message for request: ${(message as PreviewFrameJobSuccess | VideoThumbnailJobSuccess | VideoDurationJobSuccess | AudioThumbnailJobSuccess | MediaMetadataJobSuccess | WorkerJobFailure).requestId ?? 'unknown'}`);
+    if (!state.activeJob || message.requestId !== state.activeJob.request.requestId) {
+        const unexpectedMessage = message as WorkerJobFailure;
+        log.warn(`[${state.lane}] Received unexpected worker message for request: ${unexpectedMessage.requestId ?? 'unknown'}`);
         return;
     }
 
-    clearActiveJobTimeout();
+    clearActiveJobTimeout(state);
 
-    const completedJob = activeJob;
-    activeJob = null;
+    const completedJob = state.activeJob;
+    state.activeJob = null;
 
-    if (message.type === 'worker:preview-job-success') {
-        completedJob.resolve(message.framePaths);
-    } else if (message.type === 'worker:video-thumbnail-job-success') {
-        completedJob.resolve(message.thumbnailPath);
-    } else if (message.type === 'worker:video-duration-job-success') {
-        completedJob.resolve(message.durationSeconds);
-    } else if (message.type === 'worker:audio-thumbnail-job-success') {
-        completedJob.resolve(message.thumbnailPath);
-    } else if (message.type === 'worker:media-metadata-job-success') {
-        completedJob.resolve(message.metadata);
-    } else if (message.type === 'worker:job-failure') {
-        completedJob.reject(new Error(message.error));
+    switch (message.type) {
+        case 'worker:preview-job-success':
+            completedJob.resolve(message.framePaths);
+            break;
+        case 'worker:video-thumbnail-job-success':
+            completedJob.resolve(message.thumbnailPath);
+            break;
+        case 'worker:video-duration-job-success':
+            completedJob.resolve(message.durationSeconds);
+            break;
+        case 'worker:audio-thumbnail-job-success':
+            completedJob.resolve(message.thumbnailPath);
+            break;
+        case 'worker:media-metadata-job-success':
+            completedJob.resolve(message.metadata);
+            break;
+        case 'worker:job-failure':
+            completedJob.reject(new Error(message.error));
+            break;
+        default:
+            completedJob.reject(new Error(`Unsupported worker message: ${(message as { type?: string }).type ?? 'unknown'}`));
+            break;
     }
 
-    dispatchNextJob();
+    dispatchNextJob(state);
 }
 
-function handleWorkerExit(code: number): void {
-    clearActiveJobTimeout();
+function handleWorkerExit(state: WorkerLaneState, code: number): void {
+    clearActiveJobTimeout(state);
 
-    const exitError = new Error(`Preview frame worker exited with code ${code}.`);
-    const wasDisposing = isDisposing;
+    const exitError = new Error(`Preview frame worker exited with code ${code} (lane=${state.lane}).`);
+    const wasDisposing = state.isDisposing;
 
-    previewFrameWorker = null;
-    workerReady = false;
+    state.worker = null;
+    state.workerReady = false;
 
-    if (workerStartupPromise) {
-        rejectWorkerStartup?.(exitError);
-        resetStartupState();
+    if (state.workerStartupPromise) {
+        state.rejectWorkerStartup?.(exitError);
+        resetStartupState(state);
     }
 
     if (wasDisposing) {
-        isDisposing = false;
+        state.isDisposing = false;
         return;
     }
 
     log.warn(exitError.message);
-    rejectAllJobs(exitError);
+    rejectAllJobs(state, exitError);
 }
 
-function ensureWorkerReady(): Promise<void> {
-    if (previewFrameWorker && workerReady) {
+function ensureWorkerReady(state: WorkerLaneState): Promise<void> {
+    if (state.worker && state.workerReady) {
         return Promise.resolve();
     }
 
-    if (workerStartupPromise) {
-        return workerStartupPromise;
+    if (state.workerStartupPromise) {
+        return state.workerStartupPromise;
     }
 
-    workerStartupPromise = new Promise((resolve, reject) => {
-        resolveWorkerStartup = resolve;
-        rejectWorkerStartup = reject;
+    state.workerStartupPromise = new Promise((resolve, reject) => {
+        state.resolveWorkerStartup = resolve;
+        state.rejectWorkerStartup = reject;
 
         try {
             const worker = utilityProcess.fork(workerScriptPath, [], {
-                serviceName: 'ffmpeg-preview-frame-worker',
+                serviceName: state.serviceName,
                 stdio: 'pipe',
             });
 
-            previewFrameWorker = worker;
-            workerReady = false;
-            isDisposing = false;
+            state.worker = worker;
+            state.workerReady = false;
+            state.isDisposing = false;
 
             worker.on('spawn', () => {
-                log.info(`Preview frame worker spawned (pid=${worker.pid ?? 'unknown'}).`);
+                log.info(`Preview frame worker spawned (lane=${state.lane}, pid=${worker.pid ?? 'unknown'}).`);
             });
             worker.on('message', (message) => {
-                handleWorkerMessage(message as PreviewFrameWorkerMessage);
+                handleWorkerMessage(state, message as PreviewFrameWorkerMessage);
             });
             worker.on('exit', (code) => {
-                handleWorkerExit(code);
+                handleWorkerExit(state, code);
             });
             worker.on('error', (type, location, report) => {
-                log.error(`Preview frame worker fatal error: ${type} ${location}`, report);
+                log.error(`Preview frame worker fatal error (lane=${state.lane}): ${type} ${location}`, report);
             });
 
             worker.stdout?.on('data', (chunk) => {
-                flushWorkerStream('info', chunk);
+                flushWorkerStream(state, 'info', chunk);
             });
             worker.stderr?.on('data', (chunk) => {
-                flushWorkerStream('warn', chunk);
+                flushWorkerStream(state, 'warn', chunk);
             });
         } catch (error) {
             const startupError = toError(error);
-            previewFrameWorker = null;
-            workerReady = false;
-            resetStartupState();
+            state.worker = null;
+            state.workerReady = false;
+            resetStartupState(state);
             reject(startupError);
         }
     });
 
-    return workerStartupPromise;
+    return state.workerStartupPromise;
+}
+
+function enqueueJob<T extends WorkerResult>(
+    request: WorkerRequest,
+    normalizeResult: (result: WorkerResult) => T
+): Promise<T> {
+    const lane = resolvePreviewWorkerLane(request.type);
+    const state = workerLanes[lane];
+
+    return new Promise((resolve, reject) => {
+        state.queuedJobs.push({
+            request,
+            resolve: (result) => resolve(normalizeResult(result)),
+            reject,
+        });
+
+        void ensureWorkerReady(state)
+            .then(() => {
+                dispatchNextJob(state);
+            })
+            .catch((error) => {
+                const startupError = toError(error);
+                log.warn(`Failed to start preview frame worker (lane=${state.lane}): ${startupError.message}`);
+                rejectAllJobs(state, startupError);
+            });
+    });
 }
 
 export async function runPreviewFrameJob(request: PreviewFrameJobRequest): Promise<string[] | null> {
-    return new Promise((resolve, reject) => {
-        queuedJobs.push({
-            request,
-            resolve: (result) => resolve((result as string[] | null) ?? null),
-            reject,
-        });
-
-        void ensureWorkerReady()
-            .then(() => {
-                dispatchNextJob();
-            })
-            .catch((error) => {
-                const startupError = toError(error);
-                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
-                rejectAllJobs(startupError);
-            });
-    });
+    return enqueueJob(request, (result) => (result as string[] | null) ?? null);
 }
 
 export async function runVideoThumbnailJob(request: VideoThumbnailJobRequest): Promise<string | null> {
-    return new Promise((resolve, reject) => {
-        queuedJobs.push({
-            request,
-            resolve: (result) => resolve((result as string | null) ?? null),
-            reject,
-        });
-
-        void ensureWorkerReady()
-            .then(() => {
-                dispatchNextJob();
-            })
-            .catch((error) => {
-                const startupError = toError(error);
-                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
-                rejectAllJobs(startupError);
-            });
-    });
+    return enqueueJob(request, (result) => (result as string | null) ?? null);
 }
 
 export async function runVideoDurationJob(request: VideoDurationJobRequest): Promise<number> {
-    return new Promise((resolve, reject) => {
-        queuedJobs.push({
-            request,
-            resolve: (result) => resolve((result as number | null) ?? 0),
-            reject,
-        });
-
-        void ensureWorkerReady()
-            .then(() => {
-                dispatchNextJob();
-            })
-            .catch((error) => {
-                const startupError = toError(error);
-                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
-                rejectAllJobs(startupError);
-            });
-    });
+    return enqueueJob(request, (result) => (result as number | null) ?? 0);
 }
 
 export async function runAudioThumbnailJob(request: AudioThumbnailJobRequest): Promise<string | null> {
-    return new Promise((resolve, reject) => {
-        queuedJobs.push({
-            request,
-            resolve: (result) => resolve((result as string | null) ?? null),
-            reject,
-        });
-
-        void ensureWorkerReady()
-            .then(() => {
-                dispatchNextJob();
-            })
-            .catch((error) => {
-                const startupError = toError(error);
-                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
-                rejectAllJobs(startupError);
-            });
-    });
+    return enqueueJob(request, (result) => (result as string | null) ?? null);
 }
 
 export async function runMediaMetadataJob(request: MediaMetadataJobRequest): Promise<ExtractedMediaMetadata | null> {
-    return new Promise((resolve, reject) => {
-        queuedJobs.push({
-            request,
-            resolve: (result) => resolve((result as ExtractedMediaMetadata | null) ?? null),
-            reject,
-        });
-
-        void ensureWorkerReady()
-            .then(() => {
-                dispatchNextJob();
-            })
-            .catch((error) => {
-                const startupError = toError(error);
-                log.warn(`Failed to start preview frame worker: ${startupError.message}`);
-                rejectAllJobs(startupError);
-            });
-    });
+    return enqueueJob(request, (result) => (result as ExtractedMediaMetadata | null) ?? null);
 }
 
 export function disposePreviewFrameWorker(): void {
     const disposeError = new Error('Preview frame worker disposed.');
-    const hadWorker = Boolean(previewFrameWorker);
-    isDisposing = true;
 
-    clearActiveJobTimeout();
+    for (const state of Object.values(workerLanes)) {
+        const hadWorker = Boolean(state.worker);
+        state.isDisposing = true;
 
-    if (previewFrameWorker) {
-        previewFrameWorker.kill();
-        previewFrameWorker = null;
-    }
+        clearActiveJobTimeout(state);
 
-    workerReady = false;
+        if (state.worker) {
+            state.worker.kill();
+            state.worker = null;
+        }
 
-    if (workerStartupPromise) {
-        rejectWorkerStartup?.(disposeError);
-        resetStartupState();
-    }
+        state.workerReady = false;
 
-    rejectAllJobs(disposeError);
+        if (state.workerStartupPromise) {
+            state.rejectWorkerStartup?.(disposeError);
+            resetStartupState(state);
+        }
 
-    if (!hadWorker) {
-        isDisposing = false;
+        rejectAllJobs(state, disposeError);
+
+        if (!hadWorker) {
+            state.isDisposing = false;
+        }
     }
 }

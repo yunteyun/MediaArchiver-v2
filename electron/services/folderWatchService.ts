@@ -4,6 +4,7 @@ import { logger } from './logger';
 import { getWatchNewFilesFolders, type MediaFolder } from './database';
 import { scanDirectory } from './scanner';
 import { runAutoOrganizeForScan } from './autoOrganizeService';
+import { resolveWatchScanPlan } from '../../src/shared/scanPerformance';
 
 const log = logger.scope('FolderWatch');
 const INITIAL_WATCHER_SYNC_DELAY_MS = 15_000;
@@ -49,14 +50,39 @@ async function runFolderScan(folder: MediaFolder, reason: string) {
 
     state.scanRunning = true;
     try {
-        log.info(`Detected file change, rescanning: ${folder.path} (reason=${reason})`);
-        await scanDirectory(folder.path, folder.id, undefined, undefined, {
+        const changedPath = reason && reason !== 'unknown' && reason !== 'queued'
+            ? path.resolve(folder.path, reason)
+            : null;
+        let changedPathExists = false;
+        let changedPathIsDirectory = false;
+        if (changedPath) {
+            try {
+                const changedPathStat = fs.statSync(changedPath);
+                changedPathExists = true;
+                changedPathIsDirectory = changedPathStat.isDirectory();
+            } catch {
+                changedPathExists = false;
+                changedPathIsDirectory = false;
+            }
+        }
+
+        const scanPlan = resolveWatchScanPlan({
+            rootPath: folder.path,
+            changedPath,
+            changedPathExists,
+            changedPathIsDirectory,
+        });
+
+        log.info(`Detected file change, rescanning: ${scanPlan.scanPath} (scope=${scanPlan.scope}, reason=${reason})`);
+        await scanDirectory(scanPlan.scanPath, folder.id, undefined, undefined, {
             skipInitialCount: true,
+            skipMissingCleanup: scanPlan.skipMissingCleanup,
+            rootFolderPath: folder.path,
         });
         const autoRunResult = await runAutoOrganizeForScan({
             triggerSource: 'watch_scan',
             rootFolderId: folder.id,
-            scanPath: folder.path,
+            scanPath: scanPlan.scanPath,
         });
         if (autoRunResult?.success && autoRunResult.appliedCount > 0) {
             log.info(`Auto organize applied after watch scan: ${folder.path} (${autoRunResult.appliedCount} items)`);

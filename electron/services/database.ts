@@ -1089,6 +1089,17 @@ export function getFolderFileCounts(): Record<string, number> {
     return result;
 }
 
+export function getFileCountByRootFolderId(rootFolderId: string): number {
+    const db = getDb();
+    const row = db.prepare(`
+        SELECT COUNT(*) as count
+        FROM files
+        WHERE root_folder_id = ?
+    `).get(rootFolderId) as { count?: number } | undefined;
+
+    return typeof row?.count === 'number' ? row.count : 0;
+}
+
 /**
  * フォルダごとの代表サムネイルパスを一括取得（Phase 12-4）
  * 各フォルダの最初のファイルのサムネイルを取得

@@ -17,6 +17,7 @@ import {
     type ScanExclusionRules,
 } from '../../src/shared/scanExclusionRules';
 import { pathMatchesExcludedSubdirectory } from '../../src/shared/folderScanSettings';
+import { resolveScanInitialCountMode } from '../../src/shared/scanPerformance';
 
 const log = logger.scope('Scanner');
 
@@ -226,6 +227,8 @@ export type ScanBatchCommittedCallback = (payload: ScanBatchCommittedPayload) =>
 
 export interface ScanDirectoryOptions {
     skipInitialCount?: boolean;
+    skipMissingCleanup?: boolean;
+    rootFolderPath?: string;
     runtimeSettings?: ScanRuntimeSettings;
     cancellationToken?: ScanCancellationToken;
     jobId?: string;
@@ -774,6 +777,12 @@ export async function scanDirectory(
 ) {
     const perfStartedAt = startPerfTimer();
     const jobId = options?.jobId ?? crypto.randomUUID();
+    const initialCountMode = resolveScanInitialCountMode({
+        explicitSkipInitialCount: options?.skipInitialCount,
+        knownFileCount: options?.skipInitialCount === undefined
+            ? db.getFileCountByRootFolderId(rootFolderId)
+            : undefined,
+    });
     activeScanJobs.set(jobId, { dirPath, rootFolderId });
     db.updateFolderLastScanStatus(rootFolderId, {
         at: Date.now(),
@@ -788,11 +797,13 @@ export async function scanDirectory(
             rootFolderId,
             runtimeSettings.fileTypeCategories
         );
+        const folderRootPath = options?.rootFolderPath ?? dirPath;
         const folderScanSettings = db.getFolderScanSettings(rootFolderId);
         const excludedSubdirectories = folderScanSettings.excludedSubdirectories ?? [];
+        const shouldSkipInitialCount = initialCountMode !== 'full';
         let total = 0;
 
-        if (!options?.skipInitialCount) {
+        if (!shouldSkipInitialCount) {
             if (onProgress) {
                 onProgress({ jobId, phase: 'counting', current: 0, total: 0, message: 'ファイル数をカウント中...' });
             }
@@ -800,7 +811,7 @@ export async function scanDirectory(
             const countStartedAt = startPerfTimer();
             total = await countFiles(
                 dirPath,
-                dirPath,
+                folderRootPath,
                 effectiveScanFilters,
                 runtimeSettings.exclusionRules,
                 excludedSubdirectories,
@@ -820,7 +831,7 @@ export async function scanDirectory(
             jobId,
             current: 0,
             total,
-            rootPath: dirPath,
+            rootPath: folderRootPath,
             lastProgressTime: 0,
             stats: { newCount: 0, updateCount: 0, skipCount: 0, removedCount: 0 },
             pendingWrites: [] as PendingWrite[],
@@ -850,25 +861,27 @@ export async function scanDirectory(
         }
 
         // Orphan check (simplified)
-        const registeredFiles = db.getFileCleanupCandidatesByRootFolderId(rootFolderId);
         let removedCount = 0;
-        for (const file of registeredFiles) {
-            const isMissingOnDisk = isScanCancelled(cancellationToken)
-                ? !fs.existsSync(file.path)
-                : !state.seenFilePaths.has(file.path);
-            const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
-            const disabledByProfile =
-                type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
-                    ? !isScanTypeEnabled(type, state.scanFilters)
-                    : false;
-            const excludedByRules =
-                shouldSkipFileByExtension(path.extname(file.path).toLowerCase(), runtimeSettings.exclusionRules)
-                || pathHasExcludedDirectory(file.path, dirPath, runtimeSettings.exclusionRules)
-                || pathMatchesExcludedSubdirectory(file.path, dirPath, excludedSubdirectories);
+        if (!options?.skipMissingCleanup) {
+            const registeredFiles = db.getFileCleanupCandidatesByRootFolderId(rootFolderId);
+            for (const file of registeredFiles) {
+                const isMissingOnDisk = isScanCancelled(cancellationToken)
+                    ? !fs.existsSync(file.path)
+                    : !state.seenFilePaths.has(file.path);
+                const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
+                const disabledByProfile =
+                    type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+                        ? !isScanTypeEnabled(type, state.scanFilters)
+                        : false;
+                const excludedByRules =
+                    shouldSkipFileByExtension(path.extname(file.path).toLowerCase(), runtimeSettings.exclusionRules)
+                    || pathHasExcludedDirectory(file.path, folderRootPath, runtimeSettings.exclusionRules)
+                    || pathMatchesExcludedSubdirectory(file.path, folderRootPath, excludedSubdirectories);
 
-            if (isMissingOnDisk || disabledByProfile || excludedByRules) {
-                db.deleteFile(file.id);
-                removedCount++;
+                if (isMissingOnDisk || disabledByProfile || excludedByRules) {
+                    db.deleteFile(file.id);
+                    removedCount++;
+                }
             }
         }
 
@@ -887,7 +900,7 @@ export async function scanDirectory(
             logPerf('scanner.scanDirectory', perfStartedAt, {
                 folder: path.basename(dirPath) || dirPath,
                 total: finalTotal,
-                countMode: options?.skipInitialCount ? 'skipped' : 'full',
+                countMode: initialCountMode,
                 phase: 'cancelled',
                 newCount: state.stats.newCount,
                 updateCount: state.stats.updateCount,
@@ -947,7 +960,7 @@ export async function scanDirectory(
         logPerf('scanner.scanDirectory', perfStartedAt, {
             folder: path.basename(dirPath) || dirPath,
             total: finalTotal,
-            countMode: options?.skipInitialCount ? 'skipped' : 'full',
+            countMode: initialCountMode,
             phase: 'complete',
             newCount: state.stats.newCount,
             updateCount: state.stats.updateCount,
@@ -958,7 +971,7 @@ export async function scanDirectory(
     } catch (e) {
         logPerf('scanner.scanDirectory', perfStartedAt, {
             folder: path.basename(dirPath) || dirPath,
-            countMode: options?.skipInitialCount ? 'skipped' : 'full',
+            countMode: initialCountMode,
             phase: 'error',
             error: e instanceof Error ? e.message : String(e)
         });
