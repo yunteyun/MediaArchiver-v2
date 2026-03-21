@@ -39,6 +39,19 @@ const SEARCH_TARGET_LABEL_MAP: Record<SearchTarget, string> = {
     folderName: 'フォルダ名',
 };
 
+type SmartFolderSummaryKind = 'scope' | 'search' | 'tags' | 'ratings' | 'quickRating' | 'types';
+
+interface SmartFolderSummaryItem {
+    kind: SmartFolderSummaryKind;
+    detail: string;
+    shortLabel?: string;
+}
+
+interface SmartFolderSummary {
+    tooltip: string;
+    items: SmartFolderSummaryItem[];
+}
+
 function resolveSmartFolderFolderLabel(folderSelection: string | null, folders: MediaFolder[]): string {
     if (!folderSelection || folderSelection === ALL_FILES_ID) return '範囲: すべて';
 
@@ -68,12 +81,17 @@ function resolveSmartFolderFolderLabel(folderSelection: string | null, folders: 
     return `範囲: ${folder?.name ?? '指定フォルダ'}`;
 }
 
-function buildSmartFolderPreviewText(
+function buildSmartFolderSummary(
     condition: SmartFolderConditionV1,
     folders: MediaFolder[],
     ratingDisplayThresholds: ReturnType<typeof useSettingsStore.getState>['ratingDisplayThresholds']
-): string {
-    const segments: string[] = [resolveSmartFolderFolderLabel(condition.folderSelection, folders)];
+): SmartFolderSummary {
+    const details: string[] = [];
+    const items: SmartFolderSummaryItem[] = [];
+
+    const scopeDetail = resolveSmartFolderFolderLabel(condition.folderSelection, folders);
+    details.push(scopeDetail);
+    items.push({ kind: 'scope', detail: scopeDetail });
 
     const normalizedTextConditions = normalizeSmartFolderTextConditionsForCompare(condition);
     if (normalizedTextConditions.length > 0) {
@@ -85,21 +103,48 @@ function buildSmartFolderPreviewText(
             })
             .join(' + ');
         const suffix = normalizedTextConditions.length > 2 ? ` (+${normalizedTextConditions.length - 2})` : '';
-        segments.push(`検索: ${labels}${suffix}`);
+        const detail = `検索: ${labels}${suffix}`;
+        details.push(detail);
+        items.push({
+            kind: 'search',
+            detail,
+            shortLabel: normalizedTextConditions.length > 1 ? String(normalizedTextConditions.length) : undefined,
+        });
     }
 
     if (condition.tags.ids.length > 0) {
-        segments.push(`タグ: ${condition.tags.mode} ${condition.tags.ids.length}`);
+        const detail = `タグ: ${condition.tags.mode} ${condition.tags.ids.length}件`;
+        details.push(detail);
+        items.push({
+            kind: 'tags',
+            detail,
+            shortLabel: String(condition.tags.ids.length),
+        });
     }
 
     const activeRatingCount = Object.values(condition.ratings).filter((range) => {
         return typeof range.min === 'number' || typeof range.max === 'number';
     }).length;
     if (activeRatingCount > 0) {
-        segments.push(`評価: ${activeRatingCount}軸`);
+        const detail = `評価: ${activeRatingCount}軸`;
+        details.push(detail);
+        items.push({
+            kind: 'ratings',
+            detail,
+            shortLabel: String(activeRatingCount),
+        });
     }
     if (condition.ratingQuickFilter !== 'none') {
-        segments.push(`総合: ${getRatingQuickFilterLabel(condition.ratingQuickFilter, ratingDisplayThresholds)}`);
+        const quickFilterLabel = getRatingQuickFilterLabel(condition.ratingQuickFilter, ratingDisplayThresholds);
+        const detail = `総合: ${quickFilterLabel}`;
+        details.push(detail);
+        items.push({
+            kind: 'quickRating',
+            detail,
+            shortLabel: condition.ratingQuickFilter === 'unrated'
+                ? '未'
+                : quickFilterLabel.replace(/^総合\s*/, ''),
+        });
     }
 
     const normalizedTypes = condition.types.filter((type): type is MediaFile['type'] => (
@@ -110,14 +155,25 @@ function buildSmartFolderPreviewText(
             .map((type) => FILE_TYPE_LABEL_MAP[type])
             .filter(Boolean)
             .join('/');
-        segments.push(`タイプ: ${labels}`);
+        const detail = `タイプ: ${labels}`;
+        details.push(detail);
+        items.push({
+            kind: 'types',
+            detail,
+            shortLabel: normalizedTypes.length === 1
+                ? FILE_TYPE_LABEL_MAP[normalizedTypes[0]]
+                : String(normalizedTypes.length),
+        });
     }
 
-    if (segments.length === 1) {
-        segments.push('条件: 追加なし');
+    if (details.length === 1) {
+        details.push('条件: 追加なし');
     }
 
-    return segments.join(' / ');
+    return {
+        tooltip: details.join(' / '),
+        items,
+    };
 }
 
 function normalizeSmartFolderSelectionForCompare(folderSelection: string | null): string {
@@ -623,12 +679,12 @@ export const Sidebar = React.memo(() => {
         }
     }, [deleteSmartFolder]);
 
-    const smartFolderPreviewMap = useMemo(() => {
-        const map = new Map<string, string>();
+    const smartFolderSummaryMap = useMemo(() => {
+        const map = new Map<string, SmartFolderSummary>();
         smartFolders.forEach((smartFolder) => {
             map.set(
                 smartFolder.id,
-                buildSmartFolderPreviewText(smartFolder.condition, folders, ratingDisplayThresholds)
+                buildSmartFolderSummary(smartFolder.condition, folders, ratingDisplayThresholds)
             );
         });
         return map;
@@ -855,7 +911,7 @@ export const Sidebar = React.memo(() => {
                             smartFolderLoading={smartFolderLoading}
                             smartFolders={smartFolders}
                             activeSmartFolderId={activeSmartFolderId}
-                            smartFolderPreviewMap={smartFolderPreviewMap}
+                            smartFolderSummaryMap={smartFolderSummaryMap}
                             onClearSmartFolderConditions={() => { void handleClearSmartFolderConditions(); }}
                             onOpenCreateSmartFolderEditor={handleOpenCreateSmartFolderEditor}
                             onOpenTemplateSmartFolderEditor={handleOpenTemplateSmartFolderEditor}

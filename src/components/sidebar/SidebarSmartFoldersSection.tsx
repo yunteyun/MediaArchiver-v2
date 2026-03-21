@@ -1,7 +1,33 @@
 import React from 'react';
-import { ArrowDown, ArrowUp, BookmarkPlus, Copy, Pencil, Sparkles, Trash2, X } from 'lucide-react';
+import {
+    ArrowDown,
+    ArrowUp,
+    BookmarkPlus,
+    Copy,
+    Filter,
+    FolderOpen,
+    Pencil,
+    Search,
+    SlidersHorizontal,
+    Sparkles,
+    Star,
+    Tag,
+    Trash2,
+    X,
+} from 'lucide-react';
 import type { SmartFolderV1 } from '../../stores/useSmartFolderStore';
 import { useRatingDisplay } from '../ratings/useRatingDisplay';
+
+interface SmartFolderSummaryItem {
+    kind: 'scope' | 'search' | 'tags' | 'ratings' | 'quickRating' | 'types';
+    detail: string;
+    shortLabel?: string;
+}
+
+interface SmartFolderSummary {
+    tooltip: string;
+    items: SmartFolderSummaryItem[];
+}
 
 interface SidebarSmartFoldersSectionProps {
     sidebarCollapsed: boolean;
@@ -11,7 +37,7 @@ interface SidebarSmartFoldersSectionProps {
     smartFolderLoading: boolean;
     smartFolders: SmartFolderV1[];
     activeSmartFolderId: string | null;
-    smartFolderPreviewMap: Map<string, string>;
+    smartFolderSummaryMap: Map<string, SmartFolderSummary>;
     onClearSmartFolderConditions: () => void;
     onOpenCreateSmartFolderEditor: () => void;
     onOpenTemplateSmartFolderEditor: (templateKey: 'midOrAbove' | 'unrated') => void;
@@ -30,7 +56,7 @@ export const SidebarSmartFoldersSection = React.memo(({
     smartFolderLoading,
     smartFolders,
     activeSmartFolderId,
-    smartFolderPreviewMap,
+    smartFolderSummaryMap,
     onClearSmartFolderConditions,
     onOpenCreateSmartFolderEditor,
     onOpenTemplateSmartFolderEditor,
@@ -44,6 +70,25 @@ export const SidebarSmartFoldersSection = React.memo(({
     if (sidebarCollapsed) {
         return null;
     }
+
+    const getSummaryIcon = (kind: SmartFolderSummaryItem['kind']) => {
+        switch (kind) {
+            case 'scope':
+                return FolderOpen;
+            case 'search':
+                return Search;
+            case 'tags':
+                return Tag;
+            case 'ratings':
+                return SlidersHorizontal;
+            case 'quickRating':
+                return Star;
+            case 'types':
+                return Filter;
+            default:
+                return Filter;
+        }
+    };
 
     return (
         <div className="px-2 pb-1">
@@ -119,6 +164,7 @@ export const SidebarSmartFoldersSection = React.memo(({
                         const isActive = activeSmartFolderId === smartFolder.id;
                         const canMoveUp = index > 0;
                         const canMoveDown = index < smartFolders.length - 1;
+                        const summary = smartFolderSummaryMap.get(smartFolder.id);
                         return (
                             <div
                                 key={smartFolder.id}
@@ -138,15 +184,32 @@ export const SidebarSmartFoldersSection = React.memo(({
                                         onApplySmartFolder(smartFolder.id);
                                     }}
                                     className="min-w-0 flex-1 text-left"
-                                    title={isActive
-                                        ? `${smartFolder.name}（再クリックで解除）`
-                                        : `${smartFolder.name}（クリックで適用）`}
+                                    title={[
+                                        isActive
+                                            ? `${smartFolder.name}（再クリックで解除）`
+                                            : `${smartFolder.name}（クリックで適用）`,
+                                        summary?.tooltip,
+                                    ].filter(Boolean).join(' / ')}
                                 >
                                     <span className="block truncate">{smartFolder.name}</span>
-                                    <span className={`mt-0.5 block truncate text-[10px] ${
-                                        isActive ? 'text-blue-100/90' : 'text-surface-500'
-                                    }`}>
-                                        {smartFolderPreviewMap.get(smartFolder.id)}
+                                    <span className="mt-1 flex items-center gap-1.5">
+                                        {summary?.items.map((item, itemIndex) => {
+                                            const Icon = getSummaryIcon(item.kind);
+                                            return (
+                                                <span
+                                                    key={`${smartFolder.id}-${item.kind}-${itemIndex}`}
+                                                    className={`inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10px] ${
+                                                        isActive
+                                                            ? 'bg-blue-500/25 text-blue-50'
+                                                            : 'bg-surface-800 text-surface-400'
+                                                    }`}
+                                                    title={item.detail}
+                                                >
+                                                    <Icon size={10} />
+                                                    {item.shortLabel && <span>{item.shortLabel}</span>}
+                                                </span>
+                                            );
+                                        })}
                                     </span>
                                 </button>
                                 <span className="inline-flex flex-shrink-0 items-center gap-1">
