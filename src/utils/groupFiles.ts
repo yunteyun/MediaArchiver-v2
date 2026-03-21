@@ -81,6 +81,29 @@ function getWeekGroupKey(timestamp: number): string {
     return `week:${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
 }
 
+function formatMonthDay(date: Date): string {
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function getWeekOfMonth(date: Date): number {
+    return Math.floor((date.getDate() - 1) / 7) + 1;
+}
+
+function formatWeekGroupLabel(weekStart: Date): string {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const sameMonth =
+        weekStart.getFullYear() === weekEnd.getFullYear() &&
+        weekStart.getMonth() === weekEnd.getMonth();
+
+    if (sameMonth) {
+        return `${weekStart.getFullYear()}年${weekStart.getMonth() + 1}月 第${getWeekOfMonth(weekStart)}週 (${formatMonthDay(weekStart)} - ${formatMonthDay(weekEnd)})`;
+    }
+
+    return `${weekStart.getFullYear()}年${weekStart.getMonth() + 1}月${weekStart.getDate()}日週 (${formatMonthDay(weekStart)} - ${formatMonthDay(weekEnd)})`;
+}
+
 /**
  * 相対時間区分を判定（Phase 21-A）
  * 判定順序は厳守すること
@@ -180,9 +203,7 @@ function getGroupLabel(key: string, groupBy: GroupBy): string {
             if (key.startsWith('week:')) {
                 const [year, month, day] = key.substring(5).split('-').map((value) => parseInt(value ?? '0', 10));
                 const weekStart = new Date(year, Math.max(0, month - 1), day);
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekEnd.getDate() + 6);
-                return `${weekStart.getFullYear()}年${weekStart.getMonth() + 1}月${weekStart.getDate()}日 - ${weekEnd.getMonth() + 1}月${weekEnd.getDate()}日`;
+                return formatWeekGroupLabel(weekStart);
             }
 
             // 既存ロジック（年/月）

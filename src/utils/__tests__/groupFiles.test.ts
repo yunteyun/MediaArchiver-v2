@@ -48,6 +48,10 @@ describe('groupFiles date grouping', () => {
             'week:2026-02-09',
         ]);
         expect(groups.map((group) => group.files[0]?.id)).toEqual(['feb-b', 'feb-a']);
+        expect(groups.map((group) => group.label)).toEqual([
+            '2026年2月 第3週 (2/16 - 2/22)',
+            '2026年2月 第2週 (2/9 - 2/15)',
+        ]);
     });
 
     it('keeps recent relative groups ahead of older weekly groups', () => {
@@ -63,5 +67,16 @@ describe('groupFiles date grouping', () => {
             'week:2026-02-09',
         ]);
         expect(groups[0]?.label).toBe('2週間前');
+    });
+
+    it('falls back to start-date based labels when a week crosses months', () => {
+        const files = [
+            createMediaFile('cross-month', '2026-03-01T09:00:00+09:00'),
+        ];
+
+        const groups = groupFiles(files, 'date', 'date', 'desc', { now, dateGroupingMode: 'week' });
+
+        expect(groups[0]?.key).toBe('week:2026-02-23');
+        expect(groups[0]?.label).toBe('2026年2月23日週 (2/23 - 3/1)');
     });
 });
