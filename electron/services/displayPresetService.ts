@@ -72,7 +72,7 @@ function getSampleDisplayPresetManifest(): ExternalDisplayPresetManifest {
     return {
         id: 'sample-whitebrowser-contain',
         extends: 'whiteBrowser',
-        label: 'Sample WhiteBrowser Contain',
+        label: 'サンプル: 詳細表示（全体表示）',
         menuOrder: 47,
         thumbnailPresentation: 'contain',
         layout: {
@@ -96,7 +96,7 @@ function getWhiteBrowserBalancedPresetManifest(): ExternalDisplayPresetManifest 
     return {
         id: 'whitebrowser-balanced',
         extends: 'whiteBrowser',
-        label: 'WhiteBrowser Balanced',
+        label: '詳細表示（バランス）',
         menuOrder: 48,
         thumbnailPresentation: 'contain',
         layout: {
@@ -438,6 +438,45 @@ function ensureDisplayPresetDirectory(): string {
             // Keep user-edited files untouched; load-time validation will report issues.
         }
     }
+
+    const autoUpdatableDefaults: Array<{ fileName: string; legacy: ExternalDisplayPresetManifest[]; next: ExternalDisplayPresetManifest }> = [
+        {
+            fileName: 'sample-whitebrowser-contain.json',
+            legacy: [
+                {
+                    ...getSampleDisplayPresetManifest(),
+                    label: 'Sample WhiteBrowser Contain',
+                },
+            ],
+            next: getSampleDisplayPresetManifest(),
+        },
+        {
+            fileName: 'whitebrowser-balanced.json',
+            legacy: [
+                {
+                    ...getWhiteBrowserBalancedPresetManifest(),
+                    label: 'WhiteBrowser Balanced',
+                },
+            ],
+            next: getWhiteBrowserBalancedPresetManifest(),
+        },
+    ];
+
+    autoUpdatableDefaults.forEach(({ fileName, legacy, next }) => {
+        const presetPath = path.join(directory, fileName);
+        if (!fs.existsSync(presetPath)) {
+            return;
+        }
+
+        try {
+            const parsed = JSON.parse(fs.readFileSync(presetPath, 'utf8')) as unknown;
+            if (legacy.some((manifest) => JSON.stringify(parsed) === JSON.stringify(manifest))) {
+                fs.writeFileSync(presetPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+            }
+        } catch {
+            // Keep user-edited files untouched; load-time validation will report issues.
+        }
+    });
 
     return directory;
 }

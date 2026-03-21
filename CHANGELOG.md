@@ -20,6 +20,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.10.7] - 2026-03-21
+### Added
+- (なし)
+
+### Changed
+- 初期の表示プリセット名から `WhiteBrowser` 表記を外し、既存環境でも未編集の初期プリセットは新しい表示名へ自動更新するようにした。
+
+### Fixed
+- (なし)
+
+---
+
 ## [1.10.6] - 2026-03-21
 ### Added
 - (なし)
