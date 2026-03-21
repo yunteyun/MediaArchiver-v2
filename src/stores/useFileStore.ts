@@ -25,7 +25,7 @@ interface FileState {
     removeFile: (fileId: string) => void;
     refreshFile: (fileId: string) => Promise<void>;
     // タグキャッシュ管理
-    loadFileTagsCache: () => Promise<void>;
+    loadFileTagsCache: (fileIds?: string[]) => Promise<void>;
     updateFileTagCache: (fileId: string, tagIds: string[]) => void;
     // フォルダメタデータ管理（Phase 12-4）
     setFolderMetadata: (metadata: { fileCounts: Record<string, number>; thumbnails: Record<string, string> }) => void;
@@ -38,6 +38,7 @@ interface FileState {
 
 const FILE_TAG_CACHE_RELOAD_DEBOUNCE_MS = 250;
 let pendingTagCacheReloadTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingTagCacheReloadFileIds: string[] | undefined;
 
 export const useFileStore = create<FileState>((set, get) => ({
     files: [],
@@ -61,10 +62,13 @@ export const useFileStore = create<FileState>((set, get) => ({
             clearTimeout(pendingTagCacheReloadTimer);
         }
 
+        pendingTagCacheReloadFileIds = files.map((file) => file.id);
         // 短時間に複数回 setFiles されるケースでは全件タグ再取得をまとめる。
         pendingTagCacheReloadTimer = setTimeout(() => {
             pendingTagCacheReloadTimer = null;
-            get().loadFileTagsCache();
+            const targetFileIds = pendingTagCacheReloadFileIds;
+            pendingTagCacheReloadFileIds = undefined;
+            get().loadFileTagsCache(targetFileIds);
         }, FILE_TAG_CACHE_RELOAD_DEBOUNCE_MS);
     },
     setCurrentFolderId: (id) => set({ currentFolderId: id }),
@@ -144,10 +148,14 @@ export const useFileStore = create<FileState>((set, get) => ({
         }
     },
 
-    loadFileTagsCache: async () => {
+    loadFileTagsCache: async (fileIds) => {
         try {
-            // パフォーマンス最適化: 1回のIPC呼び出しで全タグを取得
-            const allTagsRecord = await window.electronAPI.getAllFileTagIds();
+            const normalizedIds = Array.isArray(fileIds)
+                ? Array.from(new Set(fileIds.filter((fileId): fileId is string => typeof fileId === 'string' && fileId.length > 0)))
+                : [];
+            const allTagsRecord = normalizedIds.length > 0
+                ? await window.electronAPI.getFileTagIdsForFiles(normalizedIds)
+                : await window.electronAPI.getAllFileTagIds();
             const newCache = new Map<string, string[]>(Object.entries(allTagsRecord));
             set({ fileTagsCache: newCache });
         } catch (e) {

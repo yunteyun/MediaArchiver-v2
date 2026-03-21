@@ -382,6 +382,7 @@ declare global {
             removeTagFromFile: (fileId: string, tagId: string) => Promise<{ success: boolean }>;
             getFileTags: (fileId: string) => Promise<RendererTagDefinition[]>;
             getFileTagIds: (fileId: string) => Promise<string[]>;
+            getFileTagIdsForFiles: (fileIds: string[]) => Promise<Record<string, string[]>>;
             getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') => Promise<string[]>;
             getAllFileTagIds: () => Promise<Record<string, string[]>>;
 

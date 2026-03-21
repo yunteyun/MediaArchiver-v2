@@ -16,6 +16,7 @@ import {
     removeTagFromFile,
     getFileTags,
     getFileTagIds,
+    getFileTagIdsForFiles,
     getFilesByTagIds,
     getAllFileTagIds,
     initDefaultTags
@@ -79,6 +80,10 @@ export function registerTagHandlers(): void {
 
     ipcMain.handle('tag:getFileTagIds', async (_event, { fileId }: { fileId: string }) => {
         return getFileTagIds(fileId);
+    });
+
+    ipcMain.handle('tag:getFileTagIdsForFiles', async (_event, { fileIds }: { fileIds: string[] }) => {
+        return getFileTagIdsForFiles(fileIds);
     });
 
     ipcMain.handle('tag:getFilesByTags', async (_event, { tagIds, mode }: { tagIds: string[]; mode?: 'AND' | 'OR' }) => {

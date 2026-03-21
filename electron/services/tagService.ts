@@ -73,6 +73,25 @@ interface FileIdRow {
     file_id: string;
 }
 
+interface FileTagValueRow {
+    file_id: string;
+    tag_value: string;
+}
+
+function appendTagId(result: Record<string, string[]>, fileId: string, tagValue: string): void {
+    if (!tagValue) return;
+
+    const current = result[fileId];
+    if (!current) {
+        result[fileId] = [tagValue];
+        return;
+    }
+
+    if (!current.includes(tagValue)) {
+        current.push(tagValue);
+    }
+}
+
 // --- Category Operations ---
 
 export function getAllCategories(): TagCategory[] {
@@ -282,8 +301,7 @@ export function getFileTags(fileId: string): TagDefinition[] {
 }
 
 export function getFileTagIds(fileId: string): string[] {
-    const rows = db().prepare('SELECT tag_id FROM file_tags WHERE file_id = ?').all(fileId) as TagIdRow[];
-    return rows.map(r => r.tag_id);
+    return getFileTagIdsForFiles([fileId])[fileId] ?? [];
 }
 
 export function getFilesByTagIds(tagIds: string[], mode: 'AND' | 'OR' = 'OR'): string[] {
@@ -314,17 +332,51 @@ export function getFilesByTagIds(tagIds: string[], mode: 'AND' | 'OR' = 'OR'): s
  * @returns Record<fileId, tagId[]> 形式（IPC通信で安全なプレーンオブジェクト）
  */
 export function getAllFileTagIds(): Record<string, string[]> {
-    const rows = db().prepare(`
-        SELECT file_id, tag_id FROM file_tags
-    `).all() as { file_id: string; tag_id: string }[];
-
     const result: Record<string, string[]> = {};
-    for (const row of rows) {
-        if (!result[row.file_id]) {
-            result[row.file_id] = [];
-        }
-        result[row.file_id]!.push(row.tag_id);
+
+    const fileTagRows = db().prepare(`
+        SELECT file_id, tag_id AS tag_value
+        FROM file_tags
+    `).all() as FileTagValueRow[];
+    for (const row of fileTagRows) {
+        appendTagId(result, row.file_id, row.tag_value);
     }
+
+    const legacyTagRows = db().prepare(`
+        SELECT file_id, tag AS tag_value
+        FROM tags
+    `).all() as FileTagValueRow[];
+    for (const row of legacyTagRows) {
+        appendTagId(result, row.file_id, row.tag_value);
+    }
+
+    return result;
+}
+
+export function getFileTagIdsForFiles(fileIds: string[]): Record<string, string[]> {
+    if (fileIds.length === 0) return {};
+
+    const placeholders = fileIds.map(() => '?').join(', ');
+    const result: Record<string, string[]> = {};
+
+    const fileTagRows = db().prepare(`
+        SELECT file_id, tag_id AS tag_value
+        FROM file_tags
+        WHERE file_id IN (${placeholders})
+    `).all(...fileIds) as FileTagValueRow[];
+    for (const row of fileTagRows) {
+        appendTagId(result, row.file_id, row.tag_value);
+    }
+
+    const legacyTagRows = db().prepare(`
+        SELECT file_id, tag AS tag_value
+        FROM tags
+        WHERE file_id IN (${placeholders})
+    `).all(...fileIds) as FileTagValueRow[];
+    for (const row of legacyTagRows) {
+        appendTagId(result, row.file_id, row.tag_value);
+    }
+
     return result;
 }
 

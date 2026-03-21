@@ -383,6 +383,7 @@ async function scanDirectoryInternal(
         lastProgressTime: number;
         stats: { newCount: number; updateCount: number; skipCount: number; removedCount?: number };
         pendingWrites: PendingWrite[];
+        seenFilePaths: Set<string>;
         scanFilters: ScanFileTypeCategoryFilters;
         committedCount: number;
         runtimeSettings: ScanRuntimeSettings;
@@ -443,6 +444,7 @@ async function scanDirectoryInternal(
                 const type = isScannableMediaType(ext, state.scanFilters);
 
                 if (type) {
+                    state.seenFilePaths.add(fullPath);
                     state.current++;
 
                     let fileStats;
@@ -822,6 +824,7 @@ export async function scanDirectory(
             lastProgressTime: 0,
             stats: { newCount: 0, updateCount: 0, skipCount: 0, removedCount: 0 },
             pendingWrites: [] as PendingWrite[],
+            seenFilePaths: new Set<string>(),
             scanFilters: effectiveScanFilters,
             committedCount: 0,
             runtimeSettings,
@@ -850,7 +853,9 @@ export async function scanDirectory(
         const registeredFiles = db.getFileCleanupCandidatesByRootFolderId(rootFolderId);
         let removedCount = 0;
         for (const file of registeredFiles) {
-            const isMissingOnDisk = !fs.existsSync(file.path);
+            const isMissingOnDisk = isScanCancelled(cancellationToken)
+                ? !fs.existsSync(file.path)
+                : !state.seenFilePaths.has(file.path);
             const type = file.type as 'video' | 'image' | 'archive' | 'audio' | undefined;
             const disabledByProfile =
                 type === 'video' || type === 'image' || type === 'archive' || type === 'audio'

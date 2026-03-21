@@ -96,6 +96,11 @@ interface FileRow {
     thumbnail_locked?: number;
 }
 
+interface FilePathRow {
+    path: string;
+    root_folder_id?: string;
+}
+
 export interface ScannerFileRecord {
     id: string;
     path: string;
@@ -218,6 +223,73 @@ function mapRow(f: FileRow): MediaFile {
     };
 }
 
+function buildFileTagMap(fileIds: string[]): Record<string, string[]> {
+    if (fileIds.length === 0) return {};
+
+    const database = getDb();
+    const placeholders = fileIds.map(() => '?').join(', ');
+    const result: Record<string, string[]> = {};
+
+    const appendTag = (fileId: string, tagValue: string) => {
+        if (!tagValue) return;
+        const existing = result[fileId];
+        if (!existing) {
+            result[fileId] = [tagValue];
+            return;
+        }
+        if (!existing.includes(tagValue)) {
+            existing.push(tagValue);
+        }
+    };
+
+    const fileTagRows = database.prepare(`
+        SELECT file_id, tag_id AS tag_value
+        FROM file_tags
+        WHERE file_id IN (${placeholders})
+    `).all(...fileIds) as Array<{ file_id: string; tag_value: string }>;
+
+    for (const row of fileTagRows) {
+        appendTag(row.file_id, row.tag_value);
+    }
+
+    const legacyTagRows = database.prepare(`
+        SELECT file_id, tag AS tag_value
+        FROM tags
+        WHERE file_id IN (${placeholders})
+    `).all(...fileIds) as Array<{ file_id: string; tag_value: string }>;
+
+    for (const row of legacyTagRows) {
+        appendTag(row.file_id, row.tag_value);
+    }
+
+    return result;
+}
+
+function attachTags(rows: FileRow[]): MediaFile[] {
+    if (rows.length === 0) return [];
+
+    const tagMap = buildFileTagMap(rows.map((row) => row.id));
+    return rows.map((row) => ({
+        ...mapRow(row),
+        tags: tagMap[row.id] ?? [],
+    }));
+}
+
+function escapeLikePattern(value: string): string {
+    return value
+        .replace(/\^/g, '^^')
+        .replace(/%/g, '^%')
+        .replace(/_/g, '^_');
+}
+
+function getAllFilePathRows(): FilePathRow[] {
+    const db = getDb();
+    return db.prepare(`
+        SELECT path, root_folder_id
+        FROM files
+    `).all() as FilePathRow[];
+}
+
 /**
  * Phase 18-A: 外部アプリ起動カウントをインクリメント
  */
@@ -251,11 +323,7 @@ export function getFiles(rootFolderId?: string): MediaFile[] {
     query += ' ORDER BY created_at DESC';
 
     const files = db.prepare(query).all(...params) as FileRow[];
-
-    return files.map(f => ({
-        ...mapRow(f),
-        tags: getTags(f.id)
-    }));
+    return attachTags(files);
 }
 
 function normalizeDirPathForMatch(dirPath: string): string {
@@ -264,18 +332,30 @@ function normalizeDirPathForMatch(dirPath: string): string {
 
 export function getFilesByFolderPathDirect(folderPath: string): MediaFile[] {
     const normalized = normalizeDirPathForMatch(folderPath);
-    return getFiles().filter((f) => normalizeDirPathForMatch(path.dirname(f.path)) === normalized);
+    const db = getDb();
+    const prefix = `${escapeLikePattern(normalized)}\\%`;
+    const rows = db.prepare(`
+        SELECT *
+        FROM files
+        WHERE path LIKE ? ESCAPE '^'
+        ORDER BY created_at DESC
+    `).all(prefix) as FileRow[];
+
+    return attachTags(rows).filter((file) => normalizeDirPathForMatch(path.dirname(file.path)) === normalized);
 }
 
 export function getFilesByFolderPathRecursive(folderPath: string): MediaFile[] {
     const normalized = normalizeDirPathForMatch(folderPath);
-    const normalizedLower = normalized.toLowerCase();
-    const prefixLower = `${normalized}\\`.toLowerCase();
-    return getFiles().filter((f) => {
-        const fileDirLower = normalizeDirPathForMatch(path.dirname(f.path)).toLowerCase();
-        const filePathLower = f.path.toLowerCase();
-        return fileDirLower === normalizedLower || filePathLower.startsWith(prefixLower);
-    });
+    const db = getDb();
+    const prefix = `${escapeLikePattern(normalized)}\\%`;
+    const rows = db.prepare(`
+        SELECT *
+        FROM files
+        WHERE path LIKE ? ESCAPE '^'
+        ORDER BY created_at DESC
+    `).all(prefix) as FileRow[];
+
+    return attachTags(rows);
 }
 
 /**
@@ -288,11 +368,7 @@ export function getFilesByFolderIds(folderIds: string[]): MediaFile[] {
     const placeholders = folderIds.map(() => '?').join(',');
     const query = `SELECT * FROM files WHERE root_folder_id IN (${placeholders}) ORDER BY created_at DESC`;
     const files = db.prepare(query).all(...folderIds) as FileRow[];
-
-    return files.map(f => ({
-        ...mapRow(f),
-        tags: getTags(f.id)
-    }));
+    return attachTags(files);
 }
 
 
@@ -300,7 +376,7 @@ export function findFileByPath(filePath: string): MediaFile | undefined {
     const db = getDb();
     const file = db.prepare('SELECT * FROM files WHERE path = ?').get(filePath) as FileRow | undefined;
     if (file) {
-        return { ...mapRow(file), tags: getTags(file.id) };
+        return { ...mapRow(file), tags: buildFileTagMap([file.id])[file.id] ?? [] };
     }
     return undefined;
 }
@@ -335,7 +411,7 @@ export function findFileByHash(hash: string): MediaFile | undefined {
     const db = getDb();
     const file = db.prepare('SELECT * FROM files WHERE content_hash = ?').get(hash) as FileRow | undefined;
     if (file) {
-        return { ...mapRow(file), tags: getTags(file.id) };
+        return { ...mapRow(file), tags: buildFileTagMap([file.id])[file.id] ?? [] };
     }
     return undefined;
 }
@@ -700,7 +776,7 @@ export function findFileById(id: string): MediaFile | undefined {
     if (!row) return undefined;
     return {
         ...mapRow(row),
-        tags: getTags(row.id)
+        tags: buildFileTagMap([row.id])[row.id] ?? []
     };
 }
 
@@ -750,9 +826,7 @@ export function incrementAccessCount(id: string): { accessCount: number; lastAcc
 }
 
 function getTags(fileId: string): string[] {
-    const db = getDb();
-    const rows = db.prepare('SELECT tag FROM tags WHERE file_id = ?').all(fileId) as { tag: string }[];
-    return rows.map(r => r.tag);
+    return buildFileTagMap([fileId])[fileId] ?? [];
 }
 
 export function getTagIdsByFileId(fileId: string): string[] {
@@ -779,7 +853,7 @@ export function getFolderTreePaths(options?: { includeDiskPaths?: boolean }): st
         }
     }
 
-    const files = getFiles();
+    const files = getAllFilePathRows();
     for (const file of files) {
         const rootPath = file.root_folder_id ? rootById.get(file.root_folder_id) : undefined;
         let current = normalizeDirPathForMatch(path.dirname(file.path));
@@ -798,7 +872,7 @@ export function getFolderTreePaths(options?: { includeDiskPaths?: boolean }): st
 
 export function getFolderTreeRecursiveCountsByPath(): Record<string, number> {
     const result: Record<string, number> = {};
-    const files = getFiles();
+    const files = getAllFilePathRows();
 
     for (const file of files) {
         let current = normalizeDirPathForMatch(path.dirname(file.path));

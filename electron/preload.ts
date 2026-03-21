@@ -320,6 +320,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('tag:removeFromFile', { fileId, tagId }),
     getFileTags: (fileId: string) => ipcRenderer.invoke('tag:getFileTags', { fileId }),
     getFileTagIds: (fileId: string) => ipcRenderer.invoke('tag:getFileTagIds', { fileId }),
+    getFileTagIdsForFiles: (fileIds: string[]) =>
+        ipcRenderer.invoke('tag:getFileTagIdsForFiles', { fileIds }) as Promise<Record<string, string[]>>,
     getFilesByTags: (tagIds: string[], mode?: 'AND' | 'OR') =>
         ipcRenderer.invoke('tag:getFilesByTags', { tagIds, mode }),
     getAllFileTagIds: () => ipcRenderer.invoke('tag:getAllFileTagIds') as Promise<Record<string, string[]>>,

@@ -52,14 +52,15 @@ describe('useFileStore', () => {
 
     it('debounces tag cache reload after setting files', async () => {
         vi.useFakeTimers();
-        const getAllFileTagIds = vi.fn().mockResolvedValue({
+        const getFileTagIdsForFiles = vi.fn().mockResolvedValue({
             'file-1': ['tag-a'],
             'file-2': ['tag-b', 'tag-c'],
         });
 
         vi.stubGlobal('window', {
             electronAPI: {
-                getAllFileTagIds,
+                getAllFileTagIds: vi.fn(),
+                getFileTagIdsForFiles,
                 getFileById: vi.fn(),
             },
         });
@@ -67,12 +68,13 @@ describe('useFileStore', () => {
         useFileStore.getState().setFiles([createFile({ id: 'file-1' })]);
         useFileStore.getState().setFiles([createFile({ id: 'file-1' }), createFile({ id: 'file-2' })]);
 
-        expect(getAllFileTagIds).not.toHaveBeenCalled();
+        expect(getFileTagIdsForFiles).not.toHaveBeenCalled();
 
         await vi.advanceTimersByTimeAsync(250);
         await Promise.resolve();
 
-        expect(getAllFileTagIds).toHaveBeenCalledTimes(1);
+        expect(getFileTagIdsForFiles).toHaveBeenCalledTimes(1);
+        expect(getFileTagIdsForFiles).toHaveBeenCalledWith(['file-1', 'file-2']);
         expect(useFileStore.getState().fileTagsCache).toEqual(new Map([
             ['file-1', ['tag-a']],
             ['file-2', ['tag-b', 'tag-c']],
@@ -91,6 +93,7 @@ describe('useFileStore', () => {
         vi.stubGlobal('window', {
             electronAPI: {
                 getAllFileTagIds: vi.fn(),
+                getFileTagIdsForFiles: vi.fn(),
                 getFileById,
             },
         });
