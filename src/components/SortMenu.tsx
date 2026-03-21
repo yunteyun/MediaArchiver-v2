@@ -14,6 +14,7 @@ import {
 } from './fileCard/displayModes';
 import type { DisplayModeIconKey } from './fileCard/displayModeTypes';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
+import { findMatchingListDisplayPresetId, LIST_DISPLAY_PRESETS, type ListDisplayPresetId } from '../shared/listDisplayPresets';
 
 const ICON_BY_KEY: Record<DisplayModeIconKey, React.ComponentType<{ size?: number; className?: string }>> = {
     grid: Grid,
@@ -150,6 +151,41 @@ export const Header = React.memo(() => {
         }
     }, []);
 
+    const activeListDisplayPresetId = React.useMemo(
+        () => findMatchingListDisplayPresetId({
+            sortBy,
+            sortOrder,
+            groupBy,
+            dateGroupingMode,
+        }),
+        [sortBy, sortOrder, groupBy, dateGroupingMode]
+    );
+
+    const applyListDisplayPreset = useCallback((presetId: ListDisplayPresetId) => {
+        const preset = LIST_DISPLAY_PRESETS.find((entry) => entry.id === presetId);
+        if (!preset) return;
+
+        setSortBy(preset.settings.sortBy);
+        setSortOrder(preset.settings.sortOrder);
+        setGroupBy(preset.settings.groupBy);
+        setDateGroupingMode(preset.settings.dateGroupingMode);
+        setDefaultSortBy(preset.settings.sortBy);
+        setDefaultSortOrder(preset.settings.sortOrder);
+        setDefaultGroupBy(preset.settings.groupBy);
+        setDefaultDateGroupingMode(preset.settings.dateGroupingMode);
+        void persistListDisplayDefaults(preset.settings);
+    }, [
+        persistListDisplayDefaults,
+        setDateGroupingMode,
+        setDefaultDateGroupingMode,
+        setDefaultGroupBy,
+        setDefaultSortBy,
+        setDefaultSortOrder,
+        setGroupBy,
+        setSortBy,
+        setSortOrder,
+    ]);
+
     return (
         <div className="px-4 py-2 bg-surface-900 border-b border-surface-700 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -258,6 +294,28 @@ export const Header = React.memo(() => {
                             >
                                 検索対象を既定値へ
                             </button>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 border-b border-surface-800 px-1 pb-2">
+                            <span className="text-xs font-medium text-surface-300 whitespace-nowrap">表示プリセット:</span>
+                            {LIST_DISPLAY_PRESETS.map((preset) => {
+                                const active = activeListDisplayPresetId === preset.id;
+                                return (
+                                    <button
+                                        key={preset.id}
+                                        type="button"
+                                        onClick={() => applyListDisplayPreset(preset.id)}
+                                        className={`rounded px-2.5 py-1 text-xs transition-colors ${
+                                            active
+                                                ? 'bg-primary-600 text-white'
+                                                : 'bg-surface-800 text-surface-300 hover:bg-surface-700'
+                                        }`}
+                                        title={preset.description}
+                                    >
+                                        {preset.label}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">

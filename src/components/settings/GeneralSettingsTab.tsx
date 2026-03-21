@@ -9,6 +9,7 @@ import {
 } from '../lightbox/shared/lightboxShared';
 import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
 import { SettingsSection } from './SettingsSection';
+import { findMatchingListDisplayPresetId, LIST_DISPLAY_PRESETS, type ListDisplayPresetId } from '../../shared/listDisplayPresets';
 
 interface GeneralSettingsTabProps {
     activeProfileLabel: string;
@@ -35,6 +36,7 @@ interface GeneralSettingsTabProps {
     onDefaultSortOrderChange: (value: FileSortOrder) => void;
     onDefaultGroupByChange: (value: GroupBy) => void;
     onDefaultDateGroupingModeChange: (value: DateGroupingMode) => void;
+    onApplyDefaultListDisplayPreset: (presetId: ListDisplayPresetId) => void;
     onDefaultSearchTargetChange: (value: SearchTarget) => void;
     videoVolume: number;
     onVideoVolumeChange: (value: number) => void;
@@ -85,6 +87,7 @@ export const GeneralSettingsTab = React.memo(({
     onDefaultSortOrderChange,
     onDefaultGroupByChange,
     onDefaultDateGroupingModeChange,
+    onApplyDefaultListDisplayPreset,
     onDefaultSearchTargetChange,
     videoVolume,
     onVideoVolumeChange,
@@ -117,8 +120,16 @@ export const GeneralSettingsTab = React.memo(({
     onResetListDisplayDefaults,
     onResetPlaybackSettings,
     onResetFileCardSettings,
-}: GeneralSettingsTabProps) => (
-    <div className="px-4 py-4 space-y-6">
+}: GeneralSettingsTabProps) => {
+    const activeListDisplayPresetId = findMatchingListDisplayPresetId({
+        sortBy: defaultSortBy,
+        sortOrder: defaultSortOrder,
+        groupBy: defaultGroupBy,
+        dateGroupingMode: defaultDateGroupingMode,
+    });
+
+    return (
+        <div className="px-4 py-4 space-y-6">
         <SettingsSection
             title="既定の一覧表示"
             description={`ここで変更する内容は現在のプロファイルに保存されます。対象: ${activeProfileLabel}。ヘッダーから変更した並び替えや表示モードも同じプロファイル設定へ保存されます。`}
@@ -126,6 +137,35 @@ export const GeneralSettingsTab = React.memo(({
             onReset={onResetListDisplayDefaults}
             className="border-primary-900/40 bg-primary-950/10"
         >
+            <div>
+                <label className="block text-sm font-medium text-surface-300 mb-2">
+                    既定の表示プリセット
+                </label>
+                <div className="flex flex-wrap gap-2">
+                    {LIST_DISPLAY_PRESETS.map((preset) => {
+                        const active = activeListDisplayPresetId === preset.id;
+                        return (
+                            <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => onApplyDefaultListDisplayPreset(preset.id)}
+                                className={`rounded px-3 py-1.5 text-sm transition-colors ${
+                                    active
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-surface-800 text-surface-300 hover:bg-surface-700'
+                                }`}
+                                title={preset.description}
+                            >
+                                {preset.label}
+                            </button>
+                        );
+                    })}
+                </div>
+                <p className="mt-2 text-xs text-surface-500">
+                    よく使う並び方をワンタッチで既定値へ反映できます。
+                </p>
+            </div>
+
             <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
@@ -472,6 +512,7 @@ export const GeneralSettingsTab = React.memo(({
             </div>
         </SettingsSection>
     </div>
-));
+    );
+});
 
 GeneralSettingsTab.displayName = 'GeneralSettingsTab';

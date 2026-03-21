@@ -37,6 +37,7 @@ import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDial
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 import { getDisplayPresetMenuOptions } from './fileCard/displayModes';
 import { completeUiPerfTrace, getPerfDebugFlags, setPerfDebugFlags, syncPerfDebugToMain, type PerfDebugFlags } from '../utils/perfDebug';
+import { LIST_DISPLAY_PRESETS, type ListDisplayPresetId } from '../shared/listDisplayPresets';
 
 type TabType = SettingsModalTab;
 
@@ -424,6 +425,17 @@ export const SettingsModal = React.memo(() => {
         void handleProfileListDisplayDefaultsChange({ ...DEFAULT_LIST_DISPLAY_SETTINGS });
     }, [handleProfileListDisplayDefaultsChange, setActiveDisplayPreset, setDateGroupingMode, setDefaultSearchTarget, setGroupBy, setSortBy, setSortOrder, setThumbnailPresentation]);
 
+    const handleApplyDefaultListDisplayPreset = useCallback((presetId: ListDisplayPresetId) => {
+        const preset = LIST_DISPLAY_PRESETS.find((entry) => entry.id === presetId);
+        if (!preset) return;
+
+        setSortBy(preset.settings.sortBy);
+        setSortOrder(preset.settings.sortOrder);
+        setGroupBy(preset.settings.groupBy);
+        setDateGroupingMode(preset.settings.dateGroupingMode);
+        void handleProfileListDisplayDefaultsChange(preset.settings);
+    }, [handleProfileListDisplayDefaultsChange, setDateGroupingMode, setGroupBy, setSortBy, setSortOrder]);
+
     const handleResetPlaybackSettings = useCallback(() => {
         setVideoVolume(DEFAULT_MEDIA_PLAYBACK_SETTINGS.videoVolume);
         setAudioVolume(DEFAULT_MEDIA_PLAYBACK_SETTINGS.audioVolume);
@@ -618,6 +630,7 @@ export const SettingsModal = React.memo(() => {
                                     setDateGroupingMode(value);
                                     void handleProfileListDisplayDefaultsChange({ dateGroupingMode: value });
                                 }}
+                                onApplyDefaultListDisplayPreset={handleApplyDefaultListDisplayPreset}
                                 onDefaultSearchTargetChange={(value) => {
                                     setDefaultSearchTarget(value);
                                     void handleProfileListDisplayDefaultsChange({ defaultSearchTarget: value });
