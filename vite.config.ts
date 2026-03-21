@@ -74,18 +74,18 @@ export default defineConfig(async () => ({
                     const normalizedId = id.replace(/\\/g, '/');
 
                     if (normalizedId.includes('/src/components/RightPanel/')) {
-                        return 'feature-right-panel';
+                        return 'feature-library-ui';
                     }
 
                     if (
                         normalizedId.includes('/src/features/center-viewer/') ||
                         normalizedId.includes('/src/components/lightbox/')
                     ) {
-                        return 'feature-center-viewer';
+                        return 'feature-library-ui';
                     }
 
                     if (normalizedId.endsWith('/src/components/DuplicateView.tsx')) {
-                        return 'feature-duplicates';
+                        return 'feature-library-ui';
                     }
 
                     if (!normalizedId.includes('node_modules')) return undefined;

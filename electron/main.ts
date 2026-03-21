@@ -29,7 +29,7 @@ import { registerSearchHandlers } from './ipc/search';
 import { registerSmartFolderHandlers } from './ipc/smartFolder';
 import { registerDisplayPresetHandlers } from './ipc/displayPreset';
 import { registerAutoOrganizeHandlers } from './ipc/autoOrganize';
-import { syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
+import { scheduleStartupFolderWatchers, syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
 import { disposePreviewFrameWorker } from './services/previewFrameWorkerService';
 
 const require = createRequire(import.meta.url);
@@ -369,8 +369,8 @@ app.whenReady().then(async () => {
 
     await createWindow();
     logger.info('Main window created');
-    syncFolderWatchers();
-    logger.info('Folder watchers synced');
+    scheduleStartupFolderWatchers();
+    logger.info('Folder watchers scheduled');
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {

@@ -6,6 +6,7 @@ import { scanDirectory } from './scanner';
 import { runAutoOrganizeForScan } from './autoOrganizeService';
 
 const log = logger.scope('FolderWatch');
+const INITIAL_WATCHER_SYNC_DELAY_MS = 15_000;
 
 type FolderWatcherState = {
     watcher: fs.FSWatcher;
@@ -15,6 +16,7 @@ type FolderWatcherState = {
 };
 
 const watcherStates = new Map<string, FolderWatcherState>();
+let scheduledStartupSyncTimer: NodeJS.Timeout | null = null;
 const DEBOUNCE_MS = 1500;
 
 function isLikelyTempPath(name: string): boolean {
@@ -112,7 +114,7 @@ function createWatcher(folder: MediaFolder) {
     }
 }
 
-export function syncFolderWatchers(): void {
+function syncFolderWatchersNow(): void {
     const enabledFolders = getWatchNewFilesFolders();
     const enabledIds = new Set(enabledFolders.map(f => f.id));
 
@@ -125,7 +127,34 @@ export function syncFolderWatchers(): void {
     enabledFolders.forEach(folder => createWatcher(folder));
 }
 
+export function syncFolderWatchers(): void {
+    if (scheduledStartupSyncTimer) {
+        clearTimeout(scheduledStartupSyncTimer);
+        scheduledStartupSyncTimer = null;
+    }
+
+    syncFolderWatchersNow();
+}
+
+export function scheduleStartupFolderWatchers(): void {
+    if (scheduledStartupSyncTimer || watcherStates.size > 0) {
+        return;
+    }
+
+    scheduledStartupSyncTimer = setTimeout(() => {
+        scheduledStartupSyncTimer = null;
+        syncFolderWatchersNow();
+    }, INITIAL_WATCHER_SYNC_DELAY_MS);
+
+    log.info(`Scheduled folder watcher sync in ${INITIAL_WATCHER_SYNC_DELAY_MS} ms`);
+}
+
 export function stopAllFolderWatchers(): void {
+    if (scheduledStartupSyncTimer) {
+        clearTimeout(scheduledStartupSyncTimer);
+        scheduledStartupSyncTimer = null;
+    }
+
     for (const folderId of [...watcherStates.keys()]) {
         closeWatcher(folderId);
     }

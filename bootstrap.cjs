@@ -6,6 +6,8 @@ const os = require("os");
 const path = require("path");
 
 const startupLogPath = path.join(os.tmpdir(), "MediaArchiver-v2-startup.log");
+const startupLogBackupPath = `${startupLogPath}.1`;
+const STARTUP_LOG_MAX_BYTES = 512 * 1024;
 
 function serializeDetail(detail) {
     if (detail instanceof Error) {
@@ -24,6 +26,12 @@ function appendStartupLog(label, detail) {
     const line = `[${new Date().toISOString()}] ${body}\n`;
 
     try {
+        if (fs.existsSync(startupLogPath) && fs.statSync(startupLogPath).size >= STARTUP_LOG_MAX_BYTES) {
+            if (fs.existsSync(startupLogBackupPath)) {
+                fs.rmSync(startupLogBackupPath, { force: true });
+            }
+            fs.renameSync(startupLogPath, startupLogBackupPath);
+        }
         fs.appendFileSync(startupLogPath, line, { encoding: "utf8" });
     } catch {
         // Ignore logging failures and continue startup.

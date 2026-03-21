@@ -10,11 +10,10 @@ async function main() {
 
     await fs.promises.rm(outputPath, { recursive: true, force: true });
 
-    const builderBin = path.resolve(__dirname, '../../node_modules/.bin/electron-builder.cmd');
-    const child = spawn(builderBin, process.argv.slice(2), {
+    const builderCli = path.resolve(__dirname, '../../node_modules/electron-builder/cli.js');
+    const child = spawn(process.execPath, [builderCli, ...process.argv.slice(2)], {
         cwd: path.resolve(__dirname, '../../'),
         stdio: 'inherit',
-        shell: true,
     });
 
     child.on('exit', (code, signal) => {

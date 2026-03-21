@@ -1,7 +1,9 @@
 {
     "name": "media-archiver-v2",
+    "description": "ローカルメディアを整理・閲覧するためのデスクトップアプリ",
     "private": true,
-    "version": "1.10.5",
+    "version": "1.10.6",
+    "author": "yunteyun",
     "main": "bootstrap.cjs",
     "scripts": {
         "dev": "node -e \"const path=require('node:path');const pkg=process.env.npm_package_json||path.join(process.cwd(),'package.json');const normalized=pkg.startsWith('\\\\\\\\?\\\\')?pkg.slice(4):pkg;require(path.join(path.dirname(normalized),'scripts','run-vite.cjs'));\" --",
@@ -32,7 +34,6 @@
         "zustand": "^5.0.0"
     },
     "devDependencies": {
-        "@electron/rebuild": "^4.0.3",
         "@eslint/js": "^9.17.0",
         "@types/better-sqlite3": "^7.6.13",
         "@types/fluent-ffmpeg": "^2.1.28",
@@ -43,7 +44,6 @@
         "autoprefixer": "^10.4.20",
         "electron": "^33.2.1",
         "electron-builder": "^26.7.0",
-        "electron-squirrel-startup": "^1.0.1",
         "eslint": "^9.17.0",
         "eslint-plugin-react-hooks": "^5.1.0",
         "eslint-plugin-react-refresh": "^0.4.16",
