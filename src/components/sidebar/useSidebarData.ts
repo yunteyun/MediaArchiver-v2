@@ -165,7 +165,7 @@ export function useSidebarData(): UseSidebarDataResult {
         try {
             const [registeredFolders, treeStats] = await Promise.all([
                 window.electronAPI.getFolders(),
-                window.electronAPI.getFolderTreeStats(),
+                window.electronAPI.getFolderTreeStats({ includeDiskPaths: false }),
             ]);
             const treePaths = treeStats?.paths || [];
             setFolderTreeRecursiveCountsByPath(treeStats?.recursiveCountsByPath || {});

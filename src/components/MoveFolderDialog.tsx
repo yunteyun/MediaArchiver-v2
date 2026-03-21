@@ -92,7 +92,7 @@ export const MoveFolderDialog = React.memo(({
     const loadFolders = useCallback(async () => {
         const [registeredFolders, treeStats] = await Promise.all([
             window.electronAPI.getFolders(),
-            window.electronAPI.getFolderTreeStats(),
+            window.electronAPI.getFolderTreeStats({ includeDiskPaths: true }),
         ]);
         const folderPaths = treeStats?.paths ?? [];
 

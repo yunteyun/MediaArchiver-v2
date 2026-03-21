@@ -122,7 +122,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
     getFolderMetadata: () => ipcRenderer.invoke('folder:getMetadata'),
     getFolderTreePaths: () => ipcRenderer.invoke('folder:getTreePaths'),
-    getFolderTreeStats: () => ipcRenderer.invoke('folder:getTreeStats'),
+    getFolderTreeStats: (options?: { includeDiskPaths?: boolean }) => ipcRenderer.invoke('folder:getTreeStats', options),
     setFolderAutoScan: (folderId: string, enabled: boolean) =>
         ipcRenderer.invoke('folder:setAutoScan', { folderId, enabled }),
     setFolderWatchNewFiles: (folderId: string, enabled: boolean) =>

@@ -263,10 +263,12 @@ async function loadRenderer(window: BrowserWindow): Promise<void> {
 }
 
 const createWindow = async () => {
+    const shouldAutoHideMenuBar = app.isPackaged && process.platform === 'win32';
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
         icon: getDevWindowIconPath(),
+        autoHideMenuBar: shouldAutoHideMenuBar,
         webPreferences: {
             preload: resolvePreloadPath(),
             contextIsolation: true,
@@ -288,6 +290,9 @@ const createWindow = async () => {
 
     // Show window when ready
     mainWindow.once('ready-to-show', () => {
+        if (shouldAutoHideMenuBar) {
+            mainWindow?.setMenuBarVisibility(false);
+        }
         mainWindow?.show();
     });
 

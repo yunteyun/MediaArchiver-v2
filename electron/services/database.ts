@@ -766,14 +766,17 @@ export function getFolders(): MediaFolder[] {
     return db.prepare('SELECT * FROM folders ORDER BY created_at DESC').all() as MediaFolder[];
 }
 
-export function getFolderTreePaths(): string[] {
+export function getFolderTreePaths(options?: { includeDiskPaths?: boolean }): string[] {
+    const includeDiskPaths = options?.includeDiskPaths === true;
     const folders = getFolders();
     const registeredPaths = new Set(folders.map((f) => normalizeDirPathForMatch(f.path)));
     const allPaths = new Set<string>(registeredPaths);
     const rootById = new Map(folders.map((f) => [f.id, normalizeDirPathForMatch(f.path)] as const));
 
-    for (const existingPath of collectExistingFolderTreePaths(folders.map((folder) => folder.path))) {
-        allPaths.add(normalizeDirPathForMatch(existingPath));
+    if (includeDiskPaths) {
+        for (const existingPath of collectExistingFolderTreePaths(folders.map((folder) => folder.path))) {
+            allPaths.add(normalizeDirPathForMatch(existingPath));
+        }
     }
 
     const files = getFiles();

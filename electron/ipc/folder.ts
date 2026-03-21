@@ -254,9 +254,9 @@ export function registerFolderHandlers() {
         return { fileCounts, thumbnails };
     });
 
-    ipcMain.handle('folder:getTreeStats', async () => {
+    ipcMain.handle('folder:getTreeStats', async (_event, options?: { includeDiskPaths?: boolean }) => {
         return {
-            paths: getFolderTreePaths(),
+            paths: getFolderTreePaths(options),
             recursiveCountsByPath: getFolderTreeRecursiveCountsByPath(),
         };
     });
