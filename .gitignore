@@ -12,6 +12,7 @@ dist-electron/
 out/
 vite.config.d.ts
 build-errors.txt
+electron/**/*.d.ts
 
 # Editor directories
 .idea/
