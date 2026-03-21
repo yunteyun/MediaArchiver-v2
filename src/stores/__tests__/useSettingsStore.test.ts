@@ -44,6 +44,7 @@ function resetSettingsStore() {
         defaultExternalApps: {},
         searchDestinations: [],
         groupBy: 'none',
+        dateGroupingMode: 'auto',
         tagPopoverTrigger: 'click',
         tagDisplayStyle: 'filled',
         fileCardTagOrderMode: 'balanced',
@@ -101,6 +102,7 @@ describe('useSettingsStore', () => {
                 sortBy: 'overallRating',
                 sortOrder: 'asc',
                 groupBy: 'type',
+                dateGroupingMode: 'week',
                 defaultSearchTarget: 'folderName',
                 activeDisplayPresetId: 'compact',
                 displayMode: 'compact',
@@ -144,6 +146,7 @@ describe('useSettingsStore', () => {
         expect(state.sortBy).toBe('overallRating');
         expect(state.sortOrder).toBe('asc');
         expect(state.groupBy).toBe('type');
+        expect(state.dateGroupingMode).toBe('week');
         expect(state.defaultSearchTarget).toBe('folderName');
         expect(state.activeDisplayPresetId).toBe('compact');
         expect(state.displayMode).toBe('compact');

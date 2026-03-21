@@ -1,6 +1,6 @@
 import React from 'react';
 import { FolderOpen, RefreshCw } from 'lucide-react';
-import type { FileCardTagOrderMode, GroupBy, SearchTarget, TagDisplayStyle, TagPopoverTrigger, ThumbnailPresentation } from '../../stores/useSettingsStore';
+import type { DateGroupingMode, FileCardTagOrderMode, GroupBy, SearchTarget, TagDisplayStyle, TagPopoverTrigger, ThumbnailPresentation } from '../../stores/useSettingsStore';
 import type { DisplayMode } from '../../stores/useSettingsStore';
 import {
     LIGHTBOX_OVERLAY_OPACITY_MAX,
@@ -17,6 +17,7 @@ interface GeneralSettingsTabProps {
     defaultSortBy: FileSortBy;
     defaultSortOrder: FileSortOrder;
     defaultGroupBy: GroupBy;
+    defaultDateGroupingMode: DateGroupingMode;
     defaultSearchTarget: SearchTarget;
     displayPresetOptions: Array<{
         id: string;
@@ -33,6 +34,7 @@ interface GeneralSettingsTabProps {
     onDefaultSortByChange: (value: FileSortBy) => void;
     onDefaultSortOrderChange: (value: FileSortOrder) => void;
     onDefaultGroupByChange: (value: GroupBy) => void;
+    onDefaultDateGroupingModeChange: (value: DateGroupingMode) => void;
     onDefaultSearchTargetChange: (value: SearchTarget) => void;
     videoVolume: number;
     onVideoVolumeChange: (value: number) => void;
@@ -74,6 +76,7 @@ export const GeneralSettingsTab = React.memo(({
     defaultSortBy,
     defaultSortOrder,
     defaultGroupBy,
+    defaultDateGroupingMode,
     defaultSearchTarget,
     displayPresetOptions,
     onDefaultDisplayPresetChange,
@@ -81,6 +84,7 @@ export const GeneralSettingsTab = React.memo(({
     onDefaultSortByChange,
     onDefaultSortOrderChange,
     onDefaultGroupByChange,
+    onDefaultDateGroupingModeChange,
     onDefaultSearchTargetChange,
     videoVolume,
     onVideoVolumeChange,
@@ -204,11 +208,27 @@ export const GeneralSettingsTab = React.memo(({
                         className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="none">なし</option>
-                        <option value="date">年月別</option>
+                        <option value="date">日付別</option>
                         <option value="size">サイズ別</option>
                         <option value="type">タイプ別</option>
                     </select>
                 </div>
+
+                {defaultGroupBy === 'date' && (
+                    <div>
+                        <label className="block text-sm font-medium text-surface-300 mb-1">
+                            既定の日付まとめ方
+                        </label>
+                        <select
+                            value={defaultDateGroupingMode}
+                            onChange={(e) => onDefaultDateGroupingModeChange(e.target.value as DateGroupingMode)}
+                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                        >
+                            <option value="auto">自動（月をまたぐ古い項目は月単位）</option>
+                            <option value="week">週ごとを維持（古い項目も週単位）</option>
+                        </select>
+                    </div>
+                )}
 
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">

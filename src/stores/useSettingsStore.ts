@@ -32,6 +32,7 @@ export type SearchTarget = 'fileName' | 'folderName';
 
 // グループ化型定義（Phase 12-10）
 export type GroupBy = 'none' | 'date' | 'size' | 'type';
+export type DateGroupingMode = 'auto' | 'week';
 
 // タグポップオーバートリガー型定義（Phase 14-8）
 export type TagPopoverTrigger = 'click' | 'hover';
@@ -65,6 +66,7 @@ export interface ProfileScopedSettingsV1 {
         sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
         sortOrder: 'asc' | 'desc';
         groupBy: GroupBy;
+        dateGroupingMode: DateGroupingMode;
         defaultSearchTarget: SearchTarget;
         activeDisplayPresetId: string;
         displayMode: DisplayMode;
@@ -105,6 +107,7 @@ export const DEFAULT_LIST_DISPLAY_SETTINGS = {
     sortOrder: 'desc' as const,
     defaultSearchTarget: 'fileName' as const,
     groupBy: 'none' as const,
+    dateGroupingMode: 'auto' as const,
     activeDisplayPresetId: 'standard',
     displayMode: 'standard' as const,
     layoutPreset: 'standard' as const,
@@ -308,6 +311,10 @@ function normalizeThumbnailPresentation(value: unknown): ThumbnailPresentation |
         : null;
 }
 
+function normalizeDateGroupingMode(value: unknown): DateGroupingMode {
+    return value === 'week' ? 'week' : DEFAULT_LIST_DISPLAY_SETTINGS.dateGroupingMode;
+}
+
 export function mapDisplayModeToPresentationAxes(displayMode: DisplayMode): {
     layoutPreset: LayoutPreset;
     thumbnailPresentation: ThumbnailPresentation;
@@ -401,6 +408,7 @@ interface SettingsState {
 
     // グループ化設定（Phase 12-10）
     groupBy: GroupBy;
+    dateGroupingMode: DateGroupingMode;
 
     // タグポップオーバー設定（Phase 14-8）
     tagPopoverTrigger: TagPopoverTrigger;
@@ -469,6 +477,7 @@ interface SettingsState {
     moveSearchDestination: (id: string, direction: 'up' | 'down') => void;
     // グループ化アクション（Phase 12-10）
     setGroupBy: (groupBy: GroupBy) => void;
+    setDateGroupingMode: (mode: DateGroupingMode) => void;
     // タグポップオーバーアクション（Phase 14-8）
     setTagPopoverTrigger: (trigger: TagPopoverTrigger) => void;
     // タグ表示スタイルアクション
@@ -537,6 +546,7 @@ export const useSettingsStore = create<SettingsState>()(
 
             // グループ化設定（Phase 12-10）
             groupBy: DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
+            dateGroupingMode: DEFAULT_LIST_DISPLAY_SETTINGS.dateGroupingMode,
 
             // タグポップオーバー設定（Phase 14-8）
             tagPopoverTrigger: DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger,
@@ -586,6 +596,7 @@ export const useSettingsStore = create<SettingsState>()(
                 sortBy: settings.listDisplayDefaults?.sortBy ?? DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
                 sortOrder: settings.listDisplayDefaults?.sortOrder ?? DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder,
                 groupBy: settings.listDisplayDefaults?.groupBy ?? DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
+                dateGroupingMode: normalizeDateGroupingMode(settings.listDisplayDefaults?.dateGroupingMode),
                 defaultSearchTarget: settings.listDisplayDefaults?.defaultSearchTarget ?? DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget,
                 activeDisplayPresetId: settings.listDisplayDefaults?.activeDisplayPresetId ?? DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
                 displayMode: settings.listDisplayDefaults?.displayMode ?? DEFAULT_LIST_DISPLAY_SETTINGS.displayMode,
@@ -612,6 +623,7 @@ export const useSettingsStore = create<SettingsState>()(
                     sortBy: get().sortBy,
                     sortOrder: get().sortOrder,
                     groupBy: get().groupBy,
+                    dateGroupingMode: get().dateGroupingMode,
                     defaultSearchTarget: get().defaultSearchTarget,
                     activeDisplayPresetId: get().activeDisplayPresetId,
                     displayMode: get().displayMode,
@@ -817,6 +829,7 @@ export const useSettingsStore = create<SettingsState>()(
             },
             // グループ化アクション（Phase 12-10）
             setGroupBy: (groupBy) => set({ groupBy }),
+            setDateGroupingMode: (dateGroupingMode) => set({ dateGroupingMode }),
             // タグポップオーバーアクション（Phase 14-8）
             setTagPopoverTrigger: (tagPopoverTrigger) => set({ tagPopoverTrigger }),
             // タグ表示スタイルアクション
@@ -861,6 +874,7 @@ export const useSettingsStore = create<SettingsState>()(
                     rightPanelVideoMuted: typeof typedPersisted?.rightPanelVideoMuted === 'boolean'
                         ? typedPersisted.rightPanelVideoMuted
                         : currentState.rightPanelVideoMuted,
+                    dateGroupingMode: normalizeDateGroupingMode(persistedWithoutLegacyKeys.dateGroupingMode),
                     activeDisplayPresetId: fallbackActiveDisplayPresetId,
                     searchDestinations: persistedDestinations,
                     scanExclusionRules: normalizeScanExclusionRules(persistedWithoutLegacyKeys.scanExclusionRules),

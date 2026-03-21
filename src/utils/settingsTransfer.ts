@@ -4,6 +4,7 @@ import type {
     FileCardTagOrderMode,
     FlipbookSpeed,
     GroupBy,
+    DateGroupingMode,
     LayoutPreset,
     PlayModeJumpInterval,
     PlayModeJumpType,
@@ -50,6 +51,7 @@ export interface GlobalSettingsExportV1 {
     thumbnailPresentation: ThumbnailPresentation;
     externalApps: ExternalApp[];
     groupBy: GroupBy;
+    dateGroupingMode: DateGroupingMode;
     tagPopoverTrigger: TagPopoverTrigger;
     tagDisplayStyle: TagDisplayStyle;
     fileCardTagOrderMode: FileCardTagOrderMode;

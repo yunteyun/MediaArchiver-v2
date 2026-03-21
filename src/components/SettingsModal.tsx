@@ -111,6 +111,8 @@ export const SettingsModal = React.memo(() => {
     const setDefaultSearchTarget = useSettingsStore((s) => s.setDefaultSearchTarget);
     const groupBy = useSettingsStore((s) => s.groupBy);
     const setGroupBy = useSettingsStore((s) => s.setGroupBy);
+    const dateGroupingMode = useSettingsStore((s) => s.dateGroupingMode);
+    const setDateGroupingMode = useSettingsStore((s) => s.setDateGroupingMode);
     const displayMode = useSettingsStore((s) => s.displayMode);
     const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
     const setActiveDisplayPreset = useSettingsStore((s) => s.setActiveDisplayPreset);
@@ -417,9 +419,10 @@ export const SettingsModal = React.memo(() => {
         setSortBy(DEFAULT_LIST_DISPLAY_SETTINGS.sortBy);
         setSortOrder(DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder);
         setGroupBy(DEFAULT_LIST_DISPLAY_SETTINGS.groupBy);
+        setDateGroupingMode(DEFAULT_LIST_DISPLAY_SETTINGS.dateGroupingMode);
         setDefaultSearchTarget(DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget);
         void handleProfileListDisplayDefaultsChange({ ...DEFAULT_LIST_DISPLAY_SETTINGS });
-    }, [handleProfileListDisplayDefaultsChange, setActiveDisplayPreset, setDefaultSearchTarget, setGroupBy, setSortBy, setSortOrder, setThumbnailPresentation]);
+    }, [handleProfileListDisplayDefaultsChange, setActiveDisplayPreset, setDateGroupingMode, setDefaultSearchTarget, setGroupBy, setSortBy, setSortOrder, setThumbnailPresentation]);
 
     const handleResetPlaybackSettings = useCallback(() => {
         setVideoVolume(DEFAULT_MEDIA_PLAYBACK_SETTINGS.videoVolume);
@@ -579,6 +582,7 @@ export const SettingsModal = React.memo(() => {
                                 defaultSortBy={sortBy}
                                 defaultSortOrder={sortOrder}
                                 defaultGroupBy={groupBy}
+                                defaultDateGroupingMode={dateGroupingMode}
                                 defaultSearchTarget={defaultSearchTarget}
                                 displayPresetOptions={displayPresetMenuOptions.map((option) => ({
                                     id: option.id,
@@ -609,6 +613,10 @@ export const SettingsModal = React.memo(() => {
                                 onDefaultGroupByChange={(value) => {
                                     setGroupBy(value);
                                     void handleProfileListDisplayDefaultsChange({ groupBy: value });
+                                }}
+                                onDefaultDateGroupingModeChange={(value) => {
+                                    setDateGroupingMode(value);
+                                    void handleProfileListDisplayDefaultsChange({ dateGroupingMode: value });
                                 }}
                                 onDefaultSearchTargetChange={(value) => {
                                     setDefaultSearchTarget(value);

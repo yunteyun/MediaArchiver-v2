@@ -29,6 +29,7 @@ export interface ProfileScopedSettingsV1 {
         sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
         sortOrder: 'asc' | 'desc';
         groupBy: 'none' | 'date' | 'size' | 'type';
+        dateGroupingMode: 'auto' | 'week';
         defaultSearchTarget: 'fileName' | 'folderName';
         activeDisplayPresetId: string;
         displayMode: 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
@@ -77,6 +78,7 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
         sortBy: 'date',
         sortOrder: 'desc',
         groupBy: 'none',
+        dateGroupingMode: 'auto',
         defaultSearchTarget: 'fileName',
         activeDisplayPresetId: 'standard',
         displayMode: 'standard',
@@ -174,6 +176,7 @@ function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettings
             groupBy: ['none', 'date', 'size', 'type'].includes(String(listDisplayDefaults.groupBy))
                 ? listDisplayDefaults.groupBy as ProfileScopedSettingsV1['listDisplayDefaults']['groupBy']
                 : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.groupBy,
+            dateGroupingMode: listDisplayDefaults.dateGroupingMode === 'week' ? 'week' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.dateGroupingMode,
             defaultSearchTarget: listDisplayDefaults.defaultSearchTarget === 'folderName' ? 'folderName' : DEFAULT_PROFILE_SCOPED_SETTINGS_V1.listDisplayDefaults.defaultSearchTarget,
             activeDisplayPresetId: typeof listDisplayDefaults.activeDisplayPresetId === 'string' && listDisplayDefaults.activeDisplayPresetId.trim().length > 0
                 ? listDisplayDefaults.activeDisplayPresetId.trim()

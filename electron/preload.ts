@@ -356,6 +356,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             sortBy?: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
             sortOrder?: 'asc' | 'desc';
             groupBy?: 'none' | 'date' | 'size' | 'type';
+            dateGroupingMode?: 'auto' | 'week';
             defaultSearchTarget?: 'fileName' | 'folderName';
             activeDisplayPresetId?: string;
             displayMode?: 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
@@ -399,6 +400,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
             sortOrder: 'asc' | 'desc';
             groupBy: 'none' | 'date' | 'size' | 'type';
+            dateGroupingMode: 'auto' | 'week';
             defaultSearchTarget: 'fileName' | 'folderName';
             activeDisplayPresetId: string;
             displayMode: 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';

@@ -5,7 +5,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, Grid, LayoutGrid, Film, Minimize2, Maximize2, Image, Music, Archive, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { useUIStore, type FileSortBy, type FileSortOrder } from '../stores/useUIStore';
-import { useSettingsStore, type DisplayMode, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
+import { useSettingsStore, type DateGroupingMode, type DisplayMode, type GroupBy, type ThumbnailPresentation } from '../stores/useSettingsStore';
 import { useFileStore } from '../stores/useFileStore';
 import { SearchBar } from './SearchBar';
 import {
@@ -47,6 +47,7 @@ type ListDisplayDefaultsPatch = {
     sortBy?: FileSortBy;
     sortOrder?: FileSortOrder;
     groupBy?: GroupBy;
+    dateGroupingMode?: DateGroupingMode;
     activeDisplayPresetId?: string;
     displayMode?: DisplayMode;
     thumbnailPresentation?: ThumbnailPresentation;
@@ -71,6 +72,8 @@ export const Header = React.memo(() => {
 
     const groupBy = useUIStore((s) => s.currentGroupBy);
     const setGroupBy = useUIStore((s) => s.setCurrentGroupBy);
+    const dateGroupingMode = useUIStore((s) => s.currentDateGroupingMode);
+    const setDateGroupingMode = useUIStore((s) => s.setCurrentDateGroupingMode);
     const displayMode = useUIStore((s) => s.currentDisplayMode);
     const activeDisplayPresetId = useUIStore((s) => s.currentActiveDisplayPresetId);
     const setActiveDisplayPreset = useUIStore((s) => s.setCurrentDisplayPreset);
@@ -84,6 +87,8 @@ export const Header = React.memo(() => {
     const defaultSearchTarget = useSettingsStore((s) => s.defaultSearchTarget);
     const defaultGroupBy = useSettingsStore((s) => s.groupBy);
     const setDefaultGroupBy = useSettingsStore((s) => s.setGroupBy);
+    const defaultDateGroupingMode = useSettingsStore((s) => s.dateGroupingMode);
+    const setDefaultDateGroupingMode = useSettingsStore((s) => s.setDateGroupingMode);
     const defaultDisplayMode = useSettingsStore((s) => s.displayMode);
     const defaultActiveDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
     const setDefaultActiveDisplayPreset = useSettingsStore((s) => s.setActiveDisplayPreset);
@@ -235,6 +240,7 @@ export const Header = React.memo(() => {
                                     sortBy: defaultSortBy,
                                     sortOrder: defaultSortOrder,
                                     groupBy: defaultGroupBy,
+                                    dateGroupingMode: defaultDateGroupingMode,
                                     displayMode: defaultDisplayMode,
                                     activeDisplayPresetId: defaultActiveDisplayPresetId,
                                     thumbnailPresentation: defaultThumbnailPresentation,
@@ -374,11 +380,30 @@ export const Header = React.memo(() => {
                                 className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
                             >
                                 <option value="none">なし</option>
-                                <option value="date">年月別</option>
+                                <option value="date">日付別</option>
                                 <option value="size">サイズ別</option>
                                 <option value="type">タイプ別</option>
                             </select>
                         </div>
+
+                        {groupBy === 'date' && (
+                            <div className="flex gap-2 items-center">
+                                <span className="text-surface-400 text-sm whitespace-nowrap">日付まとめ:</span>
+                                <select
+                                    value={dateGroupingMode}
+                                    onChange={(e) => {
+                                        const value = e.target.value as DateGroupingMode;
+                                        setDateGroupingMode(value);
+                                        setDefaultDateGroupingMode(value);
+                                        void persistListDisplayDefaults({ dateGroupingMode: value });
+                                    }}
+                                    className="px-3 py-1 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value="auto">自動（月をまたぐ古い項目は月単位）</option>
+                                    <option value="week">週ごとを維持（古い項目も週単位）</option>
+                                </select>
+                            </div>
+                        )}
                         </div>
                     </div>
                 </div>

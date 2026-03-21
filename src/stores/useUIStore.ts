@@ -3,6 +3,7 @@ import type { MediaFile } from '../types/file';
 import type { ToastData } from '../components/Toast';
 import {
     DEFAULT_LIST_DISPLAY_SETTINGS,
+    type DateGroupingMode,
     type DisplayMode,
     type GroupBy,
     type SearchTarget,
@@ -42,6 +43,7 @@ export interface ListDisplayDefaults {
     sortBy: FileSortBy;
     sortOrder: FileSortOrder;
     groupBy: GroupBy;
+    dateGroupingMode: DateGroupingMode;
     displayMode: DisplayMode;
     activeDisplayPresetId: string;
     thumbnailPresentation: ThumbnailPresentation;
@@ -69,6 +71,7 @@ interface UIState {
     currentSortBy: FileSortBy;
     currentSortOrder: FileSortOrder;
     currentGroupBy: GroupBy;
+    currentDateGroupingMode: DateGroupingMode;
     currentDisplayMode: DisplayMode;
     currentActiveDisplayPresetId: string;
     currentThumbnailPresentation: ThumbnailPresentation;
@@ -110,6 +113,7 @@ interface UIState {
     setCurrentSortBy: (sortBy: FileSortBy) => void;
     setCurrentSortOrder: (order: FileSortOrder) => void;
     setCurrentGroupBy: (groupBy: GroupBy) => void;
+    setCurrentDateGroupingMode: (mode: DateGroupingMode) => void;
     setCurrentDisplayPreset: (selection: {
         id: string;
         baseDisplayMode: DisplayMode;
@@ -158,6 +162,7 @@ export const useUIStore = create<UIState>((set) => ({
     currentSortBy: 'date',
     currentSortOrder: 'desc',
     currentGroupBy: 'none',
+    currentDateGroupingMode: 'auto',
     currentDisplayMode: 'standard',
     currentActiveDisplayPresetId: 'standard',
     currentThumbnailPresentation: 'modeDefault',
@@ -221,6 +226,7 @@ export const useUIStore = create<UIState>((set) => ({
         currentSortBy: defaults.sortBy,
         currentSortOrder: defaults.sortOrder,
         currentGroupBy: defaults.groupBy,
+        currentDateGroupingMode: defaults.dateGroupingMode,
         currentDisplayMode: defaults.displayMode,
         currentActiveDisplayPresetId: defaults.activeDisplayPresetId,
         currentThumbnailPresentation: defaults.thumbnailPresentation,
@@ -232,6 +238,7 @@ export const useUIStore = create<UIState>((set) => ({
         currentSortBy: listDisplayDefaults.sortBy,
         currentSortOrder: listDisplayDefaults.sortOrder,
         currentGroupBy: listDisplayDefaults.groupBy,
+        currentDateGroupingMode: listDisplayDefaults.dateGroupingMode,
         currentDisplayMode: listDisplayDefaults.displayMode,
         currentActiveDisplayPresetId: listDisplayDefaults.activeDisplayPresetId,
         currentThumbnailPresentation: listDisplayDefaults.thumbnailPresentation,
@@ -248,6 +255,7 @@ export const useUIStore = create<UIState>((set) => ({
         currentSortBy: DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
         currentSortOrder: DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder,
         currentGroupBy: DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
+        currentDateGroupingMode: DEFAULT_LIST_DISPLAY_SETTINGS.dateGroupingMode,
         currentDisplayMode: DEFAULT_LIST_DISPLAY_SETTINGS.displayMode,
         currentActiveDisplayPresetId: DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
         currentThumbnailPresentation: DEFAULT_LIST_DISPLAY_SETTINGS.thumbnailPresentation,
@@ -271,6 +279,7 @@ export const useUIStore = create<UIState>((set) => ({
     setCurrentSortBy: (currentSortBy) => set({ currentSortBy }),
     setCurrentSortOrder: (currentSortOrder) => set({ currentSortOrder }),
     setCurrentGroupBy: (currentGroupBy) => set({ currentGroupBy }),
+    setCurrentDateGroupingMode: (currentDateGroupingMode) => set({ currentDateGroupingMode }),
     setCurrentDisplayPreset: (selection) => set({
         currentDisplayMode: selection.baseDisplayMode,
         currentActiveDisplayPresetId: selection.id,

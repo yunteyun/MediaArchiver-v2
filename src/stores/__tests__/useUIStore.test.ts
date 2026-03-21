@@ -17,6 +17,7 @@ function resetUiStore() {
         currentSortBy: 'date',
         currentSortOrder: 'desc',
         currentGroupBy: 'none',
+        currentDateGroupingMode: 'auto',
         currentDisplayMode: 'standard',
         currentActiveDisplayPresetId: 'standard',
         currentThumbnailPresentation: 'modeDefault',
@@ -166,6 +167,7 @@ describe('useUIStore', () => {
             sortBy: 'name',
             sortOrder: 'asc',
             groupBy: 'date',
+            dateGroupingMode: 'week',
             displayMode: 'whiteBrowser',
             activeDisplayPresetId: 'whiteBrowser',
             thumbnailPresentation: 'square',
@@ -175,6 +177,7 @@ describe('useUIStore', () => {
         expect(state.currentSortBy).toBe('name');
         expect(state.currentSortOrder).toBe('asc');
         expect(state.currentGroupBy).toBe('date');
+        expect(state.currentDateGroupingMode).toBe('week');
         expect(state.currentDisplayMode).toBe('whiteBrowser');
         expect(state.currentActiveDisplayPresetId).toBe('whiteBrowser');
         expect(state.currentThumbnailPresentation).toBe('square');
@@ -196,6 +199,7 @@ describe('useUIStore', () => {
                 sortBy: 'name',
                 sortOrder: 'asc',
                 groupBy: 'type',
+                dateGroupingMode: 'auto',
                 displayMode: 'compact',
                 activeDisplayPresetId: 'compact',
                 thumbnailPresentation: 'contain',
@@ -209,6 +213,7 @@ describe('useUIStore', () => {
         expect(state.currentSortBy).toBe('name');
         expect(state.currentSortOrder).toBe('asc');
         expect(state.currentGroupBy).toBe('type');
+        expect(state.currentDateGroupingMode).toBe('auto');
         expect(state.currentDisplayMode).toBe('compact');
         expect(state.currentActiveDisplayPresetId).toBe('compact');
         expect(state.currentThumbnailPresentation).toBe('contain');
@@ -227,6 +232,7 @@ describe('useUIStore', () => {
             currentSortBy: 'name',
             currentSortOrder: 'asc',
             currentGroupBy: 'type',
+            currentDateGroupingMode: 'week',
             currentDisplayMode: 'compact',
             currentActiveDisplayPresetId: 'compact',
             currentThumbnailPresentation: 'contain',
@@ -267,6 +273,7 @@ describe('useUIStore', () => {
         expect(state.currentSortBy).toBe('date');
         expect(state.currentSortOrder).toBe('desc');
         expect(state.currentGroupBy).toBe('none');
+        expect(state.currentDateGroupingMode).toBe('auto');
         expect(state.currentDisplayMode).toBe('standard');
         expect(state.currentActiveDisplayPresetId).toBe('standard');
         expect(state.currentThumbnailPresentation).toBe('modeDefault');

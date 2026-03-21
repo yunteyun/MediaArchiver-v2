@@ -1,3 +1,4 @@
+import type { DateGroupingMode } from '../stores/useSettingsStore';
 import type { MediaFile } from '../types/file';
 
 // グループ化型定義
@@ -9,6 +10,11 @@ export interface FileGroup {
     label: string;         // 表示ラベル
     files: MediaFile[];    // グループ内のファイル
     icon: string;          // lucide-react アイコン名
+}
+
+export interface GroupFilesOptions {
+    dateGroupingMode?: DateGroupingMode;
+    now?: Date;
 }
 
 // サイズ区分定義（Phase 12-10）
@@ -32,8 +38,15 @@ const TYPE_LABELS: Record<string, { label: string; icon: string }> = {
  * 日付境界計算（Phase 21-A: 相対時間区分）
  * ループ外で1回だけ計算する
  */
-function getDateBoundaries() {
-    const now = new Date();
+function getWeekStart(date: Date): Date {
+    const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dayOfWeek = weekStart.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    weekStart.setDate(weekStart.getDate() - daysToMonday);
+    return weekStart;
+}
+
+function getDateBoundaries(now = new Date()) {
 
     // 今日の開始時刻（00:00:00）
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -43,10 +56,7 @@ function getDateBoundaries() {
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
     // 今週の月曜日（weekStartsOn: 1）
-    const weekStart = new Date(todayStart);
-    const dayOfWeek = weekStart.getDay();
-    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 日曜日は6日前、それ以外は曜日-1
-    weekStart.setDate(weekStart.getDate() - daysToMonday);
+    const weekStart = getWeekStart(todayStart);
 
     // 先週の月曜日
     const lastWeekStart = new Date(weekStart);
@@ -64,6 +74,11 @@ function getDateBoundaries() {
         lastWeekStart: lastWeekStart.getTime(),
         twoWeeksStart: twoWeeksStart.getTime()
     };
+}
+
+function getWeekGroupKey(timestamp: number): string {
+    const weekStart = getWeekStart(new Date(timestamp));
+    return `week:${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
 }
 
 /**
@@ -105,7 +120,12 @@ function getRelativeTimeGroup(timestamp: number, boundaries: ReturnType<typeof g
 /**
  * ファイルのグループキーを取得
  */
-function getGroupKey(file: MediaFile, groupBy: GroupBy, boundaries?: ReturnType<typeof getDateBoundaries>): string {
+function getGroupKey(
+    file: MediaFile,
+    groupBy: GroupBy,
+    boundaries?: ReturnType<typeof getDateBoundaries>,
+    dateGroupingMode: DateGroupingMode = 'auto'
+): string {
     switch (groupBy) {
         case 'date': {
             // Phase 21-A: 相対時間区分を優先
@@ -114,6 +134,10 @@ function getGroupKey(file: MediaFile, groupBy: GroupBy, boundaries?: ReturnType<
                 if (relativeGroup) {
                     return relativeGroup;
                 }
+            }
+
+            if (dateGroupingMode === 'week') {
+                return getWeekGroupKey(file.createdAt);
             }
 
             // 既存ロジック（年/月）
@@ -153,6 +177,14 @@ function getGroupLabel(key: string, groupBy: GroupBy): string {
 
     switch (groupBy) {
         case 'date': {
+            if (key.startsWith('week:')) {
+                const [year, month, day] = key.substring(5).split('-').map((value) => parseInt(value ?? '0', 10));
+                const weekStart = new Date(year, Math.max(0, month - 1), day);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                return `${weekStart.getFullYear()}年${weekStart.getMonth() + 1}月${weekStart.getDate()}日 - ${weekEnd.getMonth() + 1}月${weekEnd.getDate()}日`;
+            }
+
             // 既存ロジック（年/月）
             if (key.startsWith('month:')) {
                 const monthKey = key.substring(6); // "month:" を除去
@@ -254,6 +286,15 @@ function sortGroups(groups: FileGroup[], groupBy: GroupBy): FileGroup[] {
         case 'date': {
             // Phase 21-A: 相対時間区分の優先順位
             const relativeOrder = ['relative:today', 'relative:yesterday', 'relative:thisWeek', 'relative:lastWeek', 'relative:twoWeeksAgo'];
+            const getDateGroupSortValue = (key: string): number => {
+                if (key.startsWith('week:')) {
+                    return new Date(key.substring(5)).getTime();
+                }
+                if (key.startsWith('month:')) {
+                    return new Date(`${key.substring(6)}-01`).getTime();
+                }
+                return 0;
+            };
 
             return groups.sort((a, b) => {
                 const aIsRelative = a.key.startsWith('relative:');
@@ -270,8 +311,7 @@ function sortGroups(groups: FileGroup[], groupBy: GroupBy): FileGroup[] {
                 if (aIsRelative) return -1;
                 if (bIsRelative) return 1;
 
-                // 既存ロジック（新しい月が上）
-                return b.key.localeCompare(a.key);
+                return getDateGroupSortValue(b.key) - getDateGroupSortValue(a.key);
             });
         }
         case 'size':
@@ -296,7 +336,8 @@ export function groupFiles(
     files: MediaFile[],
     groupBy: GroupBy,
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed',
-    sortOrder: 'asc' | 'desc'
+    sortOrder: 'asc' | 'desc',
+    options?: GroupFilesOptions
 ): FileGroup[] {
     // グループ化なしの場合
     if (groupBy === 'none') {
@@ -310,13 +351,14 @@ export function groupFiles(
     }
 
     // Phase 21-A: date grouping の場合は日付境界を1回だけ計算
-    const boundaries = groupBy === 'date' ? getDateBoundaries() : undefined;
+    const boundaries = groupBy === 'date' ? getDateBoundaries(options?.now) : undefined;
+    const dateGroupingMode = options?.dateGroupingMode ?? 'auto';
 
     // グループ化
     const groupMap = new Map<string, MediaFile[]>();
 
     files.forEach(file => {
-        const key = getGroupKey(file, groupBy, boundaries);
+        const key = getGroupKey(file, groupBy, boundaries, dateGroupingMode);
         const existing = groupMap.get(key);
         if (existing) {
             existing.push(file);

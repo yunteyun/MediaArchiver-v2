@@ -68,6 +68,7 @@ export const FileGrid = React.memo(() => {
     const isDetailedHorizontalMode = displayModeDefinition.cardDirection === 'horizontal';
     const config = displayModeDefinition.layout;
     const groupBy = useUIStore((s) => s.currentGroupBy);
+    const dateGroupingMode = useUIStore((s) => s.currentDateGroupingMode);
     const searchQuery = useUIStore((s) => s.searchQuery);
     const searchTarget = useUIStore((s) => s.searchTarget);
     const searchExtraConditions = useUIStore((s) => s.searchExtraConditions);
@@ -219,16 +220,17 @@ export const FileGrid = React.memo(() => {
     // グループ化されたファイル（Phase 12-10）
     const groupedFiles = useMemo(() => {
         if (!groupPerfDebugEnabled || groupBy === 'none') {
-            return groupFiles(files, groupBy, sortBy, sortOrder);
+            return groupFiles(files, groupBy, sortBy, sortOrder, { dateGroupingMode });
         }
 
         const start = performance.now();
-        const result = groupFiles(files, groupBy, sortBy, sortOrder);
+        const result = groupFiles(files, groupBy, sortBy, sortOrder, { dateGroupingMode });
         const elapsedMs = performance.now() - start;
         const totalGroupedFiles = result.reduce((sum, group) => sum + group.files.length, 0);
 
         console.debug('[perf][FileGrid][grouping]', {
             groupBy,
+            dateGroupingMode,
             files: files.length,
             groups: result.length,
             groupedFiles: totalGroupedFiles,
@@ -236,7 +238,7 @@ export const FileGrid = React.memo(() => {
         });
 
         return result;
-    }, [files, groupBy, sortBy, sortOrder, groupPerfDebugEnabled]);
+    }, [files, groupBy, sortBy, sortOrder, groupPerfDebugEnabled, dateGroupingMode]);
 
     // GridItem統合リスト生成（Phase 12-4）
     const gridItems = useMemo((): GridItem[] => {

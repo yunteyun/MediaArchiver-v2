@@ -16,6 +16,7 @@ export interface ProfileSettingsStoreSnapshot {
     sortBy: ProfileScopedSettingsV1['listDisplayDefaults']['sortBy'];
     sortOrder: ProfileScopedSettingsV1['listDisplayDefaults']['sortOrder'];
     groupBy: ProfileScopedSettingsV1['listDisplayDefaults']['groupBy'];
+    dateGroupingMode: ProfileScopedSettingsV1['listDisplayDefaults']['dateGroupingMode'];
     defaultSearchTarget: ProfileScopedSettingsV1['listDisplayDefaults']['defaultSearchTarget'];
     activeDisplayPresetId: string;
     displayMode: ProfileScopedSettingsV1['listDisplayDefaults']['displayMode'];
@@ -79,6 +80,7 @@ export function createInitialProfileScopedSettings(
             sortBy: snapshot.sortBy,
             sortOrder: snapshot.sortOrder,
             groupBy: snapshot.groupBy,
+            dateGroupingMode: snapshot.dateGroupingMode,
             defaultSearchTarget: snapshot.defaultSearchTarget,
             activeDisplayPresetId: snapshot.activeDisplayPresetId,
             displayMode: snapshot.displayMode,
@@ -87,6 +89,7 @@ export function createInitialProfileScopedSettings(
             sortBy: 'date',
             sortOrder: 'desc',
             groupBy: 'none',
+            dateGroupingMode: 'auto',
             defaultSearchTarget: 'fileName',
             activeDisplayPresetId: 'standard',
             displayMode: 'standard',
