@@ -5,6 +5,10 @@ import {
     normalizeRatingDisplayThresholds,
     type RatingDisplayThresholds,
 } from '../../src/shared/ratingDisplayThresholds';
+import {
+    normalizeRatingQuickFilter,
+    type RatingQuickFilter,
+} from '../../src/shared/ratingQuickFilter';
 
 const log = logger.scope('ProfileSettings');
 
@@ -17,6 +21,13 @@ export interface FileTypeCategoryFilters {
     image: boolean;
     archive: boolean;
     audio: boolean;
+}
+
+export interface SavedFilterState {
+    searchQuery: string;
+    searchTarget: 'fileName' | 'folderName';
+    ratingQuickFilter: RatingQuickFilter;
+    selectedFileTypes: FileTypeCategory[];
 }
 
 export interface ProfileScopedSettingsV1 {
@@ -54,6 +65,7 @@ export interface ProfileScopedSettingsV1 {
         enabled: boolean;
         createdAt: number;
     }>;
+    savedFilterState?: SavedFilterState;
 }
 
 export interface ProfileScopedSettingsResponse {
@@ -66,6 +78,13 @@ const DEFAULT_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
     image: true,
     archive: true,
     audio: true,
+};
+
+const DEFAULT_SAVED_FILTER_STATE: SavedFilterState = {
+    searchQuery: '',
+    searchTarget: 'fileName',
+    ratingQuickFilter: 'none',
+    selectedFileTypes: ['video', 'image', 'archive', 'audio'],
 };
 
 export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
@@ -102,6 +121,7 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
         { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
         { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
     ],
+    savedFilterState: { ...DEFAULT_SAVED_FILTER_STATE },
 };
 
 function ensureProfileSettingsTable(): void {
@@ -144,6 +164,24 @@ function normalizeFileTypeFilters(input: unknown): FileTypeCategoryFilters {
         image: candidate.image ?? DEFAULT_FILE_TYPE_FILTERS.image,
         archive: candidate.archive ?? DEFAULT_FILE_TYPE_FILTERS.archive,
         audio: candidate.audio ?? DEFAULT_FILE_TYPE_FILTERS.audio,
+    };
+}
+
+function normalizeSavedFilterState(input: unknown): SavedFilterState {
+    const candidate = (input && typeof input === 'object') ? (input as Partial<SavedFilterState>) : {};
+    const selectedFileTypes = Array.isArray(candidate.selectedFileTypes)
+        ? Array.from(new Set(candidate.selectedFileTypes.filter((type): type is FileTypeCategory => (
+            type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+        ))))
+        : [];
+
+    return {
+        searchQuery: typeof candidate.searchQuery === 'string' ? candidate.searchQuery : DEFAULT_SAVED_FILTER_STATE.searchQuery,
+        searchTarget: candidate.searchTarget === 'folderName' ? 'folderName' : DEFAULT_SAVED_FILTER_STATE.searchTarget,
+        ratingQuickFilter: normalizeRatingQuickFilter(candidate.ratingQuickFilter),
+        selectedFileTypes: selectedFileTypes.length > 0
+            ? selectedFileTypes
+            : [...DEFAULT_SAVED_FILTER_STATE.selectedFileTypes],
     };
 }
 
@@ -236,6 +274,7 @@ function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettings
                 };
             })
             .filter((destination): destination is ProfileScopedSettingsV1['searchDestinations'][number] => destination !== null),
+        savedFilterState: normalizeSavedFilterState(candidate.savedFilterState),
     };
 }
 

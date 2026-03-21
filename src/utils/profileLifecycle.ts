@@ -30,6 +30,7 @@ export interface ProfileSettingsStoreSnapshot {
     fileCardTagOrderMode: ProfileScopedSettingsV1['fileCardSettings']['fileCardTagOrderMode'];
     defaultExternalApps: Record<string, string>;
     searchDestinations: ProfileScopedSettingsV1['searchDestinations'];
+    savedFilterState: NonNullable<ProfileScopedSettingsV1['savedFilterState']>;
 }
 
 export interface ProfileScopedSettingsResponse {
@@ -123,6 +124,17 @@ export function createInitialProfileScopedSettings(
                 { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
                 { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
             ],
+        savedFilterState: shouldMigrate
+            ? {
+                ...snapshot.savedFilterState,
+                selectedFileTypes: [...snapshot.savedFilterState.selectedFileTypes],
+            }
+            : {
+                searchQuery: '',
+                searchTarget: 'fileName',
+                ratingQuickFilter: 'none',
+                selectedFileTypes: ['video', 'image', 'archive', 'audio'],
+            },
     };
 }
 

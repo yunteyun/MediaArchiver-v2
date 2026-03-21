@@ -15,6 +15,10 @@ import {
     normalizeRatingDisplayThresholds,
     type RatingDisplayThresholds,
 } from '../shared/ratingDisplayThresholds';
+import {
+    normalizeRatingQuickFilter,
+    type RatingQuickFilter,
+} from '../shared/ratingQuickFilter';
 
 export type { ScanExclusionRules } from '../shared/scanExclusionRules';
 export { DEFAULT_SCAN_EXCLUSION_RULES } from '../shared/scanExclusionRules';
@@ -56,6 +60,13 @@ export interface FileTypeCategoryFilters {
     audio: boolean;
 }
 
+export interface SavedFilterState {
+    searchQuery: string;
+    searchTarget: SearchTarget;
+    ratingQuickFilter: RatingQuickFilter;
+    selectedFileTypes: FileTypeCategory[];
+}
+
 export interface ProfileScopedSettingsV1 {
     fileTypeFilters: FileTypeCategoryFilters;
     previewFrameCount: number;
@@ -83,6 +94,7 @@ export interface ProfileScopedSettingsV1 {
     };
     defaultExternalApps: Record<string, string>;
     searchDestinations: SearchDestination[];
+    savedFilterState?: SavedFilterState;
 }
 
 export interface StorageMaintenanceSettings {
@@ -100,6 +112,13 @@ export const DEFAULT_PROFILE_FILE_TYPE_FILTERS: FileTypeCategoryFilters = {
     image: true,
     archive: true,
     audio: true,
+};
+
+export const DEFAULT_SAVED_FILTER_STATE: SavedFilterState = {
+    searchQuery: '',
+    searchTarget: 'fileName',
+    ratingQuickFilter: 'none',
+    selectedFileTypes: ['video', 'image', 'archive', 'audio'],
 };
 
 export const DEFAULT_LIST_DISPLAY_SETTINGS = {
@@ -146,6 +165,7 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
         { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
         { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
     ],
+    savedFilterState: { ...DEFAULT_SAVED_FILTER_STATE },
 };
 
 export const DEFAULT_FILE_CARD_SETTINGS = {
@@ -315,6 +335,26 @@ function normalizeDateGroupingMode(value: unknown): DateGroupingMode {
     return value === 'week' ? 'week' : DEFAULT_LIST_DISPLAY_SETTINGS.dateGroupingMode;
 }
 
+function normalizeSavedFilterState(input: unknown): SavedFilterState {
+    const candidate = input && typeof input === 'object'
+        ? input as Partial<SavedFilterState>
+        : {};
+    const selectedFileTypes = Array.isArray(candidate.selectedFileTypes)
+        ? Array.from(new Set(candidate.selectedFileTypes.filter((type): type is FileTypeCategory => (
+            type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
+        ))))
+        : [];
+
+    return {
+        searchQuery: typeof candidate.searchQuery === 'string' ? candidate.searchQuery : DEFAULT_SAVED_FILTER_STATE.searchQuery,
+        searchTarget: candidate.searchTarget === 'folderName' ? 'folderName' : DEFAULT_SAVED_FILTER_STATE.searchTarget,
+        ratingQuickFilter: normalizeRatingQuickFilter(candidate.ratingQuickFilter),
+        selectedFileTypes: selectedFileTypes.length > 0
+            ? selectedFileTypes
+            : [...DEFAULT_SAVED_FILTER_STATE.selectedFileTypes],
+    };
+}
+
 export function mapDisplayModeToPresentationAxes(displayMode: DisplayMode): {
     layoutPreset: LayoutPreset;
     thumbnailPresentation: ThumbnailPresentation;
@@ -405,6 +445,7 @@ interface SettingsState {
     defaultExternalApps: Record<string, string>; // 拡張子(正規化済み) → アプリID
 
     searchDestinations: SearchDestination[];
+    savedFilterState: SavedFilterState;
 
     // グループ化設定（Phase 12-10）
     groupBy: GroupBy;
@@ -468,6 +509,7 @@ interface SettingsState {
     deleteExternalApp: (id: string) => void;
     // Phase 18-B: デフォルト外部アプリアクション
     setDefaultExternalApp: (extension: string, appId: string | null) => void;
+    setSavedFilterState: (state: SavedFilterState) => void;
     addSearchDestination: (type: SearchDestinationType, name: string, url: string, icon?: SearchDestinationIcon) => void;
     updateSearchDestination: (id: string, updates: Partial<Omit<SearchDestination, 'id' | 'createdAt'>>) => void;
     deleteSearchDestination: (id: string) => void;
@@ -543,6 +585,7 @@ export const useSettingsStore = create<SettingsState>()(
             defaultExternalApps: {},
 
             searchDestinations: DEFAULT_SEARCH_DESTINATIONS,
+            savedFilterState: { ...DEFAULT_SAVED_FILTER_STATE },
 
             // グループ化設定（Phase 12-10）
             groupBy: DEFAULT_LIST_DISPLAY_SETTINGS.groupBy,
@@ -612,6 +655,7 @@ export const useSettingsStore = create<SettingsState>()(
                 searchDestinations: Array.isArray(settings.searchDestinations)
                     ? settings.searchDestinations.map((destination) => normalizeSearchDestination(destination))
                     : DEFAULT_SEARCH_DESTINATIONS,
+                savedFilterState: normalizeSavedFilterState(settings.savedFilterState),
             }),
             exportProfileScopedSettings: () => ({
                 fileTypeFilters: { ...get().profileFileTypeFilters },
@@ -640,6 +684,10 @@ export const useSettingsStore = create<SettingsState>()(
                 },
                 defaultExternalApps: { ...get().defaultExternalApps },
                 searchDestinations: get().searchDestinations.map((destination) => ({ ...destination })),
+                savedFilterState: {
+                    ...get().savedFilterState,
+                    selectedFileTypes: [...get().savedFilterState.selectedFileTypes],
+                },
             }),
             setProfileFileTypeFilters: (profileFileTypeFilters) => set({ profileFileTypeFilters }),
             setProfilePreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
@@ -720,6 +768,9 @@ export const useSettingsStore = create<SettingsState>()(
                     return { defaultExternalApps: newDefaults };
                 });
             },
+            setSavedFilterState: (savedFilterState) => set({
+                savedFilterState: normalizeSavedFilterState(savedFilterState),
+            }),
             addSearchDestination: (type, name, url, icon) => {
                 const normalizedUrl = url.trim();
                 const normalizedName = name.trim();

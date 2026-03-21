@@ -82,6 +82,12 @@ interface ProfileScopedSettingsV1 {
         enabled: boolean;
         createdAt: number;
     }>;
+    savedFilterState?: {
+        searchQuery: string;
+        searchTarget: 'fileName' | 'folderName';
+        ratingQuickFilter: 'none' | 'midOrAbove' | 'unrated';
+        selectedFileTypes: Array<'video' | 'image' | 'archive' | 'audio'>;
+    };
 }
 
 interface ProfileScopedSettingsResponse {

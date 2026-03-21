@@ -372,6 +372,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
             fileCardTagOrderMode?: 'balanced' | 'strict';
         };
         defaultExternalApps?: Record<string, string>;
+        savedFilterState?: {
+            searchQuery?: string;
+            searchTarget?: 'fileName' | 'folderName';
+            ratingQuickFilter?: 'none' | 'midOrAbove' | 'unrated';
+            selectedFileTypes?: Array<'video' | 'image' | 'archive' | 'audio'>;
+        };
         searchDestinations?: Array<{
             id?: string;
             name: string;
@@ -416,6 +422,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
             fileCardTagOrderMode: 'balanced' | 'strict';
         };
         defaultExternalApps: Record<string, string>;
+        savedFilterState?: {
+            searchQuery: string;
+            searchTarget: 'fileName' | 'folderName';
+            ratingQuickFilter: 'none' | 'midOrAbove' | 'unrated';
+            selectedFileTypes: Array<'video' | 'image' | 'archive' | 'audio'>;
+        };
         searchDestinations: Array<{
             id: string;
             name: string;

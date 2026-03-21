@@ -23,6 +23,19 @@ import {
 import { lazyWithPerf } from './utils/lazyWithPerf';
 import { completeUiPerfTrace, initializePerfDebugFlags, syncPerfDebugToMain } from './utils/perfDebug';
 
+function areSavedFilterStatesEqual(
+    left: ProfileScopedSettingsV1['savedFilterState'],
+    right: ProfileScopedSettingsV1['savedFilterState']
+): boolean {
+    const leftTypes = left?.selectedFileTypes ?? [];
+    const rightTypes = right?.selectedFileTypes ?? [];
+    return (left?.searchQuery ?? '') === (right?.searchQuery ?? '')
+        && (left?.searchTarget ?? 'fileName') === (right?.searchTarget ?? 'fileName')
+        && (left?.ratingQuickFilter ?? 'none') === (right?.ratingQuickFilter ?? 'none')
+        && leftTypes.length === rightTypes.length
+        && leftTypes.every((type, index) => type === rightTypes[index]);
+}
+
 const ProfileHomeView = lazyWithPerf('profile-home', () => import('./components/ProfileHomeView').then((module) => ({ default: module.ProfileHomeView })));
 const DuplicateView = lazyWithPerf('duplicate-view', () => import('./components/DuplicateView').then((module) => ({ default: module.DuplicateView })));
 const RightPanel = lazyWithPerf('right-panel', () => import('./components/RightPanel').then((module) => ({ default: module.RightPanel })));
@@ -86,7 +99,12 @@ function App() {
     const isRightPanelOpen = useUIStore((s) => s.isRightPanelOpen);
     const toggleRightPanel = useUIStore((s) => s.toggleRightPanel);
     const applyProfileScopedUiDefaults = useUIStore((s) => s.applyProfileScopedUiDefaults);
+    const searchQuery = useUIStore((s) => s.searchQuery);
+    const searchTarget = useUIStore((s) => s.searchTarget);
+    const ratingQuickFilter = useUIStore((s) => s.ratingQuickFilter);
+    const selectedFileTypes = useUIStore((s) => s.selectedFileTypes);
     const loadDisplayPresets = useDisplayPresetStore((s) => s.loadDisplayPresets);
+    const savedFilterState = useSettingsStore((s) => s.savedFilterState);
     const profileSettingsLoadSeqRef = useRef(0);
     const startupAutoScanStartedRef = useRef(false);
     const autoBackupProfileCheckRef = useRef<string | null>(null);
@@ -118,6 +136,7 @@ function App() {
                 activeDisplayPresetId: settings.activeDisplayPresetId,
                 thumbnailPresentation: settings.thumbnailPresentation,
             },
+            savedFilterState: settings.savedFilterState,
         });
         void loadDisplayPresets();
     }, [applyProfileScopedUiDefaults, loadDisplayPresets]);
@@ -134,6 +153,7 @@ function App() {
                 activeDisplayPresetId: settings.listDisplayDefaults.activeDisplayPresetId,
                 thumbnailPresentation: settings.listDisplayDefaults.thumbnailPresentation,
             },
+            savedFilterState: settings.savedFilterState,
         });
         await Promise.all([
             window.electronAPI.setPreviewFrameCount(settings.previewFrameCount),
@@ -174,6 +194,7 @@ function App() {
                     fileCardTagOrderMode: settings.fileCardTagOrderMode,
                     defaultExternalApps: settings.defaultExternalApps,
                     searchDestinations: settings.searchDestinations,
+                    savedFilterState: settings.savedFilterState,
                 };
             },
             fetchSettings: () => window.electronAPI.getProfileScopedSettings(),
@@ -221,6 +242,43 @@ function App() {
             cancelled = true;
         };
     }, [activeProfileId, loadAndApplyActiveProfileScopedSettings, profiles.length]);
+
+    useEffect(() => {
+        if (!profileSettingsRuntimeReady || !activeProfileId) {
+            return;
+        }
+
+        const nextSavedFilterState: NonNullable<ProfileScopedSettingsV1['savedFilterState']> = {
+            searchQuery,
+            searchTarget,
+            ratingQuickFilter,
+            selectedFileTypes: [...selectedFileTypes],
+        };
+
+        if (areSavedFilterStatesEqual(nextSavedFilterState, savedFilterState)) {
+            return;
+        }
+
+        useSettingsStore.getState().setSavedFilterState(nextSavedFilterState);
+
+        const timer = setTimeout(() => {
+            void window.electronAPI.setProfileScopedSettings({
+                savedFilterState: nextSavedFilterState,
+            }).catch((error) => {
+                console.error('Failed to persist saved filter state:', error);
+            });
+        }, 250);
+
+        return () => clearTimeout(timer);
+    }, [
+        activeProfileId,
+        profileSettingsRuntimeReady,
+        ratingQuickFilter,
+        savedFilterState,
+        searchQuery,
+        searchTarget,
+        selectedFileTypes,
+    ]);
 
     // 評価フィルター用キャッシュを起動時に一括ロード
     useEffect(() => {

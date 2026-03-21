@@ -43,6 +43,12 @@ function resetSettingsStore() {
         externalApps: [],
         defaultExternalApps: {},
         searchDestinations: [],
+        savedFilterState: {
+            searchQuery: '',
+            searchTarget: 'fileName',
+            ratingQuickFilter: 'none',
+            selectedFileTypes: ['video', 'image', 'archive', 'audio'],
+        },
         groupBy: 'none',
         dateGroupingMode: 'auto',
         tagPopoverTrigger: 'click',
@@ -120,6 +126,12 @@ describe('useSettingsStore', () => {
             defaultExternalApps: {
                 mp4: 'player',
             },
+            savedFilterState: {
+                searchQuery: 'hero',
+                searchTarget: 'folderName',
+                ratingQuickFilter: 'midOrAbove',
+                selectedFileTypes: ['image', 'audio', 'image'],
+            },
             searchDestinations: [
                 {
                     id: 'filename-google',
@@ -158,6 +170,12 @@ describe('useSettingsStore', () => {
         expect(state.tagDisplayStyle).toBe('border');
         expect(state.fileCardTagOrderMode).toBe('strict');
         expect(state.defaultExternalApps).toEqual({ mp4: 'player' });
+        expect(state.savedFilterState).toEqual({
+            searchQuery: 'hero',
+            searchTarget: 'folderName',
+            ratingQuickFilter: 'midOrAbove',
+            selectedFileTypes: ['image', 'audio'],
+        });
         expect(state.searchDestinations).toHaveLength(1);
     });
 

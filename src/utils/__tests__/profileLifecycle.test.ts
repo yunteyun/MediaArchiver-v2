@@ -34,6 +34,12 @@ describe('createInitialProfileScopedSettings', () => {
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
+            savedFilterState: {
+                searchQuery: 'hero',
+                searchTarget: 'folderName',
+                ratingQuickFilter: 'midOrAbove',
+                selectedFileTypes: ['image'],
+            },
         }, true)).toEqual({
             fileTypeFilters: {
                 video: true,
@@ -68,6 +74,12 @@ describe('createInitialProfileScopedSettings', () => {
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
+            savedFilterState: {
+                searchQuery: 'hero',
+                searchTarget: 'folderName',
+                ratingQuickFilter: 'midOrAbove',
+                selectedFileTypes: ['image'],
+            },
         });
     });
 
@@ -97,6 +109,12 @@ describe('createInitialProfileScopedSettings', () => {
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
+            savedFilterState: {
+                searchQuery: 'hero',
+                searchTarget: 'folderName',
+                ratingQuickFilter: 'midOrAbove',
+                selectedFileTypes: ['image'],
+            },
         }, false)).toEqual({
             fileTypeFilters: {
                 video: true,
@@ -136,6 +154,12 @@ describe('createInitialProfileScopedSettings', () => {
                 { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true, createdAt: 5 },
                 { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true, createdAt: 6 },
             ],
+            savedFilterState: {
+                searchQuery: '',
+                searchTarget: 'fileName',
+                ratingQuickFilter: 'none',
+                selectedFileTypes: ['video', 'image', 'archive', 'audio'],
+            },
         });
     });
 });
@@ -171,6 +195,12 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 },
                 defaultExternalApps: {},
                 searchDestinations: [],
+                savedFilterState: {
+                    searchQuery: '',
+                    searchTarget: 'fileName',
+                    ratingQuickFilter: 'none',
+                    selectedFileTypes: ['video', 'image', 'archive', 'audio'],
+                },
             },
         });
         const replaceSettings = vi.fn().mockResolvedValue({
@@ -204,6 +234,12 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 searchDestinations: [
                     { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
                 ],
+                savedFilterState: {
+                    searchQuery: 'hero',
+                    searchTarget: 'folderName',
+                    ratingQuickFilter: 'midOrAbove',
+                    selectedFileTypes: ['image'],
+                },
             },
         });
         const applySettings = vi.fn();
@@ -242,6 +278,12 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 searchDestinations: [
                     { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
                 ],
+                savedFilterState: {
+                    searchQuery: 'hero',
+                    searchTarget: 'folderName',
+                    ratingQuickFilter: 'midOrAbove',
+                    selectedFileTypes: ['image'],
+                },
             }),
             fetchSettings,
             replaceSettings,
@@ -281,6 +323,12 @@ describe('loadAndApplyProfileScopedSettings', () => {
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
+            savedFilterState: {
+                searchQuery: 'hero',
+                searchTarget: 'folderName',
+                ratingQuickFilter: 'midOrAbove',
+                selectedFileTypes: ['image'],
+            },
         });
         expect(markMigrationDone).toHaveBeenCalledWith(true);
         expect(applySettings).toHaveBeenCalledWith({
@@ -312,6 +360,12 @@ describe('loadAndApplyProfileScopedSettings', () => {
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
+            savedFilterState: {
+                searchQuery: 'hero',
+                searchTarget: 'folderName',
+                ratingQuickFilter: 'midOrAbove',
+                selectedFileTypes: ['image'],
+            },
         });
         expect(syncSettings).toHaveBeenCalledTimes(1);
     });
@@ -349,6 +403,12 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 fileCardTagOrderMode: 'balanced',
                 defaultExternalApps: {},
                 searchDestinations: [],
+                savedFilterState: {
+                    searchQuery: '',
+                    searchTarget: 'fileName',
+                    ratingQuickFilter: 'none',
+                    selectedFileTypes: ['video', 'image', 'archive', 'audio'],
+                },
             }),
             fetchSettings: async () => ({
                 exists: true,
@@ -381,6 +441,12 @@ describe('loadAndApplyProfileScopedSettings', () => {
                     searchDestinations: [
                         { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
                     ],
+                    savedFilterState: {
+                        searchQuery: 'hero',
+                        searchTarget: 'folderName',
+                        ratingQuickFilter: 'midOrAbove',
+                        selectedFileTypes: ['image'],
+                    },
                 },
             }),
             replaceSettings: vi.fn(),

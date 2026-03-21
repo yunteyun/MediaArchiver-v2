@@ -183,7 +183,7 @@ describe('useUIStore', () => {
         expect(state.currentThumbnailPresentation).toBe('square');
     });
 
-    it('applies profile scoped UI defaults without keeping previous search conditions', () => {
+    it('applies profile scoped UI defaults with saved filter state', () => {
         useUIStore.setState({
             searchQuery: 'hero',
             searchTarget: 'fileName',
@@ -204,12 +204,19 @@ describe('useUIStore', () => {
                 activeDisplayPresetId: 'compact',
                 thumbnailPresentation: 'contain',
             },
+            savedFilterState: {
+                searchQuery: 'restored',
+                searchTarget: 'folderName',
+                ratingQuickFilter: 'unrated',
+                selectedFileTypes: ['image', 'archive'],
+            },
         });
 
         const state = useUIStore.getState();
-        expect(state.searchQuery).toBe('');
+        expect(state.searchQuery).toBe('restored');
         expect(state.searchTarget).toBe('folderName');
         expect(state.searchExtraConditions).toEqual([]);
+        expect(state.ratingQuickFilter).toBe('unrated');
         expect(state.currentSortBy).toBe('name');
         expect(state.currentSortOrder).toBe('asc');
         expect(state.currentGroupBy).toBe('type');
@@ -217,6 +224,7 @@ describe('useUIStore', () => {
         expect(state.currentDisplayMode).toBe('compact');
         expect(state.currentActiveDisplayPresetId).toBe('compact');
         expect(state.currentThumbnailPresentation).toBe('contain');
+        expect(state.selectedFileTypes).toEqual(['image', 'archive']);
     });
 
     it('resets transient state for profile switches', () => {

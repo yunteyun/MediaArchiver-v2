@@ -49,9 +49,17 @@ export interface ListDisplayDefaults {
     thumbnailPresentation: ThumbnailPresentation;
 }
 
+export interface ProfileScopedSavedFilterState {
+    searchQuery: string;
+    searchTarget: SearchTarget;
+    ratingQuickFilter: RatingQuickFilter;
+    selectedFileTypes: MediaFile['type'][];
+}
+
 export interface ProfileScopedUiDefaults {
     defaultSearchTarget: SearchTarget;
     listDisplayDefaults: ListDisplayDefaults;
+    savedFilterState?: ProfileScopedSavedFilterState;
 }
 
 const ALL_FILE_TYPES: MediaFile['type'][] = ['video', 'image', 'archive', 'audio'];
@@ -231,10 +239,11 @@ export const useUIStore = create<UIState>((set) => ({
         currentActiveDisplayPresetId: defaults.activeDisplayPresetId,
         currentThumbnailPresentation: defaults.thumbnailPresentation,
     }),
-    applyProfileScopedUiDefaults: ({ defaultSearchTarget, listDisplayDefaults }) => set({
-        searchQuery: '',
-        searchTarget: defaultSearchTarget,
+    applyProfileScopedUiDefaults: ({ defaultSearchTarget, listDisplayDefaults, savedFilterState }) => set({
+        searchQuery: savedFilterState?.searchQuery ?? '',
+        searchTarget: savedFilterState?.searchTarget ?? defaultSearchTarget,
         searchExtraConditions: [],
+        ratingQuickFilter: savedFilterState?.ratingQuickFilter ?? 'none',
         currentSortBy: listDisplayDefaults.sortBy,
         currentSortOrder: listDisplayDefaults.sortOrder,
         currentGroupBy: listDisplayDefaults.groupBy,
@@ -242,6 +251,9 @@ export const useUIStore = create<UIState>((set) => ({
         currentDisplayMode: listDisplayDefaults.displayMode,
         currentActiveDisplayPresetId: listDisplayDefaults.activeDisplayPresetId,
         currentThumbnailPresentation: listDisplayDefaults.thumbnailPresentation,
+        selectedFileTypes: savedFilterState?.selectedFileTypes?.length
+            ? [...savedFilterState.selectedFileTypes]
+            : [...ALL_FILE_TYPES],
     }),
     resetTransientStateForProfileSwitch: () => set({
         lightboxFile: null,
