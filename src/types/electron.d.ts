@@ -307,6 +307,7 @@ declare global {
             setScanFileTypeCategories: (filters: Partial<FileTypeCategoryFilters>) => Promise<void>;
             setScanExclusionRules: (rules: SettingsScanExclusionRules) => Promise<void>;
             autoScan: () => Promise<void>;
+            backfillVisibleThumbnails: (fileIds: string[]) => Promise<{ queued: number }>;
 
             // Context Menu
             showFolderContextMenu: (folderId: string, path: string) => Promise<void>;
@@ -323,6 +324,7 @@ declare global {
             ) => Promise<void>;
             onFileDeleted: (callback: (fileId: string) => void) => () => void;
             onThumbnailRegenerated: (callback: (fileId: string) => void) => () => void;
+            onThumbnailBackfilled: (callback: (fileId: string) => void) => () => void;
             onExternalOpenCountUpdated: (callback: (data: { fileId: string; externalOpenCount: number; lastExternalOpenedAt: number }) => void) => () => void;
             onOpenFileAsMode: (callback: (data: { fileId: string; mode: 'archive-audio' | 'archive-image' }) => void) => () => void;
 

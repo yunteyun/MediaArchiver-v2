@@ -31,8 +31,10 @@ import sharp from 'sharp';
 import { spawn } from 'child_process';
 import { access } from 'fs/promises';
 import { constants as fsConstants, existsSync, unlinkSync } from 'fs';
+import pLimit from 'p-limit';
 import { getCachedExternalApps } from './app';
 import { deleteFileSafe, moveFileToFolder, relocateFile, validateNewFileName } from '../services/fileOperationService';
+import { mergePriorityIds } from '../../src/shared/thumbnailBackfillQueue';
 
 type SearchDestinationType = 'filename' | 'image';
 type SearchDestinationIcon = 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
@@ -54,6 +56,72 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
     { id: 'image-bing-visual-search', name: 'Bing Visual Search', type: 'image', url: 'https://www.bing.com/visualsearch', icon: 'image', enabled: true },
     { id: 'image-yandex-images', name: 'Yandex Images', type: 'image', url: 'https://yandex.com/images/', icon: 'image', enabled: true },
 ];
+
+const VISIBLE_THUMBNAIL_BACKFILL_CONCURRENCY = 2;
+const visibleThumbnailBackfillLimit = pLimit(VISIBLE_THUMBNAIL_BACKFILL_CONCURRENCY);
+let visibleThumbnailBackfillQueue: string[] = [];
+const activeVisibleThumbnailBackfillIds = new Set<string>();
+
+function notifyThumbnailBackfilled(fileId: string) {
+    for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed()) {
+            window.webContents.send('file:thumbnailBackfilled', fileId);
+        }
+    }
+}
+
+function queueVisibleThumbnailBackfill(fileIds: string[]): void {
+    visibleThumbnailBackfillQueue = mergePriorityIds(
+        visibleThumbnailBackfillQueue,
+        fileIds,
+        activeVisibleThumbnailBackfillIds
+    );
+    drainVisibleThumbnailBackfillQueue();
+}
+
+function drainVisibleThumbnailBackfillQueue(): void {
+    while (
+        visibleThumbnailBackfillQueue.length > 0
+        && activeVisibleThumbnailBackfillIds.size < VISIBLE_THUMBNAIL_BACKFILL_CONCURRENCY
+    ) {
+        const nextFileId = visibleThumbnailBackfillQueue.shift();
+        if (!nextFileId || activeVisibleThumbnailBackfillIds.has(nextFileId)) {
+            continue;
+        }
+
+        activeVisibleThumbnailBackfillIds.add(nextFileId);
+        void visibleThumbnailBackfillLimit(async () => {
+            try {
+                const file = findFileById(nextFileId);
+                if (!file || file.thumbnail_locked === 1) {
+                    return;
+                }
+
+                const currentThumbnailPath = file.thumbnail_path ?? file.thumbnailPath ?? null;
+                if (currentThumbnailPath && existsSync(currentThumbnailPath)) {
+                    return;
+                }
+
+                const nextThumbnailPath = await generateThumbnail(file.path, getThumbnailResolution());
+                if (!nextThumbnailPath) {
+                    return;
+                }
+
+                if (currentThumbnailPath && currentThumbnailPath !== nextThumbnailPath) {
+                    deleteThumbnailFile(currentThumbnailPath);
+                }
+
+                updateFileThumbnailState(nextFileId, nextThumbnailPath, false);
+                notifyThumbnailBackfilled(nextFileId);
+            } catch (error) {
+                console.warn('Visible thumbnail backfill failed:', nextFileId, error);
+            } finally {
+                activeVisibleThumbnailBackfillIds.delete(nextFileId);
+                drainVisibleThumbnailBackfillQueue();
+            }
+        });
+    }
+}
 
 function getDefaultSearchDestinationIcon(type: SearchDestinationType): SearchDestinationIcon {
     return type === 'filename' ? 'search' : 'image';
@@ -243,6 +311,18 @@ function deleteThumbnailFile(thumbnailPath?: string | null) {
 }
 
 export function registerFileHandlers() {
+    ipcMain.handle('thumbnail:backfillVisible', async (_event, fileIds: string[]) => {
+        if (!Array.isArray(fileIds) || fileIds.length === 0) {
+            return { queued: 0 };
+        }
+
+        const normalizedIds = Array.from(
+            new Set(fileIds.filter((fileId): fileId is string => typeof fileId === 'string' && fileId.length > 0))
+        );
+        queueVisibleThumbnailBackfill(normalizedIds);
+        return { queued: normalizedIds.length };
+    });
+
     ipcMain.handle('file:showContextMenu', async (event, { fileId, filePath, selectedFileIds, searchDestinations }) => {
         // Bug 2修正: 複数選択対応
         const effectiveFileIds = selectedFileIds && selectedFileIds.length > 0 ? selectedFileIds : [fileId];

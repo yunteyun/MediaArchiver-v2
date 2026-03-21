@@ -303,11 +303,18 @@ export const FileGrid = React.memo(() => {
     // サムネイル再作成イベントをリッスン
     useEffect(() => {
         const unsubscribe = window.electronAPI.onThumbnailRegenerated((fileId: string) => {
-            refreshFile(fileId);
+            void refreshFile(fileId);
             showToast('サムネイルを再作成しました', 'success');
         });
         return unsubscribe;
     }, [refreshFile, showToast]);
+
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onThumbnailBackfilled((fileId: string) => {
+            void refreshFile(fileId);
+        });
+        return unsubscribe;
+    }, [refreshFile]);
 
     // 外部アプリ起動カウント更新イベント
     useEffect(() => {
@@ -483,6 +490,7 @@ export const FileGrid = React.memo(() => {
     });
 
     const groupVirtualItems = groupBy !== 'none' ? groupRowVirtualizer.getVirtualItems() : [];
+    const standardVirtualItems = groupBy === 'none' ? rowVirtualizer.getVirtualItems() : [];
     const scrollTop = parentRef.current?.scrollTop ?? 0;
     const firstVisibleGroupVirtualItem = groupVirtualItems.find((item) => (item.start + item.size) > scrollTop) ?? groupVirtualItems[0];
     const firstVisibleGroupRow = firstVisibleGroupVirtualItem
@@ -627,6 +635,57 @@ export const FileGrid = React.memo(() => {
             }
         }
     }, [selectFile, toggleSelection, selectRange, orderedFileIds, anchorId]);
+
+    const visibleThumbnailBackfillIds = (() => {
+        const ids: string[] = [];
+
+        if (groupBy !== 'none') {
+            for (const virtualRow of groupVirtualItems) {
+                const row = groupedVirtualRows[virtualRow.index];
+                if (!row || row.kind !== 'files') continue;
+
+                for (const file of row.files) {
+                    const thumbnailPath = file.thumbnailPath ?? file.thumbnail_path ?? null;
+                    const isThumbnailLocked = file.thumbnailLocked === true || file.thumbnail_locked === 1;
+                    if (!thumbnailPath && !isThumbnailLocked) {
+                        ids.push(file.id);
+                    }
+                }
+            }
+
+            return ids;
+        }
+
+        for (const virtualRow of standardVirtualItems) {
+            const startIndex = virtualRow.index * columns;
+            const rowItems = gridItems.slice(startIndex, startIndex + columns);
+            for (const item of rowItems) {
+                if (item.type !== 'file') continue;
+                const thumbnailPath = item.file.thumbnailPath ?? item.file.thumbnail_path ?? null;
+                const isThumbnailLocked = item.file.thumbnailLocked === true || item.file.thumbnail_locked === 1;
+                if (!thumbnailPath && !isThumbnailLocked) {
+                    ids.push(item.file.id);
+                }
+            }
+        }
+
+        return ids;
+        return ids;
+    })();
+
+    useEffect(() => {
+        if (visibleThumbnailBackfillIds.length === 0) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            void window.electronAPI.backfillVisibleThumbnails(visibleThumbnailBackfillIds).catch((error) => {
+                console.error('Failed to backfill visible thumbnails:', error);
+            });
+        }, 120);
+
+        return () => window.clearTimeout(timer);
+    }, [visibleThumbnailBackfillIds]);
 
     if (gridItems.length === 0) {
         return (

@@ -241,6 +241,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setScanExclusionRules: (rules: ScanExclusionRules) =>
         ipcRenderer.invoke('scanner:setExclusionRules', rules),
     autoScan: () => ipcRenderer.invoke('scanner:autoScan'),
+    backfillVisibleThumbnails: (fileIds: string[]) => ipcRenderer.invoke('thumbnail:backfillVisible', fileIds),
 
     // === Context Menu ===
     showFolderContextMenu: (folderId: string, path: string) =>
@@ -258,6 +259,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onFileDeleted: (callback: (fileId: string) => void) => subscribe('file:deleted', callback),
 
     onThumbnailRegenerated: (callback: (fileId: string) => void) => subscribe('file:thumbnailRegenerated', callback),
+    onThumbnailBackfilled: (callback: (fileId: string) => void) => subscribe('file:thumbnailBackfilled', callback),
 
     onExternalOpenCountUpdated: (callback: (data: ExternalOpenCountUpdatedPayload) => void) =>
         subscribe('file:externalOpenCountUpdated', callback),
