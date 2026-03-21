@@ -6,6 +6,7 @@ import { useUIStore } from '../../stores/useUIStore';
 import { CenterViewerStage } from './CenterViewerStage';
 import { CenterViewerPlaybackOverlay } from './CenterViewerPlaybackOverlay';
 import { completeUiPerfTrace } from '../../utils/perfDebug';
+import { resolveViewerKeyboardAction } from '../../components/lightbox/shared/viewerKeyboard';
 
 export const CenterViewerRoot = React.memo(() => {
     const rawLightboxFile = useUIStore((state) => state.lightboxFile);
@@ -49,13 +50,18 @@ export const CenterViewerRoot = React.memo(() => {
         setFocusedId(lightboxFile.id);
 
         const handleKeyDown = (event: KeyboardEvent) => {
-            const target = event.target as HTMLElement | null;
-            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+            const action = resolveViewerKeyboardAction(event, lightboxFile.type);
+            if (action === 'close') {
+                closeLightbox();
                 return;
             }
-            if (event.key === 'Escape') closeLightbox();
-            if (event.key === 'ArrowLeft') goToPrevious();
-            if (event.key === 'ArrowRight') goToNext();
+            if (action === 'previous') {
+                goToPrevious();
+                return;
+            }
+            if (action === 'next') {
+                goToNext();
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
