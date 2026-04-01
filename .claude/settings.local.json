@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const s=require\\('fs'\\).readFileSync\\('C:/Users/ut/.claude/settings.json','utf8'\\); const j=JSON.parse\\(s\\); console.log\\(JSON.stringify\\(j.hooks.PostToolUse[0].hooks[0], null, 2\\)\\);\")",
+      "Bash(git -C /c/MediaArchiver-v2 status)",
+      "Bash(git -C /c/MediaArchiver-v2 log origin/main..HEAD --oneline)",
+      "Bash(find /c/MediaArchiver-v2/src -name \"*.tsx\" -exec grep -l \"React.memo\" {} \\\\;)",
+      "Bash(wc -l /c/MediaArchiver-v2/src/stores/*.ts)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)"
+    ]
+  }
+}
