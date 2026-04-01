@@ -465,6 +465,9 @@ interface SettingsState {
         jumpInterval: PlayModeJumpInterval;
     };
 
+    // リネーム用クイック挿入テキスト
+    renameQuickTexts: string[];
+
     // アクション
     setThumbnailAction: (action: ThumbnailAction) => void;
     setArchiveThumbnailAction: (action: ArchiveThumbnailAction) => void;
@@ -528,6 +531,8 @@ interface SettingsState {
     // Phase 17-3: Playモード詳細設定アクション
     setPlayModeJumpType: (type: PlayModeJumpType) => void;
     setPlayModeJumpInterval: (interval: PlayModeJumpInterval) => void;
+    // リネーム用クイック挿入テキストアクション
+    setRenameQuickTexts: (texts: string[]) => void;
 }
 
 type PersistedSettingsState = Partial<SettingsState> & {
@@ -600,6 +605,9 @@ export const useSettingsStore = create<SettingsState>()(
 
             // Phase 17-3: Playモード詳細設定
             playMode: { ...DEFAULT_THUMBNAIL_BEHAVIOR_SETTINGS.playMode },
+
+            // リネーム用クイック挿入テキスト
+            renameQuickTexts: [],
 
             setThumbnailAction: (thumbnailAction) => set({ thumbnailAction }),
             setArchiveThumbnailAction: (archiveThumbnailAction) => set({ archiveThumbnailAction }),
@@ -893,6 +901,8 @@ export const useSettingsStore = create<SettingsState>()(
             setPlayModeJumpInterval: (jumpInterval) => set((state) => ({
                 playMode: { ...state.playMode, jumpInterval }
             })),
+            // リネーム用クイック挿入テキストアクション
+            setRenameQuickTexts: (renameQuickTexts) => set({ renameQuickTexts }),
         }),
         {
             name: 'settings-storage',

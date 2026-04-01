@@ -9,6 +9,7 @@ import {
 } from '../lightbox/shared/lightboxShared';
 import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
 import { SettingsSection } from './SettingsSection';
+import { RenameQuickTextSection } from './RenameQuickTextSection';
 import { findMatchingListDisplayPresetId, LIST_DISPLAY_PRESETS, type ListDisplayPresetId } from '../../shared/listDisplayPresets';
 
 interface GeneralSettingsTabProps {
@@ -511,6 +512,8 @@ export const GeneralSettingsTab = React.memo(({
                 </label>
             </div>
         </SettingsSection>
+
+        <RenameQuickTextSection />
     </div>
     );
 });
