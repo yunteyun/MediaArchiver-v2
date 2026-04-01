@@ -122,7 +122,7 @@ async function findExactDuplicates(
                    content_hash, metadata, mtime_ms, notes
             FROM files
             WHERE size = ?
-        `).all(sizeGroup.size) as any[];
+        `).all(sizeGroup.size) as MediaFile[];
 
         // ハッシュ計算 & グループ化
         const hashMap = new Map<string, MediaFile[]>();

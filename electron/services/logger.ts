@@ -84,28 +84,28 @@ log.transports.file.maxSize = 10 * 1024 * 1024;
 log.initialize();
 
 export const logger = {
-    debug: (message: string, ...args: any[]) => {
+    debug: (message: string, ...args: unknown[]) => {
         log.debug(message, ...args);
     },
 
-    info: (message: string, ...args: any[]) => {
+    info: (message: string, ...args: unknown[]) => {
         log.info(message, ...args);
     },
 
-    warn: (message: string, ...args: any[]) => {
+    warn: (message: string, ...args: unknown[]) => {
         log.warn(message, ...args);
     },
 
-    error: (message: string, ...args: any[]) => {
+    error: (message: string, ...args: unknown[]) => {
         log.error(message, ...args);
     },
 
     scope: (moduleName: string) => {
         return {
-            debug: (message: string, ...args: any[]) => log.debug(`[${moduleName}] ${message}`, ...args),
-            info: (message: string, ...args: any[]) => log.info(`[${moduleName}] ${message}`, ...args),
-            warn: (message: string, ...args: any[]) => log.warn(`[${moduleName}] ${message}`, ...args),
-            error: (message: string, ...args: any[]) => log.error(`[${moduleName}] ${message}`, ...args),
+            debug: (message: string, ...args: unknown[]) => log.debug(`[${moduleName}] ${message}`, ...args),
+            info: (message: string, ...args: unknown[]) => log.info(`[${moduleName}] ${message}`, ...args),
+            warn: (message: string, ...args: unknown[]) => log.warn(`[${moduleName}] ${message}`, ...args),
+            error: (message: string, ...args: unknown[]) => log.error(`[${moduleName}] ${message}`, ...args),
         };
     },
 

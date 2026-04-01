@@ -417,8 +417,8 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                         itemStyle={chartTooltipItemStyle}
                                         wrapperStyle={chartTooltipWrapperStyle}
                                         cursor={chartHoverCursor}
-                                        formatter={(value: any, name?: string, props?: any) => {
-                                            if (name === 'count' && props) {
+                                        formatter={(value: number, name?: string, props?: { payload?: { size: number } }) => {
+                                            if (name === 'count' && props?.payload) {
                                                 return [`${value.toLocaleString()}件 (${formatBytes(props.payload.size)})`, 'ファイル数'];
                                             }
                                             return value;

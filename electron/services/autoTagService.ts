@@ -28,6 +28,17 @@ export interface AutoTagRule {
     createdAt: number;
 }
 
+interface AutoTagRuleRow {
+    id: string;
+    tag_id: string;
+    keywords: string;
+    target: string;
+    match_mode: string;
+    enabled: number;
+    sort_order: number;
+    created_at: number;
+}
+
 export interface ApplyResult {
     success: boolean;
     filesProcessed: number;
@@ -108,12 +119,12 @@ export function getAllRules(): AutoTagRule[] {
         SELECT id, tag_id, keywords, target, match_mode, enabled, sort_order, created_at
         FROM auto_tag_rules
         ORDER BY sort_order ASC, created_at ASC
-    `).all() as any[];
+    `).all() as AutoTagRuleRow[];
 
     return rows.map(row => ({
         id: row.id,
         tagId: row.tag_id,
-        keywords: JSON.parse(row.keywords),
+        keywords: JSON.parse(row.keywords) as string[],
         target: row.target as MatchTarget,
         matchMode: row.match_mode as MatchMode,
         enabled: row.enabled === 1,
@@ -130,7 +141,7 @@ export function createRule(
 ): AutoTagRule {
     const id = uuidv4();
     const now = Date.now();
-    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM auto_tag_rules').get() as any)?.max || 0;
+    const maxOrder = (db().prepare('SELECT MAX(sort_order) as max FROM auto_tag_rules').get() as { max: number } | undefined)?.max || 0;
 
     db().prepare(`
         INSERT INTO auto_tag_rules (id, tag_id, keywords, target, match_mode, enabled, sort_order, created_at)
@@ -152,7 +163,7 @@ export function createRule(
 }
 
 export function updateRule(id: string, updates: Partial<Omit<AutoTagRule, 'id' | 'createdAt'>>): void {
-    const existing = db().prepare('SELECT * FROM auto_tag_rules WHERE id = ?').get(id) as any;
+    const existing = db().prepare('SELECT * FROM auto_tag_rules WHERE id = ?').get(id) as AutoTagRuleRow | undefined;
     if (!existing) {
         throw new Error(`Rule not found: ${id}`);
     }

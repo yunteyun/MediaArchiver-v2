@@ -116,7 +116,7 @@ export function registerMediaProtocol() {
 
                 const stream = fs.createReadStream(filePath, { start, end });
 
-                return new Response(stream as any, {
+                return new Response(stream as unknown as BodyInit, {
                     status: 206,
                     headers: {
                         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
@@ -128,7 +128,7 @@ export function registerMediaProtocol() {
                 });
             } else {
                 const stream = fs.createReadStream(filePath);
-                return new Response(stream as any, {
+                return new Response(stream as unknown as BodyInit, {
                     status: 200,
                     headers: {
                         'Content-Length': fileSize.toString(),

@@ -35,7 +35,7 @@ export interface ActivityLogInput {
     action: ActivityAction;
     targetId?: string;
     targetName?: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
 }
 
 // --- Public API ---
@@ -48,7 +48,7 @@ export function logActivity(
     action: ActivityAction,
     targetId?: string,
     targetName?: string,
-    details?: Record<string, any>
+    details?: Record<string, unknown>
 ): Promise<void> {
     return new Promise((resolve) => {
         try {
@@ -91,7 +91,7 @@ export function getActivityLogs(
             FROM activity_logs
         `;
 
-        const params: any[] = [];
+        const params: unknown[] = [];
 
         if (actionFilter) {
             query += ` WHERE action = ?`;
@@ -118,7 +118,7 @@ export function getActivityLogCount(actionFilter?: ActivityAction): number {
         const db = dbManager.getDb();
 
         let query = `SELECT COUNT(*) as count FROM activity_logs`;
-        const params: any[] = [];
+        const params: unknown[] = [];
 
         if (actionFilter) {
             query += ` WHERE action = ?`;

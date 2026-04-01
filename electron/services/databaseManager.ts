@@ -26,6 +26,14 @@ export interface Profile {
     updatedAt: number;
 }
 
+interface ProfileRow {
+    id: string;
+    name: string;
+    db_filename: string;
+    created_at: number;
+    updated_at: number;
+}
+
 class DatabaseManager {
     private db: Database.Database | null = null;
     private currentProfileId: string | null = null;
@@ -132,7 +140,7 @@ class DatabaseManager {
     getProfiles(): Profile[] {
         this.reopenMetaDb();
         const metaDb = this.getMetaDb();
-        const rows = metaDb.prepare('SELECT * FROM profiles ORDER BY created_at ASC').all() as any[];
+        const rows = metaDb.prepare('SELECT * FROM profiles ORDER BY created_at ASC').all() as ProfileRow[];
         return rows.map(r => ({
             id: r.id,
             name: r.name,
@@ -148,7 +156,7 @@ class DatabaseManager {
     getProfile(id: string): Profile | undefined {
         this.reopenMetaDb();
         const metaDb = this.getMetaDb();
-        const row = metaDb.prepare('SELECT * FROM profiles WHERE id = ?').get(id) as any;
+        const row = metaDb.prepare('SELECT * FROM profiles WHERE id = ?').get(id) as ProfileRow | undefined;
         if (!row) return undefined;
         return {
             id: row.id,
