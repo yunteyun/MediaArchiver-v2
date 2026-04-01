@@ -41,7 +41,7 @@ export function registerStorageHandlers(): void {
         try {
             dbManager.walCheckpoint();
             dbManager.closeAll();
-        } catch (e: any) {
+        } catch (e) {
             log.warn('WAL checkpoint or close failed:', e);
         }
 
@@ -61,9 +61,9 @@ export function registerStorageHandlers(): void {
         try {
             dbManager.reopenMetaDb();
             dbManager.initialize();
-        } catch (e: any) {
+        } catch (e) {
             log.error('DB re-init after migration failed:', e);
-            return { success: false, error: `移行後のDB再接続に失敗: ${e.message}` };
+            return { success: false, error: `移行後のDB再接続に失敗: ${e instanceof Error ? e.message : String(e)}` };
         }
 
 

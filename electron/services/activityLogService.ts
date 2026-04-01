@@ -68,8 +68,8 @@ export function logActivity(
 
             log.debug(`Activity logged: ${action} - ${targetName || targetId || 'N/A'}`);
             resolve();
-        } catch (error: any) {
-            log.warn(`Failed to log activity (${action}):`, error.message);
+        } catch (error) {
+            log.warn(`Failed to log activity (${action}):`, error instanceof Error ? error.message : String(error));
             resolve(); // エラーでも resolve（Fire-and-Forget）
         }
     });
@@ -104,7 +104,7 @@ export function getActivityLogs(
         const logs = db.prepare(query).all(...params) as ActivityLog[];
 
         return logs;
-    } catch (error: any) {
+    } catch (error) {
         log.error('Failed to get activity logs:', error);
         return [];
     }
@@ -127,7 +127,7 @@ export function getActivityLogCount(actionFilter?: ActivityAction): number {
 
         const result = db.prepare(query).get(...params) as { count: number };
         return result.count;
-    } catch (error: any) {
+    } catch (error) {
         log.error('Failed to get activity log count:', error);
         return 0;
     }
@@ -149,7 +149,7 @@ export function pruneOldLogs(daysToKeep: number = 30): void {
         if (result.changes > 0) {
             log.info(`Pruned ${result.changes} old activity logs (older than ${daysToKeep} days)`);
         }
-    } catch (error: any) {
+    } catch (error) {
         log.error('Failed to prune old logs:', error);
     }
 }

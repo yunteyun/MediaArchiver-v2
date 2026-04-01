@@ -141,8 +141,8 @@ export function checkWritePermission(targetPath: string): { ok: boolean; error?:
         fs.writeFileSync(testFile, '');
         fs.unlinkSync(testFile);
         return { ok: true };
-    } catch (e: any) {
-        return { ok: false, error: e.message };
+    } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
 }
 
@@ -250,7 +250,7 @@ export async function migrateStorage(
         log.info(`Migration complete: ${oldBase} → ${newBase}`);
         return { success: true, oldBase, newBase };
 
-    } catch (e: any) {
+    } catch (e) {
         log.error('Migration failed, rolling back', e);
         // ロールバック: tmp を削除
         try {
@@ -260,7 +260,7 @@ export async function migrateStorage(
         } catch (cleanupErr) {
             log.error('Rollback cleanup failed', cleanupErr);
         }
-        return { success: false, oldBase, newBase, error: e.message };
+        return { success: false, oldBase, newBase, error: e instanceof Error ? e.message : String(e) };
     }
 }
 
@@ -286,8 +286,8 @@ export function deleteOldStorageData(oldBase: string): { success: boolean; error
         }
         log.info(`Old storage data deleted: ${oldBase}`);
         return { success: true };
-    } catch (e: any) {
-        return { success: false, error: e.message };
+    } catch (e) {
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
     }
 }
 

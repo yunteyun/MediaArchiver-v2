@@ -18,7 +18,7 @@ export function registerThumbnailCleanupHandlers() {
             }
             log.info(`Diagnosing thumbnails for profile: ${profileId}`);
             return await diagnoseThumbnails(profileId);
-        } catch (error: any) {
+        } catch (error) {
             log.error('Failed to diagnose thumbnails:', error);
             throw error;
         }
@@ -32,7 +32,7 @@ export function registerThumbnailCleanupHandlers() {
             }
             log.info(`Cleaning up orphaned thumbnails for profile: ${profileId}`);
             return await cleanupOrphanedThumbnails(profileId);
-        } catch (error: any) {
+        } catch (error) {
             log.error('Failed to cleanup thumbnails:', error);
             throw error;
         }

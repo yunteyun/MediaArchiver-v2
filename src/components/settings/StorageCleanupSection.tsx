@@ -36,7 +36,7 @@ export const StorageCleanupSection: React.FC = () => {
                 const sizeMB = (result.totalOrphanedSize / 1024 / 1024).toFixed(2);
                 toast.info(`${result.orphanedCount}件の孤立サムネイルを検出しました (${sizeMB} MB)`);
             }
-        } catch (error: any) {
+        } catch (error) {
             toast.error('診断中にエラーが発生しました');
             console.error(error);
         } finally {
@@ -67,7 +67,7 @@ export const StorageCleanupSection: React.FC = () => {
                 );
                 console.error('Cleanup errors:', result.errors);
             }
-        } catch (error: any) {
+        } catch (error) {
             toast.error('クリーンアップ中にエラーが発生しました');
             console.error(error);
         } finally {

@@ -81,8 +81,8 @@ export function registerDuplicateHandlers() {
                 // DBから削除
                 deleteFile(fileId);
                 results.push({ id: fileId, success: true });
-            } catch (err: any) {
-                results.push({ id: fileId, success: false, error: err.message });
+            } catch (err) {
+                results.push({ id: fileId, success: false, error: err instanceof Error ? err.message : String(err) });
             }
         }
 

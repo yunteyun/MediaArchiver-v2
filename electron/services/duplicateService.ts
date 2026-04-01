@@ -150,8 +150,8 @@ async function findExactDuplicates(
                     } else {
                         log.warn(`[DEBUG] Hash calculation returned null for: ${file.path}`);
                     }
-                } catch (hashErr: any) {
-                    log.error(`[DEBUG] Hash calculation error for ${file.path}: ${hashErr.message}`);
+                } catch (hashErr) {
+                    log.error(`[DEBUG] Hash calculation error for ${file.path}: ${hashErr instanceof Error ? hashErr.message : String(hashErr)}`);
                 }
             }
 

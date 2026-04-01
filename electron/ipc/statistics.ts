@@ -14,7 +14,7 @@ export function registerStatisticsHandlers(): void {
         try {
             log.debug('Fetching library statistics');
             return getLibraryStats();
-        } catch (error: any) {
+        } catch (error) {
             log.error('Failed to get statistics:', error);
             throw error;
         }

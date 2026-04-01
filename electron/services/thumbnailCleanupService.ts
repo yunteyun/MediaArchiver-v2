@@ -289,16 +289,17 @@ export async function cleanupOrphanedThumbnails(profileId: string): Promise<Clea
                 result.deletedCount++;
                 result.freedBytes += fileSize;
                 log.debug(`Deleted: ${filePath} (${fileSize} bytes)`);
-            } catch (error: any) {
-                if (error.code === 'ENOENT') {
+            } catch (error) {
+                const errCode = (error as NodeJS.ErrnoException).code;
+                if (errCode === 'ENOENT') {
                     log.debug(`File not found (already deleted): ${filePath}`);
                     continue;
-                } else if (error.code === 'EBUSY' || error.code === 'EPERM') {
+                } else if (errCode === 'EBUSY' || errCode === 'EPERM') {
                     const errorMsg = `ロック中: ${filePath}`;
                     log.warn(errorMsg);
                     result.errors.push(errorMsg);
                 } else {
-                    const errorMsg = `${filePath}: ${error.message || String(error)}`;
+                    const errorMsg = `${filePath}: ${error instanceof Error ? error.message : String(error)}`;
                     log.error(`Failed to delete thumbnail: ${errorMsg}`);
                     result.errors.push(errorMsg);
                 }
@@ -313,13 +314,13 @@ export async function cleanupOrphanedThumbnails(profileId: string): Promise<Clea
         }
 
         return result;
-    } catch (error: any) {
+    } catch (error) {
         log.error('Cleanup failed:', error);
         return {
             success: false,
             deletedCount: 0,
             freedBytes: 0,
-            errors: [error.message || String(error)]
+            errors: [error instanceof Error ? error.message : String(error)]
         };
     }
 }

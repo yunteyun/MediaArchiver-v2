@@ -146,8 +146,8 @@ export async function relocateFile(
             }
             log.info(`File relocated successfully: ${targetPath}`);
             return { success: true };
-        } catch (renameError: any) {
-            if (renameError.code === 'EXDEV') {
+        } catch (renameError) {
+            if ((renameError as NodeJS.ErrnoException).code === 'EXDEV') {
                 log.info('Cross-device relocate detected, using copy + delete');
 
                 try {

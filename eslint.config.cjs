@@ -5,7 +5,7 @@ const reactHooks = require('eslint-plugin-react-hooks');
 const reactRefresh = require('eslint-plugin-react-refresh');
 
 const relaxedRules = {
-  '@typescript-eslint/no-explicit-any': 'off',
+  '@typescript-eslint/no-explicit-any': 'warn',
   '@typescript-eslint/no-unused-vars': 'off',
   'prefer-const': 'off',
   'no-case-declarations': 'off',

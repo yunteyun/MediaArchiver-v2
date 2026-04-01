@@ -40,13 +40,14 @@ export async function calculateFileHash(
             // 完全ハッシュ: ファイル全体を読み込み
             return await calculateFullHash(filePath);
         }
-    } catch (err: any) {
+    } catch (err) {
         // EBUSY, ENOENT, EPERM 等のエラーはスキップ
-        if (err.code === 'EBUSY') {
+        const errCode = (err as NodeJS.ErrnoException).code;
+        if (errCode === 'EBUSY') {
             log.warn(`File is busy, skipping: ${filePath}`);
-        } else if (err.code === 'ENOENT') {
+        } else if (errCode === 'ENOENT') {
             log.warn(`File not found, skipping: ${filePath}`);
-        } else if (err.code === 'EPERM' || err.code === 'EACCES') {
+        } else if (errCode === 'EPERM' || errCode === 'EACCES') {
             log.warn(`Permission denied, skipping: ${filePath}`);
         } else {
             log.error(`Failed to calculate hash for ${filePath}:`, err);

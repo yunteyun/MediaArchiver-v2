@@ -14,9 +14,9 @@ export function useLibraryStats(enabled = true) {
         try {
             const data = await window.electronAPI.getLibraryStats();
             setStats(data);
-        } catch (e: any) {
+        } catch (e) {
             console.error('Failed to load library stats:', e);
-            setError(e?.message || 'Unknown error');
+            setError(e instanceof Error ? e.message : 'Unknown error');
         } finally {
             setLoading(false);
         }

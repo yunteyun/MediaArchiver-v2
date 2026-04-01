@@ -15,7 +15,7 @@ export function registerActivityLogHandlers(): void {
         try {
             log.debug('Fetching activity logs', { limit, offset, actionFilter });
             return getActivityLogs(limit, offset, actionFilter);
-        } catch (error: any) {
+        } catch (error) {
             log.error('Failed to get activity logs:', error);
             throw error;
         }
@@ -25,7 +25,7 @@ export function registerActivityLogHandlers(): void {
     ipcMain.handle('activityLog:count', async (_event, actionFilter?: ActivityAction) => {
         try {
             return getActivityLogCount(actionFilter);
-        } catch (error: any) {
+        } catch (error) {
             log.error('Failed to get activity log count:', error);
             throw error;
         }

@@ -19,8 +19,8 @@ export function registerSmartFolderHandlers(): void {
     ipcMain.handle('smartFolder:getById', async (_event, id: string) => {
         try {
             return getSmartFolderById(id);
-        } catch (error: any) {
-            log.error(`smartFolder:getById error: ${error.message}`);
+        } catch (error) {
+            log.error(`smartFolder:getById error: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
     });
@@ -30,8 +30,8 @@ export function registerSmartFolderHandlers(): void {
         async (_event, payload: { name: string; condition?: unknown }) => {
             try {
                 return createSmartFolder(payload);
-            } catch (error: any) {
-                log.error(`smartFolder:create error: ${error.message}`);
+            } catch (error) {
+                log.error(`smartFolder:create error: ${error instanceof Error ? error.message : String(error)}`);
                 throw error;
             }
         }
@@ -52,8 +52,8 @@ export function registerSmartFolderHandlers(): void {
         ) => {
             try {
                 return updateSmartFolder(payload.id, payload.updates ?? {});
-            } catch (error: any) {
-                log.error(`smartFolder:update error: ${error.message}`);
+            } catch (error) {
+                log.error(`smartFolder:update error: ${error instanceof Error ? error.message : String(error)}`);
                 throw error;
             }
         }
@@ -62,8 +62,8 @@ export function registerSmartFolderHandlers(): void {
     ipcMain.handle('smartFolder:delete', async (_event, id: string) => {
         try {
             return deleteSmartFolder(id);
-        } catch (error: any) {
-            log.error(`smartFolder:delete error: ${error.message}`);
+        } catch (error) {
+            log.error(`smartFolder:delete error: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
     });
@@ -71,8 +71,8 @@ export function registerSmartFolderHandlers(): void {
     ipcMain.handle('smartFolder:move', async (_event, payload: { id: string; direction: 'up' | 'down' }) => {
         try {
             return moveSmartFolder(payload.id, payload.direction);
-        } catch (error: any) {
-            log.error(`smartFolder:move error: ${error.message}`);
+        } catch (error) {
+            log.error(`smartFolder:move error: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
     });

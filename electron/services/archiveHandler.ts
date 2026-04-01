@@ -314,9 +314,10 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
                     setTimeout(() => reject(new Error('Extraction timeout')), TIMEOUT_MS)
                 )
             ]);
-        } catch (execError: any) {
+        } catch (execError) {
             // 郢ｧ・ｨ郢晢ｽｩ郢晢ｽｼ驕橸ｽｮ陋ｻ・･陋ｻ・､陞ｳ繝ｻ
-            const errorMsg = execError?.stderr || execError?.message || String(execError);
+            const execErr = execError as { stderr?: string; message?: string } | Error;
+            const errorMsg = (execErr as { stderr?: string }).stderr || (execErr instanceof Error ? execErr.message : String(execErr));
 
             if (errorMsg.includes('password') || errorMsg.includes('Wrong password')) {
                 log.warn('Password protected:', filePath);
@@ -404,13 +405,14 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
         }
         log.warn('Extracted file not found:', extractedPath);
         return null;
-    } catch (error: any) {
+    } catch (error) {
         // 髫ｧ・ｳ驍擾ｽｰ郢晢ｽｭ郢ｧ・ｰ
+        const err = error as { message?: string; code?: string; stderr?: string };
         const errorDetail = {
             filePath,
-            message: error?.message || String(error),
-            code: error?.code,
-            stderr: error?.stderr
+            message: err?.message || String(error),
+            code: err?.code,
+            stderr: err?.stderr
         };
         log.error('Failed to extract thumbnail:', errorDetail);
         return null;

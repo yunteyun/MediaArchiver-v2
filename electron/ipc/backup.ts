@@ -31,9 +31,9 @@ export function registerBackupHandlers(): void {
             pruneOldBackups(profileId, backupSettings.maxBackups, backupSettings);
 
             return { success: true, backup };
-        } catch (error: any) {
+        } catch (error) {
             log.error('Backup creation failed:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -41,7 +41,7 @@ export function registerBackupHandlers(): void {
     ipcMain.handle('backup:history', async (_event, { profileId }: { profileId: string }) => {
         try {
             return getBackupHistory(profileId, backupSettings);
-        } catch (error: any) {
+        } catch (error) {
             log.error('Failed to get backup history:', error);
             return [];
         }
@@ -67,9 +67,9 @@ export function registerBackupHandlers(): void {
 
             log.info('User cancelled restore operation');
             return { success: false, cancelled: true };
-        } catch (error: any) {
+        } catch (error) {
             log.error('Restore failed:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 

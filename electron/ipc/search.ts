@@ -14,8 +14,8 @@ export function registerSearchHandlers(): void {
     ipcMain.handle('search:searchFiles', (_event, condition: SearchCondition) => {
         try {
             return searchFiles(condition);
-        } catch (e: any) {
-            log.error(`search:searchFiles error: ${e.message}`);
+        } catch (e) {
+            log.error(`search:searchFiles error: ${e instanceof Error ? e.message : String(e)}`);
             throw e;
         }
     });
