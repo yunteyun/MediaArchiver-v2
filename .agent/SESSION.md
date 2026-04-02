@@ -1,10 +1,16 @@
 # Current Session Status
 
-**Last Updated**: 2026-02-21 14:29
+**Last Updated**: 2026-04-02
 
-- **Current Focus**: Phase 28 完了。次期フェーズ選定中。
-- **Current Status**: タグUI改善（TagSelector多列化・RightPanel置換・TagManagerModal多列+D&D）完了。
+- **Current Focus**: v1.12.0 リリース完了。Issue #24（重複検索精度向上）の実用検証待ち。
+- **Current Status**: リネームダイアログ改善・進捗ウィンドウ改善・重複検索キャッシュ修正・音声書庫スキャン修正などを含む v1.12.0 をリリース。
 - **Recent Achievements**:
+  - **v1.12.0**:
+    - リネームダイアログの拡張子分離とクイック挿入ボタン追加（#23 Close）
+    - 音声書庫のスキャン除外と移動先サブフォルダ表示修正
+    - スキャン進捗ウィンドウの日本語化・ログ表示追加
+    - 中央ビューアのパフォーマンス改善（一時ファイルクリーンアップ・IPC削減）
+    - 重複検索のハッシュキャッシュを mtime_ms で無効化
   - **Phase 27.5: 詳細検索廃止・評価フィルター統合**:
     - AdvancedSearchPanel 削除（左サイドバーと機能重複のため）
     - RatingFilterPanel 新規作成（blue系 #2563eb の星）、Sidebar 統合
