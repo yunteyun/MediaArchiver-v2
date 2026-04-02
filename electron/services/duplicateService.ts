@@ -86,7 +86,8 @@ async function findExactDuplicates(
     log.info('Phase 1: Finding size duplicates...');
     onProgress?.({ phase: 'analyzing', current: 0, total: 0 });
 
-    const sizeGroups = db.prepare(`
+    // 完全一致グループ
+    const exactSizeGroups = db.prepare(`
         SELECT size, COUNT(*) as count
         FROM files
         WHERE size > 0
@@ -95,103 +96,116 @@ async function findExactDuplicates(
         ORDER BY size DESC
     `).all() as { size: number; count: number }[];
 
-    if (sizeGroups.length === 0) {
+    // 近似サイズグループ: 完全一致グループに含まれないサイズ同士で ±1% 以内のペアを抽出
+    const exactSizeSet = new Set(exactSizeGroups.map((g) => g.size));
+    const allSizes = (db.prepare(`
+        SELECT DISTINCT size FROM files WHERE size > 0 ORDER BY size DESC
+    `).all() as { size: number }[]).map((r) => r.size);
+
+    const nearSizePairs: { sizeA: number; sizeB: number }[] = [];
+    for (let i = 0; i < allSizes.length; i++) {
+        for (let j = i + 1; j < allSizes.length; j++) {
+            const sizeA = allSizes[i];
+            const sizeB = allSizes[j];
+            if ((sizeA - sizeB) / sizeA > 0.01) break; // ソート済みなので以降はすべて1%超
+            if (!exactSizeSet.has(sizeA) || !exactSizeSet.has(sizeB)) {
+                nearSizePairs.push({ sizeA, sizeB });
+            }
+        }
+    }
+
+    // 近似サイズペアをグループにまとめる（同一サイズが複数ペアに出現する場合をマージ）
+    const nearSizeGroupMap = new Map<number, Set<number>>();
+    for (const { sizeA, sizeB } of nearSizePairs) {
+        if (!nearSizeGroupMap.has(sizeA)) nearSizeGroupMap.set(sizeA, new Set([sizeA]));
+        if (!nearSizeGroupMap.has(sizeB)) nearSizeGroupMap.set(sizeB, new Set([sizeB]));
+        const groupA = nearSizeGroupMap.get(sizeA)!;
+        const groupB = nearSizeGroupMap.get(sizeB)!;
+        // 2つのグループをマージ
+        const merged = new Set([...groupA, ...groupB]);
+        for (const s of merged) nearSizeGroupMap.set(s, merged);
+    }
+    const nearSizeGroups = [...new Set(nearSizeGroupMap.values())].map((sizeSet) => [...sizeSet]);
+
+    if (exactSizeGroups.length === 0 && nearSizeGroups.length === 0) {
         log.info(`[DEBUG] No size duplicates found. profileId=${profileId}, totalFiles=${totalFileCount}`);
         onProgress?.({ phase: 'complete', current: 0, total: 0 });
         return [];
     }
 
     // 対象ファイル数を計算
-    const totalFilesToHash = sizeGroups.reduce((sum, g) => sum + g.count, 0);
-    log.info(`[DEBUG] Found ${sizeGroups.length} size groups, ${totalFilesToHash} files to hash`);
+    const nearSizeFileCount = nearSizeGroups.reduce((sum, sizes) => {
+        const count = (db.prepare(`SELECT COUNT(*) as count FROM files WHERE size IN (${sizes.map(() => '?').join(',')})`)
+            .get(...sizes) as { count: number }).count;
+        return sum + count;
+    }, 0);
+    const totalFilesToHash = exactSizeGroups.reduce((sum, g) => sum + g.count, 0) + nearSizeFileCount;
+    log.info(`[DEBUG] Found ${exactSizeGroups.length} exact size groups, ${nearSizeGroups.length} near-size groups, ${totalFilesToHash} files to hash`);
 
     // Phase 2: 各グループ内のファイルのハッシュを計算
     log.info('Phase 2: Calculating hashes...');
     const duplicateGroups: DuplicateGroup[] = [];
     let processedFiles = 0;
     const updateHashStmt = db.prepare('UPDATE files SET content_hash = ?, mtime_ms = ? WHERE id = ?');
+    const selectFilesStmt = db.prepare(`
+        SELECT id, name, path, size, type, created_at, duration,
+               thumbnail_path, preview_frames, root_folder_id,
+               content_hash, metadata, mtime_ms, notes
+        FROM files
+        WHERE size = ?
+    `);
 
-    for (const sizeGroup of sizeGroups) {
+    const computeHashForFile = async (file: MediaFile): Promise<string | null> => {
+        let hash = file.content_hash;
+        let currentMtimeMs: number;
+        try {
+            const stat = await fs.stat(file.path);
+            currentMtimeMs = Math.floor(stat.mtimeMs);
+        } catch {
+            log.warn(`Cannot stat file: ${file.path}`);
+            return null;
+        }
+
+        const cacheValid = hash && file.mtime_ms != null && file.mtime_ms === currentMtimeMs;
+        if (!cacheValid) {
+            try {
+                hash = await calculateFileHash(file.path);
+                if (hash) {
+                    updateHashStmt.run(hash, currentMtimeMs, file.id);
+                } else {
+                    log.warn(`Hash calculation returned null for: ${file.path}`);
+                }
+            } catch (hashErr) {
+                log.error(`Hash calculation error for ${file.path}: ${hashErr instanceof Error ? hashErr.message : String(hashErr)}`);
+            }
+        }
+        return hash ?? null;
+    };
+
+    // 完全一致サイズグループの処理
+    for (const sizeGroup of exactSizeGroups) {
         if (isCancelled) {
             log.info('Duplicate search cancelled by user');
             break;
         }
 
-        // このサイズのファイルを取得
-        const files = db.prepare(`
-            SELECT id, name, path, size, type, created_at, duration, 
-                   thumbnail_path, preview_frames, root_folder_id,
-                   content_hash, metadata, mtime_ms, notes
-            FROM files
-            WHERE size = ?
-        `).all(sizeGroup.size) as MediaFile[];
-
-        // ハッシュ計算 & グループ化
+        const files = selectFilesStmt.all(sizeGroup.size) as MediaFile[];
         const hashMap = new Map<string, MediaFile[]>();
 
         for (const file of files) {
             if (isCancelled) break;
 
             processedFiles++;
-            onProgress?.({
-                phase: 'hashing',
-                current: processedFiles,
-                total: totalFilesToHash,
-                currentFile: file.name
-            });
+            onProgress?.({ phase: 'hashing', current: processedFiles, total: totalFilesToHash, currentFile: file.name });
 
-            // mtime_ms を取得して content_hash キャッシュの有効性を確認
-            let hash = file.content_hash;
-            let currentMtimeMs: number;
-            try {
-                const stat = await fs.stat(file.path);
-                currentMtimeMs = Math.floor(stat.mtimeMs);
-            } catch {
-                log.warn(`Cannot stat file: ${file.path}`);
-                continue;
-            }
-
-            const cacheValid = hash && file.mtime_ms != null && file.mtime_ms === currentMtimeMs;
-            if (!cacheValid) {
-                try {
-                    hash = await calculateFileHash(file.path);
-                    if (hash) {
-                        updateHashStmt.run(hash, currentMtimeMs, file.id);
-                    } else {
-                        log.warn(`Hash calculation returned null for: ${file.path}`);
-                    }
-                } catch (hashErr) {
-                    log.error(`Hash calculation error for ${file.path}: ${hashErr instanceof Error ? hashErr.message : String(hashErr)}`);
-                }
-            }
-
+            const hash = await computeHashForFile(file);
             if (hash) {
-                const mediaFile: MediaFile = {
-                    id: file.id,
-                    name: file.name,
-                    path: file.path,
-                    size: file.size,
-                    type: file.type,
-                    created_at: file.created_at,
-                    duration: file.duration,
-                    thumbnail_path: file.thumbnail_path,
-                    preview_frames: file.preview_frames,
-                    root_folder_id: file.root_folder_id,
-                    tags: [], // タグは別途取得が必要
-                    content_hash: hash,
-                    metadata: file.metadata,
-                    mtime_ms: file.mtime_ms,
-                    notes: file.notes
-                };
-
-                if (!hashMap.has(hash)) {
-                    hashMap.set(hash, []);
-                }
+                const mediaFile: MediaFile = { ...file, tags: [], content_hash: hash };
+                if (!hashMap.has(hash)) hashMap.set(hash, []);
                 hashMap.get(hash)!.push(mediaFile);
             }
         }
 
-        // 真の重複（同じハッシュが2つ以上）をグループに追加
         for (const [hash, groupFiles] of hashMap) {
             if (groupFiles.length >= 2) {
                 duplicateGroups.push({
@@ -199,6 +213,46 @@ async function findExactDuplicates(
                     size: sizeGroup.size,
                     sizeMin: sizeGroup.size,
                     sizeMax: sizeGroup.size,
+                    matchKind: 'content_hash',
+                    matchLabel: '完全一致',
+                    files: groupFiles,
+                    count: groupFiles.length
+                });
+            }
+        }
+    }
+
+    // 近似サイズグループの処理（完全一致で既に検出されたハッシュは除外）
+    const exactHashes = new Set(duplicateGroups.map((g) => g.hash));
+
+    for (const sizes of nearSizeGroups) {
+        if (isCancelled) break;
+
+        const files = sizes.flatMap((size) => selectFilesStmt.all(size) as MediaFile[]);
+        const hashMap = new Map<string, MediaFile[]>();
+
+        for (const file of files) {
+            if (isCancelled) break;
+
+            processedFiles++;
+            onProgress?.({ phase: 'hashing', current: processedFiles, total: totalFilesToHash, currentFile: file.name });
+
+            const hash = await computeHashForFile(file);
+            if (hash && !exactHashes.has(hash)) {
+                const mediaFile: MediaFile = { ...file, tags: [], content_hash: hash };
+                if (!hashMap.has(hash)) hashMap.set(hash, []);
+                hashMap.get(hash)!.push(mediaFile);
+            }
+        }
+
+        for (const [hash, groupFiles] of hashMap) {
+            if (groupFiles.length >= 2) {
+                const fileSizes = groupFiles.map((f) => f.size);
+                duplicateGroups.push({
+                    hash,
+                    size: Math.max(...fileSizes),
+                    sizeMin: Math.min(...fileSizes),
+                    sizeMax: Math.max(...fileSizes),
                     matchKind: 'content_hash',
                     matchLabel: '完全一致',
                     files: groupFiles,
