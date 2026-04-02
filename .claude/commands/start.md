@@ -6,4 +6,5 @@
 2. ROADMAP.md を読む
 3. .agent/SESSION.md を読む
 4. git status / git branch --show-current / git log -n 5 --oneline を実行して現在の状態を確認する
-5. 確認結果を日本語で要約して報告する
+5. `gh issue list --limit 20 --state open` で Open Issues を取得する
+6. 確認結果を日本語で要約して報告する（Issues は優先度別に整理して一覧表示する）

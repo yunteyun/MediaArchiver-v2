@@ -13,5 +13,8 @@
    - 変更点2
    ```
 5. git push origin main でプッシュする
+6. 今回の変更が GitHub Issues の問題を解決している場合は、該当 Issue を Close する
+   - `gh issue close <番号> --comment "修正内容の一言説明"` で Close とコメントを同時に行う
+   - Close 対象の Issue 番号が不明な場合はユーザーに確認する
 
 コミット前にユーザーへコミットメッセージ案を提示し、承認を得てから実行すること。

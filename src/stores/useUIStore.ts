@@ -89,6 +89,7 @@ interface UIState {
     scanProgress: ScanProgress | null;
     activeScanJobId: string | null;
     scanProgressAutoDismissPending: boolean;
+    scanProgressLog: string[];
     toasts: ToastData[];
     duplicateViewOpen: boolean;
     mainView: 'grid' | 'profile';  // メインエリアの表示切り替え
@@ -180,6 +181,7 @@ export const useUIStore = create<UIState>((set) => ({
     scanProgress: null,
     activeScanJobId: null,
     scanProgressAutoDismissPending: false,
+    scanProgressLog: [],
     toasts: [],
     duplicateViewOpen: false,
     mainView: 'grid',
@@ -277,6 +279,7 @@ export const useUIStore = create<UIState>((set) => ({
         scanProgress: null,
         activeScanJobId: null,
         scanProgressAutoDismissPending: false,
+        scanProgressLog: [],
         duplicateViewOpen: false,
         mainView: 'grid',
         hoveredPreviewId: null,
@@ -340,9 +343,31 @@ export const useUIStore = create<UIState>((set) => ({
                     ? null
                     : currentActiveJobId;
 
+        // ログキューの更新
+        const MAX_LOG_ENTRIES = 50;
+        let nextLog = state.scanProgressLog;
+        if (progress.phase === 'counting' && state.scanProgress?.phase !== 'counting') {
+            // 新しいスキャン開始時にログをリセット
+            nextLog = ['ファイル数を集計中...'];
+        } else if (progress.phase === 'scanning' && progress.currentFile && progress.message) {
+            const entry = `${progress.currentFile} — ${progress.message}`;
+            if (nextLog[nextLog.length - 1] !== entry) {
+                nextLog = [...nextLog, entry].slice(-MAX_LOG_ENTRIES);
+            }
+        } else if (progress.phase === 'complete') {
+            const s = progress.stats;
+            const summary = s
+                ? `完了: 新規 ${s.newCount} / 更新 ${s.updateCount} / スキップ ${s.skipCount}${s.removedCount ? ` / 削除 ${s.removedCount}` : ''}`
+                : '完了';
+            nextLog = [...nextLog, summary].slice(-MAX_LOG_ENTRIES);
+        } else if (progress.phase === 'error') {
+            nextLog = [...nextLog, `エラー: ${progress.message || '不明なエラー'}`].slice(-MAX_LOG_ENTRIES);
+        }
+
         return {
             scanProgress: progress,
             activeScanJobId: nextActiveJobId,
+            scanProgressLog: nextLog,
             scanProgressAutoDismissPending:
                 progress.phase === 'complete' || progress.phase === 'error'
                     ? true
@@ -361,7 +386,7 @@ export const useUIStore = create<UIState>((set) => ({
                     : state.isScanProgressVisible
         };
     }),
-    clearScanProgress: () => set({ scanProgress: null, activeScanJobId: null, isScanProgressVisible: false, scanProgressAutoDismissPending: false }),
+    clearScanProgress: () => set({ scanProgress: null, activeScanJobId: null, isScanProgressVisible: false, scanProgressAutoDismissPending: false, scanProgressLog: [] }),
     acknowledgeScanProgress: () => set({ scanProgressAutoDismissPending: false }),
     setScanProgressVisible: (visible) => set({ isScanProgressVisible: visible }),
     showToast: (message: string, type: ToastData['type'] = 'info', duration = 3000) => set((state) => ({
