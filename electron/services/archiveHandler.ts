@@ -591,4 +591,53 @@ export async function extractArchiveAudioFile(
     }
 }
 
+export interface ArchiveEntry {
+    name: string;
+    size: number;
+}
+
+/**
+ * 書庫内のファイル一覧（名前・サイズ）を取得する
+ * 重複検索での書庫内容比較用
+ */
+export async function getArchiveFileList(filePath: string): Promise<ArchiveEntry[] | null> {
+    try {
+        const { stdout } = await execFilePromise(SEVEN_ZA_PATH, [
+            'l', '-ba', '-slt', '-sccUTF-8', filePath
+        ]);
+
+        const entries: ArchiveEntry[] = [];
+        const lines = stdout.split(/\r?\n/);
+
+        let currentName = '';
+        let currentSize = 0;
+        let isDirectory = false;
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('Path = ')) {
+                currentName = trimmed.substring(7);
+                currentSize = 0;
+                isDirectory = false;
+            } else if (trimmed.startsWith('Size = ')) {
+                currentSize = parseInt(trimmed.substring(7), 10) || 0;
+            } else if (trimmed.startsWith('Attributes = ')) {
+                if (trimmed.includes('D')) isDirectory = true;
+            } else if (trimmed === '' && currentName) {
+                if (!isDirectory) {
+                    entries.push({ name: currentName, size: currentSize });
+                }
+                currentName = '';
+            }
+        }
+        if (currentName && !isDirectory) {
+            entries.push({ name: currentName, size: currentSize });
+        }
+
+        return entries.sort((a, b) => a.name.localeCompare(b.name));
+    } catch {
+        return null;
+    }
+}
+
 

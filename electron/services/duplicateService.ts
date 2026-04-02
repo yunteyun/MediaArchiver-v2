@@ -12,6 +12,7 @@ import { dbManager } from './databaseManager';
 import { calculateFileHash } from './hashService';
 import { logger } from './logger';
 import type { MediaFile } from './database';
+import { getArchiveFileList } from './archiveHandler';
 import {
     buildSimilarNameCandidateGroups,
     type DuplicateSearchMode,
@@ -26,7 +27,7 @@ export interface DuplicateGroup {
     size: number;
     sizeMin: number;
     sizeMax: number;
-    matchKind: 'content_hash' | SimilarNameMatchKind;
+    matchKind: 'content_hash' | 'archive_content' | SimilarNameMatchKind;
     matchLabel: string;
     files: MediaFile[];
     count: number;
@@ -66,9 +67,12 @@ export async function findDuplicates(
     onProgress?: (progress: DuplicateProgress) => void,
     mode: DuplicateSearchMode = 'exact',
 ): Promise<DuplicateGroup[]> {
-    return mode === 'similar_name'
-        ? findSimilarNameDuplicates(onProgress)
-        : findExactDuplicates(onProgress);
+    if (mode === 'similar_name') {
+        return findSimilarNameDuplicates(onProgress);
+    }
+    const exactGroups = await findExactDuplicates(onProgress);
+    const archiveGroups = await findArchiveContentDuplicates(exactGroups, onProgress);
+    return [...exactGroups, ...archiveGroups].sort((a, b) => b.size - a.size);
 }
 
 async function findExactDuplicates(
@@ -268,6 +272,73 @@ async function findExactDuplicates(
     log.info(`[DEBUG] Found ${duplicateGroups.length} duplicate groups (processed ${processedFiles} files)`);
     onProgress?.({ phase: 'complete', current: processedFiles, total: totalFilesToHash });
 
+    return duplicateGroups;
+}
+
+/**
+ * 書庫内ファイルリストを比較して重複書庫を検出する
+ * exact モードで検出できなかった書庫ファイル同士を対象とする
+ */
+async function findArchiveContentDuplicates(
+    alreadyFoundGroups: DuplicateGroup[],
+    onProgress?: (progress: DuplicateProgress) => void,
+): Promise<DuplicateGroup[]> {
+    const db = dbManager.getDb();
+
+    // exact モードで既に検出済みのファイルIDを収集
+    const alreadyFoundIds = new Set(alreadyFoundGroups.flatMap((g) => g.files.map((f) => f.id)));
+
+    // 書庫ファイルをすべて取得
+    const archiveFiles = db.prepare(`
+        SELECT id, name, path, size, type, created_at, duration,
+               thumbnail_path, preview_frames, root_folder_id,
+               content_hash, metadata, mtime_ms, notes
+        FROM files
+        WHERE type = 'archive' AND size > 0
+    `).all() as MediaFile[];
+
+    const candidates = archiveFiles.filter((f) => !alreadyFoundIds.has(f.id));
+    if (candidates.length < 2) return [];
+
+    log.info(`Archive content comparison: ${candidates.length} archive files to compare`);
+    onProgress?.({ phase: 'analyzing', current: 0, total: candidates.length, currentFile: '書庫内容を比較中' });
+
+    // 各書庫のファイルリストを取得してシグネチャを生成
+    const signatureMap = new Map<string, MediaFile[]>();
+    let processed = 0;
+
+    for (const file of candidates) {
+        if (isCancelled) break;
+
+        processed++;
+        onProgress?.({ phase: 'analyzing', current: processed, total: candidates.length, currentFile: file.name });
+
+        const entries = await getArchiveFileList(file.path);
+        if (!entries || entries.length === 0) continue;
+
+        // シグネチャ: ファイル名+サイズの組み合わせをソートして結合
+        const signature = entries.map((e) => `${e.name}:${e.size}`).join('|');
+        if (!signatureMap.has(signature)) signatureMap.set(signature, []);
+        signatureMap.get(signature)!.push(file);
+    }
+
+    const duplicateGroups: DuplicateGroup[] = [];
+    for (const [signature, groupFiles] of signatureMap) {
+        if (groupFiles.length < 2) continue;
+        const sizes = groupFiles.map((f) => f.size);
+        duplicateGroups.push({
+            hash: `archive:${signature.slice(0, 64)}`,
+            size: Math.max(...sizes),
+            sizeMin: Math.min(...sizes),
+            sizeMax: Math.max(...sizes),
+            matchKind: 'archive_content',
+            matchLabel: '書庫内容一致',
+            files: groupFiles.map((f) => ({ ...f, tags: [] })),
+            count: groupFiles.length,
+        });
+    }
+
+    log.info(`Archive content comparison found ${duplicateGroups.length} duplicate groups`);
     return duplicateGroups;
 }
 
