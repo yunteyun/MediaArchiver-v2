@@ -7,6 +7,7 @@
  * 3. ハッシュ値で真の重複を判定
  */
 
+import fs from 'fs/promises';
 import { dbManager } from './databaseManager';
 import { calculateFileHash } from './hashService';
 import { logger } from './logger';
@@ -108,6 +109,7 @@ async function findExactDuplicates(
     log.info('Phase 2: Calculating hashes...');
     const duplicateGroups: DuplicateGroup[] = [];
     let processedFiles = 0;
+    const updateHashStmt = db.prepare('UPDATE files SET content_hash = ?, mtime_ms = ? WHERE id = ?');
 
     for (const sizeGroup of sizeGroups) {
         if (isCancelled) {
@@ -138,20 +140,28 @@ async function findExactDuplicates(
                 currentFile: file.name
             });
 
-            // 既にハッシュがある場合は再利用
+            // mtime_ms を取得して content_hash キャッシュの有効性を確認
             let hash = file.content_hash;
-            if (!hash) {
+            let currentMtimeMs: number;
+            try {
+                const stat = await fs.stat(file.path);
+                currentMtimeMs = Math.floor(stat.mtimeMs);
+            } catch {
+                log.warn(`Cannot stat file: ${file.path}`);
+                continue;
+            }
+
+            const cacheValid = hash && file.mtime_ms != null && file.mtime_ms === currentMtimeMs;
+            if (!cacheValid) {
                 try {
                     hash = await calculateFileHash(file.path);
                     if (hash) {
-                        // DBに保存（次回高速化）
-                        db.prepare('UPDATE files SET content_hash = ? WHERE id = ?')
-                            .run(hash, file.id);
+                        updateHashStmt.run(hash, currentMtimeMs, file.id);
                     } else {
-                        log.warn(`[DEBUG] Hash calculation returned null for: ${file.path}`);
+                        log.warn(`Hash calculation returned null for: ${file.path}`);
                     }
                 } catch (hashErr) {
-                    log.error(`[DEBUG] Hash calculation error for ${file.path}: ${hashErr instanceof Error ? hashErr.message : String(hashErr)}`);
+                    log.error(`Hash calculation error for ${file.path}: ${hashErr instanceof Error ? hashErr.message : String(hashErr)}`);
                 }
             }
 
