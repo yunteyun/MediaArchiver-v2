@@ -50,6 +50,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const lastPersistedPlaybackPositionRef = useRef<number | null>(typeof file.playbackPositionSeconds === 'number'
         ? file.playbackPositionSeconds
         : null);
+    const lastTimeUpdateRef = useRef<number>(0);
 
     const kind = useMemo<'image' | 'video' | 'audio' | 'archive' | 'unsupported'>(() => {
         return resolveLightboxMediaKind(file);
@@ -77,6 +78,13 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         setArchiveAudioCurrentTime(0);
         setArchiveAudioIsPlaying(false);
     }, [file.id, file.path]);
+
+    // #22-A: アーカイブ音声の一時ファイルをアンマウント時にクリーンアップ
+    useEffect(() => {
+        return () => {
+            void window.electronAPI.cleanArchiveTemp();
+        };
+    }, []);
 
     useEffect(() => {
         let disposed = false;
@@ -313,8 +321,12 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 controls
                 autoPlay
                 onTimeUpdate={(event) => {
-                    setLightboxCurrentTime(event.currentTarget.currentTime);
-                    void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration);
+                    const now = Date.now();
+                    if (now - lastTimeUpdateRef.current >= 500) {
+                        lastTimeUpdateRef.current = now;
+                        setLightboxCurrentTime(event.currentTarget.currentTime);
+                        void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration);
+                    }
                 }}
                 onLoadedMetadata={(event) => {
                     setLightboxCurrentTime(event.currentTarget.currentTime);

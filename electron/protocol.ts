@@ -63,7 +63,7 @@ function tryResolveThumbnailPathFallback(originalPath: string): string {
  * Converts media://C:/path/to/file.mp4 to secure file streaming.
  */
 export function registerMediaProtocol() {
-    protocol.handle('media', (request) => {
+    protocol.handle('media', async (request) => {
         try {
             const parsed = new URL(request.url);
 
@@ -100,8 +100,8 @@ export function registerMediaProtocol() {
             // Try resolving to current basePath thumbnails as a fallback before failing.
             filePath = tryResolveThumbnailPathFallback(filePath);
 
-            // Stat file
-            const stat = fs.statSync(filePath);
+            // Stat file (非同期でメインスレッドをブロックしない)
+            const stat = await fs.promises.stat(filePath);
             const fileSize = stat.size;
             const mimeType = getMimeType(filePath);
 
