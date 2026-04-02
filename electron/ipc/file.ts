@@ -35,6 +35,41 @@ import pLimit from 'p-limit';
 import { getCachedExternalApps } from './app';
 import { deleteFileSafe, moveFileToFolder, relocateFile, validateNewFileName } from '../services/fileOperationService';
 import { mergePriorityIds } from '../../src/shared/thumbnailBackfillQueue';
+import { collectExistingFolderTreePaths } from '../../src/shared/folderTreePaths';
+
+/** 登録フォルダ配下のサブフォルダを再帰的にサブメニュー化する（最大2階層） */
+function buildFolderSubmenu(
+    folderPath: string,
+    allSubPaths: string[],
+    label: string,
+    fileIds: string[],
+    sender: Electron.WebContents,
+    depth: number = 0
+): Electron.MenuItemConstructorOptions {
+    const children = allSubPaths.filter(
+        (p) => path.dirname(p).toLowerCase() === folderPath.toLowerCase()
+    );
+
+    const clickAction = () => {
+        for (const id of fileIds) {
+            sender.send('file:requestMove', { fileId: id, targetFolderPath: folderPath });
+        }
+    };
+
+    if (children.length === 0 || depth >= 2) {
+        return { label, click: clickAction };
+    }
+
+    const submenu: Electron.MenuItemConstructorOptions[] = [
+        { label: `→ ここへ移動 (${label})`, click: clickAction },
+        { type: 'separator' },
+        ...children.map((childPath) =>
+            buildFolderSubmenu(childPath, allSubPaths, path.basename(childPath), fileIds, sender, depth + 1)
+        ),
+    ];
+
+    return { label, submenu };
+}
 
 type SearchDestinationType = 'filename' | 'image';
 type SearchDestinationIcon = 'search' | 'globe' | 'image' | 'camera' | 'book' | 'sparkles' | 'link';
@@ -610,15 +645,14 @@ export function registerFileHandlers() {
             { type: 'separator' },
             {
                 label: '登録フォルダへすぐ移動',
-                submenu: getFolders().map(folder => ({
-                    label: isMultiple ? `${folder.name} (${effectiveFileIds.length}件)` : folder.name,
-                    click: async () => {
-                        // Bug 2修正: 複数ファイルの移動
-                        for (const id of effectiveFileIds) {
-                            event.sender.send('file:requestMove', { fileId: id, targetFolderId: folder.id });
-                        }
-                    }
-                }))
+                submenu: (() => {
+                    const folders = getFolders();
+                    const allSubPaths = collectExistingFolderTreePaths(folders.map((f) => f.path));
+                    return folders.map((folder) => {
+                        const baseLabel = isMultiple ? `${folder.name} (${effectiveFileIds.length}件)` : folder.name;
+                        return buildFolderSubmenu(folder.path, allSubPaths, baseLabel, effectiveFileIds, event.sender);
+                    });
+                })()
             },
             { type: 'separator' },
             {

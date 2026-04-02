@@ -648,6 +648,21 @@ async function scanDirectoryInternal(
                         }
                     }
 
+                    // 音声書庫の除外判定: audio カテゴリが無効かつ書庫が音声のみの場合はスキップ
+                    if (type === 'archive' && !state.scanFilters.audio && metadata) {
+                        try {
+                            const parsedMeta = JSON.parse(metadata) as { imageEntries?: string[]; audioEntries?: string[]; hasAudio?: boolean };
+                            const hasImages = Array.isArray(parsedMeta.imageEntries) && parsedMeta.imageEntries.length > 0;
+                            const hasAudio = (Array.isArray(parsedMeta.audioEntries) && parsedMeta.audioEntries.length > 0) || !!parsedMeta.hasAudio;
+                            if (!hasImages && hasAudio) {
+                                state.stats.skipCount++;
+                                continue;
+                            }
+                        } catch {
+                            // メタデータのパースに失敗した場合はスキップしない
+                        }
+                    }
+
                     // Phase 15-2: 画像メタデータ抽出（width/height）
                     if (type === 'image' && !metadata) {
                         try {

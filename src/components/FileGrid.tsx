@@ -329,8 +329,8 @@ export const FileGrid = React.memo(() => {
     // Phase 19.5 Bug 6: ファイル移動イベント（一元管理）
     // Phase 19.5 Bug 3: ファイル移動後の即時UI更新
     useEffect(() => {
-        const handleRequestMove = async (data: { fileId: string; targetFolderId: string }) => {
-            const result = await window.electronAPI.moveFileToFolder(data.fileId, data.targetFolderId);
+        const handleRequestMove = async (data: { fileId: string; targetFolderId?: string; targetFolderPath?: string }) => {
+            const result = await window.electronAPI.moveFileToFolder(data.fileId, data.targetFolderId, data.targetFolderPath);
 
             if (result.success) {
                 // 移動したファイルがプレビュー中なら解除

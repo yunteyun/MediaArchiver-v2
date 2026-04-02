@@ -359,7 +359,7 @@ declare global {
             // Phase 18-C: File Move
             moveFileToFolder: (fileId: string, targetFolderId?: string, targetFolderPath?: string) => Promise<{ success: boolean; newPath?: string; error?: string }>;
             onFileMoved: (callback: (data: { fileId: string; newPath: string; targetFolderId: string }) => void) => () => void;
-            onRequestMove: (callback: (data: { fileId: string; targetFolderId: string }) => void) => () => void;
+            onRequestMove: (callback: (data: { fileId: string; targetFolderId?: string; targetFolderPath?: string }) => void) => () => void;
 
             // Archive
             getArchiveMetadata: (path: string) => Promise<{
