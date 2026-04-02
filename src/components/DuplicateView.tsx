@@ -455,6 +455,7 @@ export const DuplicateView: React.FC = () => {
                     const keepCount = group.count - selectedCount;
                     const allSelected = selectedCount === group.count;
                     const hasSizeMismatch = group.sizeMin !== group.sizeMax;
+                    const isNearSize = hasSizeMismatch && group.sizeMax > 0 && (group.sizeMax - group.sizeMin) / group.sizeMax <= 0.05;
                     const timestamps = group.files.map((file) => getFileTimestamp(file)).filter((timestamp) => timestamp > 0);
                     const oldestTimestamp = timestamps.length > 0 ? Math.min(...timestamps) : 0;
                     const newestTimestamp = timestamps.length > 0 ? Math.max(...timestamps) : 0;
@@ -475,7 +476,7 @@ export const DuplicateView: React.FC = () => {
                                             : `${group.count}ファイル, ${formatFileSize(group.size)}`}
                                     </span>
                                     {isSimilarMode ? (
-                                        <span className="rounded bg-surface-700 px-2 py-0.5 text-xs text-surface-300">
+                                        <span className={`rounded px-2 py-0.5 text-xs ${isNearSize ? 'bg-green-500/15 text-green-200 ring-1 ring-green-500/30' : 'bg-surface-700 text-surface-300'}`}>
                                             サイズ帯 {formatSizeRange(group.sizeMin, group.sizeMax)}
                                         </span>
                                     ) : (
