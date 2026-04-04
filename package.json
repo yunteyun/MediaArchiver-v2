@@ -2,7 +2,7 @@
     "name": "media-archiver-v2",
     "description": "ローカルメディアを整理・閲覧するためのデスクトップアプリ",
     "private": true,
-    "version": "1.12.1",
+    "version": "1.13.0",
     "author": "yunteyun",
     "main": "bootstrap.cjs",
     "scripts": {

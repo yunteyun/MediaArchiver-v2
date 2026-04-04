@@ -1,10 +1,12 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-02
+**Last Updated**: 2026-04-04
 
-- **Current Focus**: Issue #24（重複検索精度向上）の改善実装完了。v1.12.1 リリース済み。実用環境での検証待ち。
-- **Current Status**: 重複検索の精度向上（類似名修正・サイズ近似対応・書庫内容比較）を実装し v1.12.1 としてリリース。
+- **Current Focus**: v1.13.0 リリース完了。
+- **Current Status**: --profile 引数によるプロファイル指定機能を実装し v1.13.0 としてリリース。
 - **Recent Achievements**:
+  - **v1.13.0（起動時プロファイル指定）**:
+    - --profile <名前> / --profile=<名前> 引数で起動時に開くプロファイルを指定できるようにした（Issue #20 Close）
   - **v1.12.1（重複検索精度向上）**:
     - 類似名検索で番号なしファイルと番号付きコピーが同グループにならない問題を修正
     - 類似名グループでサイズ差5%以内の候補をハイライト表示
@@ -16,21 +18,6 @@
     - スキャン進捗ウィンドウの日本語化・ログ表示追加
     - 中央ビューアのパフォーマンス改善（一時ファイルクリーンアップ・IPC削減）
     - 重複検索のハッシュキャッシュを mtime_ms で無効化
-  - **Phase 27.5: 詳細検索廃止・評価フィルター統合**:
-    - AdvancedSearchPanel 削除（左サイドバーと機能重複のため）
-    - RatingFilterPanel 新規作成（blue系 #2563eb の星）、Sidebar 統合
-    - コミット: `b85ef3d`
-  - **Phase 28: タグUI改善 3パート**:
-    - TagSelector: カテゴリ名横にカラードット表示、sortOrder順ソート、grid-cols-2の2列グリッド表示
-    - RightPanel/TagSection: `<select>`（TagAddDropdown）を TagSelector に置換
-    - TagManagerModal: 右ペインのタグリストを grid-cols-2 多列表示に変更
-    - TagManagerModal: 左ペインにGripVerticalハンドル + HTML5 D&D でカテゴリ並び替え実装
-    - useTagStore: updateCategory に sortOrder 型を追加
-    - コミット: `d388dc4`
-  - **1.1.3 Hotfix: リリース版書庫サムネイル取得障害**:
-    - `package.json` に `asarUnpack` と `afterPack` 検証スクリプト追加
-    - `archiveHandler.ts` を `process.resourcesPath` ベースに変更
-    - `databaseManager.ts` に空ディレクトリ生成 (`ensureDbDirectory`) 追加
 
 ## Completed Phases
 - ✅ Phase 0: 再構築準備
