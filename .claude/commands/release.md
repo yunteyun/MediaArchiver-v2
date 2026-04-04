@@ -40,6 +40,12 @@ git log origin/main..HEAD --oneline
 ### SESSION.md
 `Last Updated` と `Recent Achievements` を更新する。
 
+### release-notes/v{バージョン}.md
+`release-notes/` フォルダに `v{バージョン}.md` を新規作成する。
+- ファイル名例: `v1.13.0.md`
+- 内容は CHANGELOG の該当バージョンセクションをそのまま転記する
+- このファイルがないとリリース版の設定画面で「リリースノートが見つかりません」と表示される
+
 ## 4. 型チェック・lint の実行
 
 ```bash
@@ -52,7 +58,7 @@ npx eslint src/ electron/ --max-warnings=0
 ## 5. コミット
 
 ```bash
-git add package.json CHANGELOG.md ROADMAP.md .agent/SESSION.md
+git add package.json CHANGELOG.md ROADMAP.md .agent/SESSION.md release-notes/v{バージョン}.md
 git commit -m "[機能追加] x.x.x をリリースする"
 ```
 

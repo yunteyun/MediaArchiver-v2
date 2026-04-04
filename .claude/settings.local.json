@@ -7,7 +7,13 @@
       "Bash(find /c/MediaArchiver-v2/src -name \"*.tsx\" -exec grep -l \"React.memo\" {} \\\\;)",
       "Bash(wc -l /c/MediaArchiver-v2/src/stores/*.ts)",
       "Bash(npx tsc:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('version:', p.version\\); console.log\\('scripts:', Object.keys\\(p.scripts\\).join\\(', '\\)\\)\")",
+      "Bash(node -e \"const p=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(p\\); console.log\\(JSON.stringify\\(j.scripts, null, 2\\)\\)\")",
+      "Bash(node -e ':*)",
+      "Bash(npx tsx -e ':*)",
+      "Bash(npx tsx:*)",
+      "Bash(gh release:*)"
     ]
   }
 }
