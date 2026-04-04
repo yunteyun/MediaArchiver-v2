@@ -74,11 +74,12 @@ npm run build:electron
 
 出力先: `release/` フォルダ内に ZIP が生成される。
 
-## 7. タグ付け
+## 7. タグ付け・GitHub Release 作成
 
 ```bash
 git tag vx.x.x
 git push origin vx.x.x
+gh release create vx.x.x --title "vx.x.x" --notes-file release-notes/v{バージョン}.md "release/MediaArchiver v2-{バージョン}-win.zip"
 ```
 
 ## 8. 完了報告
