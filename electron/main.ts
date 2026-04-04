@@ -35,6 +35,19 @@ import { disposePreviewFrameWorker } from './services/previewFrameWorkerService'
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function parseProfileArg(argv: string[]): string | undefined {
+    for (let i = 0; i < argv.length; i++) {
+        if (argv[i] === '--profile' && i + 1 < argv.length) {
+            return argv[i + 1];
+        }
+        if (argv[i].startsWith('--profile=')) {
+            return argv[i].slice('--profile='.length);
+        }
+    }
+    return undefined;
+}
+const startupProfileName = parseProfileArg(process.argv);
+
 // Register custom protocol scheme BEFORE app.whenReady()
 protocol.registerSchemesAsPrivileged([
     { scheme: 'media', privileges: { stream: true, supportFetchAPI: true } }
@@ -339,6 +352,17 @@ app.whenReady().then(async () => {
     // Initialize Database Manager (loads active profile)
     dbManager.initialize();
     logger.info('Database initialized');
+
+    if (startupProfileName) {
+        logger.info(`Profile arg: ${startupProfileName}`);
+        const matched = dbManager.getProfileByName(startupProfileName);
+        if (matched) {
+            dbManager.switchProfile(matched.id);
+            logger.info(`Switched to profile: ${matched.name}`);
+        } else {
+            logger.warn(`Profile not found: ${startupProfileName}`);
+        }
+    }
 
     // Register IPC Handlers
     registerDatabaseHandlers();

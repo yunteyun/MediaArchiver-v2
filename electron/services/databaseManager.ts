@@ -167,6 +167,20 @@ class DatabaseManager {
         };
     }
 
+    getProfileByName(name: string): Profile | undefined {
+        this.reopenMetaDb();
+        const metaDb = this.getMetaDb();
+        const row = metaDb.prepare('SELECT * FROM profiles WHERE name = ?').get(name) as ProfileRow | undefined;
+        if (!row) return undefined;
+        return {
+            id: row.id,
+            name: row.name,
+            dbFilename: row.db_filename,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
+    }
+
     /**
      * プロファイル作成
      */
