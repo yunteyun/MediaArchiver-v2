@@ -94,7 +94,7 @@ MediaArchiver-v2/
 ### 3. サービス層による責務分離
 - `electron/services/` に純粋なビジネスロジックを配置
 - UIに依存しない、テスト可能な設計
-- v1からの資産（archiveHandler等）はここに移植
+- `archiveHandler.ts` など v1 から継承されたサービスも、ここで一元管理
 
 ### 4. 仮想スクロールの安定化
 - TanStack Virtual を採用し、再描画を完全制御
