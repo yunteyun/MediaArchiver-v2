@@ -691,18 +691,32 @@ function App() {
                             if (moveFileIds.length === 0) return;
 
                             try {
-                                // 現在は単一ファイルのみ対応
-                                const fileId = moveFileIds[0];
-                                const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId, targetFolderPath);
+                                const { removeFile, removeFiles } = useFileStore.getState();
 
-                                if (result.success) {
-                                    // Bug 3修正: 移動したファイルを即座にstoreから削除
-                                    const { removeFile } = useFileStore.getState();
-                                    removeFile(fileId);
+                                if (moveFileIds.length === 1) {
+                                    const fileId = moveFileIds[0];
+                                    const result = await window.electronAPI.moveFileToFolder(fileId, targetFolderId, targetFolderPath);
 
-                                    useToastStore.getState().success('ファイルを移動しました');
+                                    if (result.success) {
+                                        removeFile(fileId);
+                                        useToastStore.getState().success('ファイルを移動しました');
+                                    } else {
+                                        useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
+                                    }
                                 } else {
-                                    useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
+                                    const result = await window.electronAPI.moveFileToFolderBatch(moveFileIds, targetFolderId, targetFolderPath);
+
+                                    if (result.movedFileIds.length > 0) {
+                                        removeFiles(result.movedFileIds);
+                                    }
+
+                                    if (result.success) {
+                                        useToastStore.getState().success(`${result.movedCount} 件のファイルを移動しました`);
+                                    } else if (result.movedCount > 0) {
+                                        useToastStore.getState().error(`${result.movedCount} 件移動しましたが、${result.failedCount} 件失敗しました`);
+                                    } else {
+                                        useToastStore.getState().error(result.error || 'ファイル移動に失敗しました');
+                                    }
                                 }
                             } catch (error) {
                                 console.error('Move file error:', error);

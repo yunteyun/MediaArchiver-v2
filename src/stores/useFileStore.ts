@@ -23,6 +23,7 @@ interface FileState {
     selectAll: () => void;
     clearSelection: () => void;
     removeFile: (fileId: string) => void;
+    removeFiles: (fileIds: string[]) => void;
     refreshFile: (fileId: string) => Promise<void>;
     // タグキャッシュ管理
     loadFileTagsCache: (fileIds?: string[]) => Promise<void>;
@@ -125,6 +126,25 @@ export const useFileStore = create<FileState>((set, get) => ({
                 fileMap: newFileMap,
                 selectedIds: new Set(
                     Array.from(state.selectedIds).filter(id => id !== fileId)
+                ),
+                fileTagsCache: newCache,
+            };
+        }),
+
+    removeFiles: (fileIds: string[]) =>
+        set((state) => {
+            const idSet = new Set(fileIds);
+            const newCache = new Map(state.fileTagsCache);
+            const newFileMap = new Map(state.fileMap);
+            for (const id of idSet) {
+                newCache.delete(id);
+                newFileMap.delete(id);
+            }
+            return {
+                files: state.files.filter(f => !idSet.has(f.id)),
+                fileMap: newFileMap,
+                selectedIds: new Set(
+                    Array.from(state.selectedIds).filter(id => !idSet.has(id))
                 ),
                 fileTagsCache: newCache,
             };

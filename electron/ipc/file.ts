@@ -454,15 +454,13 @@ export function registerFileHandlers() {
         menuTemplate.push(
             { type: 'separator' },
             {
-                label: '移動先を選んで移動...',
-                enabled: !isMultiple, // 複数選択時は無効（将来対応）
+                label: isMultiple ? `移動先を選んで移動... (${effectiveFileIds.length}件)` : '移動先を選んで移動...',
                 click: async () => {
                     const file = findFileById(fileId);
                     if (!file) return;
 
-                    // UIStoreのopenMoveDialogを呼び出す
                     event.sender.send('file:openMoveDialog', {
-                        fileIds: [fileId],
+                        fileIds: effectiveFileIds,
                         currentFolderId: file.root_folder_id
                     });
                 }
@@ -814,6 +812,13 @@ export function registerFileHandlers() {
         }
     });
 
+    function resolveMoveTarget(targetFolderId?: string, targetFolderPath?: string) {
+        const targetFolder = targetFolderId ? getFolders().find(f => f.id === targetFolderId) : undefined;
+        const resolvedFolderPath = targetFolderPath ? path.resolve(targetFolderPath) : targetFolder?.path;
+        const rootFolder = targetFolder ?? (resolvedFolderPath ? resolveRegisteredFolderForPath(resolvedFolderPath) : undefined);
+        return { resolvedFolderPath, rootFolder };
+    }
+
     // Phase 18-C: ファイル移動
     ipcMain.handle('file:moveToFolder', async (event, { fileId, targetFolderId, targetFolderPath }) => {
         try {
@@ -827,11 +832,7 @@ export function registerFileHandlers() {
             }
             console.log('[File Move] Source file:', file.path);
 
-            const targetFolder = targetFolderId ? getFolders().find(f => f.id === targetFolderId) : undefined;
-            const resolvedFolderPath = targetFolderPath
-                ? path.resolve(targetFolderPath)
-                : targetFolder?.path;
-            const rootFolder = targetFolder ?? (resolvedFolderPath ? resolveRegisteredFolderForPath(resolvedFolderPath) : undefined);
+            const { resolvedFolderPath, rootFolder } = resolveMoveTarget(targetFolderId, targetFolderPath);
 
             if (!resolvedFolderPath || !rootFolder) {
                 console.error('[File Move] Target folder not found:', { targetFolderId, targetFolderPath });
@@ -868,6 +869,60 @@ export function registerFileHandlers() {
                 error: error instanceof Error ? error.message : String(error)
             };
         }
+    });
+
+    // Issue #21: 複数選択でのファイル移動
+    ipcMain.handle('file:moveToFolderBatch', async (event, { fileIds, targetFolderId, targetFolderPath }) => {
+        const normalizedFileIds = Array.isArray(fileIds)
+            ? fileIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+            : [];
+
+        if (normalizedFileIds.length === 0) {
+            return { success: false, movedCount: 0, failedCount: 0, error: '移動対象の情報が不正です' };
+        }
+
+        const { resolvedFolderPath, rootFolder } = resolveMoveTarget(targetFolderId, targetFolderPath);
+
+        if (!resolvedFolderPath || !rootFolder) {
+            return { success: false, movedCount: 0, failedCount: 0, error: '移動先フォルダが見つかりません' };
+        }
+
+        const errors: string[] = [];
+        const movedFileIds: string[] = [];
+
+        for (const currentFileId of normalizedFileIds) {
+            try {
+                const file = findFileById(currentFileId);
+                if (!file) {
+                    errors.push(`ファイルが見つかりません: ${currentFileId}`);
+                    continue;
+                }
+
+                const fileName = path.basename(file.path);
+                const newPath = path.join(resolvedFolderPath, fileName);
+
+                const moveResult = await moveFileToFolder(file.path, newPath);
+                if (!moveResult.success) {
+                    errors.push(moveResult.error ?? file.path);
+                    continue;
+                }
+
+                updateFileLocation(currentFileId, newPath, rootFolder.id);
+                event.sender.send('file:moved', { fileId: currentFileId, newPath, targetFolderId: rootFolder.id });
+                movedFileIds.push(currentFileId);
+            } catch (error) {
+                errors.push(error instanceof Error ? error.message : String(error));
+            }
+        }
+
+        return {
+            success: errors.length === 0,
+            movedCount: movedFileIds.length,
+            movedFileIds,
+            failedCount: errors.length,
+            errors,
+            error: errors[0],
+        };
     });
 
     ipcMain.handle('file:rename', async (_event, { fileId, newName }: { fileId: string; newName: string }) => {
