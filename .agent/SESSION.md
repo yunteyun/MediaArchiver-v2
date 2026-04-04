@@ -1,10 +1,16 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-02
+**Last Updated**: 2026-04-04
 
-- **Current Focus**: Issue #24（重複検索精度向上）の改善実装完了。v1.12.1 リリース済み。実用環境での検証待ち。
-- **Current Status**: 重複検索の精度向上（類似名修正・サイズ近似対応・書庫内容比較）を実装し v1.12.1 としてリリース。
+- **Current Focus**: Issue #21（複数選択でのファイル移動）を実装完了。[Unreleased] に追加済み。
+- **Current Status**: 複数選択時のダイアログ移動に対応。部分失敗ハンドリング・バッチ state 更新も整備。
 - **Recent Achievements**:
+  - **Issue #21（複数選択でのファイル移動）**:
+    - コンテキストメニューの「移動先を選んで移動...」を複数選択時も有効化（件数表示付き）
+    - electron に file:moveToFolderBatch ハンドラを追加し、逐次移動・部分失敗対応を実装
+    - useFileStore に removeFiles() を追加し、複数ファイル削除を1回の state 更新で処理
+    - 移動先フォルダ解決ロジックを resolveMoveTarget() に抽出して単一・バッチで共通化
+    - Issue #21 を Close 済み
   - **v1.12.1（重複検索精度向上）**:
     - 類似名検索で番号なしファイルと番号付きコピーが同グループにならない問題を修正
     - 類似名グループでサイズ差5%以内の候補をハイライト表示

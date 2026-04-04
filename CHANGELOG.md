@@ -10,13 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- (なし)
-
-### Changed
-- (なし)
-
-### Fixed
-- (なし)
+- 複数のファイルを選択した状態でコンテキストメニューから「移動先を選んで移動...」が使えるようになった。件数がメニューに表示され、まとめて移動先フォルダを指定できる。
 
 ---
 
