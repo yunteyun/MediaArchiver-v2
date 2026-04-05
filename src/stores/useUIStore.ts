@@ -101,6 +101,11 @@ interface UIState {
     moveDialogOpen: boolean;
     moveFileIds: string[];  // 将来の複数選択対応
     moveCurrentFolderId: string | null;
+    // #16: リネームダイアログ
+    renameDialogFileId: string | null;
+    renameDialogCurrentName: string;
+    renameDialogCurrentPath: string;
+    renameDialogSuggestedName: string;
     // Phase 23: 右サイドパネル
     isRightPanelOpen: boolean;
     previewContext: 'grid-hover' | 'right-panel' | null;  // プレビュー排他制御
@@ -151,6 +156,9 @@ interface UIState {
     // Phase 22-C-2
     openMoveDialog: (fileIds: string[], currentFolderId: string | null) => void;
     closeMoveDialog: () => void;
+    // #16: リネームダイアログ
+    openRenameDialog: (fileId: string, currentName: string, currentPath: string, suggestedName?: string) => void;
+    closeRenameDialog: () => void;
     // Phase 23: 右サイドパネル
     toggleRightPanel: () => void;
     setPreviewContext: (ctx: 'grid-hover' | 'right-panel' | null) => void;
@@ -194,6 +202,11 @@ export const useUIStore = create<UIState>((set) => ({
     moveDialogOpen: false,
     moveFileIds: [],
     moveCurrentFolderId: null,
+    // #16: リネームダイアログ
+    renameDialogFileId: null,
+    renameDialogCurrentName: '',
+    renameDialogCurrentPath: '',
+    renameDialogSuggestedName: '',
     // Phase 23: 右サイドパネル
     isRightPanelOpen: true,
     previewContext: null,
@@ -289,6 +302,10 @@ export const useUIStore = create<UIState>((set) => ({
         moveDialogOpen: false,
         moveFileIds: [],
         moveCurrentFolderId: null,
+        renameDialogFileId: null,
+        renameDialogCurrentName: '',
+        renameDialogCurrentPath: '',
+        renameDialogSuggestedName: '',
         previewContext: null,
     }),
     setCurrentSortBy: (currentSortBy) => set({ currentSortBy }),
@@ -408,6 +425,20 @@ export const useUIStore = create<UIState>((set) => ({
     // Phase 22-C-2
     openMoveDialog: (fileIds, currentFolderId) => set({ moveDialogOpen: true, moveFileIds: fileIds, moveCurrentFolderId: currentFolderId }),
     closeMoveDialog: () => set({ moveDialogOpen: false, moveFileIds: [], moveCurrentFolderId: null }),
+
+    // #16: リネームダイアログ
+    openRenameDialog: (fileId, currentName, currentPath, suggestedName) => set({
+        renameDialogFileId: fileId,
+        renameDialogCurrentName: currentName,
+        renameDialogCurrentPath: currentPath,
+        renameDialogSuggestedName: suggestedName ?? currentName,
+    }),
+    closeRenameDialog: () => set({
+        renameDialogFileId: null,
+        renameDialogCurrentName: '',
+        renameDialogCurrentPath: '',
+        renameDialogSuggestedName: '',
+    }),
 
     // Phase 17-3: 同時再生制御
     setHoveredPreview: (id) => set({ hoveredPreviewId: id }),

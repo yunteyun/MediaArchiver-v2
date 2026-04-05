@@ -68,10 +68,12 @@ function App() {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [profileSettingsRuntimeReady, setProfileSettingsRuntimeReady] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
-    const [renameDialogFileId, setRenameDialogFileId] = useState<string | null>(null);
-    const [renameDialogCurrentName, setRenameDialogCurrentName] = useState('');
-    const [renameDialogCurrentPath, setRenameDialogCurrentPath] = useState('');
-    const [renameDialogSuggestedName, setRenameDialogSuggestedName] = useState('');
+    const renameDialogFileId = useUIStore((s) => s.renameDialogFileId);
+    const renameDialogCurrentName = useUIStore((s) => s.renameDialogCurrentName);
+    const renameDialogCurrentPath = useUIStore((s) => s.renameDialogCurrentPath);
+    const renameDialogSuggestedName = useUIStore((s) => s.renameDialogSuggestedName);
+    const openRenameDialog = useUIStore((s) => s.openRenameDialog);
+    const closeRenameDialog = useUIStore((s) => s.closeRenameDialog);
     const loadProfiles = useProfileStore((s) => s.loadProfiles);
     const profiles = useProfileStore((s) => s.profiles);
     const activeProfileId = useProfileStore((s) => s.activeProfileId);
@@ -460,26 +462,16 @@ function App() {
 
     useEffect(() => {
         const cleanup = window.electronAPI.onRequestRename(({ fileId, currentName, currentPath, suggestedName }) => {
-            setRenameDialogFileId(fileId);
-            setRenameDialogCurrentName(currentName);
-            setRenameDialogCurrentPath(currentPath ?? '');
-            setRenameDialogSuggestedName(suggestedName ?? currentName);
+            openRenameDialog(fileId, currentName, currentPath ?? '', suggestedName);
         });
         return cleanup;
-    }, []);
+    }, [openRenameDialog]);
 
     useEffect(() => {
         const cleanup = window.electronAPI.onShowToast(({ message, type = 'info', duration }) => {
             useToastStore.getState().addToast(message, type, duration);
         });
         return cleanup;
-    }, []);
-
-    const handleRenameCancel = useCallback(() => {
-        setRenameDialogFileId(null);
-        setRenameDialogCurrentName('');
-        setRenameDialogCurrentPath('');
-        setRenameDialogSuggestedName('');
     }, []);
 
     const handleRenameConfirm = useCallback(async (nextName: string) => {
@@ -493,13 +485,13 @@ function App() {
             }
 
             await useFileStore.getState().refreshFile(renameDialogFileId);
-            handleRenameCancel();
+            closeRenameDialog();
             useToastStore.getState().success('ファイル名を変更しました');
         } catch (error) {
             console.error('Rename file error:', error);
             useToastStore.getState().error('ファイル名の変更に失敗しました');
         }
-    }, [handleRenameCancel, renameDialogFileId]);
+    }, [closeRenameDialog, renameDialogFileId]);
 
     // 別モードで開く（コンテキストメニュー）
     useEffect(() => {
@@ -681,7 +673,7 @@ function App() {
                         currentPath={renameDialogCurrentPath}
                         suggestedName={renameDialogSuggestedName}
                         onConfirm={handleRenameConfirm}
-                        onCancel={handleRenameCancel}
+                        onCancel={closeRenameDialog}
                     />
                 </Suspense>
             )}

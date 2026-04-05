@@ -238,7 +238,7 @@ export const CenterViewerPlaybackOverlay = React.memo<CenterViewerPlaybackOverla
     };
 
     return (
-            <div className="pointer-events-auto absolute left-5 top-5 w-[312px] rounded-xl border border-surface-500 bg-surface-950 px-4 py-3 shadow-2xl">
+            <div className="w-[312px] rounded-xl border border-surface-500 bg-surface-950 px-4 py-3 shadow-2xl">
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-surface-100">再開 / 見どころ</div>
