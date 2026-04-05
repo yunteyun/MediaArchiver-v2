@@ -1,4 +1,4 @@
-export type DuplicateSearchMode = 'exact' | 'similar_name';
+export type DuplicateSearchMode = 'exact' | 'quick' | 'similar_name';
 
 export type SimilarNameMatchKind = 'normalized_name' | 'core_name' | 'numbered_series';
 

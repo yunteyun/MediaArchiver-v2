@@ -31,7 +31,7 @@ export interface DuplicateGroup {
     size: number;
     sizeMin: number;
     sizeMax: number;
-    matchKind: 'content_hash' | SimilarNameMatchKind;
+    matchKind: 'content_hash' | 'archive_content' | 'size_match' | SimilarNameMatchKind;
     matchLabel: string;
     files: DuplicateFileEntry[];
     count: number;
@@ -130,10 +130,12 @@ interface DuplicateState {
     isDeleting: boolean;
     hasSearched: boolean; // 検索完了フラグ（未検索 vs 結果0件の区別）
     searchMode: DuplicateSearchMode;
+    targetFolderIds: string[];
 
     // Actions
     startSearch: (mode?: DuplicateSearchMode) => Promise<void>;
     cancelSearch: () => void;
+    setTargetFolderIds: (ids: string[]) => void;
     setProgress: (progress: DuplicateProgress) => void;
     selectFile: (fileId: string) => void;
     deselectFile: (fileId: string) => void;
@@ -159,10 +161,17 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
     isDeleting: false,
     hasSearched: false,
     searchMode: 'exact',
+    targetFolderIds: [],
+
+    // Set target folder IDs
+    setTargetFolderIds: (ids) => {
+        set({ targetFolderIds: ids });
+    },
 
     // Start duplicate search
     startSearch: async (mode) => {
         const nextMode = mode ?? get().searchMode;
+        const folderIds = get().targetFolderIds;
         // Bug 4修正: 開始時に完全初期化
         set({
             isSearching: true,
@@ -174,7 +183,7 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
         });
 
         try {
-            const result = await window.electronAPI.findDuplicates(nextMode);
+            const result = await window.electronAPI.findDuplicates(nextMode, folderIds.length > 0 ? folderIds : undefined);
             set({
                 groups: result.groups,
                 stats: result.stats,
@@ -320,6 +329,7 @@ export const useDuplicateStore = create<DuplicateState>((set, get) => ({
             isDeleting: false,
             hasSearched: false,
             searchMode: 'exact',
+            targetFolderIds: [],
         });
     },
 

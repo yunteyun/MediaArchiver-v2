@@ -493,7 +493,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     shouldAutoBackup: (profileId: string) => ipcRenderer.invoke('backup:shouldAutoBackup', { profileId }),
 
     // === Duplicate Detection ===
-    findDuplicates: (mode: DuplicateSearchMode = 'exact') => ipcRenderer.invoke('duplicate:find', mode),
+    findDuplicates: (mode: DuplicateSearchMode = 'exact', folderIds?: string[]) => ipcRenderer.invoke('duplicate:find', mode, folderIds),
     cancelDuplicateSearch: () => ipcRenderer.invoke('duplicate:cancel'),
     deleteDuplicateFiles: (fileIds: string[]) => ipcRenderer.invoke('duplicate:deleteFiles', fileIds),
     onDuplicateProgress: (callback: (progress: DuplicateProgress) => void) =>

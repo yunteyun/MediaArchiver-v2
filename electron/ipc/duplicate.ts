@@ -24,7 +24,7 @@ export function registerDuplicateHandlers() {
     /**
      * 重複ファイル検索
      */
-    ipcMain.handle('duplicate:find', async (event: IpcMainInvokeEvent, mode: DuplicateSearchMode = 'exact') => {
+    ipcMain.handle('duplicate:find', async (event: IpcMainInvokeEvent, mode: DuplicateSearchMode = 'exact', folderIds?: string[]) => {
         lastProgressTime = 0;
 
         const groups = await findDuplicates((progress: DuplicateProgress) => {
@@ -39,7 +39,7 @@ export function registerDuplicateHandlers() {
             if (progress.phase === 'complete') {
                 event.sender.send('duplicate:progress', progress);
             }
-        }, mode);
+        }, mode, folderIds);
 
         // 統計情報も計算して返す
         const stats = getDuplicateStats(groups);

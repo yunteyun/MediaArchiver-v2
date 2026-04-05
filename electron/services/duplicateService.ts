@@ -27,7 +27,7 @@ export interface DuplicateGroup {
     size: number;
     sizeMin: number;
     sizeMax: number;
-    matchKind: 'content_hash' | 'archive_content' | SimilarNameMatchKind;
+    matchKind: 'content_hash' | 'archive_content' | 'size_match' | SimilarNameMatchKind;
     matchLabel: string;
     files: MediaFile[];
     count: number;
@@ -44,6 +44,18 @@ export interface DuplicateProgress {
     current: number;
     total: number;
     currentFile?: string;
+}
+
+// --- Helpers ---
+
+function buildFolderFilter(folderIds?: string[]): { clause: string; params: string[] } {
+    if (!folderIds || folderIds.length === 0) {
+        return { clause: '', params: [] };
+    }
+    return {
+        clause: ` AND root_folder_id IN (${folderIds.map(() => '?').join(',')})`,
+        params: folderIds,
+    };
 }
 
 // --- State ---
@@ -66,25 +78,31 @@ export function cancelDuplicateSearch(): void {
 export async function findDuplicates(
     onProgress?: (progress: DuplicateProgress) => void,
     mode: DuplicateSearchMode = 'exact',
+    folderIds?: string[],
 ): Promise<DuplicateGroup[]> {
     if (mode === 'similar_name') {
-        return findSimilarNameDuplicates(onProgress);
+        return findSimilarNameDuplicates(onProgress, folderIds);
     }
-    const exactGroups = await findExactDuplicates(onProgress);
-    const archiveGroups = await findArchiveContentDuplicates(exactGroups, onProgress);
+    if (mode === 'quick') {
+        return findQuickDuplicates(onProgress, folderIds);
+    }
+    const exactGroups = await findExactDuplicates(onProgress, folderIds);
+    const archiveGroups = await findArchiveContentDuplicates(exactGroups, onProgress, folderIds);
     return [...exactGroups, ...archiveGroups].sort((a, b) => b.size - a.size);
 }
 
 async function findExactDuplicates(
-    onProgress?: (progress: DuplicateProgress) => void
+    onProgress?: (progress: DuplicateProgress) => void,
+    folderIds?: string[],
 ): Promise<DuplicateGroup[]> {
     isCancelled = false;
     const db = dbManager.getDb();
+    const { clause: folderWhereClause, params: folderParams } = buildFolderFilter(folderIds);
 
     // デバッグ: 現在のプロファイルとファイル数を確認
     const profileId = dbManager.getCurrentProfileId();
     const totalFileCount = (db.prepare('SELECT COUNT(*) as count FROM files').get() as { count: number }).count;
-    log.info(`[DEBUG] findDuplicates called. profileId=${profileId}, totalFiles=${totalFileCount}`);
+    log.info(`[DEBUG] findDuplicates called. profileId=${profileId}, totalFiles=${totalFileCount}, folderIds=${folderIds?.join(',') ?? 'all'}`);
 
     // Phase 1: サイズ重複グループを抽出（高速）
     log.info('Phase 1: Finding size duplicates...');
@@ -94,17 +112,17 @@ async function findExactDuplicates(
     const exactSizeGroups = db.prepare(`
         SELECT size, COUNT(*) as count
         FROM files
-        WHERE size > 0
+        WHERE size > 0${folderWhereClause}
         GROUP BY size
         HAVING count > 1
         ORDER BY size DESC
-    `).all() as { size: number; count: number }[];
+    `).all(...folderParams) as { size: number; count: number }[];
 
     // 近似サイズグループ: 完全一致グループに含まれないサイズ同士で ±1% 以内のペアを抽出
     const exactSizeSet = new Set(exactSizeGroups.map((g) => g.size));
     const allSizes = (db.prepare(`
-        SELECT DISTINCT size FROM files WHERE size > 0 ORDER BY size DESC
-    `).all() as { size: number }[]).map((r) => r.size);
+        SELECT DISTINCT size FROM files WHERE size > 0${folderWhereClause} ORDER BY size DESC
+    `).all(...folderParams) as { size: number }[]).map((r) => r.size);
 
     const nearSizePairs: { sizeA: number; sizeB: number }[] = [];
     for (let i = 0; i < allSizes.length; i++) {
@@ -139,8 +157,8 @@ async function findExactDuplicates(
 
     // 対象ファイル数を計算
     const nearSizeFileCount = nearSizeGroups.reduce((sum, sizes) => {
-        const count = (db.prepare(`SELECT COUNT(*) as count FROM files WHERE size IN (${sizes.map(() => '?').join(',')})`)
-            .get(...sizes) as { count: number }).count;
+        const count = (db.prepare(`SELECT COUNT(*) as count FROM files WHERE size IN (${sizes.map(() => '?').join(',')})${folderWhereClause}`)
+            .get(...sizes, ...folderParams) as { count: number }).count;
         return sum + count;
     }, 0);
     const totalFilesToHash = exactSizeGroups.reduce((sum, g) => sum + g.count, 0) + nearSizeFileCount;
@@ -156,7 +174,7 @@ async function findExactDuplicates(
                thumbnail_path, preview_frames, root_folder_id,
                content_hash, metadata, mtime_ms, notes
         FROM files
-        WHERE size = ?
+        WHERE size = ?${folderWhereClause}
     `);
 
     const computeHashForFile = async (file: MediaFile): Promise<string | null> => {
@@ -193,7 +211,7 @@ async function findExactDuplicates(
             break;
         }
 
-        const files = selectFilesStmt.all(sizeGroup.size) as MediaFile[];
+        const files = selectFilesStmt.all(sizeGroup.size, ...folderParams) as MediaFile[];
         const hashMap = new Map<string, MediaFile[]>();
 
         for (const file of files) {
@@ -232,7 +250,7 @@ async function findExactDuplicates(
     for (const sizes of nearSizeGroups) {
         if (isCancelled) break;
 
-        const files = sizes.flatMap((size) => selectFilesStmt.all(size) as MediaFile[]);
+        const files = sizes.flatMap((size) => selectFilesStmt.all(size, ...folderParams) as MediaFile[]);
         const hashMap = new Map<string, MediaFile[]>();
 
         for (const file of files) {
@@ -282,8 +300,10 @@ async function findExactDuplicates(
 async function findArchiveContentDuplicates(
     alreadyFoundGroups: DuplicateGroup[],
     onProgress?: (progress: DuplicateProgress) => void,
+    folderIds?: string[],
 ): Promise<DuplicateGroup[]> {
     const db = dbManager.getDb();
+    const { clause: folderWhereClause, params: folderParams } = buildFolderFilter(folderIds);
 
     // exact モードで既に検出済みのファイルIDを収集
     const alreadyFoundIds = new Set(alreadyFoundGroups.flatMap((g) => g.files.map((f) => f.id)));
@@ -294,8 +314,8 @@ async function findArchiveContentDuplicates(
                thumbnail_path, preview_frames, root_folder_id,
                content_hash, metadata, mtime_ms, notes
         FROM files
-        WHERE type = 'archive' AND size > 0
-    `).all() as MediaFile[];
+        WHERE type = 'archive' AND size > 0${folderWhereClause}
+    `).all(...folderParams) as MediaFile[];
 
     const candidates = archiveFiles.filter((f) => !alreadyFoundIds.has(f.id));
     if (candidates.length < 2) return [];
@@ -342,20 +362,90 @@ async function findArchiveContentDuplicates(
     return duplicateGroups;
 }
 
-async function findSimilarNameDuplicates(
-    onProgress?: (progress: DuplicateProgress) => void
+/**
+ * 簡易検索: サイズ完全一致のみで重複候補を出す（ハッシュ計算なし）
+ */
+async function findQuickDuplicates(
+    onProgress?: (progress: DuplicateProgress) => void,
+    folderIds?: string[],
 ): Promise<DuplicateGroup[]> {
     isCancelled = false;
     const db = dbManager.getDb();
 
-    log.info('Similar-name candidate search started');
+    const { clause: folderWhereClause, params: folderParams } = buildFolderFilter(folderIds);
+
+    log.info(`Quick duplicate search started. folderIds=${folderIds?.join(',') ?? 'all'}`);
+    onProgress?.({ phase: 'analyzing', current: 0, total: 0 });
+
+    const sizeGroups = db.prepare(`
+        SELECT size, COUNT(*) as count
+        FROM files
+        WHERE size > 0${folderWhereClause}
+        GROUP BY size
+        HAVING count > 1
+        ORDER BY size DESC
+    `).all(...folderParams) as { size: number; count: number }[];
+
+    if (sizeGroups.length === 0) {
+        onProgress?.({ phase: 'complete', current: 0, total: 0 });
+        return [];
+    }
+
+    const selectFilesStmt = db.prepare(`
+        SELECT id, name, path, size, type, created_at, duration,
+               thumbnail_path, preview_frames, root_folder_id,
+               content_hash, metadata, mtime_ms, notes
+        FROM files
+        WHERE size = ?${folderWhereClause}
+    `);
+
+    const duplicateGroups: DuplicateGroup[] = [];
+    let processed = 0;
+
+    for (const sizeGroup of sizeGroups) {
+        if (isCancelled) break;
+
+        processed++;
+        onProgress?.({ phase: 'analyzing', current: processed, total: sizeGroups.length });
+
+        const files = selectFilesStmt.all(sizeGroup.size, ...folderParams) as MediaFile[];
+        if (files.length < 2) continue;
+
+        duplicateGroups.push({
+            hash: `quick:size:${sizeGroup.size}`,
+            size: sizeGroup.size,
+            sizeMin: sizeGroup.size,
+            sizeMax: sizeGroup.size,
+            matchKind: 'size_match',
+            matchLabel: 'サイズ一致',
+            files: files.map((f) => ({ ...f, tags: [] })),
+            count: files.length,
+        });
+    }
+
+    duplicateGroups.sort((a, b) => b.size - a.size);
+    log.info(`Quick duplicate search found ${duplicateGroups.length} groups`);
+    onProgress?.({ phase: 'complete', current: processed, total: sizeGroups.length });
+
+    return duplicateGroups;
+}
+
+async function findSimilarNameDuplicates(
+    onProgress?: (progress: DuplicateProgress) => void,
+    folderIds?: string[],
+): Promise<DuplicateGroup[]> {
+    isCancelled = false;
+    const db = dbManager.getDb();
+    const { clause: folderWhereClause, params: folderParams } = buildFolderFilter(folderIds);
+
+    log.info(`Similar-name candidate search started. folderIds=${folderIds?.join(',') ?? 'all'}`);
     const files = db.prepare(`
         SELECT id, name, path, size, type, created_at, duration,
                thumbnail_path, preview_frames, root_folder_id,
                content_hash, metadata, mtime_ms, notes
         FROM files
-        WHERE name IS NOT NULL AND name != ''
-    `).all() as MediaFile[];
+        WHERE name IS NOT NULL AND name != ''${folderWhereClause}
+    `).all(...folderParams) as MediaFile[];
 
     onProgress?.({
         phase: 'analyzing',

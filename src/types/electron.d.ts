@@ -450,7 +450,7 @@ declare global {
             onProfileSwitched: (callback: (profileId: string) => void) => () => void;
 
             // Duplicate Detection
-            findDuplicates: (mode?: DuplicateSearchMode) => Promise<{
+            findDuplicates: (mode?: DuplicateSearchMode, folderIds?: string[]) => Promise<{
                 groups: DuplicateGroup[];
                 stats: DuplicateStats;
             }>;
@@ -580,7 +580,7 @@ interface DuplicateGroup {
     size: number;
     sizeMin: number;
     sizeMax: number;
-    matchKind: 'content_hash' | SimilarNameMatchKind;
+    matchKind: 'content_hash' | 'archive_content' | 'size_match' | SimilarNameMatchKind;
     matchLabel: string;
     files: DuplicateFileEntry[];
     count: number;

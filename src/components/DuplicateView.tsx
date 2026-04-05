@@ -2,8 +2,8 @@
  * DuplicateView - 重複ファイルビュー
  */
 
-import React, { useEffect, useCallback, useMemo, startTransition } from 'react';
-import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader, ShieldCheck, AlertTriangle, HardDrive } from 'lucide-react';
+import React, { useEffect, useCallback, useMemo, useState, startTransition } from 'react';
+import { Copy, Trash2, Clock, FolderOpen, CheckSquare, Square, X, Loader, ShieldCheck, AlertTriangle, HardDrive, ChevronDown } from 'lucide-react';
 import {
     DUPLICATE_BULK_ACTION_GROUP_LIMIT,
     useDuplicateStore,
@@ -11,6 +11,7 @@ import {
 } from '../stores/useDuplicateStore';
 import { useUIStore } from '../stores/useUIStore';
 import { toMediaUrl } from '../utils/mediaPath';
+import type { DuplicateSearchMode } from '../shared/duplicateNameCandidates';
 
 // ファイルサイズを人間が読める形式に変換
 function formatFileSize(bytes: number): string {
@@ -111,6 +112,126 @@ function getFolderTone(index: number) {
     return folderTonePalette[index % folderTonePalette.length];
 }
 
+// --- 検索モードボタン（初期画面用） ---
+
+const SearchModeButton: React.FC<{
+    mode: DuplicateSearchMode;
+    label: string;
+    description: string;
+    startSearch: (mode: DuplicateSearchMode) => Promise<void>;
+}> = ({ mode, label, description, startSearch }) => (
+    <button
+        onClick={() => void startSearch(mode)}
+        className="px-5 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex flex-col items-center gap-1 min-w-[140px]"
+    >
+        <span className="text-sm">{label}</span>
+        <span className="text-xs text-surface-400 font-normal">{description}</span>
+    </button>
+);
+
+// --- ヘッダー用モードボタン ---
+
+const HeaderModeButton: React.FC<{
+    label: string;
+    mode: DuplicateSearchMode;
+    currentMode: DuplicateSearchMode;
+    isSearching: boolean;
+    startSearch: (mode: DuplicateSearchMode) => Promise<void>;
+}> = ({ label, mode, currentMode, isSearching, startSearch }) => {
+    const isActive = currentMode === mode;
+    return (
+        <button
+            onClick={() => void startSearch(mode)}
+            disabled={isSearching}
+            className={`px-3 py-1.5 rounded text-sm transition-colors disabled:opacity-50 ${
+                isActive
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-surface-700 hover:bg-surface-600 text-surface-200'
+            }`}
+        >
+            {label}
+        </button>
+    );
+};
+
+// --- フォルダ選択ドロップダウン ---
+
+interface FolderSelectorProps {
+    folders: { id: string; name: string; path: string }[];
+    targetFolderIds: string[];
+    isOpen: boolean;
+    onToggleOpen: () => void;
+    onToggleFolder: (folderId: string) => void;
+    onClear: () => void;
+    label: string;
+    compact?: boolean;
+}
+
+const FolderSelector: React.FC<FolderSelectorProps> = ({
+    folders, targetFolderIds, isOpen, onToggleOpen, onToggleFolder, onClear, label, compact,
+}) => {
+    const ref = React.useRef<HTMLDivElement>(null);
+
+    // 外側クリックで閉じる
+    useEffect(() => {
+        if (!isOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) onToggleOpen();
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [isOpen, onToggleOpen]);
+
+    return (
+        <div ref={ref} className={`relative ${compact ? '' : 'mb-4'}`}>
+            <button
+                type="button"
+                onClick={onToggleOpen}
+                className={`flex items-center gap-1.5 ${
+                    compact
+                        ? 'px-3 py-1.5 text-sm rounded'
+                        : 'px-4 py-2 text-sm rounded-lg'
+                } bg-surface-700 hover:bg-surface-600 text-surface-200 transition-colors`}
+            >
+                <FolderOpen className="w-4 h-4" />
+                <span className="truncate max-w-[200px]">{label}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isOpen && (
+                <div className="absolute z-50 mt-1 left-0 w-72 bg-surface-800 border border-surface-600 rounded-lg shadow-xl py-1 max-h-64 overflow-y-auto">
+                    {targetFolderIds.length > 0 && (
+                        <button
+                            onClick={onClear}
+                            className="w-full text-left px-3 py-1.5 text-xs text-surface-400 hover:bg-surface-700 transition-colors"
+                        >
+                            選択をクリア（全フォルダ対象）
+                        </button>
+                    )}
+                    {folders.map((folder) => {
+                        const isSelected = targetFolderIds.includes(folder.id);
+                        return (
+                            <button
+                                key={folder.id}
+                                onClick={() => onToggleFolder(folder.id)}
+                                className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-surface-700 transition-colors"
+                            >
+                                {isSelected ? (
+                                    <CheckSquare className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                                ) : (
+                                    <Square className="w-4 h-4 text-surface-500 flex-shrink-0" />
+                                )}
+                                <span className={`text-sm truncate ${isSelected ? 'text-surface-100' : 'text-surface-300'}`}>
+                                    {folder.name}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const DuplicateView: React.FC = () => {
     const {
         groups,
@@ -121,9 +242,11 @@ export const DuplicateView: React.FC = () => {
         isDeleting,
         hasSearched,
         searchMode,
+        targetFolderIds,
         startSearch,
         cancelSearch,
         setProgress,
+        setTargetFolderIds,
         selectFile,
         deselectFile,
         selectAcrossGroupsByStrategy,
@@ -137,14 +260,67 @@ export const DuplicateView: React.FC = () => {
 
     const closeDuplicateView = useUIStore((s) => s.closeDuplicateView);
     const isSimilarMode = searchMode === 'similar_name';
+    const isQuickMode = searchMode === 'quick';
 
-    const viewCopy = useMemo(() => ({
-        title: isSimilarMode ? '類似ファイル名候補' : '重複ファイル',
-        emptyTitle: isSimilarMode ? '類似ファイル名候補は見つかりませんでした' : '重複ファイルは見つかりませんでした',
-        idleTitle: isSimilarMode ? '類似ファイル名候補' : '重複ファイル検出',
-        searchingTitle: isSimilarMode ? '類似ファイル名候補を検索中...' : '重複ファイルを検索中...',
-        retryButton: isSimilarMode ? '類似候補を再検索' : '再検索',
-    }), [isSimilarMode]);
+    // フォルダ一覧を取得
+    const [folders, setFolders] = useState<{ id: string; name: string; path: string }[]>([]);
+    const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState(false);
+    useEffect(() => {
+        window.electronAPI.getFolders().then((list) => {
+            setFolders(list.map((f) => ({ id: f.id, name: f.name, path: f.path })));
+        });
+    }, []);
+
+    const toggleFolderSelection = useCallback((folderId: string) => {
+        setTargetFolderIds(
+            targetFolderIds.includes(folderId)
+                ? targetFolderIds.filter((id) => id !== folderId)
+                : [...targetFolderIds, folderId]
+        );
+    }, [targetFolderIds, setTargetFolderIds]);
+
+    const folderFilterLabel = useMemo(() => {
+        if (targetFolderIds.length === 0) return 'すべてのフォルダ';
+        if (targetFolderIds.length === 1) {
+            const folder = folders.find((f) => f.id === targetFolderIds[0]);
+            return folder?.name ?? '1フォルダ';
+        }
+        return `${targetFolderIds.length}フォルダ`;
+    }, [targetFolderIds, folders]);
+
+    const folderSelectorProps = useMemo(() => ({
+        folders,
+        targetFolderIds,
+        isOpen: isFolderDropdownOpen,
+        onToggleOpen: () => setIsFolderDropdownOpen((v) => !v),
+        onToggleFolder: toggleFolderSelection,
+        onClear: () => setTargetFolderIds([]),
+        label: folderFilterLabel,
+    }), [folders, targetFolderIds, isFolderDropdownOpen, toggleFolderSelection, folderFilterLabel, setTargetFolderIds]);
+
+    const showFolderSelector = folders.length >= 2;
+
+    const viewCopy = useMemo(() => {
+        if (isSimilarMode) {
+            return {
+                title: '類似ファイル名候補',
+                emptyTitle: '類似ファイル名候補は見つかりませんでした',
+                searchingTitle: '類似ファイル名候補を検索中...',
+            };
+        }
+        if (isQuickMode) {
+            return {
+                title: 'サイズ一致候補',
+                emptyTitle: 'サイズが一致するファイルは見つかりませんでした',
+                searchingTitle: 'サイズ一致候補を検索中...',
+            };
+        }
+        return {
+            title: '重複ファイル',
+            emptyTitle: '重複ファイルは見つかりませんでした',
+            searchingTitle: '重複ファイルを検索中...',
+        };
+    }, [isSimilarMode, isQuickMode]);
 
     const selectionSummary = useMemo(() => {
         const selectedGroupCount = groups.filter((group) =>
@@ -215,7 +391,9 @@ export const DuplicateView: React.FC = () => {
                     {progress?.phase === 'analyzing' && (
                         isSimilarMode
                             ? `ファイル名候補を分析中...${progress.total ? ` ${progress.current}/${progress.total}` : ''}`
-                            : '同じサイズのファイルを分析中...'
+                            : isQuickMode
+                                ? `サイズ一致グループを分析中...${progress.total ? ` ${progress.current}/${progress.total}` : ''}`
+                                : '同じサイズのファイルを分析中...'
                     )}
                     {progress?.phase === 'hashing' && (
                         <>
@@ -248,8 +426,6 @@ export const DuplicateView: React.FC = () => {
 
     // 検索済みだが重複なし
     if (hasSearched && !isSearching && groups.length === 0) {
-        const alternateMode = isSimilarMode ? 'exact' : 'similar_name';
-        const alternateButtonLabel = isSimilarMode ? '完全一致へ戻る' : '類似候補を試す';
         return (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Copy className="w-16 h-16 text-surface-600 mb-4" />
@@ -257,25 +433,13 @@ export const DuplicateView: React.FC = () => {
                     {viewCopy.emptyTitle}
                 </h2>
                 <p className="text-surface-400 mb-6 text-center max-w-md">
-                    {isSimilarMode
-                        ? 'このプロファイルには名前が近い候補がありません。'
-                        : 'このプロファイルには重複するファイルがありません。'}
+                    別のモードやフォルダ指定で再検索できます。
                 </p>
+                {showFolderSelector && <FolderSelector {...folderSelectorProps} />}
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                    <button
-                        onClick={() => void startSearch(searchMode)}
-                        className="px-6 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                        <Copy className="w-5 h-5" />
-                        {viewCopy.retryButton}
-                    </button>
-                    <button
-                        onClick={() => void startSearch(alternateMode)}
-                        className="px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                        <Copy className="w-5 h-5" />
-                        {alternateButtonLabel}
-                    </button>
+                    <SearchModeButton mode="quick" label="簡易検索" description="サイズ一致のみ（高速）" startSearch={startSearch} />
+                    <SearchModeButton mode="exact" label="完全一致" description="ハッシュ比較（正確）" startSearch={startSearch} />
+                    <SearchModeButton mode="similar_name" label="類似候補" description="ファイル名の類似判定" startSearch={startSearch} />
                 </div>
             </div>
         );
@@ -287,36 +451,17 @@ export const DuplicateView: React.FC = () => {
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface-900">
                 <Copy className="w-16 h-16 text-surface-600 mb-4" />
                 <h2 className="text-xl font-medium text-surface-100 mb-2">
-                    {viewCopy.idleTitle}
+                    重複ファイル検出
                 </h2>
                 <p className="text-surface-400 mb-6 text-center max-w-md">
-                    {isSimilarMode ? (
-                        <>
-                            名前が同じ、または連番違いの近いファイル候補を集めます。<br />
-                            内容一致は保証しないため、サイズや日時を見ながら手動確認してください。
-                        </>
-                    ) : (
-                        <>
-                            同じ内容を持つファイルを検出します。<br />
-                            サイズが同じファイルのみハッシュ値を計算するため、高速に動作します。
-                        </>
-                    )}
+                    同じ内容や類似ファイルを検出します。<br />
+                    検索モードを選んで開始してください。
                 </p>
+                {showFolderSelector && <FolderSelector {...folderSelectorProps} />}
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                    <button
-                        onClick={() => void startSearch('exact')}
-                        className="px-6 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                        <Copy className="w-5 h-5" />
-                        重複チェック開始
-                    </button>
-                    <button
-                        onClick={() => void startSearch('similar_name')}
-                        className="px-6 py-3 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                        <Copy className="w-5 h-5" />
-                        類似候補を検索
-                    </button>
+                    <SearchModeButton mode="quick" label="簡易検索" description="サイズ一致のみ（高速）" startSearch={startSearch} />
+                    <SearchModeButton mode="exact" label="完全一致" description="ハッシュ比較（正確）" startSearch={startSearch} />
+                    <SearchModeButton mode="similar_name" label="類似候補" description="ファイル名の類似判定" startSearch={startSearch} />
                 </div>
             </div>
         );
@@ -341,27 +486,10 @@ export const DuplicateView: React.FC = () => {
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => void startSearch(searchMode)}
-                        disabled={isSearching}
-                        className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
-                    >
-                        {viewCopy.retryButton}
-                    </button>
-                    <button
-                        onClick={() => void startSearch('exact')}
-                        disabled={isSearching || searchMode === 'exact'}
-                        className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
-                    >
-                        完全一致
-                    </button>
-                    <button
-                        onClick={() => void startSearch('similar_name')}
-                        disabled={isSearching || searchMode === 'similar_name'}
-                        className="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 text-surface-200 rounded text-sm transition-colors disabled:opacity-50"
-                    >
-                        類似候補
-                    </button>
+                    {showFolderSelector && <FolderSelector {...folderSelectorProps} compact />}
+                    <HeaderModeButton label="簡易" mode="quick" currentMode={searchMode} isSearching={isSearching} startSearch={startSearch} />
+                    <HeaderModeButton label="完全一致" mode="exact" currentMode={searchMode} isSearching={isSearching} startSearch={startSearch} />
+                    <HeaderModeButton label="類似候補" mode="similar_name" currentMode={searchMode} isSearching={isSearching} startSearch={startSearch} />
                     {groups.length > 0 && (
                         <>
                             <button
