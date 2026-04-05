@@ -73,6 +73,7 @@ interface ProfileScopedSettingsV1 {
         fileCardTagOrderMode: 'balanced' | 'strict';
     };
     defaultExternalApps: Record<string, string>;
+    renameQuickTexts: string[];
     searchDestinations: Array<{
         id: string;
         name: string;

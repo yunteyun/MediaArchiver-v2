@@ -93,6 +93,7 @@ export interface ProfileScopedSettingsV1 {
         fileCardTagOrderMode: FileCardTagOrderMode;
     };
     defaultExternalApps: Record<string, string>;
+    renameQuickTexts: string[];
     searchDestinations: SearchDestination[];
     savedFilterState?: SavedFilterState;
 }
@@ -157,6 +158,7 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
         fileCardTagOrderMode: 'balanced',
     },
     defaultExternalApps: {},
+    renameQuickTexts: [],
     searchDestinations: [
         { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
         { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true, createdAt: 2 },
@@ -419,7 +421,6 @@ interface SettingsState {
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
     scanThrottleMs: number; // スキャン速度抑制（ファイル間待機時間 ms）
     profileFileTypeFilters: FileTypeCategoryFilters;
-    profileSettingsMigrationV1Done: boolean;
     scanExclusionRules: ScanExclusionRules;
     storageMaintenanceSettings: StorageMaintenanceSettings;
 
@@ -496,7 +497,6 @@ interface SettingsState {
     setProfilePreviewFrameCount: (count: number) => void;
     setProfileScanThrottleMs: (ms: number) => void;
     setProfileThumbnailResolution: (resolution: number) => void;
-    setProfileSettingsMigrationV1Done: (done: boolean) => void;
     setShowFileName: (show: boolean) => void;
     setShowDuration: (show: boolean) => void;
     setShowTags: (show: boolean) => void;
@@ -541,6 +541,7 @@ type PersistedSettingsState = Partial<SettingsState> & {
     rightPanelVideoMuted?: boolean;
     cardLayout?: string;
     flipbookSpeed?: FlipbookSpeed;
+    profileSettingsMigrationV1Done?: boolean;
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -564,7 +565,6 @@ export const useSettingsStore = create<SettingsState>()(
             previewFrameCount: DEFAULT_PROFILE_SCOPED_SETTINGS.previewFrameCount,
             scanThrottleMs: DEFAULT_PROFILE_SCOPED_SETTINGS.scanThrottleMs,
             profileFileTypeFilters: { ...DEFAULT_PROFILE_SCOPED_SETTINGS.fileTypeFilters },
-            profileSettingsMigrationV1Done: false,
             scanExclusionRules: { ...DEFAULT_SCAN_EXCLUSION_RULES },
             storageMaintenanceSettings: { ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS },
 
@@ -660,6 +660,7 @@ export const useSettingsStore = create<SettingsState>()(
                 tagDisplayStyle: settings.fileCardSettings?.tagDisplayStyle ?? DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle,
                 fileCardTagOrderMode: settings.fileCardSettings?.fileCardTagOrderMode ?? DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode,
                 defaultExternalApps: settings.defaultExternalApps ?? {},
+                renameQuickTexts: Array.isArray(settings.renameQuickTexts) ? settings.renameQuickTexts : [],
                 searchDestinations: Array.isArray(settings.searchDestinations)
                     ? settings.searchDestinations.map((destination) => normalizeSearchDestination(destination))
                     : DEFAULT_SEARCH_DESTINATIONS,
@@ -691,6 +692,7 @@ export const useSettingsStore = create<SettingsState>()(
                     fileCardTagOrderMode: get().fileCardTagOrderMode,
                 },
                 defaultExternalApps: { ...get().defaultExternalApps },
+                renameQuickTexts: [...get().renameQuickTexts],
                 searchDestinations: get().searchDestinations.map((destination) => ({ ...destination })),
                 savedFilterState: {
                     ...get().savedFilterState,
@@ -701,7 +703,6 @@ export const useSettingsStore = create<SettingsState>()(
             setProfilePreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
             setProfileScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             setProfileThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),
-            setProfileSettingsMigrationV1Done: (profileSettingsMigrationV1Done) => set({ profileSettingsMigrationV1Done }),
             setShowFileName: (showFileName) => set({ showFileName }),
             setShowDuration: (showDuration) => set({ showDuration }),
             setShowTags: (showTags) => set({ showTags }),
@@ -914,6 +915,7 @@ export const useSettingsStore = create<SettingsState>()(
                     rightPanelVideoMuted: _legacyRightPanelVideoMuted,
                     cardLayout: _legacyCardLayout,
                     flipbookSpeed: legacyFlipbookSpeed,
+                    profileSettingsMigrationV1Done: _legacyMigrationDone,
                     ...persistedWithoutLegacyKeys
                 } = typedPersisted ?? {};
                 const persistedDestinations = Array.isArray(typedPersisted?.searchDestinations)

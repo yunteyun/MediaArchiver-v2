@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-    PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE,
     createInitialProfileScopedSettings,
     loadAndApplyProfileScopedSettings,
     resetStateForProfileSwitch,
@@ -10,7 +9,6 @@ import { DEFAULT_RATING_DISPLAY_THRESHOLDS } from '../../shared/ratingDisplayThr
 describe('createInitialProfileScopedSettings', () => {
     it('uses current settings when migration is accepted', () => {
         expect(createInitialProfileScopedSettings({
-            profileSettingsMigrationV1Done: false,
             previewFrameCount: 14,
             scanThrottleMs: 100,
             thumbnailResolution: 440,
@@ -31,6 +29,7 @@ describe('createInitialProfileScopedSettings', () => {
             tagDisplayStyle: 'border',
             fileCardTagOrderMode: 'strict',
             defaultExternalApps: { mp4: 'player' },
+            renameQuickTexts: ['test'],
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
@@ -71,6 +70,7 @@ describe('createInitialProfileScopedSettings', () => {
                 fileCardTagOrderMode: 'strict',
             },
             defaultExternalApps: { mp4: 'player' },
+            renameQuickTexts: ['test'],
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
@@ -85,7 +85,6 @@ describe('createInitialProfileScopedSettings', () => {
 
     it('falls back to defaults when migration is skipped', () => {
         expect(createInitialProfileScopedSettings({
-            profileSettingsMigrationV1Done: false,
             previewFrameCount: 18,
             scanThrottleMs: 200,
             thumbnailResolution: 480,
@@ -106,6 +105,7 @@ describe('createInitialProfileScopedSettings', () => {
             tagDisplayStyle: 'border',
             fileCardTagOrderMode: 'strict',
             defaultExternalApps: { mp4: 'player' },
+            renameQuickTexts: ['test'],
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
             ],
@@ -146,6 +146,7 @@ describe('createInitialProfileScopedSettings', () => {
                 fileCardTagOrderMode: 'balanced',
             },
             defaultExternalApps: {},
+            renameQuickTexts: [],
             searchDestinations: [
                 { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
                 { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true, createdAt: 2 },
@@ -165,87 +166,52 @@ describe('createInitialProfileScopedSettings', () => {
 });
 
 describe('loadAndApplyProfileScopedSettings', () => {
-    it('migrates missing profile settings and applies them', async () => {
+    it('initializes missing profile settings with defaults and applies them', async () => {
+        const defaultSettings = {
+            fileTypeFilters: { video: true, image: true, archive: true, audio: true },
+            previewFrameCount: 9,
+            scanThrottleMs: 0,
+            thumbnailResolution: 320,
+            ratingDisplayThresholds: { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
+            listDisplayDefaults: {
+                sortBy: 'date' as const,
+                sortOrder: 'desc' as const,
+                groupBy: 'none' as const,
+                dateGroupingMode: 'auto' as const,
+                defaultSearchTarget: 'fileName' as const,
+                activeDisplayPresetId: 'standard',
+                displayMode: 'standard' as const,
+                thumbnailPresentation: 'modeDefault' as const,
+            },
+            fileCardSettings: {
+                showFileName: true,
+                showDuration: true,
+                showTags: true,
+                showFileSize: true,
+                tagPopoverTrigger: 'click' as const,
+                tagDisplayStyle: 'filled' as const,
+                fileCardTagOrderMode: 'balanced' as const,
+            },
+            defaultExternalApps: {},
+            renameQuickTexts: [] as string[],
+            searchDestinations: [],
+            savedFilterState: {
+                searchQuery: '',
+                searchTarget: 'fileName' as const,
+                ratingQuickFilter: 'none' as const,
+                selectedFileTypes: ['video' as const, 'image' as const, 'archive' as const, 'audio' as const],
+            },
+        };
         const fetchSettings = vi.fn().mockResolvedValue({
             exists: false,
-            settings: {
-                fileTypeFilters: { video: true, image: true, archive: true, audio: true },
-                previewFrameCount: 9,
-                scanThrottleMs: 0,
-                thumbnailResolution: 320,
-                ratingDisplayThresholds: { ...DEFAULT_RATING_DISPLAY_THRESHOLDS },
-                listDisplayDefaults: {
-                    sortBy: 'date',
-                    sortOrder: 'desc',
-                    groupBy: 'none',
-                    dateGroupingMode: 'auto',
-                    defaultSearchTarget: 'fileName',
-                    activeDisplayPresetId: 'standard',
-                    displayMode: 'standard',
-                    thumbnailPresentation: 'modeDefault',
-                },
-                fileCardSettings: {
-                    showFileName: true,
-                    showDuration: true,
-                    showTags: true,
-                    showFileSize: true,
-                    tagPopoverTrigger: 'click',
-                    tagDisplayStyle: 'filled',
-                    fileCardTagOrderMode: 'balanced',
-                },
-                defaultExternalApps: {},
-                searchDestinations: [],
-                savedFilterState: {
-                    searchQuery: '',
-                    searchTarget: 'fileName',
-                    ratingQuickFilter: 'none',
-                    selectedFileTypes: ['video', 'image', 'archive', 'audio'],
-                },
-            },
+            settings: defaultSettings,
         });
         const replaceSettings = vi.fn().mockResolvedValue({
             exists: true,
-            settings: {
-                fileTypeFilters: { video: true, image: true, archive: true, audio: true },
-                previewFrameCount: 14,
-                scanThrottleMs: 100,
-                thumbnailResolution: 440,
-                ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
-                listDisplayDefaults: {
-                    sortBy: 'name',
-                    sortOrder: 'asc',
-                    groupBy: 'type',
-                    dateGroupingMode: 'week',
-                    defaultSearchTarget: 'folderName',
-                    activeDisplayPresetId: 'compact',
-                    displayMode: 'compact',
-                    thumbnailPresentation: 'contain',
-                },
-                fileCardSettings: {
-                    showFileName: false,
-                    showDuration: false,
-                    showTags: true,
-                    showFileSize: false,
-                    tagPopoverTrigger: 'hover',
-                    tagDisplayStyle: 'border',
-                    fileCardTagOrderMode: 'strict',
-                },
-                defaultExternalApps: { mp4: 'player' },
-                searchDestinations: [
-                    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
-                ],
-                savedFilterState: {
-                    searchQuery: 'hero',
-                    searchTarget: 'folderName',
-                    ratingQuickFilter: 'midOrAbove',
-                    selectedFileTypes: ['image'],
-                },
-            },
+            settings: defaultSettings,
         });
         const applySettings = vi.fn();
         const syncSettings = vi.fn().mockResolvedValue(undefined);
-        const confirmMigration = vi.fn().mockReturnValue(true);
-        const markMigrationDone = vi.fn();
 
         let currentSequence = 0;
         await loadAndApplyProfileScopedSettings({
@@ -254,7 +220,6 @@ describe('loadAndApplyProfileScopedSettings', () => {
             nextSequence: () => ++currentSequence,
             isCurrentSequence: (sequence) => sequence === currentSequence,
             getSettingsSnapshot: () => ({
-                profileSettingsMigrationV1Done: false,
                 previewFrameCount: 14,
                 scanThrottleMs: 100,
                 thumbnailResolution: 440,
@@ -275,98 +240,25 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 tagDisplayStyle: 'border',
                 fileCardTagOrderMode: 'strict',
                 defaultExternalApps: { mp4: 'player' },
+                renameQuickTexts: ['test'],
                 searchDestinations: [
-                    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+                    { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search' as const, enabled: true, createdAt: 1 },
                 ],
                 savedFilterState: {
                     searchQuery: 'hero',
                     searchTarget: 'folderName',
-                    ratingQuickFilter: 'midOrAbove',
-                    selectedFileTypes: ['image'],
+                    ratingQuickFilter: 'midOrAbove' as const,
+                    selectedFileTypes: ['image' as const],
                 },
             }),
             fetchSettings,
             replaceSettings,
-            markMigrationDone,
-            confirmMigration,
             applySettings,
             syncSettings,
         });
 
-        expect(confirmMigration).toHaveBeenCalledWith(PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE);
-        expect(replaceSettings).toHaveBeenCalledWith({
-            fileTypeFilters: { video: true, image: true, archive: true, audio: true },
-            previewFrameCount: 14,
-            scanThrottleMs: 100,
-            thumbnailResolution: 440,
-            ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
-            listDisplayDefaults: {
-                sortBy: 'name',
-                sortOrder: 'asc',
-                groupBy: 'type',
-                dateGroupingMode: 'week',
-                defaultSearchTarget: 'folderName',
-                activeDisplayPresetId: 'compact',
-                displayMode: 'compact',
-                thumbnailPresentation: 'contain',
-            },
-            fileCardSettings: {
-                showFileName: false,
-                showDuration: false,
-                showTags: true,
-                showFileSize: false,
-                tagPopoverTrigger: 'hover',
-                tagDisplayStyle: 'border',
-                fileCardTagOrderMode: 'strict',
-            },
-            defaultExternalApps: { mp4: 'player' },
-            searchDestinations: [
-                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
-            ],
-            savedFilterState: {
-                searchQuery: 'hero',
-                searchTarget: 'folderName',
-                ratingQuickFilter: 'midOrAbove',
-                selectedFileTypes: ['image'],
-            },
-        });
-        expect(markMigrationDone).toHaveBeenCalledWith(true);
-        expect(applySettings).toHaveBeenCalledWith({
-            fileTypeFilters: { video: true, image: true, archive: true, audio: true },
-            previewFrameCount: 14,
-            scanThrottleMs: 100,
-            thumbnailResolution: 440,
-            ratingDisplayThresholds: { mid: 2.5, high: 4.2 },
-            listDisplayDefaults: {
-                sortBy: 'name',
-                sortOrder: 'asc',
-                groupBy: 'type',
-                dateGroupingMode: 'week',
-                defaultSearchTarget: 'folderName',
-                activeDisplayPresetId: 'compact',
-                displayMode: 'compact',
-                thumbnailPresentation: 'contain',
-            },
-            fileCardSettings: {
-                showFileName: false,
-                showDuration: false,
-                showTags: true,
-                showFileSize: false,
-                tagPopoverTrigger: 'hover',
-                tagDisplayStyle: 'border',
-                fileCardTagOrderMode: 'strict',
-            },
-            defaultExternalApps: { mp4: 'player' },
-            searchDestinations: [
-                { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
-            ],
-            savedFilterState: {
-                searchQuery: 'hero',
-                searchTarget: 'folderName',
-                ratingQuickFilter: 'midOrAbove',
-                selectedFileTypes: ['image'],
-            },
-        });
+        expect(replaceSettings).toHaveBeenCalledTimes(1);
+        expect(applySettings).toHaveBeenCalledTimes(1);
         expect(syncSettings).toHaveBeenCalledTimes(1);
     });
 
@@ -381,7 +273,6 @@ describe('loadAndApplyProfileScopedSettings', () => {
             nextSequence: () => ++currentSequence,
             isCurrentSequence: () => false,
             getSettingsSnapshot: () => ({
-                profileSettingsMigrationV1Done: true,
                 previewFrameCount: 10,
                 scanThrottleMs: 0,
                 thumbnailResolution: 320,
@@ -402,6 +293,7 @@ describe('loadAndApplyProfileScopedSettings', () => {
                 tagDisplayStyle: 'filled',
                 fileCardTagOrderMode: 'balanced',
                 defaultExternalApps: {},
+                renameQuickTexts: [],
                 searchDestinations: [],
                 savedFilterState: {
                     searchQuery: '',
@@ -419,39 +311,38 @@ describe('loadAndApplyProfileScopedSettings', () => {
                     thumbnailResolution: 280,
                     ratingDisplayThresholds: { mid: 2.8, high: 4.4 },
                     listDisplayDefaults: {
-                        sortBy: 'name',
-                        sortOrder: 'asc',
-                        groupBy: 'type',
-                        dateGroupingMode: 'week',
-                        defaultSearchTarget: 'folderName',
+                        sortBy: 'name' as const,
+                        sortOrder: 'asc' as const,
+                        groupBy: 'type' as const,
+                        dateGroupingMode: 'week' as const,
+                        defaultSearchTarget: 'folderName' as const,
                         activeDisplayPresetId: 'compact',
-                        displayMode: 'compact',
-                        thumbnailPresentation: 'contain',
+                        displayMode: 'compact' as const,
+                        thumbnailPresentation: 'contain' as const,
                     },
                     fileCardSettings: {
                         showFileName: false,
                         showDuration: false,
                         showTags: true,
                         showFileSize: false,
-                        tagPopoverTrigger: 'hover',
-                        tagDisplayStyle: 'border',
-                        fileCardTagOrderMode: 'strict',
+                        tagPopoverTrigger: 'hover' as const,
+                        tagDisplayStyle: 'border' as const,
+                        fileCardTagOrderMode: 'strict' as const,
                     },
                     defaultExternalApps: { mp4: 'player' },
+                    renameQuickTexts: ['test'],
                     searchDestinations: [
-                        { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
+                        { id: 'filename-google', name: 'Google', type: 'filename' as const, url: 'https://www.google.com/search?q={query}', icon: 'search' as const, enabled: true, createdAt: 1 },
                     ],
                     savedFilterState: {
                         searchQuery: 'hero',
-                        searchTarget: 'folderName',
-                        ratingQuickFilter: 'midOrAbove',
-                        selectedFileTypes: ['image'],
+                        searchTarget: 'folderName' as const,
+                        ratingQuickFilter: 'midOrAbove' as const,
+                        selectedFileTypes: ['image' as const],
                     },
                 },
             }),
             replaceSettings: vi.fn(),
-            markMigrationDone: vi.fn(),
-            confirmMigration: vi.fn(),
             applySettings,
             syncSettings,
         });

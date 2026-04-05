@@ -2,13 +2,7 @@ import { DEFAULT_PROFILE_FILE_TYPE_FILTERS, type ProfileScopedSettingsV1 } from 
 import type { MediaFile } from '../types/file';
 import { DEFAULT_RATING_DISPLAY_THRESHOLDS } from '../shared/ratingDisplayThresholds';
 
-export const PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE =
-    'プロファイル別スキャン設定の初回移行を行います。\n\n' +
-    'OK: 現在のプレビューフレーム数を引き継ぐ\n' +
-    'キャンセル: 既定値で開始する';
-
 export interface ProfileSettingsStoreSnapshot {
-    profileSettingsMigrationV1Done: boolean;
     previewFrameCount: number;
     scanThrottleMs: number;
     thumbnailResolution: number;
@@ -29,6 +23,7 @@ export interface ProfileSettingsStoreSnapshot {
     tagDisplayStyle: ProfileScopedSettingsV1['fileCardSettings']['tagDisplayStyle'];
     fileCardTagOrderMode: ProfileScopedSettingsV1['fileCardSettings']['fileCardTagOrderMode'];
     defaultExternalApps: Record<string, string>;
+    renameQuickTexts: string[];
     searchDestinations: ProfileScopedSettingsV1['searchDestinations'];
     savedFilterState: NonNullable<ProfileScopedSettingsV1['savedFilterState']>;
 }
@@ -46,8 +41,6 @@ export interface LoadAndApplyProfileScopedSettingsParams {
     getSettingsSnapshot: () => ProfileSettingsStoreSnapshot;
     fetchSettings: () => Promise<ProfileScopedSettingsResponse>;
     replaceSettings: (settings: ProfileScopedSettingsV1) => Promise<ProfileScopedSettingsResponse>;
-    markMigrationDone: (done: boolean) => void;
-    confirmMigration: (message: string) => boolean;
     applySettings: (settings: ProfileScopedSettingsV1) => void;
     syncSettings: (settings: ProfileScopedSettingsV1) => Promise<void>;
     onError?: (error: unknown) => void;
@@ -114,6 +107,7 @@ export function createInitialProfileScopedSettings(
             fileCardTagOrderMode: 'balanced',
         },
         defaultExternalApps: shouldMigrate ? { ...snapshot.defaultExternalApps } : {},
+        renameQuickTexts: shouldMigrate ? [...snapshot.renameQuickTexts] : [],
         searchDestinations: shouldMigrate
             ? snapshot.searchDestinations.map((destination) => ({ ...destination }))
             : [
@@ -149,8 +143,6 @@ export async function loadAndApplyProfileScopedSettings(
         getSettingsSnapshot,
         fetchSettings,
         replaceSettings,
-        markMigrationDone,
-        confirmMigration,
         applySettings,
         syncSettings,
         onError,
@@ -165,14 +157,7 @@ export async function loadAndApplyProfileScopedSettings(
         let response = await fetchSettings();
 
         if (!response.exists) {
-            let initialSettings = response.settings;
-
-            if (!snapshot.profileSettingsMigrationV1Done) {
-                const shouldMigrate = confirmMigration(PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE);
-                initialSettings = createInitialProfileScopedSettings(snapshot, shouldMigrate);
-                markMigrationDone(true);
-            }
-
+            const initialSettings = createInitialProfileScopedSettings(snapshot, false);
             response = await replaceSettings(initialSettings);
         }
 

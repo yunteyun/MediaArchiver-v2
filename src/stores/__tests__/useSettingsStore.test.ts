@@ -28,7 +28,6 @@ function resetSettingsStore() {
         previewFrameCount: 10,
         scanThrottleMs: 0,
         profileFileTypeFilters: { video: true, image: true, archive: true, audio: true },
-        profileSettingsMigrationV1Done: false,
         scanExclusionRules: { ...DEFAULT_SCAN_EXCLUSION_RULES },
         storageMaintenanceSettings: { ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS },
         thumbnailResolution: 320,

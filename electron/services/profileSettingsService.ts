@@ -56,6 +56,7 @@ export interface ProfileScopedSettingsV1 {
         fileCardTagOrderMode: 'balanced' | 'strict';
     };
     defaultExternalApps: Record<string, string>;
+    renameQuickTexts: string[];
     searchDestinations: Array<{
         id: string;
         name: string;
@@ -113,6 +114,7 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS_V1: ProfileScopedSettingsV1 = {
         fileCardTagOrderMode: 'balanced',
     },
     defaultExternalApps: {},
+    renameQuickTexts: [],
     searchDestinations: [
         { id: 'filename-google', name: 'Google', type: 'filename', url: 'https://www.google.com/search?q={query}', icon: 'search', enabled: true, createdAt: 1 },
         { id: 'filename-duckduckgo', name: 'DuckDuckGo', type: 'filename', url: 'https://duckduckgo.com/?q={query}', icon: 'globe', enabled: true, createdAt: 2 },
@@ -248,6 +250,9 @@ function normalizeProfileScopedSettingsV1(input: unknown): ProfileScopedSettings
                 .filter(([extension, appId]) => typeof extension === 'string' && typeof appId === 'string' && extension.trim().length > 0 && appId.trim().length > 0)
                 .map(([extension, appId]) => [extension.replace(/^\./, '').toLowerCase(), appId.trim()])
         ),
+        renameQuickTexts: Array.isArray(candidate.renameQuickTexts)
+            ? candidate.renameQuickTexts.filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+            : [],
         searchDestinations: rawSearchDestinations
             .map((destination) => {
                 if (!destination || typeof destination !== 'object') return null;

@@ -18,7 +18,6 @@ import { useDisplayPresetStore } from './stores/useDisplayPresetStore';
 import {
     loadAndApplyProfileScopedSettings,
     resetStateForProfileSwitch,
-    PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE,
 } from './utils/profileLifecycle';
 import { lazyWithPerf } from './utils/lazyWithPerf';
 import { completeUiPerfTrace, initializePerfDebugFlags, syncPerfDebugToMain } from './utils/perfDebug';
@@ -172,7 +171,6 @@ function App() {
             getSettingsSnapshot: () => {
                 const settings = useSettingsStore.getState();
                 return {
-                    profileSettingsMigrationV1Done: settings.profileSettingsMigrationV1Done,
                     previewFrameCount: settings.previewFrameCount,
                     scanThrottleMs: settings.scanThrottleMs,
                     thumbnailResolution: settings.thumbnailResolution,
@@ -193,14 +191,13 @@ function App() {
                     tagDisplayStyle: settings.tagDisplayStyle,
                     fileCardTagOrderMode: settings.fileCardTagOrderMode,
                     defaultExternalApps: settings.defaultExternalApps,
+                    renameQuickTexts: settings.renameQuickTexts,
                     searchDestinations: settings.searchDestinations,
                     savedFilterState: settings.savedFilterState,
                 };
             },
             fetchSettings: () => window.electronAPI.getProfileScopedSettings(),
             replaceSettings: (settings) => window.electronAPI.replaceProfileScopedSettings(settings),
-            markMigrationDone: (done) => useSettingsStore.getState().setProfileSettingsMigrationV1Done(done),
-            confirmMigration: (message) => window.confirm(message || PROFILE_SETTINGS_MIGRATION_CONFIRM_MESSAGE),
             applySettings: (settings) => useSettingsStore.getState().applyProfileScopedSettings(settings),
             syncSettings: syncProfileScopedSettingsToRuntime,
             onError: (error) => {
