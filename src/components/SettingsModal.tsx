@@ -66,6 +66,9 @@ export const SettingsModal = React.memo(() => {
     const setRightPanelVideoPreviewMode = useSettingsStore((s) => s.setRightPanelVideoPreviewMode);
     const rightPanelVideoJumpInterval = useSettingsStore((s) => s.rightPanelVideoJumpInterval);
     const setRightPanelVideoJumpInterval = useSettingsStore((s) => s.setRightPanelVideoJumpInterval);
+    const rightPanelPreviewPosition = useSettingsStore((s) => s.rightPanelPreviewPosition);
+    const setRightPanelPreviewPosition = useSettingsStore((s) => s.setRightPanelPreviewPosition);
+    const setFloatingPreviewPosition = useSettingsStore((s) => s.setFloatingPreviewPosition);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
     const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
@@ -528,7 +531,12 @@ export const SettingsModal = React.memo(() => {
     const handleResetRightPanelPreviewSettings = useCallback(() => {
         setRightPanelVideoPreviewMode(DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoPreviewMode);
         setRightPanelVideoJumpInterval(DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoJumpInterval);
-    }, [setRightPanelVideoJumpInterval, setRightPanelVideoPreviewMode]);
+        setRightPanelPreviewPosition(DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelPreviewPosition);
+        setFloatingPreviewPosition(
+            DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.floatingPreviewX,
+            DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.floatingPreviewY,
+        );
+    }, [setRightPanelVideoJumpInterval, setRightPanelVideoPreviewMode, setRightPanelPreviewPosition, setFloatingPreviewPosition]);
 
     const handleResetRatingDisplaySettings = useCallback(() => {
         const defaults = DEFAULT_PROFILE_SCOPED_SETTINGS.ratingDisplayThresholds;
@@ -728,6 +736,8 @@ export const SettingsModal = React.memo(() => {
                                 onRightPanelVideoPreviewModeChange={setRightPanelVideoPreviewMode}
                                 rightPanelVideoJumpInterval={rightPanelVideoJumpInterval}
                                 onRightPanelVideoJumpIntervalChange={setRightPanelVideoJumpInterval}
+                                rightPanelPreviewPosition={rightPanelPreviewPosition}
+                                onRightPanelPreviewPositionChange={setRightPanelPreviewPosition}
                                 onResetProfileThumbnailSettings={() => { void handleResetProfileThumbnailSettings(); }}
                                 onResetThumbnailBehaviorSettings={handleResetThumbnailBehaviorSettings}
                                 onResetRightPanelPreviewSettings={handleResetRightPanelPreviewSettings}

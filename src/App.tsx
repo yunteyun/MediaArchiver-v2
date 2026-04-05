@@ -44,6 +44,7 @@ const DeleteConfirmDialog = lazyWithPerf('delete-confirm-dialog', () => import('
 const RenameFileDialog = lazyWithPerf('rename-file-dialog', () => import('./components/RenameFileDialog').then((module) => ({ default: module.RenameFileDialog })));
 const MoveFolderDialog = lazyWithPerf('move-folder-dialog', () => import('./components/MoveFolderDialog').then((module) => ({ default: module.MoveFolderDialog })));
 const CenterViewerRoot = lazyWithPerf('center-viewer', () => import('./features/center-viewer/CenterViewerRoot').then((module) => ({ default: module.CenterViewerRoot })));
+const FloatingPreview = lazyWithPerf('floating-preview', () => import('./components/RightPanel/FloatingPreview').then((module) => ({ default: module.FloatingPreview })));
 
 function MainViewLoading({ label }: { label: string }) {
     return (
@@ -85,6 +86,7 @@ function App() {
     const settingsModalOpen = useUIStore((s) => s.settingsModalOpen);
     const lightboxFile = useUIStore((s) => s.lightboxFile);
     const externalApps = useSettingsStore((s) => s.externalApps);
+    const rightPanelPreviewPosition = useSettingsStore((s) => s.rightPanelPreviewPosition);
     const deleteDialogOpen = useUIStore((s) => s.deleteDialogOpen);
     const deleteDialogFilePaths = useUIStore((s) => s.deleteDialogFilePaths);
     const deleteDialogFileIds = useUIStore((s) => s.deleteDialogFileIds);
@@ -651,6 +653,11 @@ function App() {
                         isOpen={profileModalOpen}
                         onClose={() => setProfileModalOpen(false)}
                     />
+                </Suspense>
+            )}
+            {rightPanelPreviewPosition === 'floating' && (
+                <Suspense fallback={null}>
+                    <FloatingPreview />
                 </Suspense>
             )}
             <ScanProgressBar onCancel={handleCancelScan} />

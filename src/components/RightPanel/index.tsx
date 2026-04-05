@@ -1,7 +1,7 @@
 import React from 'react';
-import { useFileStore } from '../../stores/useFileStore';
 import { useProfileStore } from '../../stores/useProfileStore';
-import { useUIStore } from '../../stores/useUIStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
+import { useActiveFile } from '../../hooks/useActiveFile';
 import { FileHeaderSection } from './FileHeaderSection';
 import { PreviewSection } from './PreviewSection';
 import { EditMetaSection } from './EditMetaSection';
@@ -12,16 +12,11 @@ import type { MediaFolder } from '../../types/file';
 import { completeUiPerfTrace } from '../../utils/perfDebug';
 
 export const RightPanel: React.FC = () => {
-    const focusedId = useFileStore((s) => s.focusedId);
-    const fileMap = useFileStore((s) => s.fileMap);
+    const file = useActiveFile();
     const activeProfileId = useProfileStore((s) => s.activeProfileId);
-    const lightboxFile = useUIStore((s) => s.lightboxFile);
+    const rightPanelPreviewPosition = useSettingsStore((s) => s.rightPanelPreviewPosition);
     const [folderPathById, setFolderPathById] = React.useState<Map<string, string>>(new Map());
 
-    // 中央カラム内ビューア表示中は、そのファイルを優先して右パネルへ表示する
-    const file = lightboxFile
-        ? (fileMap.get(lightboxFile.id) ?? lightboxFile)
-        : (focusedId ? fileMap.get(focusedId) : undefined);
     const rootFolderPath = file?.rootFolderId ? (folderPathById.get(file.rootFolderId) ?? null) : null;
 
     React.useEffect(() => {
@@ -59,16 +54,15 @@ export const RightPanel: React.FC = () => {
     return (
         <aside className="w-[280px] shrink-0 h-full flex flex-col bg-surface-900 border-l border-surface-700 overflow-hidden">
             {file ? (
-                <>
-                    <div className="flex-1 overflow-y-auto">
-                        <PreviewSection file={file} />
-                        <FileHeaderSection file={file} />
-                        <EditMetaSection file={file} />
-                        <MemoSection file={file} />
-                        <ArchivePreviewSection file={file} />
-                        <BasicInfoSection file={file} rootFolderPath={rootFolderPath} />
-                    </div>
-                </>
+                <div className="flex-1 overflow-y-auto">
+                    {rightPanelPreviewPosition === 'top' && <PreviewSection file={file} />}
+                    <FileHeaderSection file={file} />
+                    <EditMetaSection file={file} />
+                    <MemoSection file={file} />
+                    <ArchivePreviewSection file={file} />
+                    <BasicInfoSection file={file} rootFolderPath={rootFolderPath} />
+                    {rightPanelPreviewPosition === 'bottom' && <PreviewSection file={file} />}
+                </div>
             ) : (
                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-surface-500 px-6 text-center">
                     <svg className="w-12 h-12 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">

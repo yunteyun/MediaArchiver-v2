@@ -5,6 +5,7 @@ import type {
     FlipbookSpeed,
     PlayModeJumpInterval,
     PlayModeJumpType,
+    RightPanelPreviewPosition,
     RightPanelVideoPreviewMode,
     ThumbnailAction,
 } from '../../stores/useSettingsStore';
@@ -35,6 +36,8 @@ interface ThumbnailsSettingsTabProps {
     onRightPanelVideoPreviewModeChange: (value: RightPanelVideoPreviewMode) => void;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
     onRightPanelVideoJumpIntervalChange: (value: PlayModeJumpInterval) => void;
+    rightPanelPreviewPosition: RightPanelPreviewPosition;
+    onRightPanelPreviewPositionChange: (value: RightPanelPreviewPosition) => void;
     onResetProfileThumbnailSettings: () => void;
     onResetThumbnailBehaviorSettings: () => void;
     onResetRightPanelPreviewSettings: () => void;
@@ -62,6 +65,8 @@ export const ThumbnailsSettingsTab = React.memo(({
     onRightPanelVideoPreviewModeChange,
     rightPanelVideoJumpInterval,
     onRightPanelVideoJumpIntervalChange,
+    rightPanelPreviewPosition,
+    onRightPanelPreviewPositionChange,
     onResetProfileThumbnailSettings,
     onResetThumbnailBehaviorSettings,
     onResetRightPanelPreviewSettings,
@@ -350,6 +355,23 @@ export const ThumbnailsSettingsTab = React.memo(({
                         </select>
                     </div>
                 )}
+                <div>
+                    <label className="block text-sm font-medium text-surface-300 mb-1">
+                        プレビュー表示位置
+                    </label>
+                    <select
+                        value={rightPanelPreviewPosition}
+                        onChange={(e) => onRightPanelPreviewPositionChange(e.target.value as RightPanelPreviewPosition)}
+                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
+                    >
+                        <option value="top">上（既定）</option>
+                        <option value="bottom">下</option>
+                        <option value="floating">フローティング</option>
+                    </select>
+                    <p className="text-xs text-surface-500 mt-1">
+                        フローティングにすると画面上の好きな場所にドラッグして配置できます。
+                    </p>
+                </div>
         </SettingsSection>
     </div>
     );

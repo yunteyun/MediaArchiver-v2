@@ -48,6 +48,7 @@ export type FileTypeCategory = 'video' | 'image' | 'archive' | 'audio';
 export type FlipbookSpeed = 'slow' | 'normal' | 'fast';
 export type AnimatedImagePreviewMode = 'off' | 'hover' | 'visible';
 export type RightPanelVideoPreviewMode = 'loop' | 'long' | 'off';
+export type RightPanelPreviewPosition = 'top' | 'bottom' | 'floating';
 export type ThumbnailAction = 'scrub' | 'flipbook' | 'play';
 export type ArchiveThumbnailAction = 'off' | 'flipbook';
 export type PlayModeJumpType = 'light' | 'random' | 'sequential';
@@ -196,6 +197,9 @@ export const DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS = {
     rightPanelVideoMuted: true,
     rightPanelVideoPreviewMode: 'loop' as RightPanelVideoPreviewMode,
     rightPanelVideoJumpInterval: 2000 as PlayModeJumpInterval,
+    rightPanelPreviewPosition: 'top' as RightPanelPreviewPosition,
+    floatingPreviewX: 80,
+    floatingPreviewY: 80,
 };
 
 function normalizeStorageMaintenanceSettings(input: unknown): StorageMaintenanceSettings {
@@ -411,6 +415,9 @@ interface SettingsState {
     rightPanelVideoMuted: boolean;
     rightPanelVideoPreviewMode: RightPanelVideoPreviewMode;
     rightPanelVideoJumpInterval: PlayModeJumpInterval;
+    rightPanelPreviewPosition: RightPanelPreviewPosition;
+    floatingPreviewX: number;
+    floatingPreviewY: number;
     sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating'; // Phase 17: アクセストラッキング
     sortOrder: 'asc' | 'desc';
     defaultSearchTarget: SearchTarget;
@@ -478,6 +485,8 @@ interface SettingsState {
     setRightPanelVideoMuted: (muted: boolean) => void;
     setRightPanelVideoPreviewMode: (mode: RightPanelVideoPreviewMode) => void;
     setRightPanelVideoJumpInterval: (interval: PlayModeJumpInterval) => void;
+    setRightPanelPreviewPosition: (position: RightPanelPreviewPosition) => void;
+    setFloatingPreviewPosition: (x: number, y: number) => void;
     setSortBy: (sortBy: 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating') => void;
     setSortOrder: (sortOrder: 'asc' | 'desc') => void;
     setDefaultSearchTarget: (target: SearchTarget) => void;
@@ -555,6 +564,9 @@ export const useSettingsStore = create<SettingsState>()(
             rightPanelVideoMuted: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoMuted,
             rightPanelVideoPreviewMode: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoPreviewMode,
             rightPanelVideoJumpInterval: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelVideoJumpInterval,
+            rightPanelPreviewPosition: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.rightPanelPreviewPosition,
+            floatingPreviewX: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.floatingPreviewX,
+            floatingPreviewY: DEFAULT_RIGHT_PANEL_PREVIEW_SETTINGS.floatingPreviewY,
             sortBy: DEFAULT_LIST_DISPLAY_SETTINGS.sortBy,
             sortOrder: DEFAULT_LIST_DISPLAY_SETTINGS.sortOrder,
             defaultSearchTarget: DEFAULT_LIST_DISPLAY_SETTINGS.defaultSearchTarget,
@@ -617,6 +629,8 @@ export const useSettingsStore = create<SettingsState>()(
             setRightPanelVideoMuted: (rightPanelVideoMuted) => set({ rightPanelVideoMuted }),
             setRightPanelVideoPreviewMode: (rightPanelVideoPreviewMode) => set({ rightPanelVideoPreviewMode }),
             setRightPanelVideoJumpInterval: (rightPanelVideoJumpInterval) => set({ rightPanelVideoJumpInterval }),
+            setRightPanelPreviewPosition: (rightPanelPreviewPosition) => set({ rightPanelPreviewPosition }),
+            setFloatingPreviewPosition: (floatingPreviewX, floatingPreviewY) => set({ floatingPreviewX, floatingPreviewY }),
             setSortBy: (sortBy) => set({ sortBy }),
             setSortOrder: (sortOrder) => set({ sortOrder }),
             setDefaultSearchTarget: (defaultSearchTarget) => set({ defaultSearchTarget }),

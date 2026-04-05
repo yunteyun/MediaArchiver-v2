@@ -14,7 +14,7 @@ const relaxedRules = {
 
 module.exports = tseslint.config(
   {
-    ignores: ['dist/**', 'dist-electron/**', 'release/**', 'node_modules/**', '**/*.d.ts', 'eslint.config.cjs'],
+    ignores: ['dist/**', 'dist-electron/**', 'release/**', 'node_modules/**', '**/*.d.ts', 'eslint.config.cjs', '.claude/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
