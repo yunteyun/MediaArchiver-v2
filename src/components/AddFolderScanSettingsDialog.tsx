@@ -15,6 +15,7 @@ export type AddFolderScanSettingsSubmit = {
         audio: boolean;
     };
     excludedSubdirectories: string[];
+    includeSubfolders: boolean;
     startScanNow: boolean;
 };
 
@@ -35,6 +36,7 @@ const DEFAULT_STATE: AddFolderScanSettingsSubmit = {
         audio: true,
     },
     excludedSubdirectories: [],
+    includeSubfolders: false,
     startScanNow: true,
 };
 
@@ -133,6 +135,21 @@ export const AddFolderScanSettingsDialog = React.memo(({
                                 </label>
                             ))}
                         </div>
+                    </div>
+
+                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
+                        <label className="flex cursor-pointer items-center gap-3">
+                            <input
+                                type="checkbox"
+                                className="h-4 w-4 accent-primary-500"
+                                checked={state.includeSubfolders}
+                                onChange={(e) => setState(prev => ({ ...prev, includeSubfolders: e.target.checked }))}
+                            />
+                            <div>
+                                <div className="text-sm text-surface-200">サブフォルダも登録する</div>
+                                <div className="text-xs text-surface-500">配下のすべてのサブフォルダを個別に登録します</div>
+                            </div>
+                        </label>
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">

@@ -501,23 +501,32 @@ export const Sidebar = React.memo(() => {
         }
     }, []);
 
+    const registerFolderWithSettings = useCallback(async (folderPath: string, settings: AddFolderScanSettingsSubmit) => {
+        const folder = await window.electronAPI.addFolder(folderPath);
+        await Promise.all([
+            window.electronAPI.setFolderAutoScan(folder.id, settings.autoScan),
+            window.electronAPI.setFolderWatchNewFiles(folder.id, settings.watchNewFiles),
+            window.electronAPI.setFolderScanFileTypeOverrides(folder.id, {
+                video: settings.fileTypeFilters.video,
+                image: settings.fileTypeFilters.image,
+                archive: settings.fileTypeFilters.archive,
+                audio: settings.fileTypeFilters.audio,
+            }),
+            window.electronAPI.setFolderExcludedSubdirectories(folder.id, settings.excludedSubdirectories),
+        ]);
+        return folder;
+    }, []);
+
     const handleConfirmAddFolderSettings = useCallback(async (settings: AddFolderScanSettingsSubmit) => {
         if (!pendingAddFolderPath) return;
 
         try {
-            const folder = await window.electronAPI.addFolder(pendingAddFolderPath);
+            await registerFolderWithSettings(pendingAddFolderPath, settings);
 
-            await Promise.all([
-                window.electronAPI.setFolderAutoScan(folder.id, settings.autoScan),
-                window.electronAPI.setFolderWatchNewFiles(folder.id, settings.watchNewFiles),
-                window.electronAPI.setFolderScanFileTypeOverrides(folder.id, {
-                    video: settings.fileTypeFilters.video,
-                    image: settings.fileTypeFilters.image,
-                    archive: settings.fileTypeFilters.archive,
-                    audio: settings.fileTypeFilters.audio,
-                }),
-                window.electronAPI.setFolderExcludedSubdirectories(folder.id, settings.excludedSubdirectories),
-            ]);
+            if (settings.includeSubfolders) {
+                const subfolderPaths = await window.electronAPI.listSubdirectoriesRecursive(pendingAddFolderPath);
+                await Promise.all(subfolderPaths.map((p) => registerFolderWithSettings(p, { ...settings, excludedSubdirectories: [], includeSubfolders: false })));
+            }
 
             if (settings.startScanNow) {
                 await window.electronAPI.scanFolder(pendingAddFolderPath);
@@ -529,7 +538,7 @@ export const Sidebar = React.memo(() => {
         } catch (e) {
             console.error('Error applying add-folder scan settings:', e);
         }
-    }, [pendingAddFolderPath, loadFolders]);
+    }, [pendingAddFolderPath, loadFolders, registerFolderWithSettings]);
 
     useEffect(() => {
         void loadSmartFolders();
@@ -804,6 +813,17 @@ export const Sidebar = React.memo(() => {
         writeSidebarSectionState(sectionState);
     }, [sectionState]);
 
+    const handleRegisterVirtualFolder = useCallback((folderPath: string) => {
+        setPendingAddFolderPath(folderPath);
+        setAddFolderSettingsOpen(true);
+    }, []);
+
+    useEffect(() => {
+        return window.electronAPI.onFolderRequestRegister((folderPath) => {
+            handleRegisterVirtualFolder(folderPath);
+        });
+    }, [handleRegisterVirtualFolder]);
+
     useEffect(() => {
         if (hasSidebarFilterActivity && !previousHasFilterActivityRef.current) {
             setSectionState((prev) => (prev.filtersOpen ? prev : { ...prev, filtersOpen: true }));
@@ -899,6 +919,7 @@ export const Sidebar = React.memo(() => {
                         setFolderSettingsOpen(true);
                     }}
                     onTogglePinnedSelection={togglePinnedSelection}
+                    onRegisterVirtualFolder={handleRegisterVirtualFolder}
                 />
 
                 {!sidebarCollapsed && (

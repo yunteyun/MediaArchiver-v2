@@ -244,6 +244,28 @@ export function registerFolderHandlers() {
         }
     });
 
+    ipcMain.handle('folder:showVirtualFolderContextMenu', async (event, { path: folderPath }: { path: string }) => {
+        const menu = Menu.buildFromTemplate([
+            {
+                label: 'エクスプローラーで開く',
+                click: async () => {
+                    await shell.openPath(folderPath);
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'このフォルダを登録する',
+                click: () => {
+                    event.sender.send('folder:requestRegister', folderPath);
+                }
+            }
+        ]);
+        const win = BrowserWindow.fromWebContents(event.sender);
+        if (win) {
+            menu.popup({ window: win });
+        }
+    });
+
     /**
      * フォルダメタデータ一括取得（Phase 12-4）
      * フォルダごとのファイル数とサムネイルパスを返す

@@ -1,4 +1,6 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
+import fs from 'fs';
+import path from 'path';
 import { addFolder, deleteFolder, getAutoScanFolders, getFolders } from '../services/database';
 import {
     scanDirectory,
@@ -37,6 +39,27 @@ export function registerScannerHandlers() {
         const folder = addFolder(folderPath);
         syncFolderWatchers();
         return folder;
+    });
+
+    ipcMain.handle('folder:listSubdirectoriesRecursive', (_event, folderPath: string): string[] => {
+        const results: string[] = [];
+        const visit = (dir: string) => {
+            let entries: fs.Dirent[];
+            try {
+                entries = fs.readdirSync(dir, { withFileTypes: true });
+            } catch {
+                return;
+            }
+            for (const entry of entries) {
+                if (entry.isDirectory()) {
+                    const full = path.join(dir, entry.name);
+                    results.push(full);
+                    visit(full);
+                }
+            }
+        };
+        visit(folderPath);
+        return results;
     });
 
     ipcMain.handle('folder:list', async (_event) => {

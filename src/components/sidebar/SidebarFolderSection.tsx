@@ -37,6 +37,7 @@ interface SidebarFolderSectionProps {
     onSelectFolder: (folderId: string | null) => void;
     onOpenFolderSettings: (folder: MediaFolder) => void;
     onTogglePinnedSelection: (selection: string) => void;
+    onRegisterVirtualFolder: (folderPath: string) => void;
 }
 
 export const SidebarFolderSection = React.memo(({
@@ -54,6 +55,7 @@ export const SidebarFolderSection = React.memo(({
     onSelectFolder,
     onOpenFolderSettings,
     onTogglePinnedSelection,
+    onRegisterVirtualFolder,
 }: SidebarFolderSectionProps) => {
     const [helpersOpen, setHelpersOpen] = useState(() => readFolderHelpersOpenState());
     const previousSearchActiveRef = useRef(false);
@@ -284,6 +286,7 @@ export const SidebarFolderSection = React.memo(({
                 onOpenFolderSettings={onOpenFolderSettings}
                 isPinnedSelection={(selection) => pinnedSelections.includes(selection)}
                 onTogglePinnedSelection={onTogglePinnedSelection}
+                onRegisterVirtualFolder={onRegisterVirtualFolder}
             />
         )}
     </>

@@ -118,6 +118,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // === Folder ===
     addFolder: (folderPath: string) => ipcRenderer.invoke('folder:add', folderPath),
+    listSubdirectoriesRecursive: (folderPath: string) => ipcRenderer.invoke('folder:listSubdirectoriesRecursive', folderPath),
     getFolders: () => ipcRenderer.invoke('folder:list'),
     deleteFolder: (folderId: string) => ipcRenderer.invoke('folder:delete', folderId),
     getFolderMetadata: () => ipcRenderer.invoke('folder:getMetadata'),
@@ -246,11 +247,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === Context Menu ===
     showFolderContextMenu: (folderId: string, path: string) =>
         ipcRenderer.invoke('folder:showContextMenu', { folderId, path }),
+    showVirtualFolderContextMenu: (folderPath: string) =>
+        ipcRenderer.invoke('folder:showVirtualFolderContextMenu', { path: folderPath }),
 
     onFolderDeleted: (callback: (folderId: string) => void) => subscribe('folder:deleted', callback),
     onFolderUpdated: (callback: (folderId: string) => void) => subscribe('folder:updated', callback),
 
     onFolderRescanComplete: (callback: (folderId: string) => void) => subscribe('folder:rescanComplete', callback),
+    onFolderRequestRegister: (callback: (folderPath: string) => void) => subscribe('folder:requestRegister', callback),
 
     // === File Context Menu ===
     showFileContextMenu: (fileId: string, path: string, selectedFileIds?: string[], searchDestinations?: ContextMenuSearchDestination[]) =>

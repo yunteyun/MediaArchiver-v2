@@ -13,6 +13,7 @@ interface FolderTreeProps {
     onOpenFolderSettings?: (folder: MediaFolder) => void;
     isPinnedSelection?: (selection: string) => boolean;
     onTogglePinnedSelection?: (selection: string) => void;
+    onRegisterVirtualFolder?: (folderPath: string) => void;
 }
 
 function collectInitialCollapsedFolderIds(treeByDrive: Map<string, FolderTreeNode[]>): Set<string> {
@@ -83,6 +84,7 @@ export const FolderTree = React.memo(({
     onOpenFolderSettings,
     isPinnedSelection,
     onTogglePinnedSelection,
+    onRegisterVirtualFolder,
 }: FolderTreeProps) => {
     // ツリー構築（メモ化）- Phase 22-B: ドライブ別グループ化
     const treeByDrive = useMemo(() => buildFolderTreeByDrive(folders), [folders]);
@@ -190,10 +192,11 @@ export const FolderTree = React.memo(({
                         onSelectFolder(selectionValue);
                     }}
                     onContextMenu={(e) => {
+                        e.preventDefault();
                         if (node.sourceFolder.isVirtualFolder) {
+                            void window.electronAPI.showVirtualFolderContextMenu(node.path);
                             return;
                         }
-                        e.preventDefault();
                         window.electronAPI.showFolderContextMenu(node.id, node.path);
                     }}
                     title={node.path}
@@ -272,6 +275,7 @@ export const FolderTree = React.memo(({
         folderRecursiveCountsByPath,
         isPinnedSelection,
         onTogglePinnedSelection,
+        onRegisterVirtualFolder,
     ]);
 
     // ドライブがない場合（空）

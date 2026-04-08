@@ -199,6 +199,7 @@ declare global {
 
             // Folder
             addFolder: (folderPath: string) => Promise<MediaFolder>;
+            listSubdirectoriesRecursive: (folderPath: string) => Promise<string[]>;
             getFolders: () => Promise<MediaFolder[]>;
             deleteFolder: (folderId: string) => Promise<void>;
             getFolderMetadata: () => Promise<{ fileCounts: Record<string, number>; thumbnails: Record<string, string> }>;
@@ -319,9 +320,11 @@ declare global {
 
             // Context Menu
             showFolderContextMenu: (folderId: string, path: string) => Promise<void>;
+            showVirtualFolderContextMenu: (folderPath: string) => Promise<void>;
             onFolderDeleted: (callback: (folderId: string) => void) => () => void;
             onFolderUpdated: (callback: (folderId: string) => void) => () => void;
             onFolderRescanComplete: (callback: (folderId: string) => void) => () => void;
+            onFolderRequestRegister: (callback: (folderPath: string) => void) => () => void;
 
             // File Context Menu
             showFileContextMenu: (
