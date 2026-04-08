@@ -302,7 +302,7 @@ function sortFiles(
 /**
  * グループをソート
  */
-function sortGroups(groups: FileGroup[], groupBy: GroupBy): FileGroup[] {
+function sortGroups(groups: FileGroup[], groupBy: GroupBy, sortOrder: 'asc' | 'desc' = 'desc'): FileGroup[] {
     switch (groupBy) {
         case 'date': {
             // Phase 21-A: 相対時間区分の優先順位
@@ -321,7 +321,7 @@ function sortGroups(groups: FileGroup[], groupBy: GroupBy): FileGroup[] {
                 const aIsRelative = a.key.startsWith('relative:');
                 const bIsRelative = b.key.startsWith('relative:');
 
-                // 両方とも相対時間区分の場合
+                // 両方とも相対時間区分の場合（昇降順に関わらず常に先頭・新しい順）
                 if (aIsRelative && bIsRelative) {
                     const aIndex = relativeOrder.indexOf(a.key);
                     const bIndex = relativeOrder.indexOf(b.key);
@@ -332,7 +332,9 @@ function sortGroups(groups: FileGroup[], groupBy: GroupBy): FileGroup[] {
                 if (aIsRelative) return -1;
                 if (bIsRelative) return 1;
 
-                return getDateGroupSortValue(b.key) - getDateGroupSortValue(a.key);
+                // 週別・月別グループは sortOrder に従う
+                const diff = getDateGroupSortValue(b.key) - getDateGroupSortValue(a.key);
+                return sortOrder === 'desc' ? diff : -diff;
             });
         }
         case 'size':
@@ -399,8 +401,8 @@ export function groupFiles(
     // 空のグループを除外
     const nonEmptyGroups = groups.filter(group => group.files.length > 0);
 
-    // グループ自体をソート
-    return sortGroups(nonEmptyGroups, groupBy);
+    // グループ自体をソート（sortOrder を反映）
+    return sortGroups(nonEmptyGroups, groupBy, sortOrder);
 }
 
 /**
