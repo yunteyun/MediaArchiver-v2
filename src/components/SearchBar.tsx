@@ -37,41 +37,21 @@ export const SearchBar = React.memo(() => {
     };
 
     return (
-        <div className="flex flex-1 max-w-xl items-center gap-2">
-            <div className="flex items-center gap-1 rounded border border-surface-700 bg-surface-900/50 p-1">
+        <div className="flex flex-1 max-w-xl items-center">
+            <div className="relative flex-1 flex items-center rounded border border-surface-700 bg-surface-900/50 focus-within:border-primary-500">
                 <button
                     type="button"
-                    onClick={() => setSearchTarget('fileName')}
-                    className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
-                        searchTarget === 'fileName'
-                            ? 'bg-primary-600 text-white'
-                            : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200'
-                    }`}
-                    title="ファイル名で検索"
-                >
-                    <Search size={12} />
-                    <span>ファイル名</span>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setSearchTarget('folderName')}
-                    className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
+                    onClick={() => setSearchTarget(searchTarget === 'fileName' ? 'folderName' : 'fileName')}
+                    className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-[5px] text-xs transition-colors border-r border-surface-700 rounded-l ${
                         searchTarget === 'folderName'
-                            ? 'bg-primary-600 text-white'
-                            : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200'
+                            ? 'bg-primary-600/15 text-primary-300'
+                            : 'text-surface-400 hover:text-surface-200 hover:bg-surface-700'
                     }`}
-                    title="フォルダ名で検索"
+                    title={searchTarget === 'fileName' ? 'フォルダ名検索に切替' : 'ファイル名検索に切替'}
                 >
-                    <FolderOpen size={12} />
-                    <span>フォルダ名</span>
+                    {searchTarget === 'folderName' ? <FolderOpen size={12} /> : <Search size={12} />}
+                    <span>{searchTarget === 'folderName' ? 'フォルダ' : 'ファイル'}</span>
                 </button>
-            </div>
-
-            <div className="relative flex-1">
-                <Search
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 pointer-events-none"
-                />
                 <input
                     type="text"
                     placeholder={searchTarget === 'folderName'
@@ -80,14 +60,14 @@ export const SearchBar = React.memo(() => {
                     value={localValue}
                     onChange={(e) => setLocalValue(e.target.value)}
                     data-search-input
-                    className="w-full pl-9 pr-8 py-1.5 bg-surface-800 text-surface-200 border border-surface-600 rounded text-sm focus:outline-none focus:border-primary-500 placeholder-surface-500"
+                    className="flex-1 min-w-0 bg-transparent pl-2 pr-8 py-[5px] text-surface-200 text-xs focus:outline-none placeholder-surface-500"
                 />
                 {localValue && (
                     <button
                         onClick={handleClear}
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-surface-700 rounded"
                     >
-                        <X size={14} className="text-surface-400 hover:text-surface-200" />
+                        <X size={12} className="text-surface-400 hover:text-surface-200" />
                     </button>
                 )}
             </div>
