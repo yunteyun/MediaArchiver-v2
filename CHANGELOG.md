@@ -9,14 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ---
 
 ## [Unreleased]
-### Added
-- (なし)
-
-### Changed
-- (なし)
-
 ### Fixed
-- (なし)
+- アップデート後にリネーム用クイック挿入の設定が消える問題を修正した。設定変更時にプロファイルDBへ即時保存するようにした。
 
 ---
 

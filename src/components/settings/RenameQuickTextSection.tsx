@@ -10,17 +10,24 @@ export const RenameQuickTextSection: React.FC = React.memo(() => {
     const setRenameQuickTexts = useSettingsStore((s) => s.setRenameQuickTexts);
     const [inputValue, setInputValue] = useState('');
 
+    const persist = (texts: string[]) => {
+        setRenameQuickTexts(texts);
+        void window.electronAPI.setProfileScopedSettings({ renameQuickTexts: texts }).catch((error) => {
+            console.error('Failed to persist renameQuickTexts:', error);
+        });
+    };
+
     const handleAdd = () => {
         const trimmed = inputValue.trim();
         if (!trimmed) return;
         if (renameQuickTexts.includes(trimmed)) return;
         if (renameQuickTexts.length >= MAX_QUICK_TEXTS) return;
-        setRenameQuickTexts([...renameQuickTexts, trimmed]);
+        persist([...renameQuickTexts, trimmed]);
         setInputValue('');
     };
 
     const handleRemove = (index: number) => {
-        setRenameQuickTexts(renameQuickTexts.filter((_, i) => i !== index));
+        persist(renameQuickTexts.filter((_, i) => i !== index));
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -30,7 +37,7 @@ export const RenameQuickTextSection: React.FC = React.memo(() => {
         }
     };
 
-    const handleReset = () => setRenameQuickTexts([]);
+    const handleReset = () => persist([]);
 
     return (
         <SettingsSection
