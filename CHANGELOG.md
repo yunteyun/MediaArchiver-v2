@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- 「サブフォルダも登録する」をONにした際、チェックを外したサブフォルダも登録されてしまう問題を修正した。ONにするとサブフォルダ一覧がチェックリストで展開され、登録したいものだけを選択して登録できるようになった。
+
 ---
 
 ## [1.15.0] - 2026-04-09

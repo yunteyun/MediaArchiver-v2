@@ -523,9 +523,8 @@ export const Sidebar = React.memo(() => {
         try {
             await registerFolderWithSettings(pendingAddFolderPath, settings);
 
-            if (settings.includeSubfolders) {
-                const subfolderPaths = await window.electronAPI.listSubdirectoriesRecursive(pendingAddFolderPath);
-                await Promise.all(subfolderPaths.map((p) => registerFolderWithSettings(p, { ...settings, excludedSubdirectories: [], includeSubfolders: false })));
+            if (settings.selectedSubfolderPaths.length > 0) {
+                await Promise.all(settings.selectedSubfolderPaths.map((p) => registerFolderWithSettings(p, { ...settings, excludedSubdirectories: [], selectedSubfolderPaths: [] })));
             }
 
             if (settings.startScanNow) {
@@ -1059,6 +1058,7 @@ export const Sidebar = React.memo(() => {
                     setPendingAddFolderPath(null);
                 }}
                 onSubmit={(settings) => { void handleConfirmAddFolderSettings(settings); }}
+                onFetchSubfolders={(p) => window.electronAPI.listSubdirectoriesRecursive(p)}
             />
             <SmartFolderEditorDialog
                 isOpen={smartFolderEditorState !== null}

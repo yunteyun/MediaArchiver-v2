@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import {
     excludedSubdirectoriesToText,
     parseExcludedSubdirectoriesText,
@@ -15,7 +15,7 @@ export type AddFolderScanSettingsSubmit = {
         audio: boolean;
     };
     excludedSubdirectories: string[];
-    includeSubfolders: boolean;
+    selectedSubfolderPaths: string[];
     startScanNow: boolean;
 };
 
@@ -24,9 +24,10 @@ interface AddFolderScanSettingsDialogProps {
     folderPath: string | null;
     onClose: () => void;
     onSubmit: (settings: AddFolderScanSettingsSubmit) => void;
+    onFetchSubfolders: (folderPath: string) => Promise<string[]>;
 }
 
-const DEFAULT_STATE: AddFolderScanSettingsSubmit = {
+const DEFAULT_STATE = {
     autoScan: false,
     watchNewFiles: false,
     fileTypeFilters: {
@@ -35,8 +36,7 @@ const DEFAULT_STATE: AddFolderScanSettingsSubmit = {
         archive: true,
         audio: true,
     },
-    excludedSubdirectories: [],
-    includeSubfolders: false,
+    excludedSubdirectories: [] as string[],
     startScanNow: true,
 };
 
@@ -44,23 +44,68 @@ export const AddFolderScanSettingsDialog = React.memo(({
     isOpen,
     folderPath,
     onClose,
-    onSubmit
+    onSubmit,
+    onFetchSubfolders,
 }: AddFolderScanSettingsDialogProps) => {
-    const [state, setState] = useState<AddFolderScanSettingsSubmit>(DEFAULT_STATE);
+    const [state, setState] = useState(DEFAULT_STATE);
     const [excludedSubdirectoriesText, setExcludedSubdirectoriesText] = useState('');
+    const [includeSubfolders, setIncludeSubfolders] = useState(false);
+    const [subfolderPaths, setSubfolderPaths] = useState<string[]>([]);
+    const [checkedSubfolders, setCheckedSubfolders] = useState<Set<string>>(new Set());
+    const [subfolderLoading, setSubfolderLoading] = useState(false);
 
     useEffect(() => {
         if (!isOpen) return;
         setState(DEFAULT_STATE);
         setExcludedSubdirectoriesText(excludedSubdirectoriesToText(DEFAULT_STATE.excludedSubdirectories));
+        setIncludeSubfolders(false);
+        setSubfolderPaths([]);
+        setCheckedSubfolders(new Set());
+        setSubfolderLoading(false);
     }, [isOpen, folderPath]);
+
+    const handleIncludeSubfoldersChange = async (checked: boolean) => {
+        setIncludeSubfolders(checked);
+        if (checked && folderPath) {
+            setSubfolderLoading(true);
+            try {
+                const paths = await onFetchSubfolders(folderPath);
+                setSubfolderPaths(paths);
+                setCheckedSubfolders(new Set(paths));
+            } finally {
+                setSubfolderLoading(false);
+            }
+        } else {
+            setSubfolderPaths([]);
+            setCheckedSubfolders(new Set());
+        }
+    };
+
+    const toggleSubfolder = (p: string) => {
+        setCheckedSubfolders(prev => {
+            const next = new Set(prev);
+            if (next.has(p)) {
+                next.delete(p);
+            } else {
+                next.add(p);
+            }
+            return next;
+        });
+    };
+
+    const toggleAll = (checked: boolean) => {
+        setCheckedSubfolders(checked ? new Set(subfolderPaths) : new Set());
+    };
+
+    const allChecked = subfolderPaths.length > 0 && checkedSubfolders.size === subfolderPaths.length;
+    const someChecked = checkedSubfolders.size > 0 && checkedSubfolders.size < subfolderPaths.length;
 
     if (!isOpen || !folderPath) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-[620px] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-700 bg-surface-900 shadow-xl">
-                <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
+            <div className="w-[620px] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-700 bg-surface-900 shadow-xl flex flex-col max-h-[calc(100vh-4rem)]">
+                <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3 shrink-0">
                     <div className="min-w-0">
                         <h2 className="text-base font-semibold text-white">フォルダ登録時のスキャン設定</h2>
                         <p className="mt-0.5 truncate text-xs text-surface-400" title={folderPath}>{folderPath}</p>
@@ -74,7 +119,7 @@ export const AddFolderScanSettingsDialog = React.memo(({
                     </button>
                 </div>
 
-                <div className="space-y-4 px-4 py-4">
+                <div className="space-y-4 px-4 py-4 overflow-y-auto">
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
                         <div className="mb-2 text-sm font-medium text-surface-200">標準設定</div>
                         <div className="text-xs text-surface-500">
@@ -142,14 +187,58 @@ export const AddFolderScanSettingsDialog = React.memo(({
                             <input
                                 type="checkbox"
                                 className="h-4 w-4 accent-primary-500"
-                                checked={state.includeSubfolders}
-                                onChange={(e) => setState(prev => ({ ...prev, includeSubfolders: e.target.checked }))}
+                                checked={includeSubfolders}
+                                onChange={(e) => void handleIncludeSubfoldersChange(e.target.checked)}
                             />
                             <div>
                                 <div className="text-sm text-surface-200">サブフォルダも登録する</div>
-                                <div className="text-xs text-surface-500">配下のすべてのサブフォルダを個別に登録します</div>
+                                <div className="text-xs text-surface-500">配下のサブフォルダを個別に登録します</div>
                             </div>
                         </label>
+
+                        {includeSubfolders && (
+                            <div className="mt-3">
+                                {subfolderLoading ? (
+                                    <div className="flex items-center gap-2 py-2 text-xs text-surface-400">
+                                        <Loader2 size={14} className="animate-spin" />
+                                        サブフォルダを取得中...
+                                    </div>
+                                ) : subfolderPaths.length === 0 ? (
+                                    <div className="py-2 text-xs text-surface-500">サブフォルダが見つかりませんでした</div>
+                                ) : (
+                                    <>
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <label className="flex cursor-pointer items-center gap-2 text-xs text-surface-400">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-3.5 w-3.5 accent-primary-500"
+                                                    checked={allChecked}
+                                                    ref={(el) => { if (el) el.indeterminate = someChecked; }}
+                                                    onChange={(e) => toggleAll(e.target.checked)}
+                                                />
+                                                すべて選択（{checkedSubfolders.size} / {subfolderPaths.length}）
+                                            </label>
+                                        </div>
+                                        <div className="max-h-48 overflow-y-auto rounded border border-surface-700 bg-surface-950">
+                                            {subfolderPaths.map((p) => (
+                                                <label
+                                                    key={p}
+                                                    className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-surface-800 transition-colors"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-3.5 w-3.5 shrink-0 accent-primary-500"
+                                                        checked={checkedSubfolders.has(p)}
+                                                        onChange={() => toggleSubfolder(p)}
+                                                    />
+                                                    <span className="truncate text-xs text-surface-200" title={p}>{p}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
@@ -196,7 +285,7 @@ export const AddFolderScanSettingsDialog = React.memo(({
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3">
+                <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3 shrink-0">
                     <button
                         onClick={onClose}
                         className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
@@ -207,6 +296,7 @@ export const AddFolderScanSettingsDialog = React.memo(({
                         onClick={() => onSubmit({
                             ...state,
                             excludedSubdirectories: parseExcludedSubdirectoriesText(excludedSubdirectoriesText),
+                            selectedSubfolderPaths: includeSubfolders ? [...checkedSubfolders] : [],
                         })}
                         className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500"
                     >
