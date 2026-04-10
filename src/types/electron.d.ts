@@ -213,6 +213,7 @@ declare global {
                 overrides: Partial<{ video: boolean | null; image: boolean | null; archive: boolean | null; audio: boolean | null; }>
             ) => Promise<{ success: boolean }>;
             setFolderExcludedSubdirectories: (folderId: string, excludedSubdirectories: string[]) => Promise<{ success: boolean }>;
+            setFolderShallowScan: (folderId: string, enabled: boolean) => Promise<{ success: boolean }>;
             clearFolderScanFileTypeOverrides: (folderId: string) => Promise<{ success: boolean }>;
 
             // Phase 22-C: ドライブ/フォルダ配下の全ファイル取得

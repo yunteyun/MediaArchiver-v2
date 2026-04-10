@@ -312,8 +312,13 @@ async function countFiles(
     scanFilters: ScanFileTypeCategoryFilters,
     exclusionRules: ScanExclusionRules,
     excludedSubdirectories: string[],
-    cancellationToken?: ScanCancellationToken
+    cancellationToken?: ScanCancellationToken,
+    shallowScan?: boolean
 ): Promise<number> {
+    // shallowScan: ルート直下のみカウント（再帰しない）
+    if (shallowScan && dirPath.toLowerCase() !== rootPath.toLowerCase()) {
+        return 0;
+    }
     // パス長チェック
     if (!validatePathLength(dirPath)) {
         log.warn(`Skipping path (too long): ${dirPath.substring(0, 100)}...`);
@@ -345,7 +350,7 @@ async function countFiles(
                     if (pathMatchesExcludedSubdirectory(fullPath, rootPath, excludedSubdirectories)) {
                         continue;
                     }
-                    count += await countFiles(fullPath, rootPath, scanFilters, exclusionRules, excludedSubdirectories, cancellationToken);
+                    count += await countFiles(fullPath, rootPath, scanFilters, exclusionRules, excludedSubdirectories, cancellationToken, shallowScan);
                 } else if (entry.isFile()) {
                     const ext = path.extname(entry.name).toLowerCase();
                     if (!shouldSkipFileByExtension(ext, exclusionRules) && isScannableMediaType(ext, scanFilters)) {
@@ -391,9 +396,14 @@ async function scanDirectoryInternal(
         committedCount: number;
         runtimeSettings: ScanRuntimeSettings;
         excludedSubdirectories: string[];
+        shallowScan: boolean;
         cancellationToken?: ScanCancellationToken;
     }
 ) {
+    // shallowScan: ルート直下のみスキャン（再帰しない）
+    if (state.shallowScan && dirPath.toLowerCase() !== state.rootPath.toLowerCase()) {
+        return;
+    }
     // パス長チェック
     if (!validatePathLength(dirPath)) {
         log.warn(`Skipping directory (path too long): ${dirPath.substring(0, 100)}...`);
@@ -815,6 +825,7 @@ export async function scanDirectory(
         const folderRootPath = options?.rootFolderPath ?? dirPath;
         const folderScanSettings = db.getFolderScanSettings(rootFolderId);
         const excludedSubdirectories = folderScanSettings.excludedSubdirectories ?? [];
+        const shallowScan = folderScanSettings.shallowScan === true;
         const shouldSkipInitialCount = initialCountMode !== 'full';
         let total = 0;
 
@@ -830,7 +841,8 @@ export async function scanDirectory(
                 effectiveScanFilters,
                 runtimeSettings.exclusionRules,
                 excludedSubdirectories,
-                cancellationToken
+                cancellationToken,
+                shallowScan
             );
             logPerf('scanner.countFiles', countStartedAt, {
                 folder: path.basename(dirPath) || dirPath,
@@ -855,6 +867,7 @@ export async function scanDirectory(
             committedCount: 0,
             runtimeSettings,
             excludedSubdirectories,
+            shallowScan,
             cancellationToken,
         };
         await scanDirectoryInternal(dirPath, rootFolderId, onProgress, onBatchCommitted, state);

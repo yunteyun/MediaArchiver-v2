@@ -175,11 +175,13 @@ function serializeFolderScanSettings(settings: FolderScanSettings): string | nul
 
     const hasAnyOverride = !!normalizedOverrides && Object.values(normalizedOverrides).some(v => typeof v === 'boolean');
     const hasExcludedSubdirectories = normalizedExcludedSubdirectories.length > 0;
-    if (!hasAnyOverride && !hasExcludedSubdirectories) return null;
+    const shallowScan = normalizedSettings.shallowScan === true;
+    if (!hasAnyOverride && !hasExcludedSubdirectories && !shallowScan) return null;
 
     return JSON.stringify({
         ...(hasAnyOverride ? { fileTypeOverrides: normalizedOverrides } : {}),
         ...(hasExcludedSubdirectories ? { excludedSubdirectories: normalizedExcludedSubdirectories } : {}),
+        ...(shallowScan ? { shallowScan: true } : {}),
     });
 }
 
@@ -964,6 +966,21 @@ export function setFolderExcludedSubdirectories(
     const nextSettings: FolderScanSettings = {
         ...current,
         excludedSubdirectories: normalizeExcludedSubdirectories(excludedSubdirectories),
+    };
+    const serialized = serializeFolderScanSettings(nextSettings);
+    db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
+    return parseFolderScanSettingsJson(serialized);
+}
+
+export function setFolderShallowScan(
+    folderId: string,
+    enabled: boolean
+): FolderScanSettings {
+    const db = getDb();
+    const current = getFolderScanSettings(folderId);
+    const nextSettings: FolderScanSettings = {
+        ...current,
+        shallowScan: enabled || undefined,
     };
     const serialized = serializeFolderScanSettings(nextSettings);
     db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);

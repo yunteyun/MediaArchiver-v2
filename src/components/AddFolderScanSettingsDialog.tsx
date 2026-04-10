@@ -16,8 +16,11 @@ export type AddFolderScanSettingsSubmit = {
     };
     excludedSubdirectories: string[];
     selectedSubfolderPaths: string[];
+    shallowScan: boolean;
     startScanNow: boolean;
 };
+
+type SubfolderMode = 'include' | 'shallow' | 'register';
 
 interface AddFolderScanSettingsDialogProps {
     isOpen: boolean;
@@ -40,6 +43,24 @@ const DEFAULT_STATE = {
     startScanNow: true,
 };
 
+const SUBFOLDER_OPTIONS: { value: SubfolderMode; label: string; description: string }[] = [
+    {
+        value: 'include',
+        label: 'サブフォルダ内も含めてスキャンする',
+        description: 'サブフォルダ内のファイルもすべてスキャン対象にする',
+    },
+    {
+        value: 'shallow',
+        label: '直下のファイルのみスキャンする',
+        description: 'このフォルダ直下のファイルのみ対象にし、サブフォルダは除外する',
+    },
+    {
+        value: 'register',
+        label: 'サブフォルダを個別に登録する',
+        description: '配下のサブフォルダを独立したフォルダとして個別に登録する',
+    },
+];
+
 export const AddFolderScanSettingsDialog = React.memo(({
     isOpen,
     folderPath,
@@ -49,7 +70,7 @@ export const AddFolderScanSettingsDialog = React.memo(({
 }: AddFolderScanSettingsDialogProps) => {
     const [state, setState] = useState(DEFAULT_STATE);
     const [excludedSubdirectoriesText, setExcludedSubdirectoriesText] = useState('');
-    const [includeSubfolders, setIncludeSubfolders] = useState(false);
+    const [subfolderMode, setSubfolderMode] = useState<SubfolderMode>('include');
     const [subfolderPaths, setSubfolderPaths] = useState<string[]>([]);
     const [checkedSubfolders, setCheckedSubfolders] = useState<Set<string>>(new Set());
     const [subfolderLoading, setSubfolderLoading] = useState(false);
@@ -58,15 +79,15 @@ export const AddFolderScanSettingsDialog = React.memo(({
         if (!isOpen) return;
         setState(DEFAULT_STATE);
         setExcludedSubdirectoriesText(excludedSubdirectoriesToText(DEFAULT_STATE.excludedSubdirectories));
-        setIncludeSubfolders(false);
+        setSubfolderMode('include');
         setSubfolderPaths([]);
         setCheckedSubfolders(new Set());
         setSubfolderLoading(false);
     }, [isOpen, folderPath]);
 
-    const handleIncludeSubfoldersChange = async (checked: boolean) => {
-        setIncludeSubfolders(checked);
-        if (checked && folderPath) {
+    const handleSubfolderModeChange = async (mode: SubfolderMode) => {
+        setSubfolderMode(mode);
+        if (mode === 'register' && folderPath) {
             setSubfolderLoading(true);
             try {
                 const paths = await onFetchSubfolders(folderPath);
@@ -182,22 +203,26 @@ export const AddFolderScanSettingsDialog = React.memo(({
                         </div>
                     </div>
 
-                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
-                        <label className="flex cursor-pointer items-center gap-3">
-                            <input
-                                type="checkbox"
-                                className="h-4 w-4 accent-primary-500"
-                                checked={includeSubfolders}
-                                onChange={(e) => void handleIncludeSubfoldersChange(e.target.checked)}
-                            />
-                            <div>
-                                <div className="text-sm text-surface-200">サブフォルダも登録する</div>
-                                <div className="text-xs text-surface-500">配下のサブフォルダを個別に登録します</div>
-                            </div>
-                        </label>
+                    <div className="rounded border border-surface-700 bg-surface-900/40 p-3 space-y-2">
+                        <div className="text-sm font-medium text-surface-200">サブフォルダの扱い</div>
+                        {SUBFOLDER_OPTIONS.map((opt) => (
+                            <label key={opt.value} className="flex cursor-pointer items-start gap-3">
+                                <input
+                                    type="radio"
+                                    name="subfolderMode"
+                                    className="mt-0.5 h-4 w-4 accent-primary-500"
+                                    checked={subfolderMode === opt.value}
+                                    onChange={() => void handleSubfolderModeChange(opt.value)}
+                                />
+                                <div>
+                                    <div className="text-sm text-surface-200">{opt.label}</div>
+                                    <div className="text-xs text-surface-500">{opt.description}</div>
+                                </div>
+                            </label>
+                        ))}
 
-                        {includeSubfolders && (
-                            <div className="mt-3">
+                        {subfolderMode === 'register' && (
+                            <div className="mt-2 ml-7">
                                 {subfolderLoading ? (
                                     <div className="flex items-center gap-2 py-2 text-xs text-surface-400">
                                         <Loader2 size={14} className="animate-spin" />
@@ -296,7 +321,8 @@ export const AddFolderScanSettingsDialog = React.memo(({
                         onClick={() => onSubmit({
                             ...state,
                             excludedSubdirectories: parseExcludedSubdirectoriesText(excludedSubdirectoriesText),
-                            selectedSubfolderPaths: includeSubfolders ? [...checkedSubfolders] : [],
+                            selectedSubfolderPaths: subfolderMode === 'register' ? [...checkedSubfolders] : [],
+                            shallowScan: subfolderMode === 'shallow',
                         })}
                         className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500"
                     >

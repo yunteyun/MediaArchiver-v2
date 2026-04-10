@@ -11,6 +11,7 @@ import {
     setFolderBadgeColor,
     setFolderExcludedSubdirectories,
     setFolderScanFileTypeOverride,
+    setFolderShallowScan,
     setFolderWatchNewFilesEnabled
 } from '../services/database';
 import { getScanFileTypeCategories, scanDirectory } from '../services/scanner';
@@ -74,6 +75,17 @@ export function registerFolderHandlers() {
             }
         ) => {
             setFolderExcludedSubdirectories(folderId, excludedSubdirectories);
+            return { success: true };
+        }
+    );
+
+    ipcMain.handle(
+        'folder:setShallowScan',
+        async (
+            _event,
+            { folderId, enabled }: { folderId: string; enabled: boolean }
+        ) => {
+            setFolderShallowScan(folderId, enabled);
             return { success: true };
         }
     );

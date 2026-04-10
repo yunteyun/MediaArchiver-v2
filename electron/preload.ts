@@ -136,6 +136,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ) => ipcRenderer.invoke('folder:setScanFileTypeOverrides', { folderId, overrides }),
     setFolderExcludedSubdirectories: (folderId: string, excludedSubdirectories: string[]) =>
         ipcRenderer.invoke('folder:setExcludedSubdirectories', { folderId, excludedSubdirectories }),
+    setFolderShallowScan: (folderId: string, enabled: boolean) =>
+        ipcRenderer.invoke('folder:setShallowScan', { folderId, enabled }),
     clearFolderScanFileTypeOverrides: (folderId: string) =>
         ipcRenderer.invoke('folder:clearScanFileTypeOverrides', { folderId }),
 

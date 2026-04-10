@@ -8,6 +8,7 @@ export interface FolderScanFileTypeOverrides {
 export interface FolderScanSettings {
     fileTypeOverrides?: FolderScanFileTypeOverrides;
     excludedSubdirectories?: string[];
+    shallowScan?: boolean;
 }
 
 function normalizeExcludedSubdirectoryValue(value: string): string {
@@ -75,10 +76,12 @@ export function normalizeFolderScanSettings(input: unknown): FolderScanSettings 
             : undefined;
 
     const normalizedExcludedSubdirectories = normalizeExcludedSubdirectories(raw.excludedSubdirectories);
+    const shallowScan = raw.shallowScan === true ? true : undefined;
 
     return {
         fileTypeOverrides,
         excludedSubdirectories: normalizedExcludedSubdirectories,
+        shallowScan,
     };
 }
 
