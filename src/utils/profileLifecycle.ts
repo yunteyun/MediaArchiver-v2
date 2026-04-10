@@ -157,7 +157,11 @@ export async function loadAndApplyProfileScopedSettings(
         let response = await fetchSettings();
 
         if (!response.exists) {
-            const initialSettings = createInitialProfileScopedSettings(snapshot, false);
+            console.warn(
+                '[ProfileSettings] DB にプロファイル設定が見つかりません。現在の状態からマイグレーションします。',
+                { renameQuickTextsCount: snapshot.renameQuickTexts.length }
+            );
+            const initialSettings = createInitialProfileScopedSettings(snapshot, true);
             response = await replaceSettings(initialSettings);
         }
 

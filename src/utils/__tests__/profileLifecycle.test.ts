@@ -166,7 +166,7 @@ describe('createInitialProfileScopedSettings', () => {
 });
 
 describe('loadAndApplyProfileScopedSettings', () => {
-    it('initializes missing profile settings with defaults and applies them', async () => {
+    it('initializes missing profile settings by migrating current state and applies them', async () => {
         const defaultSettings = {
             fileTypeFilters: { video: true, image: true, archive: true, audio: true },
             previewFrameCount: 9,

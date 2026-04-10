@@ -2,9 +2,12 @@
 
 **Last Updated**: 2026-04-10
 
-- **Current Focus**: Issue #34・#37 修正（スキャンキャンセル後の再スキャン不具合）
-- **Current Status**: 完了。コンテキストメニュー「再スキャン」を scanner:start IPC 経由に切り替え、件数カウント・キャンセルトークン管理を正常化。
+- **Current Focus**: Issue #39 修正（リネーム用クイック挿入の設定消失・再発）
+- **Current Status**: 完了。DB にプロファイル設定が存在しない場合に shouldMigrate=true で現在の状態を引き継ぐよう修正。
 - **Recent Achievements**:
+  - **Issue #39 修正**:
+    - DB にプロファイル設定が見つからない場合（exists: false）、空の初期値ではなく現在のメモリ上の設定値をマイグレーションとして引き継ぐよう変更
+    - 原因特定用の警告ログを追加
   - **Issue #34・#37 修正**:
     - コンテキストメニューの「再スキャン」が skipInitialCount: true かつキャンセルトークンなしで実行されていた問題を修正
     - scanner:start IPC を経由するようリファクタリングし、件数カウントとキャンセル操作が正しく機能するようにした
