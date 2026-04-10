@@ -325,6 +325,7 @@ declare global {
             onFolderDeleted: (callback: (folderId: string) => void) => () => void;
             onFolderUpdated: (callback: (folderId: string) => void) => () => void;
             onFolderRescanComplete: (callback: (folderId: string) => void) => () => void;
+            onFolderTriggerRescan: (callback: (folderPath: string) => void) => () => void;
             onFolderRequestRegister: (callback: (folderPath: string) => void) => () => void;
 
             // File Context Menu

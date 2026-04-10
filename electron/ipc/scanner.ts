@@ -1,7 +1,7 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { addFolder, deleteFolder, getAutoScanFolders, getFolders } from '../services/database';
+import { addFolder, deleteFolder, getAutoScanFolders, getFolders, getFolderById } from '../services/database';
 import {
     scanDirectory,
     cancelScan,
@@ -87,17 +87,9 @@ export function registerScannerHandlers() {
         const runtimeSettings = getCurrentScanRuntimeSettings();
         const releaseToken = trackInteractiveScanToken(cancellationToken);
 
-        // Run scan (async but awaited here? No, scan might take long. 
-        // Ideally we shouldn't await if we want to return immediately, but for Phase 2-1 we can await or not?
-        // If we await, the UI might blocked if not careful (though `invoke` is async).
-        // Better to not await the full scan if it's long, but for simplistic implementation we await.
-        // Or better: Send progress events.
-
-        /* 
-           Note: If we await `scanDirectory`, the Promise won't resolve until scan completes.
-           The UI will wait for response. 
-           We should probably just start it and return, triggering events.
-        */
+        // キャンセル後の再スキャンは件数カウントを強制実行する（skipped-adaptive を防ぐ）
+        const folderRecord = getFolderById(rootFolderId);
+        const wasCancelled = folderRecord?.last_scan_status === 'cancelled';
 
         scanDirectory(
             folderPath,
@@ -114,6 +106,7 @@ export function registerScannerHandlers() {
             {
                 runtimeSettings,
                 cancellationToken,
+                skipInitialCount: wasCancelled ? false : undefined,
             }
         ).then(async () => {
             if (isScanCancelled(cancellationToken)) {

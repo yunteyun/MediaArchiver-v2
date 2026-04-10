@@ -14,7 +14,7 @@ import {
     setFolderShallowScan,
     setFolderWatchNewFilesEnabled
 } from '../services/database';
-import { getScanFileTypeCategories, scanDirectory } from '../services/scanner';
+import { getScanFileTypeCategories } from '../services/scanner';
 import { syncFolderWatchers } from '../services/folderWatchService';
 
 export function registerFolderHandlers() {
@@ -117,38 +117,10 @@ export function registerFolderHandlers() {
         const menu = Menu.buildFromTemplate([
             {
                 label: '再スキャン',
-                click: async () => {
-                    // Start scan
-                    // Note: scanDirectory might take time, we might want to notify start/end or progress
-                    // But here we just trigger it. The existing scanner logic sends progress via webContents if set up?
-                    // actually scanDirectory takes onProgress callback.
-                    // We can reuse the existing IPC mechanism for progress if we hook it up, 
-                    // or just fire a completion event.
-
-                    // Ideally we should send 'scanner:progress' events.
-                    // The scanDirectory function takes an onProgress callback.
-
-                    // We can just rely on the existing mechanism if we want, or simple fire-and-forget 
-                    // with a completion event.
-                    // Let's implement a simple wrapper that sends events to the sender.
-
-                    try {
-                        const webContents = event.sender;
-                        await scanDirectory(
-                            path,
-                            folderId,
-                            (progress) => {
-                                webContents.send('scanner:progress', progress);
-                            },
-                            undefined,
-                            {
-                                skipInitialCount: true,
-                            }
-                        );
-                        webContents.send('folder:rescanComplete', folderId);
-                    } catch (e) {
-                        console.error('Rescan failed:', e);
-                    }
+                click: () => {
+                    // scanner:start IPC を経由してスキャンを実行する
+                    // これにより件数カウント・キャンセルトークン管理が正しく行われる
+                    event.sender.send('folder:triggerRescan', path);
                 }
             },
             {

@@ -436,6 +436,11 @@ export function useSidebarData(): UseSidebarDataResult {
             }
         });
 
+        // コンテキストメニューの「再スキャン」から scanner:start IPC を経由する
+        const cleanupTriggerRescan = window.electronAPI.onFolderTriggerRescan((folderPath) => {
+            void window.electronAPI.scanFolder(folderPath);
+        });
+
         const cleanupScanBatchCommitted = window.electronAPI.onScanBatchCommitted((payload) => {
             if (payload.stage === 'complete' || payload.stage === 'cancelled') {
                 void loadFolders();
@@ -455,6 +460,7 @@ export function useSidebarData(): UseSidebarDataResult {
             }
             cleanupDelete();
             cleanupRescan();
+            cleanupTriggerRescan();
             cleanupScanBatchCommitted();
         };
     }, [

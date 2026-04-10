@@ -256,6 +256,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onFolderUpdated: (callback: (folderId: string) => void) => subscribe('folder:updated', callback),
 
     onFolderRescanComplete: (callback: (folderId: string) => void) => subscribe('folder:rescanComplete', callback),
+    onFolderTriggerRescan: (callback: (folderPath: string) => void) => subscribe('folder:triggerRescan', callback),
     onFolderRequestRegister: (callback: (folderPath: string) => void) => subscribe('folder:requestRegister', callback),
 
     // === File Context Menu ===
