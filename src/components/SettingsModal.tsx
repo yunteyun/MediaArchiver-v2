@@ -95,6 +95,17 @@ export const SettingsModal = React.memo(() => {
     const setShowTags = useSettingsStore((s) => s.setShowTags);
     const showFileSize = useSettingsStore((s) => s.showFileSize);
     const setShowFileSize = useSettingsStore((s) => s.setShowFileSize);
+    const showCreatedDate = useSettingsStore((s) => s.showCreatedDate);
+    const setShowCreatedDate = useSettingsStore((s) => s.setShowCreatedDate);
+    const showFolderBadge = useSettingsStore((s) => s.showFolderBadge);
+    const setShowFolderBadge = useSettingsStore((s) => s.setShowFolderBadge);
+    const showDriveBadge = useSettingsStore((s) => s.showDriveBadge);
+    const setShowDriveBadge = useSettingsStore((s) => s.setShowDriveBadge);
+    const driveColors = useSettingsStore((s) => s.driveColors);
+    const setDriveColor = useSettingsStore((s) => s.setDriveColor);
+    const infoBadgeOrder = useSettingsStore((s) => s.infoBadgeOrder);
+    const setInfoBadgeOrder = useSettingsStore((s) => s.setInfoBadgeOrder);
+    const [availableDrives, setAvailableDrives] = useState<string[]>([]);
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
     const setTagPopoverTrigger = useSettingsStore((s) => s.setTagPopoverTrigger);
@@ -358,6 +369,14 @@ export const SettingsModal = React.memo(() => {
         }
     }, [isOpen, activeTab, loadLogs]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        window.electronAPI.getFolders().then((folders) => {
+            const drives = [...new Set(folders.map((f) => f.drive).filter(Boolean))].sort();
+            setAvailableDrives(drives);
+        }).catch(() => {});
+    }, [isOpen]);
+
     const filteredLogs = logs.filter(line => {
         if (logFilter === 'all') return true;
         if (logFilter === 'error') return line.includes('[error]');
@@ -451,6 +470,13 @@ export const SettingsModal = React.memo(() => {
         setShowDuration(DEFAULT_FILE_CARD_SETTINGS.showDuration);
         setShowTags(DEFAULT_FILE_CARD_SETTINGS.showTags);
         setShowFileSize(DEFAULT_FILE_CARD_SETTINGS.showFileSize);
+        setShowCreatedDate(DEFAULT_FILE_CARD_SETTINGS.showCreatedDate);
+        setShowFolderBadge(DEFAULT_FILE_CARD_SETTINGS.showFolderBadge);
+        setShowDriveBadge(DEFAULT_FILE_CARD_SETTINGS.showDriveBadge);
+        // driveColors はセッター経由でリセット（全ドライブのカラーをクリア）
+        for (const drive of Object.keys(driveColors)) {
+            setDriveColor(drive, null);
+        }
         setTagPopoverTrigger(DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger);
         setTagDisplayStyle(DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle);
         setFileCardTagOrderMode(DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode);
@@ -461,6 +487,11 @@ export const SettingsModal = React.memo(() => {
         setShowDuration,
         setShowFileName,
         setShowFileSize,
+        setShowCreatedDate,
+        setShowFolderBadge,
+        setShowDriveBadge,
+        setDriveColor,
+        driveColors,
         setShowTags,
         setTagDisplayStyle,
         setTagPopoverTrigger,
@@ -685,6 +716,38 @@ export const SettingsModal = React.memo(() => {
                                 onShowFileSizeChange={(checked) => {
                                     setShowFileSize(checked);
                                     void handleProfileFileCardSettingsChange({ showFileSize: checked });
+                                }}
+                                showCreatedDate={showCreatedDate}
+                                onShowCreatedDateChange={(checked) => {
+                                    setShowCreatedDate(checked);
+                                    void handleProfileFileCardSettingsChange({ showCreatedDate: checked });
+                                }}
+                                showFolderBadge={showFolderBadge}
+                                onShowFolderBadgeChange={(checked) => {
+                                    setShowFolderBadge(checked);
+                                    void handleProfileFileCardSettingsChange({ showFolderBadge: checked });
+                                }}
+                                showDriveBadge={showDriveBadge}
+                                onShowDriveBadgeChange={(checked) => {
+                                    setShowDriveBadge(checked);
+                                    void handleProfileFileCardSettingsChange({ showDriveBadge: checked });
+                                }}
+                                driveColors={driveColors}
+                                availableDrives={availableDrives}
+                                onDriveColorChange={(drive, color) => {
+                                    setDriveColor(drive, color);
+                                    const updated = { ...driveColors };
+                                    if (color) {
+                                        updated[drive] = color;
+                                    } else {
+                                        delete updated[drive];
+                                    }
+                                    void handleProfileFileCardSettingsChange({ driveColors: updated });
+                                }}
+                                infoBadgeOrder={infoBadgeOrder}
+                                onInfoBadgeOrderChange={(order) => {
+                                    setInfoBadgeOrder(order);
+                                    void handleProfileFileCardSettingsChange({ infoBadgeOrder: order });
                                 }}
                                 displayPresetDirectory={displayPresetDirectory}
                                 displayPresetCount={displayPresetCount}

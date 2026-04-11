@@ -45,6 +45,11 @@ export interface GlobalSettingsExportV1 {
     showDuration: boolean;
     showTags: boolean;
     showFileSize: boolean;
+    showCreatedDate: boolean;
+    showFolderBadge: boolean;
+    showDriveBadge: boolean;
+    driveColors: Record<string, string>;
+    infoBadgeOrder: string[];
     activeDisplayPresetId: string;
     displayMode: DisplayMode;
     layoutPreset: LayoutPreset;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Eye, FolderOpen } from 'lucide-react';
 import { formatFileSize } from '../../utils/groupFiles';
-import { getDisplayFolderName } from '../../utils/path';
+import { getDriveLetter, getDisplayFolderName } from '../../utils/path';
 import { getFolderBadgeAccentColor, getFolderBadgePanelStyle, getFolderBadgePillStyle } from '../../utils/folderBadgeColor';
 import type { DetailedPanelBadgeKey } from './displayModes';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
@@ -27,6 +27,12 @@ type DetailedBadgeMetaRowProps = {
     createdDateLabel: string | null;
     folderName: string;
     folderBadgeColor?: string | null;
+    showCreatedDate: boolean;
+    showFolderBadge: boolean;
+    showDriveBadge: boolean;
+    driveLetter: string;
+    driveColor?: string | null;
+    infoBadgeOrder: string[];
 };
 
 type DetailedBottomRowProps = {
@@ -60,6 +66,7 @@ const DETAILED_PANEL_BADGE_LABELS: Record<DetailedPanelBadgeKey, string> = {
     extension: '拡張子',
     updatedDate: '更新日',
     folder: 'フォルダ',
+    drive: 'ドライブ',
 };
 
 const DetailedBadgeMetaRow = React.memo(({
@@ -69,32 +76,52 @@ const DetailedBadgeMetaRow = React.memo(({
     createdDateLabel,
     folderName,
     folderBadgeColor,
+    showCreatedDate,
+    showFolderBadge,
+    showDriveBadge,
+    driveLetter,
+    driveColor,
+    infoBadgeOrder,
 }: DetailedBadgeMetaRowProps) => {
+    const badgeRenderers: Record<string, React.ReactNode> = {
+        fileSize: showSecondLineSizeBadge && !!fileSize ? (
+            <span key="fileSize" className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/80">
+                {formatFileSize(fileSize)}
+            </span>
+        ) : null,
+        createdDate: showCreatedDate && createdDateLabel ? (
+            <span key="createdDate" className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60">
+                {createdDateLabel}
+            </span>
+        ) : null,
+        folder: showFolderBadge && folderName ? (
+            <span
+                key="folder"
+                className={`inline-flex min-w-0 shrink items-center gap-1 rounded border border-surface-600/60 bg-surface-700/50 px-1.5 py-0.5 text-[8px] leading-none font-medium text-surface-200 ${ui.folderBadgeMaxWidthClass}`}
+                style={getFolderBadgePillStyle(folderBadgeColor)}
+            >
+                <FolderOpen
+                    size={9}
+                    className="shrink-0 text-surface-400"
+                    style={folderBadgeColor ? { color: getFolderBadgeAccentColor(folderBadgeColor) } : undefined}
+                />
+                <span className="truncate">{folderName}</span>
+            </span>
+        ) : null,
+        drive: showDriveBadge && driveLetter ? (
+            <span
+                key="drive"
+                className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60"
+                style={getFolderBadgePillStyle(driveColor)}
+            >
+                {driveLetter}
+            </span>
+        ) : null,
+    };
+
     return (
         <div className="mt-0.5 mb-0.5 min-h-[16px] flex min-w-0 items-center gap-1 overflow-hidden">
-            {showSecondLineSizeBadge && !!fileSize && (
-                <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/80">
-                    {formatFileSize(fileSize)}
-                </span>
-            )}
-            {createdDateLabel && (
-                <span className="inline-flex items-center flex-shrink-0 px-1.5 py-0.5 rounded whitespace-nowrap text-[8px] leading-none font-medium text-surface-300 bg-surface-700/50 border border-surface-600/60">
-                    {createdDateLabel}
-                </span>
-            )}
-            {folderName && (
-                <span
-                    className={`inline-flex min-w-0 shrink items-center gap-1 rounded border border-surface-600/60 bg-surface-700/50 px-1.5 py-0.5 text-[8px] leading-none font-medium text-surface-200 ${ui.folderBadgeMaxWidthClass}`}
-                    style={getFolderBadgePillStyle(folderBadgeColor)}
-                >
-                    <FolderOpen
-                        size={9}
-                        className="shrink-0 text-surface-400"
-                        style={folderBadgeColor ? { color: getFolderBadgeAccentColor(folderBadgeColor) } : undefined}
-                    />
-                    <span className="truncate">{folderName}</span>
-                </span>
-            )}
+            {infoBadgeOrder.map((key) => badgeRenderers[key])}
         </div>
     );
 });
@@ -134,6 +161,11 @@ export const FileCardInfoDetailed = React.memo(({
     displayPreset,
     infoAreaHeight,
     showFileSize,
+    showCreatedDate,
+    showFolderBadge,
+    showDriveBadge,
+    driveColors,
+    infoBadgeOrder,
     folderBadgeColor,
     TagSummaryRenderer,
 }: FileCardInfoCommonProps) => {
@@ -141,6 +173,8 @@ export const FileCardInfoDetailed = React.memo(({
     const showMetaLine = !ui.isBadgeMetaMode;
     const showSecondLineSizeBadge = ui.isBadgeMetaMode && showFileSize && !!file.size;
     const folderName = getDisplayFolderName(file.path);
+    const driveLetter = getDriveLetter(file.path);
+    const driveColor = driveLetter ? (driveColors[driveLetter] ?? null) : null;
     const createdDateLabel = file.createdAt
         ? new Date(file.createdAt).toLocaleDateString('ja-JP', {
             year: '2-digit',
@@ -164,7 +198,8 @@ export const FileCardInfoDetailed = React.memo(({
             size: showFileSize && !!file.size ? formatFileSize(file.size) : '-',
             extension: extension || '-',
             updatedDate: updatedDateLabel || '-',
-            folder: folderName || '-',
+            folder: showFolderBadge ? (folderName || '-') : '-',
+            drive: showDriveBadge ? (driveLetter || '-') : '-',
         };
         const detailedPanelBadges = ui.detailedPanelBadgeKeys.map((key) => ({
             key,
@@ -231,11 +266,17 @@ export const FileCardInfoDetailed = React.memo(({
             </h3>
             {showMetaLine ? (
                 <div className={ui.metaLineClass}>
-                    {folderName}
-                    {file.createdAt && (
+                    {showFolderBadge && folderName}
+                    {showCreatedDate && file.createdAt && (
                         <>
-                            {' · '}
+                            {showFolderBadge && folderName ? ' · ' : ''}
                             {createdDateLabel}
+                        </>
+                    )}
+                    {showDriveBadge && driveLetter && (
+                        <>
+                            {(showFolderBadge && folderName) || (showCreatedDate && file.createdAt) ? ' · ' : ''}
+                            {driveLetter}
                         </>
                     )}
                     {file.accessCount > 0 && (
@@ -260,6 +301,12 @@ export const FileCardInfoDetailed = React.memo(({
                     createdDateLabel={createdDateLabel}
                     folderName={folderName}
                     folderBadgeColor={folderBadgeColor}
+                    showCreatedDate={showCreatedDate}
+                    showFolderBadge={showFolderBadge}
+                    showDriveBadge={showDriveBadge}
+                    driveLetter={driveLetter}
+                    driveColor={driveColor}
+                    infoBadgeOrder={infoBadgeOrder}
                 />
             )}
             <DetailedBottomRow

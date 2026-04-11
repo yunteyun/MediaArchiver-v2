@@ -7,7 +7,7 @@ import type {
     FileCardLayoutConfig,
 } from '../displayModeTypes';
 
-export type DetailedPanelBadgeKey = 'size' | 'extension' | 'updatedDate' | 'folder';
+export type DetailedPanelBadgeKey = 'size' | 'extension' | 'updatedDate' | 'folder' | 'drive';
 
 export type TagSummaryUiPreset = {
     visibleCount: number;

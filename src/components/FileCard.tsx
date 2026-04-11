@@ -360,6 +360,11 @@ export const FileCard = React.memo(({
     const showDuration = useSettingsStore((s) => s.showDuration);
     const showTags = useSettingsStore((s) => s.showTags);
     const showFileSize = useSettingsStore((s) => s.showFileSize);
+    const showCreatedDate = useSettingsStore((s) => s.showCreatedDate);
+    const showFolderBadge = useSettingsStore((s) => s.showFolderBadge);
+    const showDriveBadge = useSettingsStore((s) => s.showDriveBadge);
+    const driveColors = useSettingsStore((s) => s.driveColors);
+    const infoBadgeOrder = useSettingsStore((s) => s.infoBadgeOrder);
     const displayMode = useUIStore((s) => s.currentDisplayMode);
     const activeDisplayPresetId = useUIStore((s) => s.currentActiveDisplayPresetId);
     const thumbnailPresentation = useUIStore((s) => s.currentThumbnailPresentation);
@@ -1366,6 +1371,11 @@ export const FileCard = React.memo(({
                     displayPreset={displayPreset}
                     infoAreaHeight={config.infoAreaHeight}
                     showFileSize={showFileSize}
+                    showCreatedDate={showCreatedDate}
+                    showFolderBadge={showFolderBadge}
+                    showDriveBadge={showDriveBadge}
+                    driveColors={driveColors}
+                    infoBadgeOrder={infoBadgeOrder}
                     folderBadgeColor={folderBadgeColor}
                     TagSummaryRenderer={TagSummaryRenderer}
                 />

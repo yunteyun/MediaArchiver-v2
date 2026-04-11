@@ -19,6 +19,11 @@ export interface ProfileSettingsStoreSnapshot {
     showDuration: boolean;
     showTags: boolean;
     showFileSize: boolean;
+    showCreatedDate: boolean;
+    showFolderBadge: boolean;
+    showDriveBadge: boolean;
+    driveColors: Record<string, string>;
+    infoBadgeOrder: string[];
     tagPopoverTrigger: ProfileScopedSettingsV1['fileCardSettings']['tagPopoverTrigger'];
     tagDisplayStyle: ProfileScopedSettingsV1['fileCardSettings']['tagDisplayStyle'];
     fileCardTagOrderMode: ProfileScopedSettingsV1['fileCardSettings']['fileCardTagOrderMode'];
@@ -94,6 +99,11 @@ export function createInitialProfileScopedSettings(
             showDuration: snapshot.showDuration,
             showTags: snapshot.showTags,
             showFileSize: snapshot.showFileSize,
+            showCreatedDate: snapshot.showCreatedDate,
+            showFolderBadge: snapshot.showFolderBadge,
+            showDriveBadge: snapshot.showDriveBadge,
+            driveColors: { ...snapshot.driveColors },
+            infoBadgeOrder: [...snapshot.infoBadgeOrder],
             tagPopoverTrigger: snapshot.tagPopoverTrigger,
             tagDisplayStyle: snapshot.tagDisplayStyle,
             fileCardTagOrderMode: snapshot.fileCardTagOrderMode,
@@ -102,6 +112,11 @@ export function createInitialProfileScopedSettings(
             showDuration: true,
             showTags: true,
             showFileSize: true,
+            showCreatedDate: true,
+            showFolderBadge: true,
+            showDriveBadge: false,
+            driveColors: {},
+            infoBadgeOrder: ['fileSize', 'createdDate', 'folder', 'drive'],
             tagPopoverTrigger: 'click',
             tagDisplayStyle: 'filled',
             fileCardTagOrderMode: 'balanced',

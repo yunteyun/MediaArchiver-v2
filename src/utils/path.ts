@@ -17,3 +17,8 @@ export const getDisplayFolderName = (path: string): string => {
     const parts = path.split(/[/\\]/);
     return parts.length > 1 ? (parts[parts.length - 2] ?? '') : '';
 };
+
+export const getDriveLetter = (path: string): string => {
+    const match = path.match(/^([A-Za-z]:)/);
+    return match ? match[1] : '';
+};

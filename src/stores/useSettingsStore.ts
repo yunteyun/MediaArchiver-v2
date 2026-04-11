@@ -89,10 +89,15 @@ export interface ProfileScopedSettingsV1 {
         showDuration: boolean;
         showTags: boolean;
         showFileSize: boolean;
+        showCreatedDate: boolean;
+        showFolderBadge: boolean;
+        showDriveBadge: boolean;
         tagPopoverTrigger: TagPopoverTrigger;
         tagDisplayStyle: TagDisplayStyle;
         fileCardTagOrderMode: FileCardTagOrderMode;
     };
+    driveColors: Record<string, string>;
+    infoBadgeOrder: string[];
     defaultExternalApps: Record<string, string>;
     renameQuickTexts: string[];
     searchDestinations: SearchDestination[];
@@ -154,6 +159,11 @@ export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
         showDuration: true,
         showTags: true,
         showFileSize: true,
+        showCreatedDate: true,
+        showFolderBadge: true,
+        showDriveBadge: false,
+        driveColors: {},
+        infoBadgeOrder: ['fileSize', 'createdDate', 'folder', 'drive'],
         tagPopoverTrigger: 'click',
         tagDisplayStyle: 'filled',
         fileCardTagOrderMode: 'balanced',
@@ -176,6 +186,11 @@ export const DEFAULT_FILE_CARD_SETTINGS = {
     showDuration: true,
     showTags: true,
     showFileSize: true,
+    showCreatedDate: true,
+    showFolderBadge: true,
+    showDriveBadge: false,
+    driveColors: {} as Record<string, string>,
+    infoBadgeOrder: ['fileSize', 'createdDate', 'folder', 'drive'] as string[],
     tagPopoverTrigger: 'click' as const,
     tagDisplayStyle: 'filled' as const,
     fileCardTagOrderMode: 'balanced' as const,
@@ -439,6 +454,11 @@ interface SettingsState {
     showDuration: boolean;
     showTags: boolean;
     showFileSize: boolean;
+    showCreatedDate: boolean;
+    showFolderBadge: boolean;
+    showDriveBadge: boolean;
+    driveColors: Record<string, string>;
+    infoBadgeOrder: string[];
 
     // 表示モード設定（Phase 14）
     activeDisplayPresetId: string;
@@ -510,6 +530,11 @@ interface SettingsState {
     setShowDuration: (show: boolean) => void;
     setShowTags: (show: boolean) => void;
     setShowFileSize: (show: boolean) => void;
+    setShowCreatedDate: (show: boolean) => void;
+    setShowFolderBadge: (show: boolean) => void;
+    setShowDriveBadge: (show: boolean) => void;
+    setDriveColor: (drive: string, color: string | null) => void;
+    setInfoBadgeOrder: (order: string[]) => void;
     // 表示モードアクション（Phase 14）
     setActiveDisplayPreset: (selection: DisplayPresetSelection) => void;
     setDisplayMode: (mode: DisplayMode) => void;
@@ -588,6 +613,11 @@ export const useSettingsStore = create<SettingsState>()(
             showDuration: DEFAULT_FILE_CARD_SETTINGS.showDuration,
             showTags: DEFAULT_FILE_CARD_SETTINGS.showTags,
             showFileSize: DEFAULT_FILE_CARD_SETTINGS.showFileSize,
+            showCreatedDate: DEFAULT_FILE_CARD_SETTINGS.showCreatedDate,
+            showFolderBadge: DEFAULT_FILE_CARD_SETTINGS.showFolderBadge,
+            showDriveBadge: DEFAULT_FILE_CARD_SETTINGS.showDriveBadge,
+            driveColors: { ...DEFAULT_FILE_CARD_SETTINGS.driveColors },
+            infoBadgeOrder: [...DEFAULT_FILE_CARD_SETTINGS.infoBadgeOrder],
 
             // 表示モード設定デフォルト値（Phase 14）
             activeDisplayPresetId: DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
@@ -670,6 +700,11 @@ export const useSettingsStore = create<SettingsState>()(
                 showDuration: settings.fileCardSettings?.showDuration ?? DEFAULT_FILE_CARD_SETTINGS.showDuration,
                 showTags: settings.fileCardSettings?.showTags ?? DEFAULT_FILE_CARD_SETTINGS.showTags,
                 showFileSize: settings.fileCardSettings?.showFileSize ?? DEFAULT_FILE_CARD_SETTINGS.showFileSize,
+                showCreatedDate: settings.fileCardSettings?.showCreatedDate ?? DEFAULT_FILE_CARD_SETTINGS.showCreatedDate,
+                showFolderBadge: settings.fileCardSettings?.showFolderBadge ?? DEFAULT_FILE_CARD_SETTINGS.showFolderBadge,
+                showDriveBadge: settings.fileCardSettings?.showDriveBadge ?? DEFAULT_FILE_CARD_SETTINGS.showDriveBadge,
+                driveColors: settings.fileCardSettings?.driveColors ?? { ...DEFAULT_FILE_CARD_SETTINGS.driveColors },
+                infoBadgeOrder: Array.isArray(settings.fileCardSettings?.infoBadgeOrder) ? settings.fileCardSettings.infoBadgeOrder : [...DEFAULT_FILE_CARD_SETTINGS.infoBadgeOrder],
                 tagPopoverTrigger: settings.fileCardSettings?.tagPopoverTrigger ?? DEFAULT_FILE_CARD_SETTINGS.tagPopoverTrigger,
                 tagDisplayStyle: settings.fileCardSettings?.tagDisplayStyle ?? DEFAULT_FILE_CARD_SETTINGS.tagDisplayStyle,
                 fileCardTagOrderMode: settings.fileCardSettings?.fileCardTagOrderMode ?? DEFAULT_FILE_CARD_SETTINGS.fileCardTagOrderMode,
@@ -701,6 +736,11 @@ export const useSettingsStore = create<SettingsState>()(
                     showDuration: get().showDuration,
                     showTags: get().showTags,
                     showFileSize: get().showFileSize,
+                    showCreatedDate: get().showCreatedDate,
+                    showFolderBadge: get().showFolderBadge,
+                    showDriveBadge: get().showDriveBadge,
+                    driveColors: { ...get().driveColors },
+                    infoBadgeOrder: [...get().infoBadgeOrder],
                     tagPopoverTrigger: get().tagPopoverTrigger,
                     tagDisplayStyle: get().tagDisplayStyle,
                     fileCardTagOrderMode: get().fileCardTagOrderMode,
@@ -721,6 +761,19 @@ export const useSettingsStore = create<SettingsState>()(
             setShowDuration: (showDuration) => set({ showDuration }),
             setShowTags: (showTags) => set({ showTags }),
             setShowFileSize: (showFileSize) => set({ showFileSize }),
+            setShowCreatedDate: (showCreatedDate) => set({ showCreatedDate }),
+            setShowFolderBadge: (showFolderBadge) => set({ showFolderBadge }),
+            setShowDriveBadge: (showDriveBadge) => set({ showDriveBadge }),
+            setDriveColor: (drive, color) => {
+                const current = { ...get().driveColors };
+                if (color) {
+                    current[drive] = color;
+                } else {
+                    delete current[drive];
+                }
+                set({ driveColors: current });
+            },
+            setInfoBadgeOrder: (infoBadgeOrder) => set({ infoBadgeOrder }),
             // 表示モード設定セッター（Phase 14）
             setActiveDisplayPreset: (selection) => {
                 const { layoutPreset } = mapDisplayModeToPresentationAxes(selection.baseDisplayMode);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderOpen, RefreshCw } from 'lucide-react';
+import { ArrowDown, ArrowUp, FolderOpen, RefreshCw } from 'lucide-react';
 import type { DateGroupingMode, FileCardTagOrderMode, GroupBy, SearchTarget, TagDisplayStyle, TagPopoverTrigger, ThumbnailPresentation } from '../../stores/useSettingsStore';
 import type { DisplayMode } from '../../stores/useSettingsStore';
 import {
@@ -11,6 +11,7 @@ import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
 import { SettingsSection } from './SettingsSection';
 import { RenameQuickTextSection } from './RenameQuickTextSection';
 import { findMatchingListDisplayPresetId, LIST_DISPLAY_PRESETS, type ListDisplayPresetId } from '../../shared/listDisplayPresets';
+import { FOLDER_BADGE_COLOR_OPTIONS, resolveFolderBadgeColorHex } from '../../utils/folderBadgeColor';
 
 interface GeneralSettingsTabProps {
     activeProfileLabel: string;
@@ -61,6 +62,17 @@ interface GeneralSettingsTabProps {
     onFileCardTagOrderModeChange: (value: FileCardTagOrderMode) => void;
     showFileSize: boolean;
     onShowFileSizeChange: (checked: boolean) => void;
+    showCreatedDate: boolean;
+    onShowCreatedDateChange: (checked: boolean) => void;
+    showFolderBadge: boolean;
+    onShowFolderBadgeChange: (checked: boolean) => void;
+    showDriveBadge: boolean;
+    onShowDriveBadgeChange: (checked: boolean) => void;
+    driveColors: Record<string, string>;
+    availableDrives: string[];
+    onDriveColorChange: (drive: string, color: string | null) => void;
+    infoBadgeOrder: string[];
+    onInfoBadgeOrderChange: (order: string[]) => void;
     displayPresetDirectory: string | null;
     displayPresetCount: number;
     displayPresetWarnings: string[];
@@ -112,6 +124,17 @@ export const GeneralSettingsTab = React.memo(({
     onFileCardTagOrderModeChange,
     showFileSize,
     onShowFileSizeChange,
+    showCreatedDate,
+    onShowCreatedDateChange,
+    showFolderBadge,
+    onShowFolderBadgeChange,
+    showDriveBadge,
+    onShowDriveBadgeChange,
+    driveColors,
+    availableDrives,
+    onDriveColorChange,
+    infoBadgeOrder,
+    onInfoBadgeOrderChange,
     displayPresetDirectory,
     displayPresetCount,
     displayPresetWarnings,
@@ -510,6 +533,112 @@ export const GeneralSettingsTab = React.memo(({
                     />
                     <span className="text-surface-200 text-sm">ファイルサイズ</span>
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={showCreatedDate}
+                        onChange={(e) => onShowCreatedDateChange(e.target.checked)}
+                        className="w-4 h-4 accent-primary-500 rounded"
+                    />
+                    <span className="text-surface-200 text-sm">作成日</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={showFolderBadge}
+                        onChange={(e) => onShowFolderBadgeChange(e.target.checked)}
+                        className="w-4 h-4 accent-primary-500 rounded"
+                    />
+                    <span className="text-surface-200 text-sm">フォルダ名</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={showDriveBadge}
+                        onChange={(e) => onShowDriveBadgeChange(e.target.checked)}
+                        className="w-4 h-4 accent-primary-500 rounded"
+                    />
+                    <span className="text-surface-200 text-sm">ドライブ名</span>
+                </label>
+                {showDriveBadge && availableDrives.length > 0 && (
+                    <div className="ml-6 mt-1">
+                        <label className="block text-xs text-surface-400 mb-1">ドライブカラー</label>
+                        <div className="space-y-1.5">
+                            {availableDrives.map((drive) => (
+                                <div key={drive} className="flex items-center gap-2">
+                                    <span className="text-xs text-surface-300 w-6">{drive}</span>
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                        <button
+                                            type="button"
+                                            onClick={() => onDriveColorChange(drive, null)}
+                                            className={`w-4 h-4 rounded-full border ${!driveColors[drive] ? 'border-primary-400 ring-1 ring-primary-400' : 'border-surface-500'} bg-surface-600`}
+                                            title="未設定"
+                                        />
+                                        {FOLDER_BADGE_COLOR_OPTIONS.map((option) => {
+                                            const hex = resolveFolderBadgeColorHex(option.value);
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    type="button"
+                                                    onClick={() => onDriveColorChange(drive, option.value)}
+                                                    className={`w-4 h-4 rounded-full border ${driveColors[drive] === option.value ? 'border-white ring-1 ring-white' : 'border-surface-500'}`}
+                                                    style={{ backgroundColor: hex ?? undefined }}
+                                                    title={option.label}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                <label className="block text-sm font-medium text-surface-300 mt-4 mb-2">
+                    バッジ表示順
+                </label>
+                <div className="space-y-1">
+                    {infoBadgeOrder.map((key, index) => {
+                        const labels: Record<string, string> = {
+                            fileSize: 'ファイルサイズ',
+                            createdDate: '作成日',
+                            folder: 'フォルダ名',
+                            drive: 'ドライブ名',
+                        };
+                        return (
+                            <div key={key} className="flex items-center gap-2">
+                                <div className="flex flex-col">
+                                    <button
+                                        type="button"
+                                        disabled={index === 0}
+                                        onClick={() => {
+                                            const newOrder = [...infoBadgeOrder];
+                                            [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                                            onInfoBadgeOrderChange(newOrder);
+                                        }}
+                                        className="p-0.5 text-surface-400 hover:text-surface-200 disabled:opacity-30 disabled:cursor-default"
+                                        title="上へ"
+                                    >
+                                        <ArrowUp size={12} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={index === infoBadgeOrder.length - 1}
+                                        onClick={() => {
+                                            const newOrder = [...infoBadgeOrder];
+                                            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                                            onInfoBadgeOrderChange(newOrder);
+                                        }}
+                                        className="p-0.5 text-surface-400 hover:text-surface-200 disabled:opacity-30 disabled:cursor-default"
+                                        title="下へ"
+                                    >
+                                        <ArrowDown size={12} />
+                                    </button>
+                                </div>
+                                <span className="text-surface-200 text-sm">{labels[key] ?? key}</span>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </SettingsSection>
 
