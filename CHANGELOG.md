@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Button・Input・Select・Textarea・Dialog・Checkbox の共通UIコンポーネントを追加した。今後の開発でスタイルの一貫性を保つための基盤となる。
 - ファイルカードの情報エリアに表示されるバッジ（ファイルサイズ・作成日・フォルダ名・ドライブ名）の表示/非表示を設定画面から個別に制御できるようにした。
 - ドライブ名バッジを新規追加した。フォルダバッジと同じカラーパレットからドライブごとに色を設定できる。
 - 情報エリアのバッジ表示順を設定画面の上下ボタンで変更できるようにした。

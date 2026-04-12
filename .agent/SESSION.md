@@ -2,10 +2,19 @@
 
 **Last Updated**: 2026-04-12
 
-- **Current Focus**: ファイルカードのバッジカスタマイズ機能（Issue #38）
-- **Current Status**: 完了。バッジ表示ON/OFF・ドライブ名バッジ・ドライブカラー・バッジ並び替えを実装。
+- **Current Focus**: Issue #32 UI統一感の改善
+- **Current Status**: Phase 0・Phase 1 完了。primary カラー修正と共通UIコンポーネント基盤の作成を実施。
 
 ## Recent Achievements
+
+- **共通UIコンポーネント基盤の作成（Issue #32 Phase 1）**:
+  - `src/components/ui/` に Button・Input・Select・Textarea・Dialog・Checkbox・index.ts を新規作成。
+  - Button は 4 variant × 5 size 対応。Dialog は createPortal + Escape + オーバーレイクリック対応。
+  - 既存ファイルへの変更なし。
+
+- **UI調査・primary カラー修正（Issue #32 Phase 0）**:
+  - `tailwind.config.js` に `primary` カラーパレット（blue系）を追加。50ファイル以上でアクションボタン等の青色が無効になっていた致命バグを修正。
+  - Issue #32 に調査結果（問題一覧・Phase別改善計画）をコメントとして記録。
 
 - **バッジ表示カスタマイズ**:
   - 作成日・フォルダ名・ドライブ名バッジの個別ON/OFF設定を追加
