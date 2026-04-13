@@ -1,6 +1,7 @@
 import type { MediaFile } from '../types/file';
 import type { Tag } from '../stores/useTagStore';
 import { formatFileSize } from './groupFiles';
+import { resolveColorHex } from '../lib/colors';
 
 export interface FileExportTagChip {
     id: string;
@@ -46,30 +47,9 @@ function formatExportDateTime(timestamp?: number | null): string {
     }
 }
 
-// FileCard 側と同等の色マップ（タグ名色→CSS色）
+/** タグ色名を HEX 値に解決する（lib/colors.ts の resolveColorHex への委譲） */
 export function resolveTagColorHex(colorName?: string): string {
-    if (!colorName) return '#4b5563';
-    const colorMap: Record<string, string> = {
-        gray: '#4b5563',
-        red: '#dc2626',
-        orange: '#ea580c',
-        amber: '#d97706',
-        yellow: '#f59e0b',
-        lime: '#65a30d',
-        green: '#16a34a',
-        emerald: '#059669',
-        teal: '#0d9488',
-        cyan: '#0891b2',
-        sky: '#0284c7',
-        blue: '#2563eb',
-        indigo: '#4f46e5',
-        violet: '#7c3aed',
-        purple: '#9333ea',
-        fuchsia: '#c026d3',
-        pink: '#db2777',
-        rose: '#e11d48',
-    };
-    return colorMap[colorName] ?? colorMap.gray;
+    return resolveColorHex(colorName);
 }
 
 export function buildFileExportRows(

@@ -87,7 +87,7 @@ export const SidebarFolderSection = React.memo(({
             className={`
                 flex items-center gap-2 p-2 rounded cursor-pointer mb-2 transition-colors
                 ${(currentFolderId === ALL_FILES_ID || currentFolderId === null)
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary-600 text-white'
                     : 'hover:bg-surface-800 text-surface-300'}
                 ${sidebarCollapsed ? 'justify-center' : ''}
             `}
@@ -208,7 +208,7 @@ export const SidebarFolderSection = React.memo(({
                                                 onClick={() => onSelectFolder(selection)}
                                                 className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors ${
                                                     isSelected
-                                                        ? 'bg-blue-600 text-white'
+                                                        ? 'bg-primary-600 text-white'
                                                         : 'cursor-pointer text-surface-300 hover:bg-surface-800'
                                                 }`}
                                             >
@@ -247,7 +247,7 @@ export const SidebarFolderSection = React.memo(({
                                                 onClick={() => onSelectFolder(selection)}
                                                 className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors ${
                                                     isSelected
-                                                        ? 'bg-blue-600 text-white'
+                                                        ? 'bg-primary-600 text-white'
                                                         : 'cursor-pointer text-surface-300 hover:bg-surface-800'
                                                 }`}
                                             >

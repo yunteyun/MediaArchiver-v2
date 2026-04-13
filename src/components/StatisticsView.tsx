@@ -10,7 +10,7 @@ import { BarChart3, FolderOpen, Tag, File, HardDrive, RefreshCw, TrendingUp, Ale
 import { ActivityLogView } from './ActivityLogView';
 import { useLibraryStats } from '../hooks/useLibraryStats';
 import { toMediaUrl } from '../utils/mediaPath';
-import { resolveTagColorHex } from '../utils/fileExport';
+import { resolveColorHex, FILE_TYPE_COLORS, TAG_CHART_PALETTE, CHART_TOOLTIP_STYLES, CHART_HOVER_CURSOR } from '../lib/colors';
 
 const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -27,61 +27,25 @@ const typeLabels: Record<string, string> = {
     audio: '音声',
 };
 
-const typeColors: Record<string, string> = {
-    image: '#3b82f6',   // 青
-    video: '#22c55e',   // 緑
-    archive: '#f97316', // オレンジ
-    audio: '#a855f7',   // 紫
-};
-
 const neutralTagColors = new Set(['gray', 'slate', 'zinc', 'neutral', 'stone']);
 
-const tagChartPalette = [
-    '#60a5fa',
-    '#34d399',
-    '#f59e0b',
-    '#f472b6',
-    '#a78bfa',
-    '#22d3ee',
-    '#fb7185',
-    '#84cc16',
-    '#38bdf8',
-    '#f97316',
-];
+const {
+    contentStyle: chartTooltipContentStyle,
+    labelStyle: chartTooltipLabelStyle,
+    itemStyle: chartTooltipItemStyle,
+    wrapperStyle: chartTooltipWrapperStyle,
+} = CHART_TOOLTIP_STYLES;
 
-const chartTooltipContentStyle = {
-    backgroundColor: '#0f172a',
-    border: '1px solid #334155',
-    borderRadius: '10px',
-    boxShadow: '0 12px 30px rgba(15, 23, 42, 0.45)',
-};
-
-const chartTooltipLabelStyle = {
-    color: '#f8fafc',
-    fontWeight: 600,
-};
-
-const chartTooltipItemStyle = {
-    color: '#cbd5e1',
-};
-
-const chartTooltipWrapperStyle = {
-    outline: 'none',
-    zIndex: 20,
-};
-
-const chartHoverCursor = {
-    fill: 'rgba(59, 130, 246, 0.12)',
-};
+const chartHoverCursor = CHART_HOVER_CURSOR;
 
 function getTagChartColor(tagColor: string | undefined, index: number): string {
     if (!tagColor || neutralTagColors.has(tagColor)) {
-        return tagChartPalette[index % tagChartPalette.length];
+        return TAG_CHART_PALETTE[index % TAG_CHART_PALETTE.length];
     }
 
-    const resolved = resolveTagColorHex(tagColor);
+    const resolved = resolveColorHex(tagColor);
     return resolved === '#4b5563'
-        ? tagChartPalette[index % tagChartPalette.length]
+        ? TAG_CHART_PALETTE[index % TAG_CHART_PALETTE.length]
         : resolved;
 }
 
@@ -295,7 +259,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                     data={stats.byType.map(t => ({
                                         name: typeLabels[t.type] || t.type,
                                         value: t.count,
-                                        color: typeColors[t.type] || '#6366f1'
+                                        color: FILE_TYPE_COLORS[t.type] || '#6366f1'
                                     }))}
                                     cx="50%"
                                     cy="50%"
@@ -306,7 +270,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                                     strokeWidth={2}
                                 >
                                     {stats.byType.map((t, idx) => (
-                                        <Cell key={`cell-${idx}`} fill={typeColors[t.type] || '#6366f1'} />
+                                        <Cell key={`cell-${idx}`} fill={FILE_TYPE_COLORS[t.type] || '#6366f1'} />
                                     ))}
                                 </Pie>
                                 <Tooltip
@@ -323,7 +287,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ embedded = false
                             <div key={t.type} className="flex items-center gap-3">
                                 <div
                                     className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: typeColors[t.type] || '#6366f1' }}
+                                    style={{ backgroundColor: FILE_TYPE_COLORS[t.type] || '#6366f1' }}
                                 />
                                 <div className="w-12 text-surface-300 text-sm">
                                     {typeLabels[t.type] || t.type}

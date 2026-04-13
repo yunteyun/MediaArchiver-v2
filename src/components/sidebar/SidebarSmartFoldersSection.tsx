@@ -419,7 +419,7 @@ export const SidebarSmartFoldersSection = React.memo(({
                                 key={smartFolder.id}
                                 className={`w-full flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${
                                     isActive
-                                        ? 'bg-blue-600 text-white'
+                                        ? 'bg-primary-600 text-white'
                                         : 'text-surface-300 hover:bg-surface-800'
                                 }`}
                             >

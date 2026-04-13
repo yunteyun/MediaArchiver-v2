@@ -184,7 +184,7 @@ export const FolderTree = React.memo(({
                 <div
                     className={`
                         flex items-center gap-1 p-2 rounded cursor-pointer mb-1 transition-colors
-                        ${isSelected ? 'bg-blue-600 text-white' : 'hover:bg-surface-800 text-surface-300'}
+                        ${isSelected ? 'bg-primary-600 text-white' : 'hover:bg-surface-800 text-surface-300'}
                     `}
                     style={{ paddingLeft: `${visualDepth * 16 + 8}px` }}
                     onClick={() => {
@@ -298,7 +298,7 @@ export const FolderTree = React.memo(({
                             className={`
                                 flex items-center gap-2 p-2 rounded transition-colors
                                 ${isDriveSelected
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-primary-600 text-white'
                                     : 'text-surface-300 hover:bg-surface-800 cursor-pointer'}
                             `}
                             onClick={() => {

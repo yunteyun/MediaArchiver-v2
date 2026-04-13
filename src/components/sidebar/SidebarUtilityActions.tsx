@@ -43,7 +43,7 @@ export const SidebarUtilityActions = React.memo(({
             className={`
                 flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
                 ${duplicateViewOpen
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary-600 text-white'
                     : 'hover:bg-surface-800 text-surface-300'}
                 ${sidebarCollapsed ? 'justify-center' : ''}
             `}
@@ -60,7 +60,7 @@ export const SidebarUtilityActions = React.memo(({
             className={`
                 flex items-center gap-2 p-2 rounded cursor-pointer transition-colors
                 ${mainView === 'profile'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary-600 text-white'
                     : 'hover:bg-surface-800 text-surface-300'}
                 ${sidebarCollapsed ? 'justify-center' : ''}
             `}

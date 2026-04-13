@@ -1,20 +1,24 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-12
+**Last Updated**: 2026-04-13
 
 - **Current Focus**: Issue #32 UI統一感の改善
-- **Current Status**: Phase 0・Phase 1 完了。primary カラー修正と共通UIコンポーネント基盤の作成を実施。
+- **Current Status**: Phase 0・Phase 1・Phase 2 完了。色トークン集約を実施。
 
 ## Recent Achievements
 
+- **色トークン集約（Issue #32 Phase 2）**:
+  - `src/lib/colors.ts` を新規作成。タグ色(18色 HEX/Tailwindクラス)・ファイルタイプ色・チャート共通定数を一元管理。
+  - `FileCard.tsx`・`TagBadge.tsx`・`TagSection.tsx`・`fileExport.ts`・`folderBadgeColor.ts` の重複HEXマップ（5箇所）を削除し共通定数に統合。
+  - `ProfileHomeView.tsx`・`StatisticsView.tsx` のファイルタイプ色重複を解消。
+  - サイドバー4ファイル（FolderTree・SidebarFolderSection・SidebarSmartFoldersSection・SidebarUtilityActions）の `bg-blue-600` ハードコードを `bg-primary-600` に統一。
+  - `StatisticsView.tsx` のチャート共通スタイル定数（ツールチップ・パレット等）を `lib/colors.ts` に移動。
+
 - **共通UIコンポーネント基盤の作成（Issue #32 Phase 1）**:
   - `src/components/ui/` に Button・Input・Select・Textarea・Dialog・Checkbox・index.ts を新規作成。
-  - Button は 4 variant × 5 size 対応。Dialog は createPortal + Escape + オーバーレイクリック対応。
-  - 既存ファイルへの変更なし。
 
 - **UI調査・primary カラー修正（Issue #32 Phase 0）**:
   - `tailwind.config.js` に `primary` カラーパレット（blue系）を追加。50ファイル以上でアクションボタン等の青色が無効になっていた致命バグを修正。
-  - Issue #32 に調査結果（問題一覧・Phase別改善計画）をコメントとして記録。
 
 - **バッジ表示カスタマイズ**:
   - 作成日・フォルダ名・ドライブ名バッジの個別ON/OFF設定を追加

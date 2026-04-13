@@ -15,6 +15,7 @@ import { useUIStore } from '../stores/useUIStore';
 import { useLibraryStats } from '../hooks/useLibraryStats';
 import { lazyWithPerf } from '../utils/lazyWithPerf';
 import { toMediaUrl } from '../utils/mediaPath';
+import { FILE_TYPE_COLORS } from '../lib/colors';
 
 const StatisticsView = lazyWithPerf('statistics-view', () => import('./StatisticsView').then((module) => ({ default: module.StatisticsView })));
 
@@ -25,12 +26,6 @@ const TYPE_LABELS: Record<string, string> = {
     audio: '音声',
 };
 
-const TYPE_COLORS: Record<string, string> = {
-    image: '#3b82f6',
-    video: '#22c55e',
-    archive: '#f97316',
-    audio: '#a855f7',
-};
 
 function formatBytes(bytes: number): string {
     if (bytes === 0) return '0 B';
@@ -277,7 +272,7 @@ export const ProfileHomeView: React.FC = () => {
                                                                 className="h-2 rounded-full"
                                                                 style={{
                                                                     width: `${Math.max(ratio, entry.count > 0 ? 4 : 0)}%`,
-                                                                    backgroundColor: TYPE_COLORS[entry.type] ?? '#6366f1',
+                                                                    backgroundColor: FILE_TYPE_COLORS[entry.type] ?? '#6366f1',
                                                                 }}
                                                             />
                                                         </div>

@@ -25,43 +25,7 @@ import type { FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSetti
 import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 import { FileCardRatingBadge } from './fileCard/FileCardRatingBadge';
-
-// 明るい背景色のタグで暗い文字色を使うためのヘルパー
-function getTagTextColor(bgColor: string): string {
-    // CSS名前付き色やTailwind色名から明るさを判定
-    // orange, yellow, amber, lime は暗い文字色
-    const lightColors = ['orange', 'yellow', 'amber', 'lime'];
-    const colorLower = bgColor.toLowerCase();
-    if (lightColors.some(c => colorLower.includes(c))) return '#1a1a2e';
-    return '#FFFFFF';
-}
-
-// 色名文字列を実際のCSS色値にマッピング（TagBadge.tsxと一致）
-function getTagBackgroundColor(colorName: string | undefined): string {
-    if (!colorName) return '#4b5563'; // gray-600
-    const colorMap: Record<string, string> = {
-        gray: '#4b5563',      // gray-600
-        red: '#dc2626',       // red-600
-        orange: '#ea580c',    // orange-600
-        amber: '#d97706',     // amber-600
-        yellow: '#f59e0b',    // amber-500 (yellowはamber-500に統一)
-        lime: '#65a30d',      // lime-600
-        green: '#16a34a',     // green-600
-        emerald: '#059669',   // emerald-600
-        teal: '#0d9488',      // teal-600
-        cyan: '#0891b2',      // cyan-600
-        sky: '#0284c7',       // sky-600
-        blue: '#2563eb',      // blue-600
-        indigo: '#4f46e5',    // indigo-600
-        violet: '#7c3aed',    // violet-600
-        purple: '#9333ea',    // purple-600
-        fuchsia: '#c026d3',   // fuchsia-600
-        pink: '#db2777',      // pink-600
-        rose: '#e11d48',      // rose-600
-    };
-    const color = colorMap[colorName];
-    return color !== undefined ? color : (colorMap.gray as string); // フォールバック: gray
-}
+import { resolveColorHex, getTextColorForBackground } from '../lib/colors';
 
 function isPerfDebugEnabled(): boolean {
     return import.meta.env.DEV && (globalThis as { __MA_DEBUG_PERF?: boolean }).__MA_DEBUG_PERF === true;
@@ -147,12 +111,12 @@ const FileCardTagSummaryRow = React.memo(({
                     style={isTagBorderMode ? {
                         backgroundColor: 'rgba(55, 65, 81, 0.9)',
                         color: '#e5e7eb',
-                        borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                        borderLeftColor: resolveColorHex(tag.categoryColor || tag.color || ''),
                         opacity: 0.85
                     } : {
-                        backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                        color: getTagTextColor(tag.categoryColor || tag.color || ''),
-                        borderColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
+                        backgroundColor: resolveColorHex(tag.categoryColor || tag.color || ''),
+                        color: getTextColorForBackground(tag.categoryColor || tag.color || ''),
+                        borderColor: resolveColorHex(tag.categoryColor || tag.color || ''),
                         opacity: 0.85
                     }}
                 >
@@ -1424,10 +1388,10 @@ export const FileCard = React.memo(({
                                 style={isTagBorderMode ? {
                                     backgroundColor: 'rgba(55, 65, 81, 0.9)',
                                     color: '#e5e7eb',
-                                    borderLeftColor: getTagBackgroundColor(tag.categoryColor || tag.color || '')
+                                    borderLeftColor: resolveColorHex(tag.categoryColor || tag.color || '')
                                 } : {
-                                    backgroundColor: getTagBackgroundColor(tag.categoryColor || tag.color || ''),
-                                    color: getTagTextColor(tag.categoryColor || tag.color || '')
+                                    backgroundColor: resolveColorHex(tag.categoryColor || tag.color || ''),
+                                    color: getTextColorForBackground(tag.categoryColor || tag.color || '')
                                 }}
                             >
                                 {tag.name}
