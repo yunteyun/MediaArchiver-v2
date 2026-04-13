@@ -7,6 +7,7 @@ import type { RatingAxis } from '../../stores/useRatingStore';
 import type { MediaFile } from '../../types/file';
 import type { RatingQuickFilter, SearchCondition, SearchTarget } from '../../stores/useUIStore';
 import { useRatingDisplay } from '../ratings/useRatingDisplay';
+import { Button, Input, Select } from '../ui';
 
 interface FolderOption {
     value: string;
@@ -182,15 +183,16 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
             <div className="w-[780px] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-700 bg-surface-900 shadow-xl">
                 <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
                     <h2 className="text-base font-semibold text-white">{title}</h2>
-                    <button
-                        type="button"
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={onClose}
-                        className="rounded p-1 text-surface-300 hover:bg-surface-800 hover:text-white transition-colors"
                         aria-label="閉じる"
                         disabled={isSubmitting}
+                        className="p-1"
                     >
                         <X size={18} />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="grid gap-3 px-4 py-4">
@@ -198,11 +200,9 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                         <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                             <div>
                                 <label className="mb-1 block text-xs text-surface-400">ルール名</label>
-                                <input
-                                    type="text"
+                                <Input
                                     value={name}
                                     onChange={(event) => setName(event.target.value)}
-                                    className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none"
                                     placeholder="自動整理ルール名"
                                     maxLength={80}
                                 />
@@ -221,15 +221,14 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
                         <label className="mb-1 block text-xs text-surface-400">対象範囲</label>
-                        <select
+                        <Select
                             value={folderSelection}
                             onChange={(event) => setFolderSelection(event.target.value)}
-                            className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none"
                         >
                             {folderOptions.map((option) => (
                                 <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
-                        </select>
+                        </Select>
                     </div>
 
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
@@ -250,16 +249,15 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                 </label>
                                 <div className="mt-2">
                                     <label className="mb-1 block text-xs text-surface-400">移動先フォルダ</label>
-                                    <select
+                                    <Select
                                         value={targetFolderId}
                                         onChange={(event) => setTargetFolderId(event.target.value)}
                                         disabled={!moveEnabled}
-                                        className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         {targetFolderOptions.map((option) => (
                                             <option key={option.id} value={option.id}>{option.label}</option>
                                         ))}
-                                    </select>
+                                    </Select>
                                 </div>
                             </div>
 
@@ -275,12 +273,10 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                 </label>
                                 <div className="mt-2">
                                     <label className="mb-1 block text-xs text-surface-400">リネームテンプレート</label>
-                                    <input
-                                        type="text"
+                                    <Input
                                         value={renameTemplate}
                                         onChange={(event) => setRenameTemplate(event.target.value)}
                                         disabled={!renameEnabled}
-                                        className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-2 text-sm text-surface-200 focus:border-primary-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                                         placeholder="{name}"
                                     />
                                     <div className="mt-2 text-[11px] text-surface-500">
@@ -309,18 +305,18 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
                         <div className="flex items-center justify-between">
                             <label className="block text-xs text-surface-400">検索条件</label>
-                            <button
-                                type="button"
+                            <Button
+                                variant="ghost"
+                                size="xs"
                                 onClick={() => setTextConditions((prev) => [...prev, { text: '', target: 'fileName' }])}
-                                className="rounded px-2 py-0.5 text-[11px] text-surface-300 hover:bg-surface-800"
                             >
                                 + 条件追加
-                            </button>
+                            </Button>
                         </div>
                         <div className="mt-2 space-y-2">
                             {textConditions.map((conditionItem, index) => (
                                 <div key={`${index}-${conditionItem.target}`} className="grid grid-cols-[110px_1fr_auto] items-center gap-2">
-                                    <select
+                                    <Select
                                         value={conditionItem.target}
                                         onChange={(event) => {
                                             const nextTarget = event.target.value as SearchTarget;
@@ -328,14 +324,13 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                                 itemIndex === index ? { ...item, target: nextTarget } : item
                                             )));
                                         }}
-                                        className="rounded border border-surface-700 bg-surface-900 px-2 py-1 text-xs text-surface-200 focus:border-primary-500 focus:outline-none"
+                                        className="px-2 py-1 text-xs"
                                     >
                                         {SEARCH_TARGET_OPTIONS.map((option) => (
                                             <option key={option.value} value={option.value}>{option.label}</option>
                                         ))}
-                                    </select>
-                                    <input
-                                        type="text"
+                                    </Select>
+                                    <Input
                                         value={conditionItem.text}
                                         onChange={(event) => {
                                             const nextText = event.target.value;
@@ -343,21 +338,22 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                                 itemIndex === index ? { ...item, text: nextText } : item
                                             )));
                                         }}
-                                        className="w-full rounded border border-surface-700 bg-surface-900 px-3 py-1.5 text-xs text-surface-200 focus:border-primary-500 focus:outline-none"
+                                        className="py-1.5 text-xs"
                                         placeholder={conditionItem.target === 'folderName' ? 'フォルダ名で検索' : 'ファイル名で検索'}
                                     />
-                                    <button
-                                        type="button"
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => {
                                             setTextConditions((prev) => {
                                                 if (prev.length <= 1) return [{ text: '', target: 'fileName' }];
                                                 return prev.filter((_, itemIndex) => itemIndex !== index);
                                             });
                                         }}
-                                        className="rounded px-2 py-1 text-[11px] text-surface-500 hover:bg-surface-800 hover:text-surface-300"
+                                        className="text-surface-500"
                                     >
                                         削除
-                                    </button>
+                                    </Button>
                                 </div>
                             ))}
                         </div>
@@ -367,22 +363,24 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                         <div className="flex items-center justify-between">
                             <label className="block text-xs text-surface-400">ファイルタイプ</label>
                             {types.length < FILE_TYPES.length && (
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
                                     onClick={() => setTypes([...FILE_TYPES])}
-                                    className="rounded px-2 py-0.5 text-[11px] text-surface-400 hover:bg-surface-800 hover:text-surface-200"
+                                    className="text-surface-400"
                                 >
                                     全タイプ
-                                </button>
+                                </Button>
                             )}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {FILE_TYPE_OPTIONS.map((option) => {
                                 const active = types.includes(option.value);
                                 return (
-                                    <button
+                                    <Button
                                         key={option.value}
-                                        type="button"
+                                        variant={active ? 'primary' : 'secondary'}
+                                        size="sm"
                                         onClick={() => {
                                             setTypes((prev) => {
                                                 if (prev.includes(option.value)) {
@@ -392,12 +390,9 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                                 return [...prev, option.value];
                                             });
                                         }}
-                                        className={`rounded px-2 py-1 text-xs transition-colors ${
-                                            active ? 'bg-primary-600 text-white' : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
-                                        }`}
                                     >
                                         {option.label}
-                                    </button>
+                                    </Button>
                                 );
                             })}
                         </div>
@@ -407,27 +402,28 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                         <div className="flex items-center justify-between">
                             <label className="block text-xs text-surface-400">タグ条件</label>
                             <div className="inline-flex rounded border border-surface-700 bg-surface-900 p-0.5 text-xs">
-                                <button
-                                    type="button"
+                                <Button
+                                    variant={tagMode === 'OR' ? 'primary' : 'ghost'}
+                                    size="xs"
                                     onClick={() => setTagMode('OR')}
-                                    className={`rounded px-2 py-0.5 ${tagMode === 'OR' ? 'bg-primary-600 text-white' : 'text-surface-400 hover:text-surface-200'}`}
+                                    className={tagMode !== 'OR' ? 'text-surface-400' : ''}
                                 >
                                     OR
-                                </button>
-                                <button
-                                    type="button"
+                                </Button>
+                                <Button
+                                    variant={tagMode === 'AND' ? 'primary' : 'ghost'}
+                                    size="xs"
                                     onClick={() => setTagMode('AND')}
-                                    className={`rounded px-2 py-0.5 ${tagMode === 'AND' ? 'bg-primary-600 text-white' : 'text-surface-400 hover:text-surface-200'}`}
+                                    className={tagMode !== 'AND' ? 'text-surface-400' : ''}
                                 >
                                     AND
-                                </button>
+                                </Button>
                             </div>
                         </div>
-                        <input
-                            type="text"
+                        <Input
                             value={tagSearch}
                             onChange={(event) => setTagSearch(event.target.value)}
-                            className="mt-2 w-full rounded border border-surface-700 bg-surface-900 px-2 py-1.5 text-xs text-surface-200 focus:border-primary-500 focus:outline-none"
+                            className="mt-2 px-2 py-1.5 text-xs"
                             placeholder="タグを検索"
                         />
                         <div className="mt-2 max-h-36 overflow-auto rounded border border-surface-800 bg-surface-900/50 p-2">
@@ -467,16 +463,14 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                             {ratingQuickFilterOptions.map((option) => {
                                 const active = ratingQuickFilter === option.value;
                                 return (
-                                    <button
+                                    <Button
                                         key={option.value}
-                                        type="button"
+                                        variant={active ? 'primary' : 'secondary'}
+                                        size="sm"
                                         onClick={() => setRatingQuickFilter(option.value)}
-                                        className={`rounded px-2 py-1 text-xs transition-colors ${
-                                            active ? 'bg-primary-600 text-white' : 'bg-surface-800 text-surface-400 hover:bg-surface-700 hover:text-surface-200'
-                                        }`}
                                     >
                                         {option.label}
-                                    </button>
+                                    </Button>
                                 );
                             })}
                         </div>
@@ -493,7 +487,7 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                     return (
                                         <div key={axis.id} className="grid grid-cols-[1fr_90px_90px_auto] items-center gap-2 text-xs">
                                             <div className="truncate text-surface-300">{axis.name}</div>
-                                            <input
+                                            <Input
                                                 type="number"
                                                 min={axis.minValue}
                                                 max={axis.maxValue}
@@ -506,10 +500,10 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                                         [axis.id]: { ...(prev[axis.id] || { min: '', max: '' }), min: value },
                                                     }));
                                                 }}
-                                                className="rounded border border-surface-700 bg-surface-900 px-2 py-1 text-surface-200 focus:border-primary-500 focus:outline-none"
+                                                className="px-2 py-1 text-xs"
                                                 placeholder="min"
                                             />
-                                            <input
+                                            <Input
                                                 type="number"
                                                 min={axis.minValue}
                                                 max={axis.maxValue}
@@ -522,21 +516,22 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                                         [axis.id]: { ...(prev[axis.id] || { min: '', max: '' }), max: value },
                                                     }));
                                                 }}
-                                                className="rounded border border-surface-700 bg-surface-900 px-2 py-1 text-surface-200 focus:border-primary-500 focus:outline-none"
+                                                className="px-2 py-1 text-xs"
                                                 placeholder="max"
                                             />
-                                            <button
-                                                type="button"
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => {
                                                     setRatingInputs((prev) => ({
                                                         ...prev,
                                                         [axis.id]: { min: '', max: '' },
                                                     }));
                                                 }}
-                                                className="rounded px-2 py-1 text-surface-500 hover:bg-surface-800 hover:text-surface-300"
+                                                className="text-surface-500"
                                             >
                                                 解除
-                                            </button>
+                                            </Button>
                                         </div>
                                     );
                                 })}
@@ -546,16 +541,17 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                 </div>
 
                 <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3">
-                    <button
-                        type="button"
+                    <Button
+                        variant="secondary"
+                        size="lg"
                         onClick={onClose}
-                        className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
                         disabled={isSubmitting}
                     >
                         キャンセル
-                    </button>
-                    <button
-                        type="button"
+                    </Button>
+                    <Button
+                        variant="primary"
+                        size="lg"
                         onClick={() => {
                             const normalizedRatings: Record<string, { min?: number; max?: number }> = {};
                             Object.entries(ratingInputs).forEach(([axisId, input]) => {
@@ -605,7 +601,6 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                                 },
                             });
                         }}
-                        className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
                         disabled={
                             isSubmitting
                             || !name.trim()
@@ -615,7 +610,7 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                         }
                     >
                         {submitLabel}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

@@ -5,6 +5,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Plus, Edit2, Trash2, FolderOpen, Check, X, Search, Image as ImageIcon, ArrowUp, ArrowDown, Globe, Camera, BookImage, Sparkles, Link2, Download, Upload } from 'lucide-react';
+import { Button, Input, Select } from './ui';
 import { useSettingsStore, ExternalApp, type SearchDestination, type SearchDestinationType, type SearchDestinationIcon } from '../stores/useSettingsStore';
 import { useToastStore } from '../stores/useToastStore';
 import { useProfileStore } from '../stores/useProfileStore';
@@ -503,12 +504,9 @@ export const ExternalAppsTab = React.memo(() => {
                                             placeholder="パス"
                                             readOnly
                                         />
-                                        <button
-                                            onClick={() => handleSelectFile(true)}
-                                            className="px-2 py-1 bg-surface-600 hover:bg-surface-500 rounded text-sm"
-                                        >
+                                        <Button variant="ghost" size="icon" onClick={() => handleSelectFile(true)}>
                                             <FolderOpen size={14} />
-                                        </button>
+                                        </Button>
                                     </div>
                                     <input
                                         type="text"
@@ -518,18 +516,12 @@ export const ExternalAppsTab = React.memo(() => {
                                         placeholder="拡張子（カンマ区切り、空欄で全ファイル）"
                                     />
                                     <div className="flex gap-2 justify-end">
-                                        <button
-                                            onClick={handleCancelEdit}
-                                            className="p-1 hover:bg-surface-600 rounded"
-                                        >
+                                        <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="p-1">
                                             <X size={16} className="text-surface-400" />
-                                        </button>
-                                        <button
-                                            onClick={handleSaveEdit}
-                                            className="p-1 hover:bg-surface-600 rounded"
-                                        >
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={handleSaveEdit} className="p-1">
                                             <Check size={16} className="text-green-400" />
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             ) : (
@@ -565,33 +557,25 @@ export const ExternalAppsTab = React.memo(() => {
                                                         </span>
                                                     ))}
                                             </div>
-                                            <select
+                                            <Select
                                                 onChange={(e) => handleSetDefault(app.id, e.target.value)}
                                                 value=""
-                                                className="w-full px-2 py-1 bg-surface-700 text-white rounded text-xs"
+                                                className="px-2 py-1 text-xs"
                                             >
                                                 <option value="">拡張子を選択してデフォルトに設定...</option>
                                                 {app.extensions.map(ext => (
                                                     <option key={ext} value={ext}>.{ext}</option>
                                                 ))}
-                                            </select>
+                                            </Select>
                                         </div>
                                     </div>
                                     <div className="flex gap-1 ml-2">
-                                        <button
-                                            onClick={() => handleStartEdit(app)}
-                                            className="p-1.5 hover:bg-surface-600 rounded"
-                                            title="編集"
-                                        >
+                                        <Button variant="ghost" size="icon" onClick={() => handleStartEdit(app)} title="編集">
                                             <Edit2 size={14} className="text-surface-400" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteApp(app.id)}
-                                            className="p-1.5 hover:bg-surface-600 rounded"
-                                            title="削除"
-                                        >
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteApp(app.id)} title="削除">
                                             <Trash2 size={14} className="text-red-400" />
-                                        </button>
+                                        </Button>
                                     </div>
                                 </>
                             )}
@@ -604,43 +588,41 @@ export const ExternalAppsTab = React.memo(() => {
             <div className="border-t border-surface-700 pt-4">
                 <h4 className="text-sm font-medium text-surface-300 mb-3">新規追加</h4>
                 <div className="space-y-2">
-                    <input
-                        type="text"
+                    <Input
                         value={newAppName}
                         onChange={(e) => setNewAppName(e.target.value)}
-                        className="w-full px-3 py-2 bg-surface-800 text-white rounded text-sm"
                         placeholder="アプリ名"
                     />
                     <div className="flex gap-2">
-                        <input
-                            type="text"
+                        <Input
                             value={newAppPath}
-                            className="flex-1 px-3 py-2 bg-surface-800 text-white rounded text-sm"
+                            className="flex-1"
                             placeholder="パスを選択..."
                             readOnly
                         />
-                        <button
+                        <Button
+                            variant="secondary"
+                            size="md"
                             onClick={() => handleSelectFile(false)}
-                            className="px-3 py-2 bg-surface-700 hover:bg-surface-600 rounded text-sm flex items-center gap-1"
+                            icon={<FolderOpen size={14} />}
                         >
-                            <FolderOpen size={14} />
                             選択
-                        </button>
+                        </Button>
                     </div>
-                    <input
-                        type="text"
+                    <Input
                         value={newAppExtensions}
                         onChange={(e) => setNewAppExtensions(e.target.value)}
-                        className="w-full px-3 py-2 bg-surface-800 text-white rounded text-sm"
                         placeholder="対応拡張子（カンマ区切り、空欄で全ファイル対応）"
                     />
-                    <button
+                    <Button
+                        variant="primary"
+                        size="md"
                         onClick={handleAddApp}
-                        className="w-full py-2 bg-primary-600 hover:bg-primary-500 text-white rounded text-sm flex items-center justify-center gap-2"
+                        className="w-full justify-center"
+                        icon={<Plus size={16} />}
                     >
-                        <Plus size={16} />
                         追加
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -653,34 +635,38 @@ export const ExternalAppsTab = React.memo(() => {
                         </p>
                     </div>
                     <div className="flex gap-2">
-                        <button
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => { void handleExportSearchDestinations(); }}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            icon={<Download size={14} />}
                         >
-                            <Download size={14} />
                             エクスポート
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => { void handleImportSearchDestinations('merge'); }}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            icon={<Upload size={14} />}
                         >
-                            <Upload size={14} />
                             追記インポート
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => { void handleImportSearchDestinations('replace'); }}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            icon={<Upload size={14} />}
                         >
-                            <Upload size={14} />
                             置換インポート
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={handleResetSearchDestinations}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            icon={<Sparkles size={14} />}
                         >
-                            <Sparkles size={14} />
                             既定へ戻す
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -700,7 +686,7 @@ export const ExternalAppsTab = React.memo(() => {
                                     <div key={destination.id} className="rounded bg-surface-800 p-3">
                                         {editingSearchDestinationId === destination.id ? (
                                             <div className="space-y-2">
-                                                <select
+                                                <Select
                                                     value={editSearchForm.type}
                                                     onChange={(e) => setEditSearchForm((prev) => ({
                                                         ...prev,
@@ -711,20 +697,20 @@ export const ExternalAppsTab = React.memo(() => {
                                                                 ? 'search'
                                                                 : prev.icon
                                                     }))}
-                                                    className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
+                                                    className="px-2 py-1 text-sm"
                                                 >
                                                     <option value="filename">ファイル名検索</option>
                                                     <option value="image">画像検索</option>
-                                                </select>
-                                                <select
+                                                </Select>
+                                                <Select
                                                     value={editSearchForm.icon}
                                                     onChange={(e) => setEditSearchForm((prev) => ({ ...prev, icon: e.target.value as SearchDestinationIcon }))}
-                                                    className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
+                                                    className="px-2 py-1 text-sm"
                                                 >
                                                     {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
                                                         <option key={option.value} value={option.value}>{option.label}</option>
                                                     ))}
-                                                </select>
+                                                </Select>
                                                 <input
                                                     type="text"
                                                     value={editSearchForm.name}
@@ -740,12 +726,12 @@ export const ExternalAppsTab = React.memo(() => {
                                                     placeholder={editSearchForm.type === 'filename' ? 'https://example.com/?q={query}' : 'https://example.com/'}
                                                 />
                                                 <div className="flex justify-end gap-2">
-                                                    <button onClick={handleCancelSearchDestinationEdit} className="p-1 hover:bg-surface-600 rounded">
+                                                    <Button variant="ghost" size="icon" onClick={handleCancelSearchDestinationEdit} className="p-1">
                                                         <X size={16} className="text-surface-400" />
-                                                    </button>
-                                                    <button onClick={handleSaveSearchDestinationEdit} className="p-1 hover:bg-surface-600 rounded">
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={handleSaveSearchDestinationEdit} className="p-1">
                                                         <Check size={16} className="text-green-400" />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             </div>
                                         ) : (
@@ -768,32 +754,34 @@ export const ExternalAppsTab = React.memo(() => {
                                                     <div className="mt-1 break-all text-xs text-surface-400">{destination.url}</div>
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <button
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         onClick={() => {
                                                             moveSearchDestination(destination.id, 'up');
                                                             void persistProfileExternalPreferences().catch(() => {
                                                                 toastError('検索先の保存に失敗しました');
                                                             });
                                                         }}
-                                                        className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
                                                         title="上へ"
                                                         disabled={index === 0}
                                                     >
                                                         <ArrowUp size={14} className="text-surface-400" />
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         onClick={() => {
                                                             moveSearchDestination(destination.id, 'down');
                                                             void persistProfileExternalPreferences().catch(() => {
                                                                 toastError('検索先の保存に失敗しました');
                                                             });
                                                         }}
-                                                        className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
                                                         title="下へ"
                                                         disabled={index === destinations.length - 1}
                                                     >
                                                         <ArrowDown size={14} className="text-surface-400" />
-                                                    </button>
+                                                    </Button>
                                                     <label className="flex items-center gap-1 text-xs text-surface-400">
                                                         <input
                                                             type="checkbox"
@@ -808,20 +796,22 @@ export const ExternalAppsTab = React.memo(() => {
                                                         />
                                                         有効
                                                     </label>
-                                                    <button
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         onClick={() => handleStartSearchDestinationEdit(destination)}
-                                                        className="p-1.5 hover:bg-surface-600 rounded"
                                                         title="編集"
                                                     >
                                                         <Edit2 size={14} className="text-surface-400" />
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
                                                         onClick={() => handleDeleteSearchDestination(destination.id)}
-                                                        className="p-1.5 hover:bg-surface-600 rounded"
                                                         title="削除"
                                                     >
                                                         <Trash2 size={14} className="text-red-400" />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             </div>
                                         )}
@@ -835,39 +825,33 @@ export const ExternalAppsTab = React.memo(() => {
                 <div className="border-t border-surface-700 pt-4">
                     <h5 className="mb-3 text-sm font-medium text-surface-300">検索先を追加</h5>
                     <div className="space-y-2">
-                        <select
+                        <Select
                             value={newSearchDestinationType}
                             onChange={(e) => {
                                 const nextType = e.target.value as SearchDestinationType;
                                 setNewSearchDestinationType(nextType);
                                 setNewSearchDestinationIcon(nextType === 'filename' ? 'search' : 'image');
                             }}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
                         >
                             <option value="filename">ファイル名検索</option>
                             <option value="image">画像検索</option>
-                        </select>
-                        <select
+                        </Select>
+                        <Select
                             value={newSearchDestinationIcon}
                             onChange={(e) => setNewSearchDestinationIcon(e.target.value as SearchDestinationIcon)}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
                         >
                             {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
                                 <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
-                        </select>
-                        <input
-                            type="text"
+                        </Select>
+                        <Input
                             value={newSearchDestinationName}
                             onChange={(e) => setNewSearchDestinationName(e.target.value)}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
                             placeholder="検索先名"
                         />
-                        <input
-                            type="text"
+                        <Input
                             value={newSearchDestinationUrl}
                             onChange={(e) => setNewSearchDestinationUrl(e.target.value)}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
                             placeholder={newSearchDestinationType === 'filename' ? 'https://example.com/?q={query}' : 'https://example.com/'}
                         />
                         <div className="rounded border border-surface-700 bg-surface-900/40 px-3 py-2 text-xs text-surface-500">
@@ -883,13 +867,15 @@ export const ExternalAppsTab = React.memo(() => {
                                 </div>
                             )}
                         </div>
-                        <button
+                        <Button
+                            variant="primary"
+                            size="md"
                             onClick={handleAddSearchDestination}
-                            className="flex w-full items-center justify-center gap-2 rounded bg-primary-600 py-2 text-sm text-white hover:bg-primary-500"
+                            className="w-full justify-center"
+                            icon={<Plus size={16} />}
                         >
-                            <Plus size={16} />
                             追加
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

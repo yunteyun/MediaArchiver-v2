@@ -10,6 +10,7 @@ import type {
     ThumbnailAction,
 } from '../../stores/useSettingsStore';
 import { SettingsSection } from './SettingsSection';
+import { Select } from '../ui';
 
 interface ThumbnailsSettingsTabProps {
     previewFrameCount: number;
@@ -182,15 +183,14 @@ export const ThumbnailsSettingsTab = React.memo(({
                         <label className="block text-sm font-medium text-surface-300 mb-1">
                             動画のコマ送り速度
                         </label>
-                        <select
+                        <Select
                             value={videoFlipbookSpeed}
                             onChange={(e) => onVideoFlipbookSpeedChange(e.target.value as FlipbookSpeed)}
-                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                         >
                             <option value="slow">遅い</option>
                             <option value="normal">標準</option>
                             <option value="fast">速い</option>
-                        </select>
+                        </Select>
                         <p className="text-xs text-surface-500 mt-1">
                             プレビューフレーム枚数が少ないほど速く見えやすいです。
                         </p>
@@ -235,15 +235,14 @@ export const ThumbnailsSettingsTab = React.memo(({
                         <label className="block text-sm font-medium text-surface-300 mb-1">
                             書庫のコマ送り速度
                         </label>
-                        <select
+                        <Select
                             value={archiveFlipbookSpeed}
                             onChange={(e) => onArchiveFlipbookSpeedChange(e.target.value as FlipbookSpeed)}
-                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                         >
                             <option value="slow">遅い</option>
                             <option value="normal">標準</option>
                             <option value="fast">速い</option>
-                        </select>
+                        </Select>
                         <p className="text-xs text-surface-500 mt-1">
                             書庫は代表フレームを順送りで表示します。内容確認を優先するなら `遅い` が向いています。
                         </p>
@@ -254,15 +253,14 @@ export const ThumbnailsSettingsTab = React.memo(({
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         アニメ画像プレビュー
                     </label>
-                    <select
+                    <Select
                         value={animatedImagePreviewMode}
                         onChange={(e) => onAnimatedImagePreviewModeChange(e.target.value as AnimatedImagePreviewMode)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="off">オフ</option>
                         <option value="hover">ホバーで再生</option>
                         <option value="visible">表示中に自動再生</option>
-                    </select>
+                    </Select>
                     <p className="text-xs text-surface-500 mt-1">
                         GIF / アニメーションWebP が対象。表示中自動再生は同時2件まで。パフォーマンスモード時は無効になります。
                     </p>
@@ -274,15 +272,14 @@ export const ThumbnailsSettingsTab = React.memo(({
                             <label className="block text-sm font-medium text-surface-300 mb-1">
                                 プレビュー動作
                             </label>
-                            <select
+                            <Select
                                 value={playMode.jumpType}
                                 onChange={(e) => onPlayModeJumpTypeChange(e.target.value as PlayModeJumpType)}
-                                className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                             >
                                 <option value="light">軽量（ジャンプなし）</option>
                                 <option value="random">ランダムジャンプ</option>
                                 <option value="sequential">固定間隔ジャンプ</option>
-                            </select>
+                            </Select>
                             <div className="text-xs text-surface-400 mt-1.5 space-y-0.5">
                                 <div><strong>軽量:</strong> 先頭から再生のみ（低負荷）</div>
                                 <div><strong>ランダム:</strong> 毎回ランダムな位置にジャンプ</div>
@@ -295,16 +292,15 @@ export const ThumbnailsSettingsTab = React.memo(({
                                 <label className="block text-sm font-medium text-surface-300 mb-1">
                                     ジャンプ間隔
                                 </label>
-                                <select
+                                <Select
                                     value={playMode.jumpInterval}
                                     onChange={(e) => onPlayModeJumpIntervalChange(Number(e.target.value) as PlayModeJumpInterval)}
-                                    className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                                 >
                                     <option value={1000}>1秒（高速プレビュー）</option>
                                     <option value={2000}>2秒（推奨）</option>
                                     <option value={3000}>3秒</option>
                                     <option value={5000}>5秒（じっくり確認）</option>
-                                </select>
+                                </Select>
                                 <p className="text-xs text-surface-400 mt-1.5">
                                     短いほど多くのシーンを確認できますが、負荷が高くなります
                                 </p>
@@ -324,15 +320,14 @@ export const ThumbnailsSettingsTab = React.memo(({
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         プレビュー方式
                     </label>
-                    <select
+                    <Select
                         value={rightPanelVideoPreviewMode}
                         onChange={(e) => onRightPanelVideoPreviewModeChange(e.target.value as RightPanelVideoPreviewMode)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="off">停止</option>
                         <option value="loop">ループ再生</option>
                         <option value="long">固定間隔プレビュー</option>
-                    </select>
+                    </Select>
                     <p className="text-xs text-surface-500 mt-1">
                         停止にすると静止サムネイルだけ表示します。固定間隔は内容を順送りで確認します。
                     </p>
@@ -343,31 +338,29 @@ export const ThumbnailsSettingsTab = React.memo(({
                         <label className="block text-sm font-medium text-surface-300 mb-1">
                             ジャンプ間隔
                         </label>
-                        <select
+                        <Select
                             value={rightPanelVideoJumpInterval}
                             onChange={(e) => onRightPanelVideoJumpIntervalChange(Number(e.target.value) as PlayModeJumpInterval)}
-                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                         >
                             <option value={1000}>1秒（高速プレビュー）</option>
                             <option value={2000}>2秒（推奨）</option>
                             <option value={3000}>3秒</option>
                             <option value={5000}>5秒（じっくり確認）</option>
-                        </select>
+                        </Select>
                     </div>
                 )}
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         プレビュー表示位置
                     </label>
-                    <select
+                    <Select
                         value={rightPanelPreviewPosition}
                         onChange={(e) => onRightPanelPreviewPositionChange(e.target.value as RightPanelPreviewPosition)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="top">上（既定）</option>
                         <option value="bottom">下</option>
                         <option value="floating">フローティング</option>
-                    </select>
+                    </Select>
                     <p className="text-xs text-surface-500 mt-1">
                         フローティングにすると画面上の好きな場所にドラッグして配置できます。
                     </p>

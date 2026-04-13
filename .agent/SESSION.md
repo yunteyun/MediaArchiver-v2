@@ -3,9 +3,15 @@
 **Last Updated**: 2026-04-13
 
 - **Current Focus**: Issue #32 UI統一感の改善
-- **Current Status**: Phase 0・Phase 1・Phase 2 完了。色トークン集約を実施。
+- **Current Status**: Phase 0〜3 完了。設定系コンポーネントへの共通UI適用を実施。
 
 ## Recent Achievements
+
+- **共通UIコンポーネントの設定画面適用（Issue #32 Phase 3）**:
+  - `AutoOrganizeRuleEditorDialog.tsx`・`SmartFolderEditorDialog.tsx`・`ThumbnailsSettingsTab.tsx`・`GeneralSettingsTab.tsx`・`ExternalAppsTab.tsx` の5ファイルに Button/Input/Select を適用。
+  - `button`・`input`・`select` を直接使っていた箇所を共通コンポーネントに置き換え、フォーカス・ホバー・disabled スタイルを統一。
+  - `src/components/ui/Input.tsx` の border/text カラーを Select/Textarea と統一。
+  - type="range"・type="radio"・複雑なレイアウトの checkbox など、意図的なスタイルを持つ要素は生の HTML 要素を維持。
 
 - **色トークン集約（Issue #32 Phase 2）**:
   - `src/lib/colors.ts` を新規作成。タグ色(18色 HEX/Tailwindクラス)・ファイルタイプ色・チャート共通定数を一元管理。
@@ -67,6 +73,7 @@
 - ✅ Phase 28: タグUI改善（TagSelector多列化・RightPanel置換・TagManagerModal多列+D&D）
 
 ## Next Steps
+- [ ] Issue #32 Phase 4以降: 残りのコンポーネントへの共通UI適用
 - [ ] 追加表示モード（漫画モード・動画モード）
 - [ ] タグカテゴリ表示優先順位付け強化（カテゴリ単位グループ化・均等表示）
 

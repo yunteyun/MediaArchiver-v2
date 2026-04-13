@@ -9,6 +9,7 @@ import {
 } from '../lightbox/shared/lightboxShared';
 import type { FileSortBy, FileSortOrder } from '../../stores/useUIStore';
 import { SettingsSection } from './SettingsSection';
+import { Button, Select } from '../ui';
 import { RenameQuickTextSection } from './RenameQuickTextSection';
 import { findMatchingListDisplayPresetId, LIST_DISPLAY_PRESETS, type ListDisplayPresetId } from '../../shared/listDisplayPresets';
 import { FOLDER_BADGE_COLOR_OPTIONS, resolveFolderBadgeColorHex } from '../../utils/folderBadgeColor';
@@ -169,19 +170,15 @@ export const GeneralSettingsTab = React.memo(({
                     {LIST_DISPLAY_PRESETS.map((preset) => {
                         const active = activeListDisplayPresetId === preset.id;
                         return (
-                            <button
+                            <Button
                                 key={preset.id}
-                                type="button"
+                                variant={active ? 'primary' : 'secondary'}
+                                size="md"
                                 onClick={() => onApplyDefaultListDisplayPreset(preset.id)}
-                                className={`rounded px-3 py-1.5 text-sm transition-colors ${
-                                    active
-                                        ? 'bg-primary-600 text-white'
-                                        : 'bg-surface-800 text-surface-300 hover:bg-surface-700'
-                                }`}
                                 title={preset.description}
                             >
                                 {preset.label}
-                            </button>
+                            </Button>
                         );
                     })}
                 </div>
@@ -195,7 +192,7 @@ export const GeneralSettingsTab = React.memo(({
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         既定の表示プリセット
                     </label>
-                    <select
+                    <Select
                         value={defaultDisplayPresetId}
                         onChange={(e) => {
                             const selected = displayPresetOptions.find((option) => option.id === e.target.value);
@@ -203,40 +200,37 @@ export const GeneralSettingsTab = React.memo(({
                                 onDefaultDisplayPresetChange(selected);
                             }
                         }}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         {displayPresetOptions.map((option) => (
                             <option key={option.id} value={option.id}>
                                 {option.label}
                             </option>
                         ))}
-                    </select>
+                    </Select>
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         既定のサムネイル表示方式
                     </label>
-                    <select
+                    <Select
                         value={defaultThumbnailPresentation}
                         onChange={(e) => onDefaultThumbnailPresentationChange(e.target.value as ThumbnailPresentation)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="modeDefault">モード既定</option>
                         <option value="cover">Cover（切り取り）</option>
                         <option value="contain">Contain（全体表示）</option>
                         <option value="square">Square（固定）</option>
-                    </select>
+                    </Select>
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         既定の並び替え
                     </label>
-                    <select
+                    <Select
                         value={defaultSortBy}
                         onChange={(e) => onDefaultSortByChange(e.target.value as FileSortBy)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="name">名前</option>
                         <option value="date">日付</option>
@@ -245,37 +239,35 @@ export const GeneralSettingsTab = React.memo(({
                         <option value="overallRating">総合評価</option>
                         <option value="accessCount">アクセス回数</option>
                         <option value="lastAccessed">直近アクセス</option>
-                    </select>
+                    </Select>
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         既定の並び順
                     </label>
-                    <select
+                    <Select
                         value={defaultSortOrder}
                         onChange={(e) => onDefaultSortOrderChange(e.target.value as FileSortOrder)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="asc">昇順</option>
                         <option value="desc">降順</option>
-                    </select>
+                    </Select>
                 </div>
 
                 <div>
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         既定のグループ化
                     </label>
-                    <select
+                    <Select
                         value={defaultGroupBy}
                         onChange={(e) => onDefaultGroupByChange(e.target.value as GroupBy)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="none">なし</option>
                         <option value="date">日付別</option>
                         <option value="size">サイズ別</option>
                         <option value="type">タイプ別</option>
-                    </select>
+                    </Select>
                 </div>
 
                 {defaultGroupBy === 'date' && (
@@ -283,14 +275,13 @@ export const GeneralSettingsTab = React.memo(({
                         <label className="block text-sm font-medium text-surface-300 mb-1">
                             既定の日付まとめ方
                         </label>
-                        <select
+                        <Select
                             value={defaultDateGroupingMode}
                             onChange={(e) => onDefaultDateGroupingModeChange(e.target.value as DateGroupingMode)}
-                            className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                         >
                             <option value="auto">自動（月をまたぐ古い項目は月単位）</option>
                             <option value="week">週ごとを維持（古い項目も週単位）</option>
-                        </select>
+                        </Select>
                     </div>
                 )}
 
@@ -298,14 +289,13 @@ export const GeneralSettingsTab = React.memo(({
                     <label className="block text-sm font-medium text-surface-300 mb-1">
                         既定の検索対象
                     </label>
-                    <select
+                    <Select
                         value={defaultSearchTarget}
                         onChange={(e) => onDefaultSearchTargetChange(e.target.value as SearchTarget)}
-                        className="w-full px-3 py-2 bg-surface-800 border border-surface-600 rounded text-sm text-surface-200 focus:outline-none focus:border-primary-500"
                     >
                         <option value="fileName">ファイル名</option>
                         <option value="folderName">フォルダ名</option>
-                    </select>
+                    </Select>
                 </div>
             </div>
         </SettingsSection>
@@ -411,23 +401,23 @@ export const GeneralSettingsTab = React.memo(({
                     )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
+                    <Button
+                        variant="secondary"
+                        size="md"
                         onClick={onReloadDisplayPresets}
                         disabled={isReloadingDisplayPresets}
-                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        icon={<RefreshCw size={14} className={isReloadingDisplayPresets ? 'animate-spin' : ''} />}
                     >
-                        <RefreshCw size={14} className={isReloadingDisplayPresets ? 'animate-spin' : ''} />
                         {isReloadingDisplayPresets ? '再読込中...' : '再読込'}
-                    </button>
-                    <button
-                        type="button"
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="md"
                         onClick={onOpenDisplayPresetFolder}
-                        className="inline-flex items-center gap-1.5 rounded border border-surface-700 bg-surface-800 px-3 py-1.5 text-sm text-surface-200 transition-colors hover:bg-surface-700"
+                        icon={<FolderOpen size={14} />}
                     >
-                        <FolderOpen size={14} />
                         表示プリセットフォルダを開く
-                    </button>
+                    </Button>
                 </div>
             </div>
             {displayPresetWarnings.length > 0 && (
@@ -485,40 +475,40 @@ export const GeneralSettingsTab = React.memo(({
                 {showTags && (
                     <div className="ml-6 mt-1">
                         <label className="block text-xs text-surface-400 mb-1">タグポップオーバー表示</label>
-                        <select
+                        <Select
                             value={tagPopoverTrigger}
                             onChange={(e) => onTagPopoverTriggerChange(e.target.value as TagPopoverTrigger)}
-                            className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                            className="px-2 py-1 text-xs"
                         >
                             <option value="click">クリック</option>
                             <option value="hover">ホバー</option>
-                        </select>
+                        </Select>
                     </div>
                 )}
                 {showTags && (
                     <div className="ml-6 mt-1">
                         <label className="block text-xs text-surface-400 mb-1">タグ表示スタイル</label>
-                        <select
+                        <Select
                             value={tagDisplayStyle}
                             onChange={(e) => onTagDisplayStyleChange(e.target.value as TagDisplayStyle)}
-                            className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                            className="px-2 py-1 text-xs"
                         >
                             <option value="filled">塗りつぶし（フル背景色）</option>
                             <option value="border">左端ライン（ダーク背景）</option>
-                        </select>
+                        </Select>
                     </div>
                 )}
                 {showTags && (
                     <div className="ml-6 mt-1">
                         <label className="block text-xs text-surface-400 mb-1">ファイルカード要約タグの並び</label>
-                        <select
+                        <Select
                             value={fileCardTagOrderMode}
                             onChange={(e) => onFileCardTagOrderModeChange(e.target.value as FileCardTagOrderMode)}
-                            className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                            className="px-2 py-1 text-xs"
                         >
                             <option value="balanced">カテゴリ分散（カテゴリ偏りを抑える）</option>
                             <option value="strict">厳密順（カテゴリ順→タグ順）</option>
-                        </select>
+                        </Select>
                         <p className="mt-1 text-[11px] text-surface-500">
                             ファイルカードの省略タグ表示（3件表示など）にのみ適用されます。
                         </p>
