@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { Dialog } from './ui/Dialog';
+import { Button } from './ui/Button';
 
 interface RenameFileDialogProps {
     isOpen: boolean;
@@ -87,14 +89,12 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
         });
     };
 
+    // Enter キーで確定
     useEffect(() => {
         if (!isOpen) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                onCancel();
-            } else if (e.key === 'Enter') {
+            if (e.key === 'Enter') {
                 e.preventDefault();
                 handleConfirm();
             }
@@ -102,14 +102,15 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, onCancel, handleConfirm]);
-
-    if (!isOpen) return null;
+    }, [isOpen, handleConfirm]);
 
     return (
-        <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
-            <div className="mx-4 w-full max-w-md rounded-lg border border-surface-700 bg-surface-800 p-6 shadow-xl">
-                <h2 className="mb-4 text-lg font-semibold text-surface-100">ファイル名を変更</h2>
+        <Dialog isOpen={isOpen} onClose={onCancel}>
+            <Dialog.Header>
+                <h2 className="text-lg font-semibold text-surface-100">ファイル名を変更</h2>
+            </Dialog.Header>
+
+            <Dialog.Body>
                 {suggestedBaseName && suggestedBaseName !== currentBaseName && (
                     <button
                         type="button"
@@ -119,7 +120,6 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
                         候補を使う: {suggestedBaseName}{currentExt}
                     </button>
                 )}
-                {/* ファイル名入力 + 拡張子入力 */}
                 <div className="flex items-center gap-0">
                     <input
                         ref={baseNameInputRef}
@@ -139,18 +139,17 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
                         />
                     )}
                 </div>
-                {/* クイック挿入ボタン */}
                 {renameQuickTexts.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                         {renameQuickTexts.map((text) => (
-                            <button
+                            <Button
                                 key={text}
-                                type="button"
+                                variant="secondary"
+                                size="xs"
                                 onClick={() => insertTextAtCursor(text)}
-                                className="rounded border border-surface-600 bg-surface-900 px-2 py-0.5 text-xs text-surface-300 transition-colors hover:bg-surface-700 hover:text-surface-100"
                             >
                                 {text}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 )}
@@ -159,21 +158,16 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
                     <p>拡張子: {currentExt || 'なし'}</p>
                     <p className="break-all">変更後パス: {nextPathPreview}</p>
                 </div>
-                <div className="mt-5 flex justify-end gap-2">
-                    <button
-                        onClick={onCancel}
-                        className="rounded bg-surface-700 px-4 py-2 text-surface-100 transition-colors hover:bg-surface-600"
-                    >
-                        キャンセル
-                    </button>
-                    <button
-                        onClick={handleConfirm}
-                        className="rounded bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-500"
-                    >
-                        変更
-                    </button>
-                </div>
-            </div>
-        </div>
+            </Dialog.Body>
+
+            <Dialog.Footer>
+                <Button variant="secondary" size="lg" onClick={onCancel}>
+                    キャンセル
+                </Button>
+                <Button variant="primary" size="lg" onClick={handleConfirm}>
+                    変更
+                </Button>
+            </Dialog.Footer>
+        </Dialog>
     );
 };

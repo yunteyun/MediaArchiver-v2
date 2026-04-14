@@ -1,11 +1,16 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-13
+**Last Updated**: 2026-04-15
 
 - **Current Focus**: Issue #32 UI統一感の改善
-- **Current Status**: Phase 0・Phase 1・Phase 2 完了。色トークン集約を実施。
+- **Current Status**: Phase 0・Phase 1・Phase 2・Phase 3 完了。共通ダイアログコンポーネントの採用を開始。
 
 ## Recent Achievements
+
+- **共通ダイアログコンポーネント採用（Issue #32 Phase 3）**:
+  - `DeleteConfirmDialog.tsx`・`RenameFileDialog.tsx`・`MoveFolderDialog.tsx` の3ファイルを共通 `Dialog`・`Button`・`Checkbox` コンポーネントに置換。
+  - Dialog: 0件 → 3件、Button: 0件 → 8件（ダイアログ内全ボタン）、Checkbox: 0件 → 1件の採用。
+  - z-index をハードコード (`z-50`) から CSS変数 (`z-[var(--z-modal)]`) に統一。
 
 - **色トークン集約（Issue #32 Phase 2）**:
   - `src/lib/colors.ts` を新規作成。タグ色(18色 HEX/Tailwindクラス)・ファイルタイプ色・チャート共通定数を一元管理。

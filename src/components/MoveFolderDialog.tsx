@@ -7,6 +7,8 @@ import {
     VIRTUAL_FOLDER_PREFIX,
     VIRTUAL_FOLDER_RECURSIVE_PREFIX,
 } from './sidebar/sidebarShared';
+import { Dialog } from './ui/Dialog';
+import { Button } from './ui/Button';
 
 interface MoveTargetSelection {
     targetFolderId?: string;
@@ -115,51 +117,39 @@ export const MoveFolderDialog = React.memo(({
         }
     }, [selectedFolderSelection, onMove, onClose]);
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-surface-900 rounded-lg shadow-xl w-[500px] max-h-[600px] flex flex-col">
-                {/* ヘッダー */}
-                <div className="flex items-center justify-between p-4 border-b border-surface-700">
-                    <h2 className="text-lg font-bold text-white">移動先フォルダを選択</h2>
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-surface-700 rounded transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
+        <Dialog isOpen={isOpen} onClose={onClose} maxWidth="lg">
+            <Dialog.Header>
+                <h2 className="text-lg font-bold text-white">移動先フォルダを選択</h2>
+                <Button variant="ghost" size="icon" onClick={onClose}>
+                    <X size={20} />
+                </Button>
+            </Dialog.Header>
 
-                {/* コンテンツ */}
-                <div className="flex-1 overflow-y-auto p-4">
-                    <FolderTree
-                        folders={folders}
-                        folderRecursiveCountsByPath={folderRecursiveCountsByPath}
-                        currentFolderId={selectedFolderSelection}
-                        onSelectFolder={setSelectedFolderSelection}
-                        collapsed={false}
-                    />
-                </div>
+            <Dialog.Body className="max-h-[400px]">
+                <FolderTree
+                    folders={folders}
+                    folderRecursiveCountsByPath={folderRecursiveCountsByPath}
+                    currentFolderId={selectedFolderSelection}
+                    onSelectFolder={setSelectedFolderSelection}
+                    collapsed={false}
+                />
+            </Dialog.Body>
 
-                {/* フッター */}
-                <div className="flex items-center justify-end gap-2 p-4 border-t border-surface-700">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 rounded bg-surface-700 hover:bg-surface-600 transition-colors"
-                    >
-                        キャンセル
-                    </button>
-                    <button
-                        onClick={handleMove}
-                        disabled={!selectedFolderSelection}
-                        className="px-4 py-2 rounded bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        移動
-                    </button>
-                </div>
-            </div>
-        </div>
+            <Dialog.Footer>
+                <Button variant="secondary" size="lg" onClick={onClose}>
+                    キャンセル
+                </Button>
+                <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={handleMove}
+                    disabled={!selectedFolderSelection}
+                >
+                    移動
+                </Button>
+            </Dialog.Footer>
+        </Dialog>
     );
 });
 

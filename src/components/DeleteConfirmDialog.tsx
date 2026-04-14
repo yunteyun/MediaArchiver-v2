@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Dialog } from './ui/Dialog';
+import { Button } from './ui/Button';
+import { Checkbox } from './ui/Checkbox';
 
 interface DeleteConfirmDialogProps {
     isOpen: boolean;
@@ -25,7 +28,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
         }
     }, [isOpen]);
 
-    // キーボード操作
+    // Enter キーで確定
     useEffect(() => {
         if (!isOpen) return;
 
@@ -33,30 +36,24 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
             if (e.key === 'Enter') {
                 e.preventDefault();
                 onConfirm(isPermanentDelete);
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                onCancel();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, isPermanentDelete, onConfirm, onCancel]);
-
-    if (!isOpen) return null;
+    }, [isOpen, isPermanentDelete, onConfirm]);
 
     return (
-        <div className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/50">
-            <div className="bg-surface-800 rounded-lg p-6 max-w-md w-full mx-4 border border-surface-700 shadow-xl">
-                {/* タイトル */}
-                <h2 className="text-lg font-semibold mb-4 text-surface-100">ファイルの削除</h2>
+        <Dialog isOpen={isOpen} onClose={onCancel}>
+            <Dialog.Header>
+                <h2 className="text-lg font-semibold text-surface-100">ファイルの削除</h2>
+            </Dialog.Header>
 
-                {/* メッセージ */}
+            <Dialog.Body>
                 <p className="text-surface-200 mb-2">
                     {fileCount > 1 ? `選択した ${fileCount} 件のファイルを削除しますか？` : 'このファイルを削除しますか？'}
                 </p>
 
-                {/* ファイルパス */}
                 <div className="text-sm text-surface-400 mb-4 break-all bg-surface-900 p-2 rounded border border-surface-700 space-y-2">
                     {previewPaths.map((filePath) => (
                         <p key={filePath}>{filePath}</p>
@@ -66,35 +63,22 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
                     )}
                 </div>
 
-                {/* チェックボックス */}
-                <label className="flex items-center gap-2 mb-6 cursor-pointer hover:bg-surface-700/30 p-2 rounded transition-colors">
-                    <input
-                        type="checkbox"
-                        checked={isPermanentDelete}
-                        onChange={(e) => setIsPermanentDelete(e.target.checked)}
-                        className="w-4 h-4 cursor-pointer"
-                    />
-                    <span className="text-sm text-surface-200">
-                        完全に削除する（ゴミ箱を経由しない）
-                    </span>
-                </label>
+                <Checkbox
+                    checked={isPermanentDelete}
+                    onChange={(e) => setIsPermanentDelete(e.target.checked)}
+                    label="完全に削除する（ゴミ箱を経由しない）"
+                    className="hover:bg-surface-700/30 p-2 rounded transition-colors"
+                />
+            </Dialog.Body>
 
-                {/* ボタン */}
-                <div className="flex justify-end gap-2">
-                    <button
-                        onClick={onCancel}
-                        className="px-4 py-2 rounded bg-surface-700 hover:bg-surface-600 transition-colors text-surface-100"
-                    >
-                        キャンセル
-                    </button>
-                    <button
-                        onClick={() => onConfirm(isPermanentDelete)}
-                        className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 transition-colors text-white font-medium"
-                    >
-                        削除
-                    </button>
-                </div>
-            </div>
-        </div>
+            <Dialog.Footer>
+                <Button variant="secondary" size="lg" onClick={onCancel}>
+                    キャンセル
+                </Button>
+                <Button variant="danger" size="lg" onClick={() => onConfirm(isPermanentDelete)}>
+                    削除
+                </Button>
+            </Dialog.Footer>
+        </Dialog>
     );
 };
