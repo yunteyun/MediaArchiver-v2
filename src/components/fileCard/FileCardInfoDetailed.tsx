@@ -208,10 +208,7 @@ export const FileCardInfoDetailed = React.memo(({
         }));
 
         return (
-            <div
-                className={ui.containerClass}
-                style={{ height: '100%' }}
-            >
+            <div className={`${ui.containerClass} h-full`}>
                 <h3
                     className={ui.titleClass}
                     title={file.name}
@@ -282,7 +279,7 @@ export const FileCardInfoDetailed = React.memo(({
                     {file.accessCount > 0 && (
                         <>
                             {' · '}
-                            <Eye size={9} className="inline-block" style={{ verticalAlign: 'text-top' }} />
+                            <Eye size={9} className="inline-block align-text-top" />
                             {' '}{file.accessCount}回
                         </>
                     )}

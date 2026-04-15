@@ -76,10 +76,9 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
         <div
             className={`
                 fixed bottom-4 w-96 bg-surface-800 border border-surface-600 rounded-lg shadow-xl overflow-hidden
-                transition-all duration-300 ease-out
+                z-[var(--z-scan-progress)] transition-all duration-300 ease-out
                 ${shouldAnimate && isVisible ? 'left-72 opacity-100' : 'left-4 opacity-0 pointer-events-none'}
             `}
-            style={{ zIndex: 1000 }}
         >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-surface-700 bg-surface-900/50">
@@ -114,7 +113,7 @@ export const ScanProgressBar: React.FC<ScanProgressBarProps> = ({ onCancel }) =>
             <div className="px-4 py-3">
                 <div className="h-2 bg-surface-700 rounded-full overflow-hidden mb-2 relative">
                     {isIndeterminate ? (
-                        <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{ width: '100%' }} />
+                        <div className="h-full w-full bg-blue-500 rounded-full animate-pulse" />
                     ) : (
                         <div
                             className={`h-full transition-all duration-300 ease-out relative overflow-hidden ${isError ? 'bg-red-500' :

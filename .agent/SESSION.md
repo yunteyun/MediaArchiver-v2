@@ -3,14 +3,22 @@
 **Last Updated**: 2026-04-15
 
 - **Current Focus**: Issue #32 UI統一感の改善
-- **Current Status**: Phase 0・Phase 1・Phase 2・Phase 3 完了。共通ダイアログコンポーネントの採用を開始。
+- **Current Status**: Phase 0〜4 完了。インライン style 削減実施済み。
 
 ## Recent Achievements
 
-- **共通ダイアログコンポーネント採用（Issue #32 Phase 3）**:
-  - `DeleteConfirmDialog.tsx`・`RenameFileDialog.tsx`・`MoveFolderDialog.tsx` の3ファイルを共通 `Dialog`・`Button`・`Checkbox` コンポーネントに置換。
-  - Dialog: 0件 → 3件、Button: 0件 → 8件（ダイアログ内全ボタン）、Checkbox: 0件 → 1件の採用。
-  - z-index をハードコード (`z-50`) から CSS変数 (`z-[var(--z-modal)]`) に統一。
+- **インライン style 削減（Issue #32 Phase 4）**:
+  - `index.css` に `--z-scan-progress: 80` を追加し z-index 変数体系を完成。
+  - `ScanProgressBar` の `zIndex: 1000` → `z-[var(--z-scan-progress)]`、`Toast` / `ProfileSwitcher` の `style={{ zIndex: '...' }}` → Tailwind arbitrary に置き換え。
+  - 静的値 `width: '100%'` / `height: '100%'` / `verticalAlign: 'text-top'` を Tailwind クラスに置き換え（3箇所）。
+  - `AutoTagRulesTab` の混合 style から静的な `color: '#fff'` を `text-white` クラスに分離。
+
+- **ダイアログ統一（Issue #32 Phase 3）**:
+  - 14個の独自実装ダイアログを共通 `Dialog.tsx`（Compound Component）に移行。
+  - `Dialog.tsx` に `className`・`overlayStyle` props を追加。デフォルト背景 `bg-surface-900`・角丸 `rounded-xl` に統一。
+  - Escapeキー処理を Dialog に委譲（各コンポーネントの自前ハンドラを削除）。
+  - `StorageCleanupSection` 内の確認ダイアログは `overlayStyle={{ zIndex: 'calc(var(--z-modal) + 1)' }}` でスタック対応。
+  - `TagManagerModal` の独自 `createPortal` を廃止し Dialog の portal に統合。
 
 - **色トークン集約（Issue #32 Phase 2）**:
   - `src/lib/colors.ts` を新規作成。タグ色(18色 HEX/Tailwindクラス)・ファイルタイプ色・チャート共通定数を一元管理。

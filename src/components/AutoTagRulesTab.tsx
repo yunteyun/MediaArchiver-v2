@@ -347,8 +347,8 @@ export function AutoTagRulesTab() {
                                     <div className="flex items-center gap-2">
                                         <Tag size={16} className="text-primary-400" />
                                         <span
-                                            className="px-2 py-0.5 rounded text-sm"
-                                            style={{ backgroundColor: tag?.color || '#666', color: '#fff' }}
+                                            className="px-2 py-0.5 rounded text-sm text-white"
+                                            style={{ backgroundColor: tag?.color || '#666' }}
                                         >
                                             {tag?.name || '不明'}
                                         </span>

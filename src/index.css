@@ -25,6 +25,7 @@
     --z-modal: 50;
     --z-lightbox: 60;
     --z-toast: 70;
+    --z-scan-progress: 80;
 
     /* File type badges
        Themeable - 将来的にdark/light/customテーマに切り出す前提
