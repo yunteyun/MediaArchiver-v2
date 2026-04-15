@@ -105,7 +105,7 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
     }, [isOpen, handleConfirm]);
 
     return (
-        <Dialog isOpen={isOpen} onClose={onCancel}>
+        <Dialog isOpen={isOpen} onClose={onCancel} maxWidth="md">
             <Dialog.Header>
                 <h2 className="text-lg font-semibold text-surface-100">ファイル名を変更</h2>
             </Dialog.Header>

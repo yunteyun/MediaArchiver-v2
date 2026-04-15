@@ -26,7 +26,7 @@ const maxWidthClasses: Record<DialogMaxWidth, string> = {
 function DialogRoot({
     isOpen,
     onClose,
-    maxWidth = 'md',
+    maxWidth,
     closeOnOverlayClick = true,
     className = '',
     overlayClassName = '',
@@ -51,7 +51,7 @@ function DialogRoot({
             onClick={closeOnOverlayClick ? onClose : undefined}
         >
             <div
-                className={`relative flex w-full flex-col rounded-xl border border-surface-700 bg-surface-900 shadow-xl mx-4 ${maxWidthClasses[maxWidth]} ${className}`}
+                className={`relative flex w-full flex-col rounded-xl border border-surface-700 bg-surface-900 shadow-xl mx-4 ${maxWidth ? maxWidthClasses[maxWidth] : ''} ${className}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {children}

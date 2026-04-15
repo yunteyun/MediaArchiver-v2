@@ -44,7 +44,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
     }, [isOpen, isPermanentDelete, onConfirm]);
 
     return (
-        <Dialog isOpen={isOpen} onClose={onCancel}>
+        <Dialog isOpen={isOpen} onClose={onCancel} maxWidth="md">
             <Dialog.Header>
                 <h2 className="text-lg font-semibold text-surface-100">ファイルの削除</h2>
             </Dialog.Header>

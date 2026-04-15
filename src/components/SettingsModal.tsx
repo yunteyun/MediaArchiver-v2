@@ -594,7 +594,8 @@ export const SettingsModal = React.memo(() => {
         <Dialog
             isOpen={isOpen}
             onClose={closeModal}
-            className="h-[82vh] min-h-[620px] max-h-[82vh] w-full max-w-5xl"
+            maxWidth="5xl"
+            className="h-[82vh] min-h-[620px] max-h-[82vh] w-full"
         >
             <Dialog.Header>
                 <div className="flex items-center gap-2">

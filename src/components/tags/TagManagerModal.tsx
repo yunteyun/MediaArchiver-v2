@@ -286,7 +286,8 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         <Dialog
             isOpen={isOpen}
             onClose={onClose}
-            className="w-full max-w-5xl max-h-[82vh] min-w-[820px]"
+            maxWidth="5xl"
+            className="w-full max-h-[82vh] min-w-[820px]"
         >
             <Dialog.Header>
                 <h2 className="text-lg font-bold text-white">タグ管理</h2>
