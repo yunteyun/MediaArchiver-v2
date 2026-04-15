@@ -42,7 +42,11 @@ function SearchDestinationIconPreview({ icon }: { icon: SearchDestinationIcon })
     return <Link2 size={14} className={className} />;
 }
 
-export const ExternalAppsTab = React.memo(() => {
+interface ExternalAppsTabProps {
+    mode: 'external-apps' | 'search-destinations';
+}
+
+export const ExternalAppsTab = React.memo(({ mode }: ExternalAppsTabProps) => {
     const externalApps = useSettingsStore((s) => s.externalApps);
     const addExternalApp = useSettingsStore((s) => s.addExternalApp);
     const updateExternalApp = useSettingsStore((s) => s.updateExternalApp);
@@ -458,17 +462,278 @@ export const ExternalAppsTab = React.memo(() => {
     const filenameDestinations = searchDestinations.filter((destination) => destination.type === 'filename');
     const imageDestinations = searchDestinations.filter((destination) => destination.type === 'image');
 
+    if (mode === 'search-destinations') {
+        return (
+            <div className="p-4 space-y-4">
+                <div className="space-y-1">
+                    <p className="text-sm text-surface-400">
+                        ファイル名検索と画像検索の検索先を追加できます。画像検索は「開く」と同時に画像をコピーする前提です。
+                    </p>
+                    <p className="text-xs text-surface-500">
+                        検索先は現在のプロファイル `{activeProfileLabel}` に保存されます。
+                    </p>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <p className="text-xs text-surface-500">
+                                ファイル名検索は URL に <code>{'{query}'}</code> を含めてください。画像検索は検索ページを開く前に画像を自動でコピーします。
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => { void handleExportSearchDestinations(); }}
+                                className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            >
+                                <Download size={14} />
+                                エクスポート
+                            </button>
+                            <button
+                                onClick={() => { void handleImportSearchDestinations('merge'); }}
+                                className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            >
+                                <Upload size={14} />
+                                追記インポート
+                            </button>
+                            <button
+                                onClick={() => { void handleImportSearchDestinations('replace'); }}
+                                className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            >
+                                <Upload size={14} />
+                                置換インポート
+                            </button>
+                            <button
+                                onClick={handleResetSearchDestinations}
+                                className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
+                            >
+                                <Sparkles size={14} />
+                                既定へ戻す
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {[['ファイル名検索', filenameDestinations], ['画像検索', imageDestinations] as const].map(([title, destinations]) => (
+                            <div key={title} className="space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="text-xs font-medium text-surface-400">{title}</div>
+                                    <div className="text-[10px] text-surface-500">上から順に右クリックメニューへ表示</div>
+                                </div>
+                                {destinations.length === 0 ? (
+                                    <div className="rounded border border-dashed border-surface-700 px-3 py-4 text-sm text-surface-500">
+                                        未登録
+                                    </div>
+                                ) : (
+                                    destinations.map((destination, index) => (
+                                        <div key={destination.id} className="rounded bg-surface-800 p-3">
+                                            {editingSearchDestinationId === destination.id ? (
+                                                <div className="space-y-2">
+                                                    <select
+                                                        value={editSearchForm.type}
+                                                        onChange={(e) => setEditSearchForm((prev) => ({
+                                                            ...prev,
+                                                            type: e.target.value as SearchDestinationType,
+                                                            icon: prev.type === 'filename' && e.target.value === 'image'
+                                                                ? 'image'
+                                                                : prev.type === 'image' && e.target.value === 'filename'
+                                                                    ? 'search'
+                                                                    : prev.icon
+                                                        }))}
+                                                        className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
+                                                    >
+                                                        <option value="filename">ファイル名検索</option>
+                                                        <option value="image">画像検索</option>
+                                                    </select>
+                                                    <select
+                                                        value={editSearchForm.icon}
+                                                        onChange={(e) => setEditSearchForm((prev) => ({ ...prev, icon: e.target.value as SearchDestinationIcon }))}
+                                                        className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
+                                                    >
+                                                        {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
+                                                            <option key={option.value} value={option.value}>{option.label}</option>
+                                                        ))}
+                                                    </select>
+                                                    <input
+                                                        type="text"
+                                                        value={editSearchForm.name}
+                                                        onChange={(e) => setEditSearchForm((prev) => ({ ...prev, name: e.target.value }))}
+                                                        className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
+                                                        placeholder="検索先名"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={editSearchForm.url}
+                                                        onChange={(e) => setEditSearchForm((prev) => ({ ...prev, url: e.target.value }))}
+                                                        className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
+                                                        placeholder={editSearchForm.type === 'filename' ? 'https://example.com/?q={query}' : 'https://example.com/'}
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={handleCancelSearchDestinationEdit} className="p-1 hover:bg-surface-600 rounded">
+                                                            <X size={16} className="text-surface-400" />
+                                                        </button>
+                                                        <button onClick={handleSaveSearchDestinationEdit} className="p-1 hover:bg-surface-600 rounded">
+                                                            <Check size={16} className="text-green-400" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex h-7 w-7 items-center justify-center rounded bg-surface-700">
+                                                                <SearchDestinationIconPreview icon={destination.icon} />
+                                                            </span>
+                                                            <span className="font-medium text-white">{destination.name}</span>
+                                                            <span className="rounded bg-surface-700 px-2 py-0.5 text-[10px] text-surface-300">
+                                                                {renderSearchDestinationTypeLabel(destination.type)}
+                                                            </span>
+                                                            {!destination.enabled && (
+                                                                <span className="rounded bg-surface-700 px-2 py-0.5 text-[10px] text-surface-400">
+                                                                    無効
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-1 break-all text-xs text-surface-400">{destination.url}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => {
+                                                                moveSearchDestination(destination.id, 'up');
+                                                                void persistProfileExternalPreferences().catch(() => {
+                                                                    toastError('検索先の保存に失敗しました');
+                                                                });
+                                                            }}
+                                                            className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
+                                                            title="上へ"
+                                                            disabled={index === 0}
+                                                        >
+                                                            <ArrowUp size={14} className="text-surface-400" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                moveSearchDestination(destination.id, 'down');
+                                                                void persistProfileExternalPreferences().catch(() => {
+                                                                    toastError('検索先の保存に失敗しました');
+                                                                });
+                                                            }}
+                                                            className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
+                                                            title="下へ"
+                                                            disabled={index === destinations.length - 1}
+                                                        >
+                                                            <ArrowDown size={14} className="text-surface-400" />
+                                                        </button>
+                                                        <label className="flex items-center gap-1 text-xs text-surface-400">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={destination.enabled}
+                                                                onChange={(e) => {
+                                                                    toggleSearchDestinationEnabled(destination.id, e.target.checked);
+                                                                    void persistProfileExternalPreferences().catch(() => {
+                                                                        toastError('検索先の保存に失敗しました');
+                                                                    });
+                                                                }}
+                                                                className="h-4 w-4 accent-primary-500"
+                                                            />
+                                                            有効
+                                                        </label>
+                                                        <button
+                                                            onClick={() => handleStartSearchDestinationEdit(destination)}
+                                                            className="p-1.5 hover:bg-surface-600 rounded"
+                                                            title="編集"
+                                                        >
+                                                            <Edit2 size={14} className="text-surface-400" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteSearchDestination(destination.id)}
+                                                            className="p-1.5 hover:bg-surface-600 rounded"
+                                                            title="削除"
+                                                        >
+                                                            <Trash2 size={14} className="text-red-400" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="border-t border-surface-700 pt-4">
+                        <h5 className="mb-3 text-sm font-medium text-surface-300">検索先を追加</h5>
+                        <div className="space-y-2">
+                            <select
+                                value={newSearchDestinationType}
+                                onChange={(e) => {
+                                    const nextType = e.target.value as SearchDestinationType;
+                                    setNewSearchDestinationType(nextType);
+                                    setNewSearchDestinationIcon(nextType === 'filename' ? 'search' : 'image');
+                                }}
+                                className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
+                            >
+                                <option value="filename">ファイル名検索</option>
+                                <option value="image">画像検索</option>
+                            </select>
+                            <select
+                                value={newSearchDestinationIcon}
+                                onChange={(e) => setNewSearchDestinationIcon(e.target.value as SearchDestinationIcon)}
+                                className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
+                            >
+                                {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                            <input
+                                type="text"
+                                value={newSearchDestinationName}
+                                onChange={(e) => setNewSearchDestinationName(e.target.value)}
+                                className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
+                                placeholder="検索先名"
+                            />
+                            <input
+                                type="text"
+                                value={newSearchDestinationUrl}
+                                onChange={(e) => setNewSearchDestinationUrl(e.target.value)}
+                                className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
+                                placeholder={newSearchDestinationType === 'filename' ? 'https://example.com/?q={query}' : 'https://example.com/'}
+                            />
+                            <div className="rounded border border-surface-700 bg-surface-900/40 px-3 py-2 text-xs text-surface-500">
+                                {newSearchDestinationType === 'filename' ? (
+                                    <div className="flex items-center gap-2">
+                                        <Search size={14} className="text-surface-400" />
+                                        URL に <code>{'{query}'}</code> を入れると、整形済みファイル名が差し込まれます。
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <ImageIcon size={14} className="text-surface-400" />
+                                        画像検索は URL を開く前に画像をクリップボードへコピーします。貼り付け対応サイト向けです。
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleAddSearchDestination}
+                                className="flex w-full items-center justify-center gap-2 rounded bg-primary-600 py-2 text-sm text-white hover:bg-primary-500"
+                            >
+                                <Plus size={16} />
+                                追加
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="p-4 space-y-4">
             <div className="space-y-1">
                 <p className="text-sm text-surface-400">
                     ファイルを開く外部アプリケーションを登録できます。右クリックメニューから起動できます。
                 </p>
-                <p className="text-sm text-surface-400">
-                    あわせて、ファイル名検索と画像検索の検索先も追加できます。画像検索は「開く」と同時に画像をコピーする前提です。
-                </p>
                 <p className="text-xs text-surface-500">
-                    外部アプリ定義はアプリ全体で共有されます。既定アプリと検索先は現在のプロファイル `{activeProfileLabel}` に保存されます。
+                    外部アプリ定義はアプリ全体で共有されます。既定アプリは現在のプロファイル `{activeProfileLabel}` に保存されます。
                 </p>
             </div>
 
@@ -644,255 +909,6 @@ export const ExternalAppsTab = React.memo(() => {
                 </div>
             </div>
 
-            <div className="border-t border-surface-700 pt-4 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <h4 className="text-sm font-medium text-surface-300 mb-1">検索先</h4>
-                        <p className="text-xs text-surface-500">
-                            ファイル名検索は URL に <code>{'{query}'}</code> を含めてください。画像検索は検索ページを開く前に画像を自動でコピーします。
-                        </p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => { void handleExportSearchDestinations(); }}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
-                        >
-                            <Download size={14} />
-                            エクスポート
-                        </button>
-                        <button
-                            onClick={() => { void handleImportSearchDestinations('merge'); }}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
-                        >
-                            <Upload size={14} />
-                            追記インポート
-                        </button>
-                        <button
-                            onClick={() => { void handleImportSearchDestinations('replace'); }}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
-                        >
-                            <Upload size={14} />
-                            置換インポート
-                        </button>
-                        <button
-                            onClick={handleResetSearchDestinations}
-                            className="inline-flex items-center gap-1 rounded bg-surface-700 px-3 py-1.5 text-xs text-surface-200 hover:bg-surface-600"
-                        >
-                            <Sparkles size={14} />
-                            既定へ戻す
-                        </button>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    {[['ファイル名検索', filenameDestinations], ['画像検索', imageDestinations] as const].map(([title, destinations]) => (
-                        <div key={title} className="space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="text-xs font-medium text-surface-400">{title}</div>
-                                <div className="text-[10px] text-surface-500">上から順に右クリックメニューへ表示</div>
-                            </div>
-                            {destinations.length === 0 ? (
-                                <div className="rounded border border-dashed border-surface-700 px-3 py-4 text-sm text-surface-500">
-                                    未登録
-                                </div>
-                            ) : (
-                                destinations.map((destination, index) => (
-                                    <div key={destination.id} className="rounded bg-surface-800 p-3">
-                                        {editingSearchDestinationId === destination.id ? (
-                                            <div className="space-y-2">
-                                                <select
-                                                    value={editSearchForm.type}
-                                                    onChange={(e) => setEditSearchForm((prev) => ({
-                                                        ...prev,
-                                                        type: e.target.value as SearchDestinationType,
-                                                        icon: prev.type === 'filename' && e.target.value === 'image'
-                                                            ? 'image'
-                                                            : prev.type === 'image' && e.target.value === 'filename'
-                                                                ? 'search'
-                                                                : prev.icon
-                                                    }))}
-                                                    className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
-                                                >
-                                                    <option value="filename">ファイル名検索</option>
-                                                    <option value="image">画像検索</option>
-                                                </select>
-                                                <select
-                                                    value={editSearchForm.icon}
-                                                    onChange={(e) => setEditSearchForm((prev) => ({ ...prev, icon: e.target.value as SearchDestinationIcon }))}
-                                                    className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
-                                                >
-                                                    {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
-                                                        <option key={option.value} value={option.value}>{option.label}</option>
-                                                    ))}
-                                                </select>
-                                                <input
-                                                    type="text"
-                                                    value={editSearchForm.name}
-                                                    onChange={(e) => setEditSearchForm((prev) => ({ ...prev, name: e.target.value }))}
-                                                    className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
-                                                    placeholder="検索先名"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    value={editSearchForm.url}
-                                                    onChange={(e) => setEditSearchForm((prev) => ({ ...prev, url: e.target.value }))}
-                                                    className="w-full rounded bg-surface-700 px-2 py-1 text-sm text-white"
-                                                    placeholder={editSearchForm.type === 'filename' ? 'https://example.com/?q={query}' : 'https://example.com/'}
-                                                />
-                                                <div className="flex justify-end gap-2">
-                                                    <button onClick={handleCancelSearchDestinationEdit} className="p-1 hover:bg-surface-600 rounded">
-                                                        <X size={16} className="text-surface-400" />
-                                                    </button>
-                                                    <button onClick={handleSaveSearchDestinationEdit} className="p-1 hover:bg-surface-600 rounded">
-                                                        <Check size={16} className="text-green-400" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="inline-flex h-7 w-7 items-center justify-center rounded bg-surface-700">
-                                                            <SearchDestinationIconPreview icon={destination.icon} />
-                                                        </span>
-                                                        <span className="font-medium text-white">{destination.name}</span>
-                                                        <span className="rounded bg-surface-700 px-2 py-0.5 text-[10px] text-surface-300">
-                                                            {renderSearchDestinationTypeLabel(destination.type)}
-                                                        </span>
-                                                        {!destination.enabled && (
-                                                            <span className="rounded bg-surface-700 px-2 py-0.5 text-[10px] text-surface-400">
-                                                                無効
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="mt-1 break-all text-xs text-surface-400">{destination.url}</div>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        onClick={() => {
-                                                            moveSearchDestination(destination.id, 'up');
-                                                            void persistProfileExternalPreferences().catch(() => {
-                                                                toastError('検索先の保存に失敗しました');
-                                                            });
-                                                        }}
-                                                        className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
-                                                        title="上へ"
-                                                        disabled={index === 0}
-                                                    >
-                                                        <ArrowUp size={14} className="text-surface-400" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            moveSearchDestination(destination.id, 'down');
-                                                            void persistProfileExternalPreferences().catch(() => {
-                                                                toastError('検索先の保存に失敗しました');
-                                                            });
-                                                        }}
-                                                        className="p-1.5 hover:bg-surface-600 rounded disabled:cursor-not-allowed disabled:opacity-40"
-                                                        title="下へ"
-                                                        disabled={index === destinations.length - 1}
-                                                    >
-                                                        <ArrowDown size={14} className="text-surface-400" />
-                                                    </button>
-                                                    <label className="flex items-center gap-1 text-xs text-surface-400">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={destination.enabled}
-                                                            onChange={(e) => {
-                                                                toggleSearchDestinationEnabled(destination.id, e.target.checked);
-                                                                void persistProfileExternalPreferences().catch(() => {
-                                                                    toastError('検索先の保存に失敗しました');
-                                                                });
-                                                            }}
-                                                            className="h-4 w-4 accent-primary-500"
-                                                        />
-                                                        有効
-                                                    </label>
-                                                    <button
-                                                        onClick={() => handleStartSearchDestinationEdit(destination)}
-                                                        className="p-1.5 hover:bg-surface-600 rounded"
-                                                        title="編集"
-                                                    >
-                                                        <Edit2 size={14} className="text-surface-400" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteSearchDestination(destination.id)}
-                                                        className="p-1.5 hover:bg-surface-600 rounded"
-                                                        title="削除"
-                                                    >
-                                                        <Trash2 size={14} className="text-red-400" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                <div className="border-t border-surface-700 pt-4">
-                    <h5 className="mb-3 text-sm font-medium text-surface-300">検索先を追加</h5>
-                    <div className="space-y-2">
-                        <select
-                            value={newSearchDestinationType}
-                            onChange={(e) => {
-                                const nextType = e.target.value as SearchDestinationType;
-                                setNewSearchDestinationType(nextType);
-                                setNewSearchDestinationIcon(nextType === 'filename' ? 'search' : 'image');
-                            }}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
-                        >
-                            <option value="filename">ファイル名検索</option>
-                            <option value="image">画像検索</option>
-                        </select>
-                        <select
-                            value={newSearchDestinationIcon}
-                            onChange={(e) => setNewSearchDestinationIcon(e.target.value as SearchDestinationIcon)}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
-                        >
-                            {SEARCH_DESTINATION_ICON_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="text"
-                            value={newSearchDestinationName}
-                            onChange={(e) => setNewSearchDestinationName(e.target.value)}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
-                            placeholder="検索先名"
-                        />
-                        <input
-                            type="text"
-                            value={newSearchDestinationUrl}
-                            onChange={(e) => setNewSearchDestinationUrl(e.target.value)}
-                            className="w-full rounded bg-surface-800 px-3 py-2 text-sm text-white"
-                            placeholder={newSearchDestinationType === 'filename' ? 'https://example.com/?q={query}' : 'https://example.com/'}
-                        />
-                        <div className="rounded border border-surface-700 bg-surface-900/40 px-3 py-2 text-xs text-surface-500">
-                            {newSearchDestinationType === 'filename' ? (
-                                <div className="flex items-center gap-2">
-                                    <Search size={14} className="text-surface-400" />
-                                    URL に <code>{'{query}'}</code> を入れると、整形済みファイル名が差し込まれます。
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <ImageIcon size={14} className="text-surface-400" />
-                                    画像検索は URL を開く前に画像をクリップボードへコピーします。貼り付け対応サイト向けです。
-                                </div>
-                            )}
-                        </div>
-                        <button
-                            onClick={handleAddSearchDestination}
-                            className="flex w-full items-center justify-center gap-2 rounded bg-primary-600 py-2 text-sm text-white hover:bg-primary-500"
-                        >
-                            <Plus size={16} />
-                            追加
-                        </button>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 });

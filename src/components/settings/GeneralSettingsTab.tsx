@@ -82,7 +82,7 @@ interface GeneralSettingsTabProps {
     onResetListDisplayDefaults: () => void;
     onResetPlaybackSettings: () => void;
     onResetFileCardSettings: () => void;
-    mode: 'list-display' | 'playback';
+    mode: 'list-display' | 'card-display' | 'playback';
 }
 
 export const GeneralSettingsTab = React.memo(({
@@ -211,6 +211,210 @@ export const GeneralSettingsTab = React.memo(({
                     <span className="text-sm text-surface-200">パフォーマンスモード</span>
                 </label>
             </SettingsSection>
+            </div>
+        );
+    }
+
+    if (mode === 'card-display') {
+        return (
+            <div className="px-4 py-4 space-y-6">
+                <SettingsSection
+                    title="ファイルカード表示"
+                    description={`一覧カードの表示項目とタグの見せ方を現在のプロファイルに保存します。対象: ${activeProfileLabel}`}
+                    scope="profile"
+                    onReset={onResetFileCardSettings}
+                    className="border-primary-900/40 bg-primary-950/10"
+                >
+                    <label className="block text-sm font-medium text-surface-300 mb-2">
+                        表示項目
+                    </label>
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showFileName}
+                                onChange={(e) => onShowFileNameChange(e.target.checked)}
+                                className="w-4 h-4 accent-primary-500 rounded"
+                            />
+                            <span className="text-surface-200 text-sm">ファイル名</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showDuration}
+                                onChange={(e) => onShowDurationChange(e.target.checked)}
+                                className="w-4 h-4 accent-primary-500 rounded"
+                            />
+                            <span className="text-surface-200 text-sm">再生時間</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showTags}
+                                onChange={(e) => onShowTagsChange(e.target.checked)}
+                                className="w-4 h-4 accent-primary-500 rounded"
+                            />
+                            <span className="text-surface-200 text-sm">タグ</span>
+                        </label>
+                        {showTags && (
+                            <div className="ml-6 mt-1">
+                                <label className="block text-xs text-surface-400 mb-1">タグポップオーバー表示</label>
+                                <select
+                                    value={tagPopoverTrigger}
+                                    onChange={(e) => onTagPopoverTriggerChange(e.target.value as TagPopoverTrigger)}
+                                    className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value="click">クリック</option>
+                                    <option value="hover">ホバー</option>
+                                </select>
+                            </div>
+                        )}
+                        {showTags && (
+                            <div className="ml-6 mt-1">
+                                <label className="block text-xs text-surface-400 mb-1">タグ表示スタイル</label>
+                                <select
+                                    value={tagDisplayStyle}
+                                    onChange={(e) => onTagDisplayStyleChange(e.target.value as TagDisplayStyle)}
+                                    className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value="filled">塗りつぶし（フル背景色）</option>
+                                    <option value="border">左端ライン（ダーク背景）</option>
+                                </select>
+                            </div>
+                        )}
+                        {showTags && (
+                            <div className="ml-6 mt-1">
+                                <label className="block text-xs text-surface-400 mb-1">ファイルカード要約タグの並び</label>
+                                <select
+                                    value={fileCardTagOrderMode}
+                                    onChange={(e) => onFileCardTagOrderModeChange(e.target.value as FileCardTagOrderMode)}
+                                    className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
+                                >
+                                    <option value="balanced">カテゴリ分散（カテゴリ偏りを抑える）</option>
+                                    <option value="strict">厳密順（カテゴリ順→タグ順）</option>
+                                </select>
+                                <p className="mt-1 text-[11px] text-surface-500">
+                                    ファイルカードの省略タグ表示（3件表示など）にのみ適用されます。
+                                </p>
+                            </div>
+                        )}
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showFileSize}
+                                onChange={(e) => onShowFileSizeChange(e.target.checked)}
+                                className="w-4 h-4 accent-primary-500 rounded"
+                            />
+                            <span className="text-surface-200 text-sm">ファイルサイズ</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showCreatedDate}
+                                onChange={(e) => onShowCreatedDateChange(e.target.checked)}
+                                className="w-4 h-4 accent-primary-500 rounded"
+                            />
+                            <span className="text-surface-200 text-sm">作成日</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showFolderBadge}
+                                onChange={(e) => onShowFolderBadgeChange(e.target.checked)}
+                                className="w-4 h-4 accent-primary-500 rounded"
+                            />
+                            <span className="text-surface-200 text-sm">フォルダ名</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={showDriveBadge}
+                                onChange={(e) => onShowDriveBadgeChange(e.target.checked)}
+                                className="w-4 h-4 accent-primary-500 rounded"
+                            />
+                            <span className="text-surface-200 text-sm">ドライブ名</span>
+                        </label>
+                        {showDriveBadge && availableDrives.length > 0 && (
+                            <div className="ml-6 mt-1">
+                                <label className="block text-xs text-surface-400 mb-1">ドライブカラー</label>
+                                <div className="space-y-1.5">
+                                    {availableDrives.map((drive) => (
+                                        <div key={drive} className="flex items-center gap-2">
+                                            <span className="text-xs text-surface-300 w-6">{drive}</span>
+                                            <div className="flex items-center gap-1 flex-wrap">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onDriveColorChange(drive, null)}
+                                                    className={`w-4 h-4 rounded-full border ${!driveColors[drive] ? 'border-primary-400 ring-1 ring-primary-400' : 'border-surface-500'} bg-surface-600`}
+                                                    title="未設定"
+                                                />
+                                                {FOLDER_BADGE_COLOR_OPTIONS.map((option) => {
+                                                    const hex = resolveFolderBadgeColorHex(option.value);
+                                                    return (
+                                                        <button
+                                                            key={option.value}
+                                                            type="button"
+                                                            onClick={() => onDriveColorChange(drive, option.value)}
+                                                            className={`w-4 h-4 rounded-full border ${driveColors[drive] === option.value ? 'border-white ring-1 ring-white' : 'border-surface-500'}`}
+                                                            style={{ backgroundColor: hex ?? undefined }}
+                                                            title={option.label}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <label className="block text-sm font-medium text-surface-300 mt-4 mb-2">
+                            バッジ表示順
+                        </label>
+                        <div className="space-y-1">
+                            {infoBadgeOrder.map((key, index) => {
+                                const labels: Record<string, string> = {
+                                    fileSize: 'ファイルサイズ',
+                                    createdDate: '作成日',
+                                    folder: 'フォルダ名',
+                                    drive: 'ドライブ名',
+                                };
+                                return (
+                                    <div key={key} className="flex items-center gap-2">
+                                        <div className="flex flex-col">
+                                            <button
+                                                type="button"
+                                                disabled={index === 0}
+                                                onClick={() => {
+                                                    const newOrder = [...infoBadgeOrder];
+                                                    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                                                    onInfoBadgeOrderChange(newOrder);
+                                                }}
+                                                className="p-0.5 text-surface-400 hover:text-surface-200 disabled:opacity-30 disabled:cursor-default"
+                                                title="上へ"
+                                            >
+                                                <ArrowUp size={12} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={index === infoBadgeOrder.length - 1}
+                                                onClick={() => {
+                                                    const newOrder = [...infoBadgeOrder];
+                                                    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                                                    onInfoBadgeOrderChange(newOrder);
+                                                }}
+                                                className="p-0.5 text-surface-400 hover:text-surface-200 disabled:opacity-30 disabled:cursor-default"
+                                                title="下へ"
+                                            >
+                                                <ArrowDown size={12} />
+                                            </button>
+                                        </div>
+                                        <span className="text-surface-200 text-sm">{labels[key] ?? key}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </SettingsSection>
             </div>
         );
     }
@@ -421,204 +625,6 @@ export const GeneralSettingsTab = React.memo(({
                     </div>
                 </div>
             )}
-        </SettingsSection>
-
-        <SettingsSection
-            title="ファイルカード表示"
-            description={`一覧カードの表示項目とタグの見せ方を現在のプロファイルに保存します。対象: ${activeProfileLabel}`}
-            scope="profile"
-            onReset={onResetFileCardSettings}
-            className="border-primary-900/40 bg-primary-950/10"
-        >
-            <label className="block text-sm font-medium text-surface-300 mb-2">
-                表示項目
-            </label>
-            <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showFileName}
-                        onChange={(e) => onShowFileNameChange(e.target.checked)}
-                        className="w-4 h-4 accent-primary-500 rounded"
-                    />
-                    <span className="text-surface-200 text-sm">ファイル名</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showDuration}
-                        onChange={(e) => onShowDurationChange(e.target.checked)}
-                        className="w-4 h-4 accent-primary-500 rounded"
-                    />
-                    <span className="text-surface-200 text-sm">再生時間</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showTags}
-                        onChange={(e) => onShowTagsChange(e.target.checked)}
-                        className="w-4 h-4 accent-primary-500 rounded"
-                    />
-                    <span className="text-surface-200 text-sm">タグ</span>
-                </label>
-                {showTags && (
-                    <div className="ml-6 mt-1">
-                        <label className="block text-xs text-surface-400 mb-1">タグポップオーバー表示</label>
-                        <select
-                            value={tagPopoverTrigger}
-                            onChange={(e) => onTagPopoverTriggerChange(e.target.value as TagPopoverTrigger)}
-                            className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                        >
-                            <option value="click">クリック</option>
-                            <option value="hover">ホバー</option>
-                        </select>
-                    </div>
-                )}
-                {showTags && (
-                    <div className="ml-6 mt-1">
-                        <label className="block text-xs text-surface-400 mb-1">タグ表示スタイル</label>
-                        <select
-                            value={tagDisplayStyle}
-                            onChange={(e) => onTagDisplayStyleChange(e.target.value as TagDisplayStyle)}
-                            className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                        >
-                            <option value="filled">塗りつぶし（フル背景色）</option>
-                            <option value="border">左端ライン（ダーク背景）</option>
-                        </select>
-                    </div>
-                )}
-                {showTags && (
-                    <div className="ml-6 mt-1">
-                        <label className="block text-xs text-surface-400 mb-1">ファイルカード要約タグの並び</label>
-                        <select
-                            value={fileCardTagOrderMode}
-                            onChange={(e) => onFileCardTagOrderModeChange(e.target.value as FileCardTagOrderMode)}
-                            className="w-full px-2 py-1 text-xs bg-surface-800 border border-surface-600 rounded text-surface-200 focus:outline-none focus:border-primary-500"
-                        >
-                            <option value="balanced">カテゴリ分散（カテゴリ偏りを抑える）</option>
-                            <option value="strict">厳密順（カテゴリ順→タグ順）</option>
-                        </select>
-                        <p className="mt-1 text-[11px] text-surface-500">
-                            ファイルカードの省略タグ表示（3件表示など）にのみ適用されます。
-                        </p>
-                    </div>
-                )}
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showFileSize}
-                        onChange={(e) => onShowFileSizeChange(e.target.checked)}
-                        className="w-4 h-4 accent-primary-500 rounded"
-                    />
-                    <span className="text-surface-200 text-sm">ファイルサイズ</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showCreatedDate}
-                        onChange={(e) => onShowCreatedDateChange(e.target.checked)}
-                        className="w-4 h-4 accent-primary-500 rounded"
-                    />
-                    <span className="text-surface-200 text-sm">作成日</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showFolderBadge}
-                        onChange={(e) => onShowFolderBadgeChange(e.target.checked)}
-                        className="w-4 h-4 accent-primary-500 rounded"
-                    />
-                    <span className="text-surface-200 text-sm">フォルダ名</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={showDriveBadge}
-                        onChange={(e) => onShowDriveBadgeChange(e.target.checked)}
-                        className="w-4 h-4 accent-primary-500 rounded"
-                    />
-                    <span className="text-surface-200 text-sm">ドライブ名</span>
-                </label>
-                {showDriveBadge && availableDrives.length > 0 && (
-                    <div className="ml-6 mt-1">
-                        <label className="block text-xs text-surface-400 mb-1">ドライブカラー</label>
-                        <div className="space-y-1.5">
-                            {availableDrives.map((drive) => (
-                                <div key={drive} className="flex items-center gap-2">
-                                    <span className="text-xs text-surface-300 w-6">{drive}</span>
-                                    <div className="flex items-center gap-1 flex-wrap">
-                                        <button
-                                            type="button"
-                                            onClick={() => onDriveColorChange(drive, null)}
-                                            className={`w-4 h-4 rounded-full border ${!driveColors[drive] ? 'border-primary-400 ring-1 ring-primary-400' : 'border-surface-500'} bg-surface-600`}
-                                            title="未設定"
-                                        />
-                                        {FOLDER_BADGE_COLOR_OPTIONS.map((option) => {
-                                            const hex = resolveFolderBadgeColorHex(option.value);
-                                            return (
-                                                <button
-                                                    key={option.value}
-                                                    type="button"
-                                                    onClick={() => onDriveColorChange(drive, option.value)}
-                                                    className={`w-4 h-4 rounded-full border ${driveColors[drive] === option.value ? 'border-white ring-1 ring-white' : 'border-surface-500'}`}
-                                                    style={{ backgroundColor: hex ?? undefined }}
-                                                    title={option.label}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                <label className="block text-sm font-medium text-surface-300 mt-4 mb-2">
-                    バッジ表示順
-                </label>
-                <div className="space-y-1">
-                    {infoBadgeOrder.map((key, index) => {
-                        const labels: Record<string, string> = {
-                            fileSize: 'ファイルサイズ',
-                            createdDate: '作成日',
-                            folder: 'フォルダ名',
-                            drive: 'ドライブ名',
-                        };
-                        return (
-                            <div key={key} className="flex items-center gap-2">
-                                <div className="flex flex-col">
-                                    <button
-                                        type="button"
-                                        disabled={index === 0}
-                                        onClick={() => {
-                                            const newOrder = [...infoBadgeOrder];
-                                            [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-                                            onInfoBadgeOrderChange(newOrder);
-                                        }}
-                                        className="p-0.5 text-surface-400 hover:text-surface-200 disabled:opacity-30 disabled:cursor-default"
-                                        title="上へ"
-                                    >
-                                        <ArrowUp size={12} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={index === infoBadgeOrder.length - 1}
-                                        onClick={() => {
-                                            const newOrder = [...infoBadgeOrder];
-                                            [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-                                            onInfoBadgeOrderChange(newOrder);
-                                        }}
-                                        className="p-0.5 text-surface-400 hover:text-surface-200 disabled:opacity-30 disabled:cursor-default"
-                                        title="下へ"
-                                    >
-                                        <ArrowDown size={12} />
-                                    </button>
-                                </div>
-                                <span className="text-surface-200 text-sm">{labels[key] ?? key}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
         </SettingsSection>
 
         <RenameQuickTextSection />

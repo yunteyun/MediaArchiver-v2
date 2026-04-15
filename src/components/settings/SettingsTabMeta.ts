@@ -23,16 +23,19 @@ export const SETTINGS_CATEGORIES: SettingsCategoryItem[] = [
 ];
 
 export const SETTINGS_SUB_TABS: SettingsSubTabItem[] = [
-    { id: 'list-display', category: 'display',     label: '一覧表示'           },
-    { id: 'playback',     category: 'display',     label: '再生と見た目'       },
-    { id: 'preview',      category: 'display',     label: 'プレビュー'         },
-    { id: 'ratings',      category: 'display',     label: '評価'               },
-    { id: 'scan',         category: 'data',        label: 'スキャン'           },
-    { id: 'organize',     category: 'data',        label: '自動整理'           },
-    { id: 'storage',      category: 'data',        label: '保存・キャッシュ'   },
-    { id: 'update',       category: 'maintenance', label: '更新'               },
-    { id: 'logs',         category: 'maintenance', label: 'ログ'               },
-    { id: 'backup',       category: 'maintenance', label: 'バックアップ・入出力' },
+    { id: 'list-display',        category: 'display',     label: '一覧表示'           },
+    { id: 'card-display',        category: 'display',     label: 'カード表示'         },
+    { id: 'playback',            category: 'display',     label: '再生と見た目'       },
+    { id: 'preview',             category: 'display',     label: 'プレビュー'         },
+    { id: 'ratings',             category: 'display',     label: '評価'               },
+    { id: 'scan',                category: 'data',        label: 'スキャン'           },
+    { id: 'organize',            category: 'data',        label: '自動整理'           },
+    { id: 'storage',             category: 'data',        label: '保存・キャッシュ'   },
+    { id: 'external-apps',       category: 'integration', label: '外部アプリ'         },
+    { id: 'search-destinations', category: 'integration', label: '検索先'             },
+    { id: 'update',              category: 'maintenance', label: '更新'               },
+    { id: 'logs',                category: 'maintenance', label: 'ログ'               },
+    { id: 'backup',              category: 'maintenance', label: 'バックアップ・入出力' },
 ];
 
 export function getCategoryMeta(category: SettingsModalCategory): SettingsCategoryItem {

@@ -786,6 +786,113 @@ export const SettingsModal = React.memo(() => {
                             />
                         )}
 
+                        {activeSubTab === 'card-display' && (
+                            <GeneralSettingsTab
+                                mode="card-display"
+                                activeProfileLabel={activeProfileLabel}
+                                defaultDisplayPresetId={activeDisplayPresetId}
+                                defaultThumbnailPresentation={thumbnailPresentation}
+                                defaultSortBy={sortBy}
+                                defaultSortOrder={sortOrder}
+                                defaultGroupBy={groupBy}
+                                defaultDateGroupingMode={dateGroupingMode}
+                                defaultSearchTarget={defaultSearchTarget}
+                                displayPresetOptions={[]}
+                                onDefaultDisplayPresetChange={() => {}}
+                                onDefaultThumbnailPresentationChange={() => {}}
+                                onDefaultSortByChange={() => {}}
+                                onDefaultSortOrderChange={() => {}}
+                                onDefaultGroupByChange={() => {}}
+                                onDefaultDateGroupingModeChange={() => {}}
+                                onApplyDefaultListDisplayPreset={() => {}}
+                                onDefaultSearchTargetChange={() => {}}
+                                videoVolume={videoVolume}
+                                onVideoVolumeChange={setVideoVolume}
+                                audioVolume={audioVolume}
+                                onAudioVolumeChange={setAudioVolume}
+                                lightboxOverlayOpacity={lightboxOverlayOpacity}
+                                onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
+                                performanceMode={performanceMode}
+                                onPerformanceModeChange={setPerformanceMode}
+                                showFileName={showFileName}
+                                onShowFileNameChange={(checked) => {
+                                    setShowFileName(checked);
+                                    void handleProfileFileCardSettingsChange({ showFileName: checked });
+                                }}
+                                showDuration={showDuration}
+                                onShowDurationChange={(checked) => {
+                                    setShowDuration(checked);
+                                    void handleProfileFileCardSettingsChange({ showDuration: checked });
+                                }}
+                                showTags={showTags}
+                                onShowTagsChange={(checked) => {
+                                    setShowTags(checked);
+                                    void handleProfileFileCardSettingsChange({ showTags: checked });
+                                }}
+                                tagPopoverTrigger={tagPopoverTrigger}
+                                onTagPopoverTriggerChange={(value) => {
+                                    setTagPopoverTrigger(value);
+                                    void handleProfileFileCardSettingsChange({ tagPopoverTrigger: value });
+                                }}
+                                tagDisplayStyle={tagDisplayStyle}
+                                onTagDisplayStyleChange={(value) => {
+                                    setTagDisplayStyle(value);
+                                    void handleProfileFileCardSettingsChange({ tagDisplayStyle: value });
+                                }}
+                                fileCardTagOrderMode={fileCardTagOrderMode}
+                                onFileCardTagOrderModeChange={(value) => {
+                                    setFileCardTagOrderMode(value);
+                                    void handleProfileFileCardSettingsChange({ fileCardTagOrderMode: value });
+                                }}
+                                showFileSize={showFileSize}
+                                onShowFileSizeChange={(checked) => {
+                                    setShowFileSize(checked);
+                                    void handleProfileFileCardSettingsChange({ showFileSize: checked });
+                                }}
+                                showCreatedDate={showCreatedDate}
+                                onShowCreatedDateChange={(checked) => {
+                                    setShowCreatedDate(checked);
+                                    void handleProfileFileCardSettingsChange({ showCreatedDate: checked });
+                                }}
+                                showFolderBadge={showFolderBadge}
+                                onShowFolderBadgeChange={(checked) => {
+                                    setShowFolderBadge(checked);
+                                    void handleProfileFileCardSettingsChange({ showFolderBadge: checked });
+                                }}
+                                showDriveBadge={showDriveBadge}
+                                onShowDriveBadgeChange={(checked) => {
+                                    setShowDriveBadge(checked);
+                                    void handleProfileFileCardSettingsChange({ showDriveBadge: checked });
+                                }}
+                                driveColors={driveColors}
+                                availableDrives={availableDrives}
+                                onDriveColorChange={(drive, color) => {
+                                    setDriveColor(drive, color);
+                                    const updated = { ...driveColors };
+                                    if (color) {
+                                        updated[drive] = color;
+                                    } else {
+                                        delete updated[drive];
+                                    }
+                                    void handleProfileFileCardSettingsChange({ driveColors: updated });
+                                }}
+                                infoBadgeOrder={infoBadgeOrder}
+                                onInfoBadgeOrderChange={(order) => {
+                                    setInfoBadgeOrder(order);
+                                    void handleProfileFileCardSettingsChange({ infoBadgeOrder: order });
+                                }}
+                                displayPresetDirectory={displayPresetDirectory}
+                                displayPresetCount={displayPresetCount}
+                                displayPresetWarnings={displayPresetWarnings}
+                                onOpenDisplayPresetFolder={handleOpenDisplayPresetFolder}
+                                isReloadingDisplayPresets={isReloadingDisplayPresets}
+                                onReloadDisplayPresets={handleReloadDisplayPresets}
+                                onResetListDisplayDefaults={handleResetListDisplayDefaults}
+                                onResetPlaybackSettings={handleResetPlaybackSettings}
+                                onResetFileCardSettings={handleResetFileCardSettings}
+                            />
+                        )}
+
                         {activeSubTab === 'playback' && (
                             <GeneralSettingsTab
                                 mode="playback"
@@ -931,8 +1038,12 @@ export const SettingsModal = React.memo(() => {
                             />
                         )}
 
-                        {activeCategory === 'integration' && (
-                            <ExternalAppsTab />
+                        {activeSubTab === 'external-apps' && (
+                            <ExternalAppsTab mode="external-apps" />
+                        )}
+
+                        {activeSubTab === 'search-destinations' && (
+                            <ExternalAppsTab mode="search-destinations" />
                         )}
 
                         {activeSubTab === 'update' && (

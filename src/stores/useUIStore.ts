@@ -32,8 +32,9 @@ export interface ScanProgress {
 
 export type SettingsModalCategory = 'display' | 'data' | 'integration' | 'maintenance';
 export type SettingsSubTab =
-    | 'list-display' | 'playback' | 'preview' | 'ratings'
+    | 'list-display' | 'card-display' | 'playback' | 'preview' | 'ratings'
     | 'scan' | 'organize' | 'storage'
+    | 'external-apps' | 'search-destinations'
     | 'update' | 'logs' | 'backup';
 /** 後方互換エイリアス */
 export type SettingsModalTab = SettingsModalCategory;
