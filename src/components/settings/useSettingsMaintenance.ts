@@ -3,7 +3,7 @@ import { useFileStore } from '../../stores/useFileStore';
 import { useRatingStore } from '../../stores/useRatingStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useTagStore } from '../../stores/useTagStore';
-import { useUIStore, type SettingsModalTab } from '../../stores/useUIStore';
+import { useUIStore, type SettingsSubTab } from '../../stores/useUIStore';
 import { buildCsvContent, buildFileExportRows, buildHtmlContent } from '../../utils/fileExport';
 import {
     parseLegacyAppCsvFromBytes,
@@ -28,7 +28,7 @@ export interface UpdateCheckUiState {
 
 interface UseSettingsMaintenanceParams {
     isOpen: boolean;
-    activeTab: SettingsModalTab;
+    activeSubTab: SettingsSubTab;
     rawFiles: ReturnType<typeof useFileStore.getState>['files'];
     fileTagsCache: ReturnType<typeof useFileStore.getState>['fileTagsCache'];
     currentFolderId: string | null;
@@ -43,7 +43,7 @@ const FOLDER_PREFIX = '__folder:';
 
 export function useSettingsMaintenance({
     isOpen,
-    activeTab,
+    activeSubTab,
     rawFiles,
     fileTagsCache,
     currentFolderId,
@@ -832,17 +832,17 @@ export function useSettingsMaintenance({
     }, [loadBackupHistory]);
 
     useEffect(() => {
-        if (isOpen && activeTab === 'storage') {
+        if (isOpen && activeSubTab === 'storage') {
             void loadStorageConfig();
         }
-    }, [activeTab, isOpen, loadStorageConfig]);
+    }, [activeSubTab, isOpen, loadStorageConfig]);
 
     useEffect(() => {
-        if (isOpen && activeTab === 'backup') {
+        if (isOpen && activeSubTab === 'backup') {
             void loadBackupSettingsState();
             void loadBackupHistory();
         }
-    }, [activeProfileId, activeTab, isOpen, loadBackupHistory, loadBackupSettingsState]);
+    }, [activeProfileId, activeSubTab, isOpen, loadBackupHistory, loadBackupSettingsState]);
 
     useEffect(() => {
         if (isOpen && !appVersion) {
@@ -852,7 +852,7 @@ export function useSettingsMaintenance({
 
     useEffect(() => {
         const shouldLoad = isOpen
-            && activeTab === 'maintenance'
+            && activeSubTab === 'update'
             && !isLoadingBundledReleaseNotes
             && (
                 !bundledReleaseNotesState
@@ -863,7 +863,7 @@ export function useSettingsMaintenance({
             void loadBundledReleaseNotes();
         }
     }, [
-        activeTab,
+        activeSubTab,
         appVersion,
         bundledReleaseNotesState,
         isLoadingBundledReleaseNotes,

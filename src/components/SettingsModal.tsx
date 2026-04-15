@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Settings } from 'lucide-react';
-import { useUIStore, type SettingsModalTab } from '../stores/useUIStore';
+import { useUIStore, type SettingsModalCategory, type SettingsSubTab } from '../stores/useUIStore';
 import {
     DEFAULT_FILE_CARD_SETTINGS,
     DEFAULT_LIST_DISPLAY_SETTINGS,
@@ -23,7 +23,8 @@ import { ExternalAppsTab } from './ExternalAppsTab';
 import { RatingAxesManager } from './settings/RatingAxesManager';
 import { RatingDisplaySettingsSection } from './settings/RatingDisplaySettingsSection';
 import { SettingsTabNav } from './settings/SettingsTabNav';
-import { getSettingsTabMeta } from './settings/SettingsTabMeta';
+import { SettingsSubTabNav } from './settings/SettingsSubTabNav';
+import { getCategoryMeta, getDefaultSubTab } from './settings/SettingsTabMeta';
 import { GeneralSettingsTab } from './settings/GeneralSettingsTab';
 import { ScanSettingsTab } from './settings/ScanSettingsTab';
 import { ThumbnailsSettingsTab } from './settings/ThumbnailsSettingsTab';
@@ -40,11 +41,10 @@ import { getDisplayPresetMenuOptions } from './fileCard/displayModes';
 import { completeUiPerfTrace, getPerfDebugFlags, setPerfDebugFlags, syncPerfDebugToMain, type PerfDebugFlags } from '../utils/perfDebug';
 import { LIST_DISPLAY_PRESETS, type ListDisplayPresetId } from '../shared/listDisplayPresets';
 
-type TabType = SettingsModalTab;
-
 export const SettingsModal = React.memo(() => {
     const isOpen = useUIStore((s) => s.settingsModalOpen);
     const requestedTab = useUIStore((s) => s.settingsModalRequestedTab);
+    const requestedSubTab = useUIStore((s) => s.settingsModalRequestedSubTab);
     const closeModal = useUIStore((s) => s.closeSettingsModal);
 
     const videoVolume = useSettingsStore((s) => s.videoVolume);
@@ -141,7 +141,8 @@ export const SettingsModal = React.memo(() => {
     const isReloadingDisplayPresets = useDisplayPresetStore((s) => s.isLoading);
     const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
 
-    const [activeTab, setActiveTab] = useState<TabType>('general');
+    const [activeCategory, setActiveCategory] = useState<SettingsModalCategory>('display');
+    const [activeSubTab, setActiveSubTab] = useState<SettingsSubTab>('list-display');
     const [logs, setLogs] = useState<string[]>([]);
     const [logFilter, setLogFilter] = useState<'all' | 'error' | 'warn' | 'info'>('all');
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -162,7 +163,7 @@ export const SettingsModal = React.memo(() => {
         const profile = profiles.find((p) => p.id === activeProfileId);
         return profile ? `${profile.name} (${profile.id})` : activeProfileId;
     }, [profiles, activeProfileId]);
-    const activeTabMeta = React.useMemo(() => getSettingsTabMeta(activeTab), [activeTab]);
+    const activeCategoryMeta = React.useMemo(() => getCategoryMeta(activeCategory), [activeCategory]);
     const displayPresetMenuOptions = React.useMemo(
         () => getDisplayPresetMenuOptions(externalDisplayPresets),
         [externalDisplayPresets]
@@ -224,7 +225,7 @@ export const SettingsModal = React.memo(() => {
         handleDeleteOldData,
     } = useSettingsMaintenance({
         isOpen,
-        activeTab,
+        activeSubTab,
         rawFiles,
         fileTagsCache,
         currentFolderId,
@@ -353,22 +354,29 @@ export const SettingsModal = React.memo(() => {
     }, []);
 
     useEffect(() => {
-        if (isOpen && requestedTab) {
-            setActiveTab(requestedTab);
+        if (!isOpen) return;
+        if (requestedTab) {
+            setActiveCategory(requestedTab);
+            // requestedTab に対応するデフォルトサブタブへ
+            const defaultSub = getDefaultSubTab(requestedTab);
+            if (defaultSub) setActiveSubTab(defaultSub);
         }
-    }, [isOpen, requestedTab]);
+        if (requestedSubTab) {
+            setActiveSubTab(requestedSubTab);
+        }
+    }, [isOpen, requestedTab, requestedSubTab]);
 
     useEffect(() => {
         if (!isOpen) return;
         setPerfDebugFlagsState(getPerfDebugFlags());
-        completeUiPerfTrace('settings-modal-open', { activeTab: requestedTab ?? activeTab });
-    }, [activeTab, isOpen, requestedTab]);
+        completeUiPerfTrace('settings-modal-open', { activeCategory, activeSubTab });
+    }, [activeCategory, activeSubTab, isOpen]);
 
     useEffect(() => {
-        if (isOpen && activeTab === 'logs') {
+        if (isOpen && activeSubTab === 'logs') {
             loadLogs();
         }
-    }, [isOpen, activeTab, loadLogs]);
+    }, [isOpen, activeSubTab, loadLogs]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -580,6 +588,12 @@ export const SettingsModal = React.memo(() => {
         handleStorageMaintenanceSettingsChange({ ...DEFAULT_STORAGE_MAINTENANCE_SETTINGS });
     }, [handleStorageMaintenanceSettingsChange]);
 
+    const handleSelectCategory = useCallback((category: SettingsModalCategory) => {
+        setActiveCategory(category);
+        const defaultSub = getDefaultSubTab(category);
+        if (defaultSub) setActiveSubTab(defaultSub);
+    }, []);
+
     const handlePerfDebugFlagsChange = useCallback(async (patch: Partial<PerfDebugFlags>) => {
         const nextFlags = setPerfDebugFlags(patch);
         setPerfDebugFlagsState(nextFlags);
@@ -613,20 +627,31 @@ export const SettingsModal = React.memo(() => {
 
             {/* Content */}
             <div className="flex min-h-0 flex-1 overflow-hidden">
-                    <SettingsTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
+                <SettingsTabNav activeCategory={activeCategory} onSelectCategory={handleSelectCategory} />
 
-                    <div className="min-w-0 flex-1 overflow-y-auto">
-                        <div className="border-b border-surface-800 bg-surface-900/95 px-5 py-4 backdrop-blur-sm">
-                            <h3 className="text-base font-semibold text-surface-100">
-                                {activeTabMeta.label}
-                            </h3>
-                            <p className="mt-1 text-sm text-surface-400">
-                                {activeTabMeta.description}
-                            </p>
-                        </div>
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                    {/* カテゴリヘッダー（固定） */}
+                    <div className="shrink-0 border-b border-surface-800 bg-surface-900/95 px-5 py-4 backdrop-blur-sm">
+                        <h3 className="text-base font-semibold text-surface-100">
+                            {activeCategoryMeta.label}
+                        </h3>
+                        <p className="mt-1 text-sm text-surface-400">
+                            {activeCategoryMeta.description}
+                        </p>
+                    </div>
 
-                        {activeTab === 'general' && (
+                    {/* サブタブバー（固定） */}
+                    <SettingsSubTabNav
+                        category={activeCategory}
+                        activeSubTab={activeSubTab}
+                        onSelectSubTab={setActiveSubTab}
+                    />
+
+                    {/* コンテンツ（スクロール） */}
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                        {activeSubTab === 'list-display' && (
                             <GeneralSettingsTab
+                                mode="list-display"
                                 activeProfileLabel={activeProfileLabel}
                                 defaultDisplayPresetId={activeDisplayPresetId}
                                 defaultThumbnailPresentation={thumbnailPresentation}
@@ -761,22 +786,72 @@ export const SettingsModal = React.memo(() => {
                             />
                         )}
 
-                        {activeTab === 'scan' && (
-                            <ScanSettingsTab
+                        {activeSubTab === 'playback' && (
+                            <GeneralSettingsTab
+                                mode="playback"
                                 activeProfileLabel={activeProfileLabel}
-                                scanExclusionRules={scanExclusionRules}
-                                onScanExclusionRulesChange={(rules) => { void handleScanExclusionRulesChange(rules); }}
-                                profileFileTypeFilters={profileFileTypeFilters}
-                                onProfileFileTypeToggle={(category, checked) => { void handleProfileFileTypeToggle(category, checked); }}
-                                onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
-                                scanThrottleMs={scanThrottleMs}
-                                onProfileScanThrottleMsChange={(ms) => { void handleProfileScanThrottleMsChange(ms); }}
-                                onResetScanExclusionRules={handleResetScanExclusionRules}
-                                onResetProfileScanSettings={() => { void handleResetProfileScanSettings(); }}
+                                defaultDisplayPresetId={activeDisplayPresetId}
+                                defaultThumbnailPresentation={thumbnailPresentation}
+                                defaultSortBy={sortBy}
+                                defaultSortOrder={sortOrder}
+                                defaultGroupBy={groupBy}
+                                defaultDateGroupingMode={dateGroupingMode}
+                                defaultSearchTarget={defaultSearchTarget}
+                                displayPresetOptions={[]}
+                                onDefaultDisplayPresetChange={() => {}}
+                                onDefaultThumbnailPresentationChange={() => {}}
+                                onDefaultSortByChange={() => {}}
+                                onDefaultSortOrderChange={() => {}}
+                                onDefaultGroupByChange={() => {}}
+                                onDefaultDateGroupingModeChange={() => {}}
+                                onApplyDefaultListDisplayPreset={() => {}}
+                                onDefaultSearchTargetChange={() => {}}
+                                videoVolume={videoVolume}
+                                onVideoVolumeChange={setVideoVolume}
+                                audioVolume={audioVolume}
+                                onAudioVolumeChange={setAudioVolume}
+                                lightboxOverlayOpacity={lightboxOverlayOpacity}
+                                onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
+                                performanceMode={performanceMode}
+                                onPerformanceModeChange={setPerformanceMode}
+                                showFileName={showFileName}
+                                onShowFileNameChange={() => {}}
+                                showDuration={showDuration}
+                                onShowDurationChange={() => {}}
+                                showTags={showTags}
+                                onShowTagsChange={() => {}}
+                                tagPopoverTrigger={tagPopoverTrigger}
+                                onTagPopoverTriggerChange={() => {}}
+                                tagDisplayStyle={tagDisplayStyle}
+                                onTagDisplayStyleChange={() => {}}
+                                fileCardTagOrderMode={fileCardTagOrderMode}
+                                onFileCardTagOrderModeChange={() => {}}
+                                showFileSize={showFileSize}
+                                onShowFileSizeChange={() => {}}
+                                showCreatedDate={showCreatedDate}
+                                onShowCreatedDateChange={() => {}}
+                                showFolderBadge={showFolderBadge}
+                                onShowFolderBadgeChange={() => {}}
+                                showDriveBadge={showDriveBadge}
+                                onShowDriveBadgeChange={() => {}}
+                                driveColors={driveColors}
+                                availableDrives={availableDrives}
+                                onDriveColorChange={() => {}}
+                                infoBadgeOrder={infoBadgeOrder}
+                                onInfoBadgeOrderChange={() => {}}
+                                displayPresetDirectory={displayPresetDirectory}
+                                displayPresetCount={displayPresetCount}
+                                displayPresetWarnings={displayPresetWarnings}
+                                onOpenDisplayPresetFolder={handleOpenDisplayPresetFolder}
+                                isReloadingDisplayPresets={isReloadingDisplayPresets}
+                                onReloadDisplayPresets={handleReloadDisplayPresets}
+                                onResetListDisplayDefaults={handleResetListDisplayDefaults}
+                                onResetPlaybackSettings={handleResetPlaybackSettings}
+                                onResetFileCardSettings={handleResetFileCardSettings}
                             />
                         )}
 
-                        {activeTab === 'thumbnails' && (
+                        {activeSubTab === 'preview' && (
                             <ThumbnailsSettingsTab
                                 previewFrameCount={previewFrameCount}
                                 onProfilePreviewFrameCountChange={(count) => { void handleProfilePreviewFrameCountChange(count); }}
@@ -807,7 +882,38 @@ export const SettingsModal = React.memo(() => {
                             />
                         )}
 
-                        {activeTab === 'storage' && (
+                        {activeSubTab === 'ratings' && (
+                            <div className="space-y-4 p-5">
+                                <RatingDisplaySettingsSection
+                                    value={ratingDisplayThresholds}
+                                    onChange={(thresholds) => { void handleProfileRatingDisplayThresholdsChange(thresholds); }}
+                                    onReset={handleResetRatingDisplaySettings}
+                                    activeProfileLabel={activeProfileLabel}
+                                />
+                                <RatingAxesManager activeProfileLabel={activeProfileLabel} />
+                            </div>
+                        )}
+
+                        {activeSubTab === 'scan' && (
+                            <ScanSettingsTab
+                                activeProfileLabel={activeProfileLabel}
+                                scanExclusionRules={scanExclusionRules}
+                                onScanExclusionRulesChange={(rules) => { void handleScanExclusionRulesChange(rules); }}
+                                profileFileTypeFilters={profileFileTypeFilters}
+                                onProfileFileTypeToggle={(category, checked) => { void handleProfileFileTypeToggle(category, checked); }}
+                                onOpenFolderScanSettingsManager={() => setFolderScanSettingsManagerOpen(true)}
+                                scanThrottleMs={scanThrottleMs}
+                                onProfileScanThrottleMsChange={(ms) => { void handleProfileScanThrottleMsChange(ms); }}
+                                onResetScanExclusionRules={handleResetScanExclusionRules}
+                                onResetProfileScanSettings={() => { void handleResetProfileScanSettings(); }}
+                            />
+                        )}
+
+                        {activeSubTab === 'organize' && (
+                            <AutoOrganizeSettingsTab />
+                        )}
+
+                        {activeSubTab === 'storage' && (
                             <StorageSettingsTab
                                 storageConfig={storageConfig}
                                 selectedMode={selectedMode}
@@ -825,11 +931,11 @@ export const SettingsModal = React.memo(() => {
                             />
                         )}
 
-                        {activeTab === 'apps' && (
+                        {activeCategory === 'integration' && (
                             <ExternalAppsTab />
                         )}
 
-                        {activeTab === 'maintenance' && (
+                        {activeSubTab === 'update' && (
                             <MaintenanceSettingsTab
                                 isLoadingBundledReleaseNotes={isLoadingBundledReleaseNotes}
                                 bundledReleaseNotesState={bundledReleaseNotesState}
@@ -847,11 +953,7 @@ export const SettingsModal = React.memo(() => {
                             />
                         )}
 
-                        {activeTab === 'organize' && (
-                            <AutoOrganizeSettingsTab />
-                        )}
-
-                        {activeTab === 'logs' && (
+                        {activeSubTab === 'logs' && (
                             <LogsSettingsTab
                                 logFilter={logFilter}
                                 onLogFilterChange={setLogFilter}
@@ -869,7 +971,7 @@ export const SettingsModal = React.memo(() => {
                             />
                         )}
 
-                        {activeTab === 'backup' && (
+                        {activeSubTab === 'backup' && (
                             <BackupSettingsTab
                                 currentLoadedExportRowsCount={currentLoadedExportRows.length}
                                 activeProfileLabel={activeProfileLabel}
@@ -904,19 +1006,8 @@ export const SettingsModal = React.memo(() => {
                                 onRestoreBackup={(backupPath) => { void handleRestoreBackup(backupPath); }}
                             />
                         )}
-
-                        {activeTab === 'ratings' && (
-                            <div className="space-y-4">
-                                <RatingDisplaySettingsSection
-                                    value={ratingDisplayThresholds}
-                                    onChange={(thresholds) => { void handleProfileRatingDisplayThresholdsChange(thresholds); }}
-                                    onReset={handleResetRatingDisplaySettings}
-                                    activeProfileLabel={activeProfileLabel}
-                                />
-                                <RatingAxesManager activeProfileLabel={activeProfileLabel} />
-                            </div>
-                        )}
                     </div>
+                </div>
                 </div>
 
                 <FolderScanSettingsManagerDialog

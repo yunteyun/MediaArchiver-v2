@@ -230,7 +230,7 @@ export const RatingFilterPanel: React.FC = () => {
                     title="評価フィルター"
                     actions={(
                         <button
-                            onClick={() => openSettingsModal('ratings')}
+                            onClick={() => openSettingsModal('display', 'ratings')}
                             className="inline-flex items-center gap-1 text-[11px] text-surface-500 hover:text-surface-200 transition-colors"
                             title="評価軸を管理"
                         >
@@ -255,7 +255,7 @@ export const RatingFilterPanel: React.FC = () => {
                 actions={
                     <>
                         <button
-                            onClick={() => openSettingsModal('ratings')}
+                            onClick={() => openSettingsModal('display', 'ratings')}
                             className="inline-flex items-center gap-1 text-[11px] text-surface-500 hover:text-surface-200 transition-colors"
                             title="評価軸を管理"
                         >

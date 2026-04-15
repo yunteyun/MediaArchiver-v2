@@ -30,7 +30,13 @@ export interface ScanProgress {
     };
 }
 
-export type SettingsModalTab = 'general' | 'thumbnails' | 'scan' | 'storage' | 'apps' | 'logs' | 'backup' | 'ratings' | 'maintenance' | 'organize';
+export type SettingsModalCategory = 'display' | 'data' | 'integration' | 'maintenance';
+export type SettingsSubTab =
+    | 'list-display' | 'playback' | 'preview' | 'ratings'
+    | 'scan' | 'organize' | 'storage'
+    | 'update' | 'logs' | 'backup';
+/** 後方互換エイリアス */
+export type SettingsModalTab = SettingsModalCategory;
 export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
 export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 export type FileSortOrder = 'asc' | 'desc';
@@ -86,6 +92,7 @@ interface UIState {
     selectedFileTypes: MediaFile['type'][];
     settingsModalOpen: boolean;
     settingsModalRequestedTab: SettingsModalTab | null;
+    settingsModalRequestedSubTab: SettingsSubTab | null;
     scanProgress: ScanProgress | null;
     activeScanJobId: string | null;
     scanProgressAutoDismissPending: boolean;
@@ -137,7 +144,7 @@ interface UIState {
     toggleFileTypeFilter: (fileType: MediaFile['type']) => void;
     clearFileTypeFilter: () => void;
     setSelectedFileTypes: (types: MediaFile['type'][]) => void;
-    openSettingsModal: (tab?: SettingsModalTab) => void;
+    openSettingsModal: (tab?: SettingsModalTab, subTab?: SettingsSubTab) => void;
     closeSettingsModal: () => void;
     setScanProgress: (progress: ScanProgress | null) => void;
     clearScanProgress: () => void;
@@ -186,6 +193,7 @@ export const useUIStore = create<UIState>((set) => ({
     selectedFileTypes: [...ALL_FILE_TYPES],
     settingsModalOpen: false,
     settingsModalRequestedTab: null,
+    settingsModalRequestedSubTab: null,
     scanProgress: null,
     activeScanJobId: null,
     scanProgressAutoDismissPending: false,
@@ -289,6 +297,7 @@ export const useUIStore = create<UIState>((set) => ({
         selectedFileTypes: [...ALL_FILE_TYPES],
         settingsModalOpen: false,
         settingsModalRequestedTab: null,
+        settingsModalRequestedSubTab: null,
         scanProgress: null,
         activeScanJobId: null,
         scanProgressAutoDismissPending: false,
@@ -329,9 +338,9 @@ export const useUIStore = create<UIState>((set) => ({
             type === 'video' || type === 'image' || type === 'archive' || type === 'audio'
         )))),
     }),
-    openSettingsModal: (tab) => {
-        beginUiPerfTrace('settings-modal-open', { requestedTab: tab ?? 'general' });
-        set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null });
+    openSettingsModal: (tab, subTab) => {
+        beginUiPerfTrace('settings-modal-open', { requestedTab: tab ?? 'display' });
+        set({ settingsModalOpen: true, settingsModalRequestedTab: tab ?? null, settingsModalRequestedSubTab: subTab ?? null });
     },
     closeSettingsModal: () => set({ settingsModalOpen: false }),
     setScanProgress: (progress) => set((state) => {
