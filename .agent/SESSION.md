@@ -3,9 +3,14 @@
 **Last Updated**: 2026-04-15
 
 - **Current Focus**: Issue #32 UI統一感の改善
-- **Current Status**: Phase 0〜4 完了。インライン style 削減実施済み。
+- **Current Status**: Issue #32 全 Phase (0〜5) 完了。
 
 ## Recent Achievements
+
+- **細部の統一（Issue #32 Phase 5）**:
+  - `TagManagerModal.tsx` の `style={{ minHeight: '400px' }}` を `min-h-[400px]` に置き換え。
+  - `text-[11px]`・`py-[5px]`・インライン SVG は意図的な設計値として維持（変更不要と判断）。
+  - Issue #32「UIの統一感を高める」をクローズ。
 
 - **インライン style 削減（Issue #32 Phase 4）**:
   - `index.css` に `--z-scan-progress: 80` を追加し z-index 変数体系を完成。

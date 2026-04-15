@@ -322,7 +322,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                 {/* Content */}
                 <div className="flex-1 overflow-hidden">
                     {activeTab === 'tags' ? (
-                        <div className="flex h-full" style={{ minHeight: '400px' }}>
+                        <div className="flex h-full min-h-[400px]">
                             {/* === 左ペイン: カテゴリ一覧 === */}
                             <div className="w-64 flex-shrink-0 border-r border-surface-700 flex flex-col bg-surface-900/40">
                                 <div className="p-3 border-b border-surface-700">
