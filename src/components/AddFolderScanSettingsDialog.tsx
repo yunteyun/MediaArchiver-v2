@@ -4,6 +4,7 @@ import {
     excludedSubdirectoriesToText,
     parseExcludedSubdirectoriesText,
 } from '../shared/folderScanSettings';
+import { Dialog } from './ui/Dialog';
 
 export type AddFolderScanSettingsSubmit = {
     autoScan: boolean;
@@ -121,26 +122,29 @@ export const AddFolderScanSettingsDialog = React.memo(({
     const allChecked = subfolderPaths.length > 0 && checkedSubfolders.size === subfolderPaths.length;
     const someChecked = checkedSubfolders.size > 0 && checkedSubfolders.size < subfolderPaths.length;
 
-    if (!isOpen || !folderPath) return null;
+    if (!folderPath) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-[620px] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-700 bg-surface-900 shadow-xl flex flex-col max-h-[calc(100vh-4rem)]">
-                <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3 shrink-0">
-                    <div className="min-w-0">
-                        <h2 className="text-base font-semibold text-white">フォルダ登録時のスキャン設定</h2>
-                        <p className="mt-0.5 truncate text-xs text-surface-400" title={folderPath}>{folderPath}</p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="rounded p-1 text-surface-300 hover:bg-surface-800 hover:text-white transition-colors"
-                        aria-label="閉じる"
-                    >
-                        <X size={18} />
-                    </button>
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            className="w-[620px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)]"
+        >
+            <Dialog.Header>
+                <div className="min-w-0">
+                    <h2 className="text-base font-semibold text-white">フォルダ登録時のスキャン設定</h2>
+                    <p className="mt-0.5 truncate text-xs text-surface-400" title={folderPath}>{folderPath}</p>
                 </div>
+                <button
+                    onClick={onClose}
+                    className="rounded p-1 text-surface-300 hover:bg-surface-800 hover:text-white transition-colors"
+                    aria-label="閉じる"
+                >
+                    <X size={18} />
+                </button>
+            </Dialog.Header>
 
-                <div className="space-y-4 px-4 py-4 overflow-y-auto">
+            <Dialog.Body className="space-y-4 px-4 py-4">
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
                         <div className="mb-2 text-sm font-medium text-surface-200">標準設定</div>
                         <div className="text-xs text-surface-500">
@@ -308,29 +312,28 @@ export const AddFolderScanSettingsDialog = React.memo(({
                             指定した子フォルダとその配下は、この登録フォルダのスキャン対象から外します。
                         </div>
                     </div>
-                </div>
+            </Dialog.Body>
 
-                <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3 shrink-0">
-                    <button
-                        onClick={onClose}
-                        className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
-                    >
-                        キャンセル
-                    </button>
-                    <button
-                        onClick={() => onSubmit({
-                            ...state,
-                            excludedSubdirectories: parseExcludedSubdirectoriesText(excludedSubdirectoriesText),
-                            selectedSubfolderPaths: subfolderMode === 'register' ? [...checkedSubfolders] : [],
-                            shallowScan: subfolderMode === 'shallow',
-                        })}
-                        className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500"
-                    >
-                        登録
-                    </button>
-                </div>
-            </div>
-        </div>
+            <Dialog.Footer>
+                <button
+                    onClick={onClose}
+                    className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
+                >
+                    キャンセル
+                </button>
+                <button
+                    onClick={() => onSubmit({
+                        ...state,
+                        excludedSubdirectories: parseExcludedSubdirectoriesText(excludedSubdirectoriesText),
+                        selectedSubfolderPaths: subfolderMode === 'register' ? [...checkedSubfolders] : [],
+                        shallowScan: subfolderMode === 'shallow',
+                    })}
+                    className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500"
+                >
+                    登録
+                </button>
+            </Dialog.Footer>
+        </Dialog>
     );
 });
 

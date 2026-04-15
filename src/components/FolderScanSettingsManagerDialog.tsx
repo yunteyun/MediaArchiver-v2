@@ -5,6 +5,7 @@ import { FolderAutoScanSettingsDialog } from './FolderAutoScanSettingsDialog';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { parseFolderScanSettingsJson } from '../shared/folderScanSettings';
+import { Dialog } from './ui/Dialog';
 
 interface FolderScanSettingsManagerDialogProps {
     isOpen: boolean;
@@ -165,43 +166,44 @@ export const FolderScanSettingsManagerDialog = React.memo(({ isOpen, onClose }: 
         }
     }, [loadFolders, sortedFolders]);
 
-    if (!isOpen) return null;
-
     return (
         <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-                <div className="flex h-[min(80vh,720px)] w-[min(1100px,calc(100vw-2rem))] flex-col rounded-xl border border-surface-700 bg-surface-900 shadow-xl">
-                    <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
-                        <div>
-                            <h2 className="text-base font-semibold text-white">フォルダ別スキャン設定（一覧）</h2>
-                            <p className="text-xs text-surface-500">起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリ / 子フォルダ除外の現在値を一覧表示</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => { void loadFolders(); }}
-                                className="inline-flex items-center gap-1 rounded border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800"
-                                title="再読み込み"
-                            >
-                                <RefreshCw size={13} />
-                                再読込
-                            </button>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="rounded p-1 text-surface-300 transition-colors hover:bg-surface-800 hover:text-white"
-                                aria-label="閉じる"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
+            <Dialog
+                isOpen={isOpen}
+                onClose={onClose}
+                className="h-[min(80vh,720px)] w-[min(1100px,calc(100vw-2rem))]"
+            >
+                <Dialog.Header>
+                    <div>
+                        <h2 className="text-base font-semibold text-white">フォルダ別スキャン設定（一覧）</h2>
+                        <p className="text-xs text-surface-500">起動時スキャン / 起動中新規ファイルスキャン / 対象カテゴリ / 子フォルダ除外の現在値を一覧表示</p>
                     </div>
-
-                    <div className="border-b border-surface-800 px-4 py-2 text-xs text-surface-400">
-                        プロファイル既定（カテゴリ）: 動画 {profileFileTypeFilters.video ? 'ON' : 'OFF'} / 画像 {profileFileTypeFilters.image ? 'ON' : 'OFF'} / 書庫 {profileFileTypeFilters.archive ? 'ON' : 'OFF'} / 音声 {profileFileTypeFilters.audio ? 'ON' : 'OFF'}
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => { void loadFolders(); }}
+                            className="inline-flex items-center gap-1 rounded border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800"
+                            title="再読み込み"
+                        >
+                            <RefreshCw size={13} />
+                            再読込
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded p-1 text-surface-300 transition-colors hover:bg-surface-800 hover:text-white"
+                            aria-label="閉じる"
+                        >
+                            <X size={18} />
+                        </button>
                     </div>
+                </Dialog.Header>
 
-                    <div className="border-b border-surface-800 px-4 py-3 space-y-3">
+                <div className="border-b border-surface-800 px-4 py-2 text-xs text-surface-400">
+                    プロファイル既定（カテゴリ）: 動画 {profileFileTypeFilters.video ? 'ON' : 'OFF'} / 画像 {profileFileTypeFilters.image ? 'ON' : 'OFF'} / 書庫 {profileFileTypeFilters.archive ? 'ON' : 'OFF'} / 音声 {profileFileTypeFilters.audio ? 'ON' : 'OFF'}
+                </div>
+
+                <div className="border-b border-surface-800 px-4 py-3 space-y-3">
                         <div className="rounded border border-surface-700 bg-surface-900/30 p-2">
                             <div className="mb-2 text-xs font-medium text-surface-300">検索フィルタ</div>
                             <div className="flex flex-wrap gap-2">
@@ -317,98 +319,97 @@ export const FolderScanSettingsManagerDialog = React.memo(({ isOpen, onClose }: 
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-auto p-4">
-                        {loading ? (
-                            <div className="text-sm text-surface-400">読み込み中...</div>
-                        ) : sortedFolders.length === 0 ? (
-                            <div className="text-sm text-surface-500">登録フォルダがありません。</div>
-                        ) : (
-                            <div className="space-y-2">
-                                {sortedFolders.map((folder) => {
-                                    const autoScan = (folder.auto_scan ?? folder.autoScan ?? 0) === 1;
-                                    const watch = (folder.watch_new_files ?? folder.watchNewFiles ?? 0) === 1;
-                                    const lastScan = getLastScanStatusMeta(folder);
-                                    return (
-                                        <div key={folder.id} className="rounded-lg border border-surface-700 bg-surface-900/40 p-3">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <div className="truncate text-sm font-medium text-surface-200" title={folder.path}>{folder.path}</div>
-                                                    <div className="mt-1 text-xs text-surface-500">
-                                                        {formatCategorySummary(folder, profileFileTypeFilters)}
-                                                    </div>
+                <Dialog.Body className="flex-1 overflow-auto p-4">
+                    {loading ? (
+                        <div className="text-sm text-surface-400">読み込み中...</div>
+                    ) : sortedFolders.length === 0 ? (
+                        <div className="text-sm text-surface-500">登録フォルダがありません。</div>
+                    ) : (
+                        <div className="space-y-2">
+                            {sortedFolders.map((folder) => {
+                                const autoScan = (folder.auto_scan ?? folder.autoScan ?? 0) === 1;
+                                const watch = (folder.watch_new_files ?? folder.watchNewFiles ?? 0) === 1;
+                                const lastScan = getLastScanStatusMeta(folder);
+                                return (
+                                    <div key={folder.id} className="rounded-lg border border-surface-700 bg-surface-900/40 p-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-medium text-surface-200" title={folder.path}>{folder.path}</div>
+                                                <div className="mt-1 text-xs text-surface-500">
+                                                    {formatCategorySummary(folder, profileFileTypeFilters)}
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setDetailTarget(folder);
-                                                        setDetailOpen(true);
-                                                    }}
-                                                    className="inline-flex shrink-0 items-center gap-1 rounded border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800"
-                                                >
-                                                    <Settings2 size={13} />
-                                                    編集
-                                                </button>
                                             </div>
-
-                                            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                                                <span className={`inline-flex items-center rounded border px-2 py-0.5 ${lastScan.badgeClass}`}>
-                                                    最終スキャン: {lastScan.label}
-                                                </span>
-                                                <span className="text-surface-500">
-                                                    {formatDateTime(lastScan.at)}
-                                                </span>
-                                                {lastScan.message && (
-                                                    <span className="truncate text-surface-500" title={lastScan.message}>
-                                                        {lastScan.message}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            <div className="mt-3 flex flex-wrap gap-2">
-                                                <label className="inline-flex cursor-pointer items-center gap-2 rounded border border-surface-700 bg-surface-900/40 px-2 py-1">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={autoScan}
-                                                        onChange={async (e) => {
-                                                            try {
-                                                                await window.electronAPI.setFolderAutoScan(folder.id, e.target.checked);
-                                                                setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, auto_scan: e.target.checked ? 1 : 0 } : f));
-                                                            } catch (err) {
-                                                                console.error('Failed to update auto scan:', err);
-                                                                useUIStore.getState().showToast('起動時スキャン設定の更新に失敗しました', 'error');
-                                                            }
-                                                        }}
-                                                        className="h-4 w-4 accent-primary-500"
-                                                    />
-                                                    <span className="text-xs text-surface-300">起動時スキャン</span>
-                                                </label>
-
-                                                <label className="inline-flex cursor-pointer items-center gap-2 rounded border border-surface-700 bg-surface-900/40 px-2 py-1">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={watch}
-                                                        onChange={async (e) => {
-                                                            try {
-                                                                await window.electronAPI.setFolderWatchNewFiles(folder.id, e.target.checked);
-                                                                setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, watch_new_files: e.target.checked ? 1 : 0 } : f));
-                                                            } catch (err) {
-                                                                console.error('Failed to update watch setting:', err);
-                                                                useUIStore.getState().showToast('起動中新規ファイルスキャン設定の更新に失敗しました', 'error');
-                                                            }
-                                                        }}
-                                                        className="h-4 w-4 accent-primary-500"
-                                                    />
-                                                    <span className="text-xs text-surface-300">起動中新規ファイルスキャン</span>
-                                                </label>
-                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setDetailTarget(folder);
+                                                    setDetailOpen(true);
+                                                }}
+                                                className="inline-flex shrink-0 items-center gap-1 rounded border border-surface-700 px-2 py-1 text-xs text-surface-300 transition-colors hover:bg-surface-800"
+                                            >
+                                                <Settings2 size={13} />
+                                                編集
+                                            </button>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+
+                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                            <span className={`inline-flex items-center rounded border px-2 py-0.5 ${lastScan.badgeClass}`}>
+                                                最終スキャン: {lastScan.label}
+                                            </span>
+                                            <span className="text-surface-500">
+                                                {formatDateTime(lastScan.at)}
+                                            </span>
+                                            {lastScan.message && (
+                                                <span className="truncate text-surface-500" title={lastScan.message}>
+                                                    {lastScan.message}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            <label className="inline-flex cursor-pointer items-center gap-2 rounded border border-surface-700 bg-surface-900/40 px-2 py-1">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={autoScan}
+                                                    onChange={async (e) => {
+                                                        try {
+                                                            await window.electronAPI.setFolderAutoScan(folder.id, e.target.checked);
+                                                            setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, auto_scan: e.target.checked ? 1 : 0 } : f));
+                                                        } catch (err) {
+                                                            console.error('Failed to update auto scan:', err);
+                                                            useUIStore.getState().showToast('起動時スキャン設定の更新に失敗しました', 'error');
+                                                        }
+                                                    }}
+                                                    className="h-4 w-4 accent-primary-500"
+                                                />
+                                                <span className="text-xs text-surface-300">起動時スキャン</span>
+                                            </label>
+
+                                            <label className="inline-flex cursor-pointer items-center gap-2 rounded border border-surface-700 bg-surface-900/40 px-2 py-1">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={watch}
+                                                    onChange={async (e) => {
+                                                        try {
+                                                            await window.electronAPI.setFolderWatchNewFiles(folder.id, e.target.checked);
+                                                            setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, watch_new_files: e.target.checked ? 1 : 0 } : f));
+                                                        } catch (err) {
+                                                            console.error('Failed to update watch setting:', err);
+                                                            useUIStore.getState().showToast('起動中新規ファイルスキャン設定の更新に失敗しました', 'error');
+                                                        }
+                                                    }}
+                                                    className="h-4 w-4 accent-primary-500"
+                                                />
+                                                <span className="text-xs text-surface-300">起動中新規ファイルスキャン</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </Dialog.Body>
+            </Dialog>
 
             <FolderAutoScanSettingsDialog
                 isOpen={detailOpen}

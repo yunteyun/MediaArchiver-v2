@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
+import { Dialog } from '../ui/Dialog';
 import { AUTO_ORGANIZE_RENAME_TOKENS } from '../../shared/autoOrganizeRename';
 import type { AutoOrganizeConditionV1, AutoOrganizeRuleV1 } from '../../types/autoOrganize';
 import type { Tag } from '../../stores/useTagStore';
@@ -175,25 +176,26 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
         { value: 'unrated', label: getQuickFilterLabel('unrated') },
     ];
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-[780px] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-700 bg-surface-900 shadow-xl">
-                <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
-                    <h2 className="text-base font-semibold text-white">{title}</h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded p-1 text-surface-300 hover:bg-surface-800 hover:text-white transition-colors"
-                        aria-label="閉じる"
-                        disabled={isSubmitting}
-                    >
-                        <X size={18} />
-                    </button>
-                </div>
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            className="w-[780px] max-w-[calc(100vw-2rem)]"
+        >
+            <Dialog.Header>
+                <h2 className="text-base font-semibold text-white">{title}</h2>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded p-1 text-surface-300 hover:bg-surface-800 hover:text-white transition-colors"
+                    aria-label="閉じる"
+                    disabled={isSubmitting}
+                >
+                    <X size={18} />
+                </button>
+            </Dialog.Header>
 
-                <div className="grid gap-3 px-4 py-4">
+            <Dialog.Body className="grid gap-3 px-4 py-4">
                     <div className="rounded border border-surface-700 bg-surface-900/40 p-3">
                         <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                             <div>
@@ -543,17 +545,17 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                             </div>
                         )}
                     </div>
-                </div>
+            </Dialog.Body>
 
-                <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
-                        disabled={isSubmitting}
-                    >
-                        キャンセル
-                    </button>
+            <Dialog.Footer>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
+                    disabled={isSubmitting}
+                >
+                    キャンセル
+                </button>
                     <button
                         type="button"
                         onClick={() => {
@@ -616,8 +618,7 @@ export const AutoOrganizeRuleEditorDialog: React.FC<AutoOrganizeRuleEditorDialog
                     >
                         {submitLabel}
                     </button>
-                </div>
-            </div>
-        </div>
+            </Dialog.Footer>
+        </Dialog>
     );
 };

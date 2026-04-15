@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Plus, Edit2, Trash2, Check, Tag as TagIcon, FolderOpen, Wand2, ChevronRight, GripVertical, Info } from 'lucide-react';
+import { Dialog } from '../ui/Dialog';
 import { useTagStore, Tag, TagCategory } from '../../stores/useTagStore';
 import { TagBadge } from './TagBadge';
 import { AutoTagRulesTab } from '../AutoTagRulesTab';
@@ -86,17 +86,6 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
             setSelectedCategoryId(categories.length > 0 ? categories[0]!.id : UNCATEGORIZED_ID);
         }
     }, [isOpen, categories, selectedCategoryId]);
-
-    // Handle escape key
-    useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-        };
-        if (isOpen) {
-            window.addEventListener('keydown', handleEscape);
-        }
-        return () => window.removeEventListener('keydown', handleEscape);
-    }, [isOpen, onClose]);
 
     // 選択中カテゴリに属するタグ
     const filteredTags = useMemo(() => {
@@ -293,20 +282,18 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
         ? '未分類'
         : categories.find(c => c.id === selectedCategoryId)?.name || '';
 
-    return createPortal(
-        <div className="fixed inset-0 flex items-center justify-center bg-black/70" onClick={onClose} style={{ zIndex: 'var(--z-modal)' }}>
-            <div
-                className="bg-surface-900 rounded-lg border border-surface-700 shadow-2xl w-full max-w-5xl max-h-[82vh] flex flex-col"
-                style={{ minWidth: '820px' }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-surface-700">
-                    <h2 className="text-lg font-bold text-white">タグ管理</h2>
-                    <button onClick={onClose} className="p-1 hover:bg-surface-700 rounded">
-                        <X size={20} className="text-surface-400" />
-                    </button>
-                </div>
+    return (
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            className="w-full max-w-5xl max-h-[82vh] min-w-[820px]"
+        >
+            <Dialog.Header>
+                <h2 className="text-lg font-bold text-white">タグ管理</h2>
+                <button onClick={onClose} aria-label="閉じる" className="p-1 hover:bg-surface-700 rounded">
+                    <X size={20} className="text-surface-400" />
+                </button>
+            </Dialog.Header>
 
                 {/* Tabs: タグ管理 / 自動割り当て */}
                 <div className="flex border-b border-surface-700">
@@ -739,9 +726,7 @@ export const TagManagerModal = React.memo(({ isOpen, onClose }: TagManagerModalP
                         </div>
                     ) : null}
                 </div>
-            </div>
-        </div>,
-        document.body
+        </Dialog>
     );
 });
 

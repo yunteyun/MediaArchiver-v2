@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { X, User, Plus, Trash2, Edit2, Check, XCircle } from 'lucide-react';
 import { useProfileStore, Profile } from '../stores/useProfileStore';
+import { Dialog } from './ui/Dialog';
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -23,8 +24,6 @@ export const ProfileModal = React.memo(({ isOpen, onClose }: ProfileModalProps) 
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingName, setEditingName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
-
-    if (!isOpen) return null;
 
     const handleCreate = async () => {
         if (!newProfileName.trim()) return;
@@ -70,27 +69,22 @@ export const ProfileModal = React.memo(({ isOpen, onClose }: ProfileModalProps) 
     };
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60" style={{ zIndex: 'var(--z-modal)' }}>
-            <div
-                className="bg-surface-900 rounded-lg shadow-xl w-full max-w-md mx-4"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-surface-700">
-                    <div className="flex items-center gap-2">
-                        <User size={20} className="text-primary-400" />
-                        <h2 className="text-lg font-semibold text-white">プロファイル管理</h2>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-surface-700 rounded transition-colors"
-                    >
-                        <X size={20} className="text-surface-400" />
-                    </button>
+        <Dialog isOpen={isOpen} onClose={onClose} maxWidth="md" closeOnOverlayClick={false}>
+            <Dialog.Header>
+                <div className="flex items-center gap-2">
+                    <User size={20} className="text-primary-400" />
+                    <h2 className="text-lg font-semibold text-white">プロファイル管理</h2>
                 </div>
+                <button
+                    onClick={onClose}
+                    aria-label="閉じる"
+                    className="p-1 hover:bg-surface-700 rounded transition-colors"
+                >
+                    <X size={20} className="text-surface-400" />
+                </button>
+            </Dialog.Header>
 
-                {/* Content */}
-                <div className="px-4 py-4 space-y-4">
+            <Dialog.Body className="px-4 py-4 space-y-4">
                     {/* 新規作成 */}
                     <div className="flex gap-2">
                         <input
@@ -188,19 +182,18 @@ export const ProfileModal = React.memo(({ isOpen, onClose }: ProfileModalProps) 
                     <p className="text-xs text-surface-500">
                         プロファイルごとに別々のフォルダ、タグ、ファイルを管理できます。
                     </p>
-                </div>
 
-                {/* Footer */}
-                <div className="px-4 py-3 border-t border-surface-700 flex justify-end">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded transition-colors"
-                    >
-                        閉じる
-                    </button>
-                </div>
-            </div>
-        </div>
+            </Dialog.Body>
+
+            <Dialog.Footer>
+                <button
+                    onClick={onClose}
+                    className="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded transition-colors"
+                >
+                    閉じる
+                </button>
+            </Dialog.Footer>
+        </Dialog>
     );
 });
 

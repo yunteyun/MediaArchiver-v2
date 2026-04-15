@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FolderOpen, X } from 'lucide-react';
+import { Dialog } from './ui/Dialog';
 import type { MediaFolder } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
@@ -63,7 +64,7 @@ export const FolderAutoScanSettingsDialog = React.memo(({
         setExcludedSubdirectoriesText(excludedSubdirectoriesToText(settings.excludedSubdirectories));
     }, [folder, profileFileTypeFilters]);
 
-    if (!isOpen || !folder) return null;
+    if (!folder) return null;
 
     const handleSave = async () => {
         setSaving(true);
@@ -108,23 +109,26 @@ export const FolderAutoScanSettingsDialog = React.memo(({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="w-[560px] max-w-[calc(100vw-2rem)] rounded-xl border border-surface-700 bg-surface-900 shadow-xl">
-                <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
-                    <div className="min-w-0">
-                        <h2 className="text-base font-semibold text-white">登録フォルダ設定</h2>
-                        <p className="mt-0.5 truncate text-xs text-surface-400" title={folder.path}>{folder.path}</p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="rounded p-1 text-surface-300 hover:bg-surface-800 hover:text-white transition-colors"
-                        aria-label="閉じる"
-                    >
-                        <X size={18} />
-                    </button>
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            className="w-[560px] max-w-[calc(100vw-2rem)]"
+        >
+            <Dialog.Header>
+                <div className="min-w-0">
+                    <h2 className="text-base font-semibold text-white">登録フォルダ設定</h2>
+                    <p className="mt-0.5 truncate text-xs text-surface-400" title={folder.path}>{folder.path}</p>
                 </div>
+                <button
+                    onClick={onClose}
+                    className="rounded p-1 text-surface-300 hover:bg-surface-800 hover:text-white transition-colors"
+                    aria-label="閉じる"
+                >
+                    <X size={18} />
+                </button>
+            </Dialog.Header>
 
-                <div className="space-y-4 px-4 py-4">
+            <Dialog.Body className="space-y-4 px-4 py-4">
                     <div className="rounded-lg border border-surface-700 bg-surface-900/50 p-3">
                         <div className="flex items-center justify-between gap-2">
                             <div>
@@ -315,26 +319,25 @@ export const FolderAutoScanSettingsDialog = React.memo(({
                             例: `cache` `temp\\raw`。指定したフォルダとその配下は新規スキャン・再スキャン・孤立整理から除外します。
                         </div>
                     </div>
-                </div>
+            </Dialog.Body>
 
-                <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3">
-                    <button
-                        onClick={onClose}
-                        disabled={saving}
-                        className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600 disabled:opacity-60"
-                    >
-                        キャンセル
-                    </button>
-                    <button
-                        onClick={() => { void handleSave(); }}
-                        disabled={saving}
-                        className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500 disabled:opacity-60"
-                    >
-                        {saving ? '保存中...' : '保存'}
-                    </button>
-                </div>
-            </div>
-        </div>
+            <Dialog.Footer>
+                <button
+                    onClick={onClose}
+                    disabled={saving}
+                    className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600 disabled:opacity-60"
+                >
+                    キャンセル
+                </button>
+                <button
+                    onClick={() => { void handleSave(); }}
+                    disabled={saving}
+                    className="rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500 disabled:opacity-60"
+                >
+                    {saving ? '保存中...' : '保存'}
+                </button>
+            </Dialog.Footer>
+        </Dialog>
     );
 });
 

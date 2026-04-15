@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle2, Play, X } from 'lucide-react';
 import type { AutoOrganizeApplyResult, AutoOrganizeDryRunResult } from '../../types/autoOrganize';
+import { Dialog } from '../ui/Dialog';
 
 interface AutoOrganizeDryRunDialogProps {
     isOpen: boolean;
@@ -66,29 +67,32 @@ export const AutoOrganizeDryRunDialog: React.FC<AutoOrganizeDryRunDialogProps> =
     onClose,
     onApply,
 }) => {
-    if (!isOpen || !result) return null;
+    if (!result) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-            <div className="flex h-[min(78vh,760px)] w-[min(1080px,calc(100vw-2rem))] flex-col rounded-xl border border-surface-700 bg-surface-900 shadow-xl">
-                <div className="flex items-center justify-between border-b border-surface-700 px-4 py-3">
-                    <div>
-                        <h2 className="text-base font-semibold text-white">自動整理 Dry Run</h2>
-                        <p className="mt-1 text-xs text-surface-500">
-                            実行前に一致件数と競合を確認します。適用はこの結果を見た後にのみ行えます。
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded p-1 text-surface-300 transition-colors hover:bg-surface-800 hover:text-white"
-                        aria-label="閉じる"
-                    >
-                        <X size={18} />
-                    </button>
+        <Dialog
+            isOpen={isOpen}
+            onClose={onClose}
+            className="h-[min(78vh,760px)] w-[min(1080px,calc(100vw-2rem))]"
+        >
+            <Dialog.Header>
+                <div>
+                    <h2 className="text-base font-semibold text-white">自動整理 Dry Run</h2>
+                    <p className="mt-1 text-xs text-surface-500">
+                        実行前に一致件数と競合を確認します。適用はこの結果を見た後にのみ行えます。
+                    </p>
                 </div>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded p-1 text-surface-300 transition-colors hover:bg-surface-800 hover:text-white"
+                    aria-label="閉じる"
+                >
+                    <X size={18} />
+                </button>
+            </Dialog.Header>
 
-                <div className="grid gap-4 overflow-y-auto px-4 py-4">
+            <Dialog.Body className="grid gap-4 overflow-y-auto px-4 py-4">
                     {!result.success ? (
                         <div className="rounded border border-red-700/40 bg-red-900/10 p-3 text-sm text-red-200">
                             Dry Run に失敗しました: {result.error ?? 'unknown error'}
@@ -187,27 +191,26 @@ export const AutoOrganizeDryRunDialog: React.FC<AutoOrganizeDryRunDialogProps> =
                             )}
                         </>
                     )}
-                </div>
+            </Dialog.Body>
 
-                <div className="flex items-center justify-end gap-2 border-t border-surface-700 px-4 py-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
-                    >
-                        閉じる
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onApply}
-                        disabled={!result.success || result.totalReadyCount === 0 || isRunning}
-                        className="inline-flex items-center gap-2 rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <Play size={15} />
-                        {isRunning ? '適用中...' : 'この結果で適用'}
-                    </button>
-                </div>
-            </div>
-        </div>
+            <Dialog.Footer>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded bg-surface-700 px-4 py-2 text-sm text-surface-200 transition-colors hover:bg-surface-600"
+                >
+                    閉じる
+                </button>
+                <button
+                    type="button"
+                    onClick={onApply}
+                    disabled={!result.success || result.totalReadyCount === 0 || isRunning}
+                    className="inline-flex items-center gap-2 rounded bg-primary-600 px-4 py-2 text-sm text-white transition-colors hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <Play size={15} />
+                    {isRunning ? '適用中...' : 'この結果で適用'}
+                </button>
+            </Dialog.Footer>
+        </Dialog>
     );
 };

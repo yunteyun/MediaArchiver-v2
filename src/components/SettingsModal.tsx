@@ -34,6 +34,7 @@ import { MaintenanceSettingsTab } from './settings/MaintenanceSettingsTab';
 import { AutoOrganizeSettingsTab } from './settings/AutoOrganizeSettingsTab';
 import { useSettingsMaintenance } from './settings/useSettingsMaintenance';
 import { FolderScanSettingsManagerDialog } from './FolderScanSettingsManagerDialog';
+import { Dialog } from './ui/Dialog';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
 import { getDisplayPresetMenuOptions } from './fileCard/displayModes';
 import { completeUiPerfTrace, getPerfDebugFlags, setPerfDebugFlags, syncPerfDebugToMain, type PerfDebugFlags } from '../utils/perfDebug';
@@ -589,30 +590,28 @@ export const SettingsModal = React.memo(() => {
         });
     }, []);
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60" style={{ zIndex: 'var(--z-modal)' }}>
-            <div
-                className="mx-4 flex h-[82vh] min-h-[620px] max-h-[82vh] w-full max-w-5xl flex-col rounded-lg bg-surface-900 shadow-xl"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-surface-700">
-                    <div className="flex items-center gap-2">
-                        <Settings size={20} className="text-primary-400" />
-                        <h2 className="text-lg font-semibold text-white">設定</h2>
-                    </div>
-                    <button
-                        onClick={closeModal}
-                        className="p-1 hover:bg-surface-700 rounded transition-colors"
-                    >
-                        <X size={20} className="text-surface-400" />
-                    </button>
+        <Dialog
+            isOpen={isOpen}
+            onClose={closeModal}
+            className="h-[82vh] min-h-[620px] max-h-[82vh] w-full max-w-5xl"
+        >
+            <Dialog.Header>
+                <div className="flex items-center gap-2">
+                    <Settings size={20} className="text-primary-400" />
+                    <h2 className="text-lg font-semibold text-white">設定</h2>
                 </div>
+                <button
+                    onClick={closeModal}
+                    aria-label="閉じる"
+                    className="p-1 hover:bg-surface-700 rounded transition-colors"
+                >
+                    <X size={20} className="text-surface-400" />
+                </button>
+            </Dialog.Header>
 
-                {/* Content */}
-                <div className="flex min-h-0 flex-1 overflow-hidden">
+            {/* Content */}
+            <div className="flex min-h-0 flex-1 overflow-hidden">
                     <SettingsTabNav activeTab={activeTab} onSelectTab={setActiveTab} />
 
                     <div className="min-w-0 flex-1 overflow-y-auto">
@@ -924,21 +923,18 @@ export const SettingsModal = React.memo(() => {
                     onClose={() => setFolderScanSettingsManagerOpen(false)}
                 />
 
-                {/* Footer */}
-                <div className="px-4 py-3 border-t border-surface-700 flex items-center justify-between">
-                    {/* Phase 26: バージョン表記 */}
-                    <span className="text-xs text-surface-500">
-                        {appVersion ? `v${appVersion}` : ''}
-                    </span>
-                    <button
-                        onClick={closeModal}
-                        className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded transition-colors"
-                    >
-                        閉じる
-                    </button>
-                </div>
-            </div>
-        </div>
+            <Dialog.Footer justify="between">
+                <span className="text-xs text-surface-500">
+                    {appVersion ? `v${appVersion}` : ''}
+                </span>
+                <button
+                    onClick={closeModal}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded transition-colors"
+                >
+                    閉じる
+                </button>
+            </Dialog.Footer>
+        </Dialog>
     );
 });
 

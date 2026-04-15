@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog } from '../ui/Dialog';
 
 // Local type definitions (duplicated from electron.d.ts for type safety)
 interface DiagnosticResult {
@@ -126,19 +127,25 @@ export const StorageCleanupSection: React.FC = () => {
             </div>
 
             {/* Cleanup Confirmation Dialog */}
-            {isCleanupConfirmOpen && diagnosticResult && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center" style={{ zIndex: 'calc(var(--z-modal) + 1)' }}>
-                    <div className="bg-surface-800 rounded-lg p-6 max-w-md mx-4">
+            {diagnosticResult && (
+                <Dialog
+                    isOpen={isCleanupConfirmOpen}
+                    onClose={() => setCleanupConfirmOpen(false)}
+                    maxWidth="md"
+                    closeOnOverlayClick={false}
+                    overlayStyle={{ zIndex: 'calc(var(--z-modal) + 1)' }}
+                >
+                    <Dialog.Body className="p-6">
                         <h3 className="text-lg font-semibold mb-4 text-white">
                             ストレージクリーンアップの確認
                         </h3>
 
-                        <div className="space-y-3 mb-6">
+                        <div className="space-y-3">
                             <p className="text-surface-300">
                                 以下のサムネイルを削除します:
                             </p>
 
-                            <div className="bg-surface-900 rounded p-3 space-y-1">
+                            <div className="bg-surface-800 rounded p-3 space-y-1">
                                 <div className="flex justify-between">
                                     <span className="text-surface-400">削除件数:</span>
                                     <span className="font-mono text-surface-200">{diagnosticResult.orphanedCount}件</span>
@@ -159,23 +166,23 @@ export const StorageCleanupSection: React.FC = () => {
                                 </span>
                             </p>
                         </div>
+                    </Dialog.Body>
 
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                onClick={() => setCleanupConfirmOpen(false)}
-                                className="px-4 py-2 bg-surface-700 hover:bg-surface-600 rounded text-surface-200 transition-colors"
-                            >
-                                キャンセル
-                            </button>
-                            <button
-                                onClick={handleCleanup}
-                                className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white transition-colors"
-                            >
-                                削除する
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                    <Dialog.Footer>
+                        <button
+                            onClick={() => setCleanupConfirmOpen(false)}
+                            className="px-4 py-2 bg-surface-700 hover:bg-surface-600 rounded text-surface-200 transition-colors"
+                        >
+                            キャンセル
+                        </button>
+                        <button
+                            onClick={handleCleanup}
+                            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded text-white transition-colors"
+                        >
+                            削除する
+                        </button>
+                    </Dialog.Footer>
+                </Dialog>
             )}
         </>
     );

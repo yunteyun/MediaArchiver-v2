@@ -1,4 +1,4 @@
-import { HTMLAttributes, ReactNode, useEffect } from 'react';
+import { CSSProperties, HTMLAttributes, ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 type DialogMaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '5xl';
@@ -8,6 +8,9 @@ interface DialogProps {
     onClose: () => void;
     maxWidth?: DialogMaxWidth;
     closeOnOverlayClick?: boolean;
+    className?: string;
+    overlayClassName?: string;
+    overlayStyle?: CSSProperties;
     children: ReactNode;
 }
 
@@ -25,6 +28,9 @@ function DialogRoot({
     onClose,
     maxWidth = 'md',
     closeOnOverlayClick = true,
+    className = '',
+    overlayClassName = '',
+    overlayStyle,
     children,
 }: DialogProps) {
     useEffect(() => {
@@ -40,11 +46,12 @@ function DialogRoot({
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60"
+            className={`fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-black/60 ${overlayClassName}`}
+            style={overlayStyle}
             onClick={closeOnOverlayClick ? onClose : undefined}
         >
             <div
-                className={`relative flex w-full flex-col rounded-lg border border-surface-700 bg-surface-800 shadow-xl mx-4 ${maxWidthClasses[maxWidth]}`}
+                className={`relative flex w-full flex-col rounded-xl border border-surface-700 bg-surface-900 shadow-xl mx-4 ${maxWidthClasses[maxWidth]} ${className}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {children}
