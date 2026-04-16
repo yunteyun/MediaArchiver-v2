@@ -382,6 +382,10 @@ export function registerFileHandlers() {
                 label: 'デフォルトアプリで開く',
                 enabled: !isMultiple, // 複数選択時は無効
                 click: async () => {
+                    if (!existsSync(filePath)) {
+                        console.error(`[contextMenu] ファイルが見つかりません: ${filePath}`);
+                        return;
+                    }
                     await shell.openPath(filePath);
                     const result = incrementExternalOpenCount(fileId);
                     event.sender.send('file:externalOpenCountUpdated', {
@@ -430,6 +434,10 @@ export function registerFileHandlers() {
                     enabled: !isMultiple, // 複数選択時は無効
                     click: async () => {
                         try {
+                            if (!existsSync(filePath)) {
+                                console.error(`[contextMenu] ファイルが見つかりません: ${filePath}`);
+                                return;
+                            }
                             const child = spawn(path.resolve(app.path), [path.resolve(filePath)], {
                                 detached: true,
                                 stdio: 'ignore'

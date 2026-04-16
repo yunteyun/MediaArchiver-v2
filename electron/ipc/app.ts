@@ -97,6 +97,9 @@ export function registerAppHandlers() {
 
     // ファイルをデフォルトアプリで開く
     ipcMain.handle('app:openExternal', async (_event, filePath: string) => {
+        if (!existsSync(filePath)) {
+            return `ファイルが見つかりません: ${filePath}`;
+        }
         return shell.openPath(filePath);
     });
 

@@ -2,30 +2,27 @@
 
 **Last Updated**: 2026-04-16
 
-- **Current Focus**: ファイル名変更ダイアログの UX 改善
+- **Current Focus**: 外部アプリ起動時のクラッシュバグ修正
 - **Current Status**: 修正完了・コミット待ち。
 
 ## Recent Achievements
 
-- **ファイル名変更ダイアログの UX 改善**:
-  - 起動時の自動フォーカス・全選択を削除（フォーカスなし状態で開くように変更）。
-  - `closeOnOverlayClick={false}` を追加し、ウィンドウ外クリックで誤って閉じる問題を解消。
+- **外部アプリ起動クラッシュ修正**:
+  - `app:openExternal` IPC ハンドラに `existsSync` チェックを追加。存在しないファイルパスを `shell.openPath` に渡さないようにした。
+  - `FileCard.tsx` の `handleDoubleClick` に `isOpeningFileRef` ロックフラグを追加。多重実行を防止し `finally` でリセット保証。
+  - 右クリックメニューの「デフォルトアプリで開く」「○○で開く」にも `existsSync` チェックを追加。
 
-- **v1.16.0 リリース**:
-  - 設定画面タブ再設計（4カテゴリ＋サブタブ）・バッジカスタマイズ機能・UI統一・複数バグ修正。
-  - リリースビルド・GitHub Release 作成・タグ付け完了。
-
-- **リリース前精査（バグ修正・デッドコード削除）**:
-  - `setFolderScanFileTypeOverride` / `clearFolderScanFileTypeOverrides` のスキャン設定消失バグを修正。
-  - SettingsModal 未使用 subscription 削除、colors.ts 未使用定数削除、noop replace 削除。
+- **v1.16.1 リリース**（ファイル名変更 UX 修正）
+- **v1.16.0 リリース**（設定画面タブ再設計・バッジカスタマイズ・UI統一・複数バグ修正）
 
 ## Completed Phases
-- ✅ Phase 0〜28: 詳細は過去の SESSION.md を参照
+- ✅ Phase 0〜28 完了
 - ✅ **v1.15.0 リリース**
 - ✅ **v1.16.0 リリース**
+- ✅ **v1.16.1 リリース**
 
 ## Next Steps
-- [ ] v1.16.1 リリース（ファイル名変更 UX 修正）
+- [ ] 外部アプリ起動クラッシュ修正の v1.16.2 リリース
 - [ ] 追加表示モード（漫画モード・動画モード）
 - [ ] タグカテゴリ表示優先順位付け強化
 

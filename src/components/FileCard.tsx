@@ -416,6 +416,7 @@ export const FileCard = React.memo(({
     const [hoverZoomLayout, setHoverZoomLayout] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
     const [isZoomButtonHovered, setIsZoomButtonHovered] = useState(false);
     const hoverZoomDelayRef = useRef<number | null>(null);
+    const isOpeningFileRef = useRef(false);
     const zoomButtonRef = useRef<HTMLButtonElement>(null);
 
     // Play mode state
@@ -1058,6 +1059,9 @@ export const FileCard = React.memo(({
     };
 
     const handleDoubleClick = async () => {
+        if (isOpeningFileRef.current) return;
+        isOpeningFileRef.current = true;
+
         const syncExternalOpenCount = async () => {
             const result = await window.electronAPI.incrementExternalOpenCount(file.id);
             if (result.success && result.externalOpenCount !== undefined) {
@@ -1069,38 +1073,42 @@ export const FileCard = React.memo(({
             }
         };
 
-        // Phase 18-B: デフォルトアプリ設定 + エラーハンドリング + フォールバック
-        const { externalApps, defaultExternalApps } = useSettingsStore.getState();
-        const ext = file.name.split('.').pop()?.toLowerCase() || '';
+        try {
+            // Phase 18-B: デフォルトアプリ設定 + エラーハンドリング + フォールバック
+            const { externalApps, defaultExternalApps } = useSettingsStore.getState();
+            const ext = file.name.split('.').pop()?.toLowerCase() || '';
 
-        // デフォルトアプリが設定されている場合のみ外部アプリで開く
-        const defaultAppId = defaultExternalApps[ext];
-        if (defaultAppId) {
-            const app = externalApps.find((a: { id: string; }) => a.id === defaultAppId);
+            // デフォルトアプリが設定されている場合のみ外部アプリで開く
+            const defaultAppId = defaultExternalApps[ext];
+            if (defaultAppId) {
+                const app = externalApps.find((a: { id: string; }) => a.id === defaultAppId);
 
-            if (app) {
-                const result = await window.electronAPI.openWithApp(file.path, app.path, file.id);
+                if (app) {
+                    const result = await window.electronAPI.openWithApp(file.path, app.path, file.id);
 
-                if (!result.success) {
-                    // エラー時: トースト表示 + OS標準で開く
-                    useToastStore.getState().error(result.error || '外部アプリで開けませんでした');
-                    await window.electronAPI.openExternal(file.path);
-                    await syncExternalOpenCount();
-                } else if (result.externalOpenCount !== undefined) {
-                    // 成功時: カウント更新
-                    useFileStore.getState().updateFileExternalOpenCount(
-                        file.id,
-                        result.externalOpenCount,
-                        result.lastExternalOpenedAt || Date.now()
-                    );
+                    if (!result.success) {
+                        // エラー時: トースト表示 + OS標準で開く
+                        useToastStore.getState().error(result.error || '外部アプリで開けませんでした');
+                        await window.electronAPI.openExternal(file.path);
+                        await syncExternalOpenCount();
+                    } else if (result.externalOpenCount !== undefined) {
+                        // 成功時: カウント更新
+                        useFileStore.getState().updateFileExternalOpenCount(
+                            file.id,
+                            result.externalOpenCount,
+                            result.lastExternalOpenedAt || Date.now()
+                        );
+                    }
+                    return;
                 }
-                return;
             }
-        }
 
-        // デフォルト設定なし or アプリが見つからない → OS標準で開く
-        await window.electronAPI.openExternal(file.path);
-        await syncExternalOpenCount();
+            // デフォルト設定なし or アプリが見つからない → OS標準で開く
+            await window.electronAPI.openExternal(file.path);
+            await syncExternalOpenCount();
+        } finally {
+            isOpeningFileRef.current = false;
+        }
     };
 
     const handleContextMenu = (e: React.MouseEvent) => {
