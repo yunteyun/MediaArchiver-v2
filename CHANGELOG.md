@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.16.1] - 2026-04-16
+
 ### Changed
 - ファイル名変更ダイアログを開いた際に入力欄が自動フォーカスされないようにした。
 - ファイル名変更ダイアログでウィンドウ外をクリックしても閉じないようにした。誤操作で前の画面に戻ってしまう問題を防ぐ。
