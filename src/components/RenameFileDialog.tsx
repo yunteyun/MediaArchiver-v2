@@ -45,19 +45,6 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
         setNextExt(ext);
     }, [currentName, isOpen]);
 
-    useEffect(() => {
-        if (!isOpen) return;
-        const input = baseNameInputRef.current;
-        if (!input) return;
-
-        const rafId = window.requestAnimationFrame(() => {
-            input.focus();
-            input.setSelectionRange(0, input.value.length);
-        });
-
-        return () => window.cancelAnimationFrame(rafId);
-    }, [currentName, isOpen]);
-
     const fullNextName = nextBaseName + nextExt;
     const normalizedCurrentPath = currentPath.replace(/\\/g, '/');
     const parentPath = normalizedCurrentPath.includes('/')
@@ -105,7 +92,7 @@ export const RenameFileDialog: React.FC<RenameFileDialogProps> = ({
     }, [isOpen, handleConfirm]);
 
     return (
-        <Dialog isOpen={isOpen} onClose={onCancel} maxWidth="md">
+        <Dialog isOpen={isOpen} onClose={onCancel} maxWidth="md" closeOnOverlayClick={false}>
             <Dialog.Header>
                 <h2 className="text-lg font-semibold text-surface-100">ファイル名を変更</h2>
             </Dialog.Header>
