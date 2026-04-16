@@ -14,6 +14,7 @@ import { app } from 'electron';
 import { execFile } from 'child_process';
 import util from 'util';
 import { v4 as uuidv4 } from 'uuid';
+import pLimit from 'p-limit';
 import { dbManager } from './databaseManager';
 import { logger } from './logger';
 import { createArchivePreviewFramesDir, createThumbnailOutputPath, getThumbnailRootDir } from './thumbnailPaths';
@@ -84,6 +85,42 @@ function resolve7zaPath(): string {
 }
 
 const SEVEN_ZA_PATH = resolve7zaPath();
+
+// ========================
+// Metadata Cache + Concurrency Control
+// ========================
+
+// 7za spawn の同時実行数を制限してメインプロセスのブロックを防ぐ
+const metadataLimit = pLimit(2);
+
+// in-memory LRU キャッシュ（stat ベースキー → Promise）
+// stat が変われば自動的に古いキャッシュに当たらない
+const METADATA_CACHE_MAX = 512;
+const metadataCache = new Map<string, Promise<ArchiveMetadata | null>>();
+const metadataCacheKeys: string[] = [];
+
+function buildMetadataCacheKey(filePath: string): string {
+    try {
+        const stat = fs.statSync(filePath);
+        return `${filePath}|${stat.size}|${stat.mtimeMs}`;
+    } catch {
+        return filePath;
+    }
+}
+
+function putMetadataCache(key: string, promise: Promise<ArchiveMetadata | null>): void {
+    if (metadataCache.has(key)) return;
+    if (metadataCacheKeys.length >= METADATA_CACHE_MAX) {
+        const evict = metadataCacheKeys.shift()!;
+        metadataCache.delete(evict);
+    }
+    metadataCache.set(key, promise);
+    metadataCacheKeys.push(key);
+}
+
+// 「画像なし」の負キャッシュ（60 秒間 TTL）
+const NO_IMAGE_CACHE_TTL_MS = 60_000;
+const noImageCache = new Map<string, number>(); // key → expiry timestamp
 
 // 郢昴・縺・ｹ晢ｽｬ郢ｧ・ｯ郢晏現ﾎ懆崕譎・ｄ陋ｹ繝ｻ
 function ensureDirectories(): void {
@@ -199,8 +236,22 @@ export function isArchive(filePath: string): boolean {
  * 隴厄ｽｸ陟趣ｽｫ郢晁ｼ斐＜郢ｧ・､郢晢ｽｫ邵ｺ・ｮ郢晢ｽ｡郢ｧ・ｿ郢昴・繝ｻ郢ｧ・ｿ繝ｻ閧ｲ蛻､陷剃ｸ莞懃ｹｧ・ｹ郢晁肩・ｼ蟲ｨ・定愾髢・ｾ繝ｻ
  */
 export async function getArchiveMetadata(filePath: string): Promise<ArchiveMetadata | null> {
+    const cacheKey = buildMetadataCacheKey(filePath);
+    const cached = metadataCache.get(cacheKey);
+    if (cached !== undefined) return cached;
+
+    const promise = metadataLimit(() => getArchiveMetadataRaw(filePath));
+    putMetadataCache(cacheKey, promise);
+    promise.catch(() => {
+        metadataCache.delete(cacheKey);
+        const idx = metadataCacheKeys.indexOf(cacheKey);
+        if (idx !== -1) metadataCacheKeys.splice(idx, 1);
+    });
+    return promise;
+}
+
+async function getArchiveMetadataRaw(filePath: string): Promise<ArchiveMetadata | null> {
     try {
-        // 7za -slt 邵ｺ・ｧ髫ｧ・ｳ驍擾ｽｰ隲繝ｻ・ｽ・ｱ郢ｧ雋槫徐陟輔・
         const { stdout } = await execFilePromise(SEVEN_ZA_PATH, [
             'l', '-ba', '-slt', '-sccUTF-8', filePath
         ]);
@@ -440,8 +491,16 @@ export async function getArchivePreviewFrames(
             return existingCached.slice(0, limit);
         }
 
+        // 「画像なし」の負キャッシュを確認（音声のみアーカイブへの暴走呼び出しを防ぐ）
+        const noImageKey = buildArchivePreviewCacheKey(filePath);
+        const noImageExpiry = noImageCache.get(noImageKey);
+        if (noImageExpiry !== undefined && Date.now() < noImageExpiry) {
+            return [];
+        }
+
         const metadata = await getArchiveMetadata(filePath);
         if (!metadata || !metadata.imageEntries || metadata.imageEntries.length === 0) {
+            noImageCache.set(noImageKey, Date.now() + NO_IMAGE_CACHE_TTL_MS);
             return [];
         }
 

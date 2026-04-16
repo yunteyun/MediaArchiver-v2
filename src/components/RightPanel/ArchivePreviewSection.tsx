@@ -26,7 +26,13 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
     const [restoringRepresentative, setRestoringRepresentative] = useState(false);
 
     const isVideo = file.type === 'video';
-    const isArchive = file.type === 'archive' && !isAudioArchive(file);
+    // useMemo で安定させることで file 参照差し替えによる不要な useEffect 再発火を防ぐ
+    const isArchive = useMemo(
+        () => file.type === 'archive' && !isAudioArchive(file),
+        // metadata が変化した場合のみ再評価（file.path + file.metadata が本質的な依存）
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [file.path, file.metadata]
+    );
     const videoFrames = useMemo(() => {
         if (!isVideo || !file.previewFrames) return [];
         return file.previewFrames.split(',').filter(Boolean);
@@ -42,9 +48,10 @@ export const ArchivePreviewSection = React.memo<Props>(({ file }) => {
             setFrames([]);
             return;
         }
+        const currentPath = file.path;
         setFrames([]);
         setLoading(true);
-        window.electronAPI.getArchivePreviewFrames(file.path, 4)
+        window.electronAPI.getArchivePreviewFrames(currentPath, 4)
             .then((f: string[]) => setFrames(f))
             .catch(() => setFrames([]))
             .finally(() => setLoading(false));
