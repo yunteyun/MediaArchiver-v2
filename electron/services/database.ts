@@ -940,7 +940,8 @@ export function setFolderScanFileTypeOverride(
     }
 
     const nextSettings: FolderScanSettings = {
-        fileTypeOverrides: nextOverrides
+        ...current,
+        fileTypeOverrides: nextOverrides,
     };
     const serialized = serializeFolderScanSettings(nextSettings);
     db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
@@ -952,6 +953,7 @@ export function clearFolderScanFileTypeOverrides(folderId: string): FolderScanSe
     const current = getFolderScanSettings(folderId);
     const serialized = serializeFolderScanSettings({
         excludedSubdirectories: current.excludedSubdirectories,
+        shallowScan: current.shallowScan,
     });
     db.prepare('UPDATE folders SET scan_settings_json = ? WHERE id = ?').run(serialized, folderId);
     return parseFolderScanSettingsJson(serialized);

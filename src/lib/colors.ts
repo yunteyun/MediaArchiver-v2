@@ -133,12 +133,6 @@ export const CHART_TOOLTIP_STYLES = {
     },
 } as const;
 
-/** チャート軸・目盛りのテキスト色 */
-export const CHART_AXIS_COLOR = '#94a3b8';
-
-/** チャートグリッド線の色 */
-export const CHART_GRID_COLOR = '#334155';
-
 /** チャートのホバーカーソル色 */
 export const CHART_HOVER_CURSOR = { fill: 'rgba(59, 130, 246, 0.12)' };
 

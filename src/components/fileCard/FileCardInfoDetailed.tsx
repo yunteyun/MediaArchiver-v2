@@ -180,14 +180,14 @@ export const FileCardInfoDetailed = React.memo(({
             year: '2-digit',
             month: '2-digit',
             day: '2-digit'
-        }).replace(/\//g, '/')
+        })
         : null;
     const updatedDateLabel = file.mtimeMs
         ? new Date(file.mtimeMs).toLocaleDateString('ja-JP', {
             year: '2-digit',
             month: '2-digit',
             day: '2-digit'
-        }).replace(/\//g, '/')
+        })
         : null;
     const extension = file.name.includes('.')
         ? file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase()

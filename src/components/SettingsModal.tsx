@@ -129,7 +129,6 @@ export const SettingsModal = React.memo(() => {
     const setGroupBy = useSettingsStore((s) => s.setGroupBy);
     const dateGroupingMode = useSettingsStore((s) => s.dateGroupingMode);
     const setDateGroupingMode = useSettingsStore((s) => s.setDateGroupingMode);
-    const displayMode = useSettingsStore((s) => s.displayMode);
     const activeDisplayPresetId = useSettingsStore((s) => s.activeDisplayPresetId);
     const setActiveDisplayPreset = useSettingsStore((s) => s.setActiveDisplayPreset);
     const thumbnailPresentation = useSettingsStore((s) => s.thumbnailPresentation);
