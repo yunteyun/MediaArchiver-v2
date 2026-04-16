@@ -275,7 +275,6 @@ export const FolderTree = React.memo(({
         folderRecursiveCountsByPath,
         isPinnedSelection,
         onTogglePinnedSelection,
-        onRegisterVirtualFolder,
     ]);
 
     // ドライブがない場合（空）
