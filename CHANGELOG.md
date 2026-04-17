@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- 音声書庫（ZIP）を中央ビューアで開いた際、収録ファイル数が多いと音声ファイルリストが画面いっぱいに伸びて操作パネル（再生コントロール・連続再生）が画面外に押し出されて操作できなくなる問題を修正した。
+
 ---
 
 ## [1.16.3] - 2026-04-17

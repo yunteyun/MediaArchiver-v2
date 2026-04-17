@@ -418,7 +418,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         const renderArchiveAudioPlayer = () => {
             if (!currentArchiveAudioPath) return null;
             return (
-                <div className="mt-4 border-t border-surface-500/80 pt-4">
+                <div className="mt-4 flex-shrink-0 border-t border-surface-500/80 pt-4">
                     <audio
                         ref={audioRef}
                         src={toMediaUrl(currentArchiveAudioPath)}
@@ -510,7 +510,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                         </div>
                     </>
                 ) : (
-                    <div className={`flex max-h-full gap-5 ${showArchiveAudioList ? 'items-stretch justify-center' : 'justify-center'}`}>
+                    <div className={`flex max-h-full min-h-0 gap-5 ${showArchiveAudioList ? 'items-stretch justify-center' : 'justify-center'}`}>
                         {showArchivePreviewGrid ? (
                             <div className={archivePreviewPanelClass}>
                                 <div className="rounded-xl border border-surface-600/80 bg-black/60 p-4 shadow-2xl backdrop-blur-sm">
@@ -542,7 +542,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                         ) : null}
 
                         {showArchiveAudioList && (
-                            <div className={`${showArchivePreviewGrid ? 'w-[560px]' : 'w-full max-w-[920px]'} min-w-0 flex-shrink-0`}>
+                            <div className={`${showArchivePreviewGrid ? 'w-[560px]' : 'w-full max-w-[920px]'} min-w-0 max-h-full flex-shrink-0`}>
                                 <div className="flex h-full max-h-full flex-col rounded-xl border border-surface-500/90 bg-black p-5 shadow-2xl">
                                     <div className="mb-4 flex items-center gap-3 text-lg font-medium text-surface-100">
                                         <Music size={22} />

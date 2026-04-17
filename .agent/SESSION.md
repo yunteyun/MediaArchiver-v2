@@ -1,11 +1,15 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-17
+**Last Updated**: 2026-04-18
 
-- **Current Focus**: クラッシュ根本原因の修正・v1.16.3 リリース
-- **Current Status**: リリース完了。
+- **Current Focus**: 音声書庫の操作パネル表示不具合の修正
+- **Current Status**: 修正完了・コミット済み。
 
 ## Recent Achievements
+
+- **音声書庫の操作パネル表示不具合を修正**:
+  - ファイルリストが多い時に再生コントロールが画面外に押し出される問題を解消
+  - `CenterViewerStage.tsx` の flex レイアウトに `min-h-0` / `max-h-full` / `flex-shrink-0` を追加して高さ制約を末端まで伝搬
 
 - **v1.16.3 リリース**（メインプロセス過負荷によるフリーズ・クラッシュ根本対策）:
   - ログ解析で根本原因を特定：音声のみ ZIP への `getArchiveMetadata`（7za spawn）が秒間 5〜6 回・30 分以上連続呼び出しされメインプロセスをブロック
