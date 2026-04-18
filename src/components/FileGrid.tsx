@@ -266,6 +266,7 @@ export const FileGrid = React.memo(() => {
 
     const parentRef = useRef<HTMLDivElement | null>(null);
     const [containerWidth, setContainerWidth] = React.useState(0);
+    const [scrollTop, setScrollTop] = React.useState(0);
 
     // Callback ref: DOMノードが条件分岐で切り替わってもResizeObserverを再設定
     const [observedElement, setObservedElement] = React.useState<HTMLDivElement | null>(null);
@@ -493,7 +494,6 @@ export const FileGrid = React.memo(() => {
 
     const groupVirtualItems = groupBy !== 'none' ? groupRowVirtualizer.getVirtualItems() : [];
     const standardVirtualItems = groupBy === 'none' ? rowVirtualizer.getVirtualItems() : [];
-    const scrollTop = parentRef.current?.scrollTop ?? 0;
     const firstVisibleGroupVirtualItem = groupVirtualItems.find((item) => (item.start + item.size) > scrollTop) ?? groupVirtualItems[0];
     const firstVisibleGroupRow = firstVisibleGroupVirtualItem
         ? groupedVirtualRows[firstVisibleGroupVirtualItem.index]
@@ -711,15 +711,13 @@ export const FileGrid = React.memo(() => {
                 <div
                     ref={scrollContainerRef}
                     className="flex-1 overflow-y-auto bg-surface-950"
+                    onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
                 >
                     {pseudoStickyGroup && (
                         <div
                             className="sticky top-0 z-20 pointer-events-none"
                             style={{
-                                transform: pseudoStickyHeaderOffsetY === 0
-                                    ? undefined
-                                    : `translateY(${pseudoStickyHeaderOffsetY}px)`,
-                                transition: 'transform 80ms linear',
+                                transform: `translateY(${pseudoStickyHeaderOffsetY}px)`,
                                 willChange: 'transform',
                             }}
                         >

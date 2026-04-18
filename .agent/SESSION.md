@@ -1,11 +1,16 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-18
+**Last Updated**: 2026-04-19
 
-- **Current Focus**: 音声書庫の操作パネル表示不具合の修正
+- **Current Focus**: グループ表示の週見出し点滅不具合の修正
 - **Current Status**: 修正完了・コミット済み。
 
 ## Recent Achievements
+
+- **グループ表示の週見出し点滅不具合を修正**:
+  - `scrollTop` を React state で管理してレンダーサイクルと同期
+  - 擬似 sticky ヘッダーの `transform` 条件分岐を廃止して GPU レイヤーを維持
+  - `transition: 80ms linear` を削除して高速スクロール時の振動を解消
 
 - **音声書庫の操作パネル表示不具合を修正**:
   - ファイルリストが多い時に再生コントロールが画面外に押し出される問題を解消
