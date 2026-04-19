@@ -4,6 +4,7 @@ import { formatFileSize } from '../../utils/groupFiles';
 import { getDriveLetter, getDisplayFolderName } from '../../utils/path';
 import { getFolderBadgeAccentColor, getFolderBadgePanelStyle, getFolderBadgePillStyle } from '../../utils/folderBadgeColor';
 import type { DetailedPanelBadgeKey } from './displayModes';
+import { isHorizontalDisplayMode } from './displayModes';
 import type { FileCardInfoCommonProps } from './FileCardInfoArea';
 
 type DetailedInfoUiConfig = {
@@ -44,7 +45,7 @@ type DetailedBottomRowProps = {
 
 function getDetailedInfoUiConfig(displayPreset: FileCardInfoCommonProps['displayPreset']): DetailedInfoUiConfig {
     const detailedUiPreset = displayPreset.detailedInfoUi;
-    const isDetailedHorizontalMode = displayPreset.definition.cardDirection === 'horizontal';
+    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayPreset.baseDisplayMode);
 
     return {
         isDetailedHorizontalMode,

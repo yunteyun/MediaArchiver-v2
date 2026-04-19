@@ -19,6 +19,8 @@ import {
 import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
 import {
     getDisplayPresetById,
+    isHorizontalDisplayMode,
+    getHorizontalThumbnailAspectRatio,
     type ResolvedFileCardDisplayPreset,
 } from './fileCard/displayModes';
 import type { FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
@@ -338,8 +340,8 @@ export const FileCard = React.memo(({
         [activeDisplayPresetId, externalDisplayPresets, displayMode]
     );
     const config = displayPreset.definition.layout;
-    const isDetailedHorizontalMode = displayPreset.definition.cardDirection === 'horizontal';
-    const detailedThumbnailAspectRatio = displayPreset.definition.horizontalThumbnailAspectRatio ?? '1 / 1';
+    const isDetailedHorizontalMode = isHorizontalDisplayMode(displayPreset.baseDisplayMode);
+    const detailedThumbnailAspectRatio = getHorizontalThumbnailAspectRatio(displayPreset.baseDisplayMode);
     const thumbnailObjectFitClass = thumbnailPresentation === 'contain' ? 'object-contain' : 'object-cover';
     // Phase 14-8: タグポップオーバートリガー設定
     const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);

@@ -10,7 +10,6 @@ export const compactDisplayPreset: FileCardDisplayPreset = {
         menuOrder: 10,
         iconKey: 'minimize',
         infoVariant: 'compact',
-        cardDirection: 'vertical',
         hideThumbnailBadges: true,
         layout: {
             aspectRatio: '5/4',

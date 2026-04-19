@@ -9,8 +9,6 @@ export const whiteBrowserDisplayPreset: FileCardDisplayPreset = {
         iconKey: 'layoutGrid',
         cardGrowMax: 20,
         infoVariant: 'detailed',
-        cardDirection: 'horizontal',
-        horizontalThumbnailAspectRatio: '1 / 1',
         layout: {
             aspectRatio: '16/9',
             cardWidth: 420,

@@ -35,7 +35,6 @@ describe('settingsTransfer', () => {
                 showFileSize: true,
                 activeDisplayPresetId: 'standard',
                 displayMode: 'standard',
-                layoutPreset: 'standard',
                 thumbnailPresentation: 'modeDefault',
                 externalApps: [],
                 groupBy: 'none',

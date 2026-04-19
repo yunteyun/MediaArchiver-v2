@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { DisplayMode } from '../../../stores/useSettingsStore';
 import {
+    DISPLAY_MODE_DIRECTIONS,
     FILE_CARD_DISPLAY_MODE_DEFINITIONS,
+    HORIZONTAL_THUMBNAIL_ASPECT_RATIOS,
     getDisplayPresetById,
     getDisplayPresetMenuOptions,
     getDetailedInfoUiPreset,
     getDisplayModeDefinition,
     getDisplayModeMenuOptions,
+    getHorizontalThumbnailAspectRatio,
     getTagSummaryUiPreset,
+    isHorizontalDisplayMode,
     resolveExternalDisplayPresets,
 } from '../displayModes';
 
@@ -51,6 +55,43 @@ describe('displayModes registry', () => {
             'mangaDetailed',
             'manga',
         ]);
+    });
+
+    it('DISPLAY_MODE_DIRECTIONS covers all modes with correct values', () => {
+        expect(Object.keys(DISPLAY_MODE_DIRECTIONS).sort()).toEqual([...DISPLAY_MODES].sort());
+        expect(DISPLAY_MODE_DIRECTIONS.whiteBrowser).toBe('horizontal');
+        expect(DISPLAY_MODE_DIRECTIONS.mangaDetailed).toBe('horizontal');
+        expect(DISPLAY_MODE_DIRECTIONS.standard).toBe('vertical');
+        expect(DISPLAY_MODE_DIRECTIONS.standardLarge).toBe('vertical');
+        expect(DISPLAY_MODE_DIRECTIONS.manga).toBe('vertical');
+        expect(DISPLAY_MODE_DIRECTIONS.video).toBe('vertical');
+        expect(DISPLAY_MODE_DIRECTIONS.compact).toBe('vertical');
+    });
+
+    it.each([
+        ['standard', false],
+        ['standardLarge', false],
+        ['manga', false],
+        ['video', false],
+        ['compact', false],
+        ['whiteBrowser', true],
+        ['mangaDetailed', true],
+    ] as [DisplayMode, boolean][])('isHorizontalDisplayMode(%s) === %s', (mode, expected) => {
+        expect(isHorizontalDisplayMode(mode)).toBe(expected);
+    });
+
+    it('getHorizontalThumbnailAspectRatio returns correct ratios', () => {
+        expect(getHorizontalThumbnailAspectRatio('whiteBrowser')).toBe('1 / 1');
+        expect(getHorizontalThumbnailAspectRatio('mangaDetailed')).toBe('2 / 3');
+        expect(getHorizontalThumbnailAspectRatio('standard')).toBe('1 / 1');
+    });
+
+    it('horizontal modes all have aspect ratios in HORIZONTAL_THUMBNAIL_ASPECT_RATIOS', () => {
+        for (const mode of DISPLAY_MODES) {
+            if (DISPLAY_MODE_DIRECTIONS[mode] === 'horizontal') {
+                expect(HORIZONTAL_THUMBNAIL_ASPECT_RATIOS[mode]).toBeDefined();
+            }
+        }
     });
 
     it('resolves external presets on top of built-in presets', () => {

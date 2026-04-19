@@ -9,8 +9,6 @@ export const mangaDetailedDisplayPreset: FileCardDisplayPreset = {
         iconKey: 'layoutGrid',
         cardGrowMax: 16,
         infoVariant: 'detailed',
-        cardDirection: 'horizontal',
-        horizontalThumbnailAspectRatio: '2 / 3',
         layout: {
             aspectRatio: '3/2',
             cardWidth: 360,

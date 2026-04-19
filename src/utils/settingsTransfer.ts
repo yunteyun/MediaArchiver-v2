@@ -1,5 +1,6 @@
 import type {
     AnimatedImagePreviewMode,
+    DisplayMode,
     ExternalApp,
     FileCardTagOrderMode,
     FlipbookSpeed,
@@ -19,7 +20,6 @@ import type {
 
 type SortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 type SortOrder = 'asc' | 'desc';
-type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
 
 export interface GlobalSettingsExportV1 {
     thumbnailAction: 'scrub' | 'flipbook' | 'play';
@@ -51,7 +51,6 @@ export interface GlobalSettingsExportV1 {
     infoBadgeOrder: string[];
     activeDisplayPresetId: string;
     displayMode: DisplayMode;
-    layoutPreset?: string;
     thumbnailPresentation: ThumbnailPresentation;
     externalApps: ExternalApp[];
     groupBy: GroupBy;

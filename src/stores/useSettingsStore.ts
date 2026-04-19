@@ -371,13 +371,6 @@ export function mapDisplayModeToPresentationAxes(displayMode: DisplayMode): {
     }
 }
 
-// persist の merge でレガシーデータを救済するためだけに使う。外部 API には公開しない
-function mapLegacyLayoutPresetToDisplayMode(layoutPreset: string): DisplayMode {
-    if (layoutPreset === 'detailed') return 'whiteBrowser';
-    const validModes: DisplayMode[] = ['standard', 'standardLarge', 'manga', 'video', 'whiteBrowser', 'mangaDetailed', 'compact'];
-    return (validModes.includes(layoutPreset as DisplayMode) ? layoutPreset : 'standard') as DisplayMode;
-}
-
 interface SettingsState {
     thumbnailAction: ThumbnailAction;
     archiveThumbnailAction: ArchiveThumbnailAction;
@@ -936,10 +929,7 @@ export const useSettingsStore = create<SettingsState>()(
                         normalizeSearchDestination(destination as SearchDestination)
                     )
                     : currentState.searchDestinations;
-                // displayMode がなく旧 layoutPreset だけ残っている場合は変換して救済する
-                const legacyLayoutPreset = (persistedWithoutLegacyKeys as Record<string, unknown>).layoutPreset;
                 const fallbackDisplayMode: DisplayMode = persistedWithoutLegacyKeys.displayMode
-                    ?? (typeof legacyLayoutPreset === 'string' ? mapLegacyLayoutPresetToDisplayMode(legacyLayoutPreset) : undefined)
                     ?? currentState.displayMode;
                 const fallbackActiveDisplayPresetId = typeof persistedWithoutLegacyKeys.activeDisplayPresetId === 'string' && persistedWithoutLegacyKeys.activeDisplayPresetId
                     ? persistedWithoutLegacyKeys.activeDisplayPresetId
@@ -947,8 +937,8 @@ export const useSettingsStore = create<SettingsState>()(
                 const mappedAxes = mapDisplayModeToPresentationAxes(fallbackDisplayMode);
                 const persistedThumbnailPresentation = normalizeThumbnailPresentation(persistedWithoutLegacyKeys.thumbnailPresentation);
 
-                // layoutPreset フィールドはレガシーキーとして読み捨てる
-                const { layoutPreset: _legacyLayoutPreset, ...persistedWithoutLayoutPreset } = persistedWithoutLegacyKeys as typeof persistedWithoutLegacyKeys & { layoutPreset?: unknown };
+                // layoutPreset フィールドは廃止済み。データに残っていても読み捨てる
+                const { layoutPreset: _unusedLayoutPreset, ...persistedWithoutLayoutPreset } = persistedWithoutLegacyKeys as typeof persistedWithoutLegacyKeys & { layoutPreset?: unknown };
 
                 return {
                     ...currentState,

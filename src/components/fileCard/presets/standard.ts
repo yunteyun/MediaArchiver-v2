@@ -9,7 +9,6 @@ export const standardDisplayPreset: FileCardDisplayPreset = {
         iconKey: 'grid',
         cardGrowMax: 16,
         infoVariant: 'detailed',
-        cardDirection: 'vertical',
         layout: {
             aspectRatio: '1/1',
             cardWidth: 220,

@@ -11,6 +11,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { FileCard } from './FileCard';
 import {
     getDisplayPresetById,
+    isHorizontalDisplayMode,
 } from './fileCard/displayModes';
 import { FolderCard } from './FolderCard';
 import { Header } from './SortMenu';
@@ -65,7 +66,7 @@ export const FileGrid = React.memo(() => {
         [activeDisplayPresetId, externalDisplayPresets, displayMode]
     );
     const displayModeDefinition = activeDisplayPreset.definition;
-    const isDetailedHorizontalMode = displayModeDefinition.cardDirection === 'horizontal';
+    const isDetailedHorizontalMode = isHorizontalDisplayMode(activeDisplayPreset.baseDisplayMode);
     const config = displayModeDefinition.layout;
     const groupBy = useUIStore((s) => s.currentGroupBy);
     const dateGroupingMode = useUIStore((s) => s.currentDateGroupingMode);

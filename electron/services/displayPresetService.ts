@@ -34,11 +34,6 @@ const VALID_INFO_VARIANTS = new Set([
     'detailed',
 ]);
 
-const VALID_CARD_DIRECTIONS = new Set([
-    'vertical',
-    'horizontal',
-]);
-
 const VALID_BADGE_KEYS = new Set([
     'size',
     'extension',
@@ -283,12 +278,11 @@ function normalizeManifest(raw: unknown): NormalizeManifestResult {
     if (normalizedCardGrowMax !== undefined) normalized.cardGrowMax = normalizedCardGrowMax;
     const normalizedInfoVariant = pickStringEnum(raw.infoVariant, 'infoVariant', VALID_INFO_VARIANTS, warnings);
     if (normalizedInfoVariant) normalized.infoVariant = normalizedInfoVariant as ExternalDisplayPresetManifest['infoVariant'];
-    const normalizedCardDirection = pickStringEnum(raw.cardDirection, 'cardDirection', VALID_CARD_DIRECTIONS, warnings);
-    if (normalizedCardDirection) normalized.cardDirection = normalizedCardDirection as ExternalDisplayPresetManifest['cardDirection'];
-    if (typeof raw.horizontalThumbnailAspectRatio === 'string' && raw.horizontalThumbnailAspectRatio.trim()) {
-        normalized.horizontalThumbnailAspectRatio = raw.horizontalThumbnailAspectRatio.trim();
-    } else if (raw.horizontalThumbnailAspectRatio !== undefined) {
-        warnings.push('horizontalThumbnailAspectRatio は文字列で指定してください');
+    if (raw.cardDirection !== undefined) {
+        warnings.push('cardDirection はサポートされなくなりました。extends 元の表示モードから自動的に継承されます');
+    }
+    if (raw.horizontalThumbnailAspectRatio !== undefined) {
+        warnings.push('horizontalThumbnailAspectRatio はサポートされなくなりました。extends 元の表示モードから自動的に継承されます');
     }
     if (typeof raw.hideThumbnailBadges === 'boolean') normalized.hideThumbnailBadges = raw.hideThumbnailBadges;
     const normalizedThumbnailPresentation = pickStringEnum(raw.thumbnailPresentation, 'thumbnailPresentation', VALID_THUMBNAIL_PRESENTATIONS, warnings);

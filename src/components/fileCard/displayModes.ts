@@ -10,6 +10,23 @@ import type {
     TagSummaryUiPreset,
 } from './presets/types';
 
+export type FileCardDirection = 'vertical' | 'horizontal';
+
+export const DISPLAY_MODE_DIRECTIONS: Record<DisplayMode, FileCardDirection> = {
+    standard: 'vertical',
+    standardLarge: 'vertical',
+    manga: 'vertical',
+    video: 'vertical',
+    compact: 'vertical',
+    whiteBrowser: 'horizontal',
+    mangaDetailed: 'horizontal',
+};
+
+export const HORIZONTAL_THUMBNAIL_ASPECT_RATIOS: Partial<Record<DisplayMode, string>> = {
+    whiteBrowser: '1 / 1',
+    mangaDetailed: '2 / 3',
+};
+
 export type {
     CompactInfoUiPreset,
     DetailedInfoUiPreset,
@@ -153,8 +170,6 @@ export function resolveExternalDisplayPresets(
                 },
                 cardGrowMax: manifest.cardGrowMax ?? base.definition.cardGrowMax,
                 infoVariant: manifest.infoVariant ?? base.definition.infoVariant,
-                cardDirection: manifest.cardDirection ?? base.definition.cardDirection,
-                horizontalThumbnailAspectRatio: manifest.horizontalThumbnailAspectRatio ?? base.definition.horizontalThumbnailAspectRatio,
                 hideThumbnailBadges: manifest.hideThumbnailBadges ?? base.definition.hideThumbnailBadges,
             },
             tagSummaryUi: mergeTagSummaryUiPreset(base.tagSummaryUi, manifest.tagSummaryUi),
@@ -204,13 +219,11 @@ export const getDisplayModeDefinition = (mode: DisplayMode): FileCardDisplayMode
     return BUILTIN_DISPLAY_PRESETS[mode].definition;
 };
 
-export const isHorizontalDisplayMode = (mode: DisplayMode): boolean => {
-    return getDisplayModeDefinition(mode).cardDirection === 'horizontal';
-};
+export const isHorizontalDisplayMode = (mode: DisplayMode): boolean =>
+    DISPLAY_MODE_DIRECTIONS[mode] === 'horizontal';
 
-export const getHorizontalThumbnailAspectRatio = (mode: DisplayMode): string => {
-    return getDisplayModeDefinition(mode).horizontalThumbnailAspectRatio ?? '1 / 1';
-};
+export const getHorizontalThumbnailAspectRatio = (mode: DisplayMode): string =>
+    HORIZONTAL_THUMBNAIL_ASPECT_RATIOS[mode] ?? '1 / 1';
 
 export const getTagSummaryUiPreset = (mode: DisplayMode): TagSummaryUiPreset => {
     return BUILTIN_DISPLAY_PRESETS[mode].tagSummaryUi;

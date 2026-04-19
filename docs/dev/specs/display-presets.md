@@ -61,9 +61,9 @@
   - `iconKey`
   - `cardGrowMax`
   - `infoVariant`
-  - `cardDirection`
-  - `horizontalThumbnailAspectRatio`
   - `hideThumbnailBadges`
+  - ~~`cardDirection`~~ — **廃止**（フェーズ B で削除。`extends` 元の DisplayMode から自動継承）
+  - ~~`horizontalThumbnailAspectRatio`~~ — **廃止**（同上）
 - `layout`
   - `aspectRatio`
   - `cardWidth`

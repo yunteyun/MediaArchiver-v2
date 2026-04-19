@@ -9,7 +9,6 @@ export const videoDisplayPreset: FileCardDisplayPreset = {
         iconKey: 'film',
         cardGrowMax: 12,
         infoVariant: 'detailed',
-        cardDirection: 'vertical',
         layout: {
             aspectRatio: '25/16',
             cardWidth: 265,

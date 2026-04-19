@@ -1,7 +1,6 @@
 import type { DisplayMode, ThumbnailPresentation } from '../../../stores/useSettingsStore';
 import type {
     DisplayModeIconKey,
-    FileCardDirection,
     FileCardDisplayModeDefinition,
     FileCardInfoVariant,
     FileCardLayoutConfig,
@@ -57,8 +56,6 @@ export interface ExternalDisplayPresetManifest {
     layout?: Partial<FileCardLayoutConfig>;
     cardGrowMax?: number;
     infoVariant?: FileCardInfoVariant;
-    cardDirection?: FileCardDirection;
-    horizontalThumbnailAspectRatio?: string;
     hideThumbnailBadges?: boolean;
     tagSummaryUi?: Partial<TagSummaryUiPreset>;
     detailedInfoUi?: Partial<DetailedInfoUiPreset>;
