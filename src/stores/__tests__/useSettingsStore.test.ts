@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     DEFAULT_SCAN_EXCLUSION_RULES,
     DEFAULT_STORAGE_MAINTENANCE_SETTINGS,
+    mapDisplayModeToPresentationAxes,
     useSettingsStore,
 } from '../useSettingsStore';
 
@@ -37,7 +38,6 @@ function resetSettingsStore() {
         showFileSize: true,
         activeDisplayPresetId: 'standard',
         displayMode: 'standard',
-        layoutPreset: 'standard',
         thumbnailPresentation: 'modeDefault',
         externalApps: [],
         defaultExternalApps: {},
@@ -195,15 +195,16 @@ describe('useSettingsStore', () => {
         expect(state.archiveFlipbookSpeed).toBe('slow');
     });
 
-    it('keeps display mode and layout axes in sync', () => {
+    it('keeps displayMode and thumbnailPresentation in sync when setDisplayMode is called', () => {
         useSettingsStore.getState().setDisplayMode('whiteBrowser');
         expect(useSettingsStore.getState().activeDisplayPresetId).toBe('whiteBrowser');
-        expect(useSettingsStore.getState().layoutPreset).toBe('detailed');
+        expect(useSettingsStore.getState().displayMode).toBe('whiteBrowser');
         expect(useSettingsStore.getState().thumbnailPresentation).toBe('square');
 
-        useSettingsStore.getState().setLayoutPreset('mangaDetailed');
+        useSettingsStore.getState().setDisplayMode('mangaDetailed');
         expect(useSettingsStore.getState().activeDisplayPresetId).toBe('mangaDetailed');
         expect(useSettingsStore.getState().displayMode).toBe('mangaDetailed');
+        expect(useSettingsStore.getState().thumbnailPresentation).toBe('square');
     });
 
     it('normalizes scan exclusion rules', () => {
@@ -273,6 +274,36 @@ describe('useSettingsStore', () => {
             url: 'https://lens.google.com/',
             icon: 'image',
             enabled: false,
+        });
+    });
+
+    describe('LayoutPreset 廃止後の 2 軸 (DisplayMode × ThumbnailPresentation) の動作', () => {
+        it('ストアに layoutPreset フィールドが存在しない', () => {
+            expect('layoutPreset' in useSettingsStore.getState()).toBe(false);
+        });
+
+        it('whiteBrowser の thumbnailPresentation は square', () => {
+            const { thumbnailPresentation } = mapDisplayModeToPresentationAxes('whiteBrowser');
+            expect(thumbnailPresentation).toBe('square');
+        });
+
+        it('mangaDetailed の thumbnailPresentation は square', () => {
+            const { thumbnailPresentation } = mapDisplayModeToPresentationAxes('mangaDetailed');
+            expect(thumbnailPresentation).toBe('square');
+        });
+
+        it('standard / manga / video などは modeDefault', () => {
+            for (const mode of ['standard', 'standardLarge', 'manga', 'video', 'compact'] as const) {
+                const { thumbnailPresentation } = mapDisplayModeToPresentationAxes(mode);
+                expect(thumbnailPresentation).toBe('modeDefault');
+            }
+        });
+
+        it('setDisplayMode で displayMode・activeDisplayPresetId・thumbnailPresentation がまとめて更新される', () => {
+            useSettingsStore.getState().setDisplayMode('whiteBrowser');
+            expect(useSettingsStore.getState().displayMode).toBe('whiteBrowser');
+            expect(useSettingsStore.getState().activeDisplayPresetId).toBe('whiteBrowser');
+            expect(useSettingsStore.getState().thumbnailPresentation).toBe('square');
         });
     });
 

@@ -107,3 +107,18 @@
 - `thumbnailPresentation` の描画反映は現時点で `contain` のみ専用分岐。
 - `cover` / `square` / `modeDefault` は同じ描画（`object-cover`）として扱っている。
 - `square` は将来拡張用の予約値で、現状は互換性維持を主目的としている。
+
+## v2: LayoutPreset 軸の廃止（2026-04-19）
+
+**変更内容**: v1 で導入した `layoutPreset` 軸を廃止し、`DisplayMode × ThumbnailPresentation` の 2 軸構成に正規化した。
+
+**背景**: `layoutPreset` は `DisplayMode` と常に 1:1 で同期されており（唯一 `whiteBrowser ⇔ detailed` の名前ズレを除く）、独立した設計値を持たない冗長な軸だった。将来要望ドキュメント（`docs/archive/file_card_表示設計に関する将来要望まとめ.md`）が定義する「カード構造 × サムネイル表現の 2 軸維持」とも齟齬があったため、`layoutPreset` を除去して 2 軸に集約した。
+
+**後方互換**: persist の `merge` に `layoutPreset → DisplayMode` への変換ロジックを残している。既存ユーザの localStorage に `layoutPreset: 'detailed'` が残っている場合は `displayMode: 'whiteBrowser'` に変換して復元する。`displayMode` と `layoutPreset` が両方 persisted されている場合は `displayMode` を優先する。
+
+**除去されたもの**:
+- `LayoutPreset` 型（`useSettingsStore.ts`）
+- `LAYOUT_PRESET_TO_DISPLAY_MODE` / `DISPLAY_MODE_TO_LAYOUT_PRESET` マップ（`displayModes.ts`）
+- `setLayoutPreset()` セッター
+- `mapDisplayModeToPresentationAxes` 戻り値の `layoutPreset` フィールド
+- `getDisplayModeFromLayoutPreset()` / `getLayoutPresetFromDisplayMode()` / `getDisplayModeDefinitionByLayoutPreset()` ヘルパ関数

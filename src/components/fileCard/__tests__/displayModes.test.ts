@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { DisplayMode, LayoutPreset } from '../../../stores/useSettingsStore';
+import type { DisplayMode } from '../../../stores/useSettingsStore';
 import {
     FILE_CARD_DISPLAY_MODE_DEFINITIONS,
     getDisplayPresetById,
     getDisplayPresetMenuOptions,
     getDetailedInfoUiPreset,
     getDisplayModeDefinition,
-    getDisplayModeFromLayoutPreset,
     getDisplayModeMenuOptions,
-    getLayoutPresetFromDisplayMode,
     getTagSummaryUiPreset,
     resolveExternalDisplayPresets,
 } from '../displayModes';
@@ -19,16 +17,6 @@ const DISPLAY_MODES: DisplayMode[] = [
     'manga',
     'video',
     'whiteBrowser',
-    'mangaDetailed',
-    'compact',
-];
-
-const LAYOUT_PRESETS: LayoutPreset[] = [
-    'standard',
-    'standardLarge',
-    'manga',
-    'video',
-    'detailed',
     'mangaDetailed',
     'compact',
 ];
@@ -49,13 +37,6 @@ describe('displayModes registry', () => {
             expect(tagSummaryUi.chipFontWeightClass).not.toHaveLength(0);
             expect(tagSummaryUi.rowGapClass).not.toHaveLength(0);
             expect(detailedInfoUi.tagSummaryVisibleCount).toBeGreaterThan(0);
-        }
-    });
-
-    it('keeps layout preset mappings reversible', () => {
-        for (const layoutPreset of LAYOUT_PRESETS) {
-            const displayMode = getDisplayModeFromLayoutPreset(layoutPreset);
-            expect(getLayoutPresetFromDisplayMode(displayMode)).toBe(layoutPreset);
         }
     });
 

@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- 表示モード管理の内部設計を整理し、冗長だった `LayoutPreset` 軸を除去した。`DisplayMode`（カード構造）と `ThumbnailPresentation`（サムネイル表現）の 2 軸に一本化することで、将来の表示モード追加（漫画・動画・WhiteBrowser 風）が行いやすくなった（表示への変更なし）。
+
 ---
 
 ## [1.16.4] - 2026-04-19

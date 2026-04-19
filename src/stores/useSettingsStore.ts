@@ -30,7 +30,6 @@ export {
 
 // 表示モード型定義（Phase 14）
 export type DisplayMode = 'standard' | 'standardLarge' | 'manga' | 'video' | 'whiteBrowser' | 'mangaDetailed' | 'compact';
-export type LayoutPreset = 'standard' | 'standardLarge' | 'manga' | 'video' | 'detailed' | 'mangaDetailed' | 'compact';
 export type ThumbnailPresentation = 'modeDefault' | 'contain' | 'cover' | 'square';
 export type SearchTarget = 'fileName' | 'folderName';
 
@@ -136,7 +135,6 @@ export const DEFAULT_LIST_DISPLAY_SETTINGS = {
     dateGroupingMode: 'auto' as const,
     activeDisplayPresetId: 'standard',
     displayMode: 'standard' as const,
-    layoutPreset: 'standard' as const,
     thumbnailPresentation: 'modeDefault' as const,
 };
 
@@ -323,27 +321,12 @@ const DEFAULT_SEARCH_DESTINATIONS: SearchDestination[] = [
     },
 ];
 
-const VALID_LAYOUT_PRESETS = new Set<LayoutPreset>([
-    'standard',
-    'standardLarge',
-    'manga',
-    'video',
-    'detailed',
-    'mangaDetailed',
-    'compact',
-]);
-
 const VALID_THUMBNAIL_PRESENTATIONS = new Set<ThumbnailPresentation>([
     'modeDefault',
     'contain',
     'cover',
     'square',
 ]);
-
-function normalizeLayoutPreset(value: unknown): LayoutPreset | null {
-    if (typeof value !== 'string') return null;
-    return VALID_LAYOUT_PRESETS.has(value as LayoutPreset) ? (value as LayoutPreset) : null;
-}
 
 function normalizeThumbnailPresentation(value: unknown): ThumbnailPresentation | null {
     if (typeof value !== 'string') return null;
@@ -377,48 +360,22 @@ function normalizeSavedFilterState(input: unknown): SavedFilterState {
 }
 
 export function mapDisplayModeToPresentationAxes(displayMode: DisplayMode): {
-    layoutPreset: LayoutPreset;
     thumbnailPresentation: ThumbnailPresentation;
 } {
     switch (displayMode) {
         case 'whiteBrowser':
-            return { layoutPreset: 'detailed', thumbnailPresentation: 'square' };
         case 'mangaDetailed':
-            return { layoutPreset: 'mangaDetailed', thumbnailPresentation: 'square' };
-        case 'compact':
-            return { layoutPreset: 'compact', thumbnailPresentation: 'modeDefault' };
-        case 'standard':
-            return { layoutPreset: 'standard', thumbnailPresentation: 'modeDefault' };
-        case 'standardLarge':
-            return { layoutPreset: 'standardLarge', thumbnailPresentation: 'modeDefault' };
-        case 'manga':
-            return { layoutPreset: 'manga', thumbnailPresentation: 'modeDefault' };
-        case 'video':
-            return { layoutPreset: 'video', thumbnailPresentation: 'modeDefault' };
+            return { thumbnailPresentation: 'square' };
         default:
-            return { layoutPreset: 'standard', thumbnailPresentation: 'modeDefault' };
+            return { thumbnailPresentation: 'modeDefault' };
     }
 }
 
-function mapLayoutPresetToLegacyDisplayMode(layoutPreset: LayoutPreset): DisplayMode {
-    switch (layoutPreset) {
-        case 'detailed':
-            return 'whiteBrowser';
-        case 'mangaDetailed':
-            return 'mangaDetailed';
-        case 'compact':
-            return 'compact';
-        case 'standard':
-            return 'standard';
-        case 'standardLarge':
-            return 'standardLarge';
-        case 'manga':
-            return 'manga';
-        case 'video':
-            return 'video';
-        default:
-            return 'standard';
-    }
+// persist の merge でレガシーデータを救済するためだけに使う。外部 API には公開しない
+function mapLegacyLayoutPresetToDisplayMode(layoutPreset: string): DisplayMode {
+    if (layoutPreset === 'detailed') return 'whiteBrowser';
+    const validModes: DisplayMode[] = ['standard', 'standardLarge', 'manga', 'video', 'whiteBrowser', 'mangaDetailed', 'compact'];
+    return (validModes.includes(layoutPreset as DisplayMode) ? layoutPreset : 'standard') as DisplayMode;
 }
 
 interface SettingsState {
@@ -463,7 +420,6 @@ interface SettingsState {
     // 表示モード設定（Phase 14）
     activeDisplayPresetId: string;
     displayMode: DisplayMode;
-    layoutPreset: LayoutPreset;
     thumbnailPresentation: ThumbnailPresentation;
 
     // 外部アプリ設定（Phase 12-7）
@@ -538,7 +494,6 @@ interface SettingsState {
     // 表示モードアクション（Phase 14）
     setActiveDisplayPreset: (selection: DisplayPresetSelection) => void;
     setDisplayMode: (mode: DisplayMode) => void;
-    setLayoutPreset: (preset: LayoutPreset) => void;
     setThumbnailPresentation: (presentation: ThumbnailPresentation) => void;
     // 外部アプリアクション（Phase 12-7）
     addExternalApp: (name: string, path: string, extensions: string[]) => void;
@@ -622,7 +577,6 @@ export const useSettingsStore = create<SettingsState>()(
             // 表示モード設定デフォルト値（Phase 14）
             activeDisplayPresetId: DEFAULT_LIST_DISPLAY_SETTINGS.activeDisplayPresetId,
             displayMode: DEFAULT_LIST_DISPLAY_SETTINGS.displayMode,
-            layoutPreset: DEFAULT_LIST_DISPLAY_SETTINGS.layoutPreset,
             thumbnailPresentation: DEFAULT_LIST_DISPLAY_SETTINGS.thumbnailPresentation,
 
             // 外部アプリ設定（Phase 12-7）
@@ -776,28 +730,20 @@ export const useSettingsStore = create<SettingsState>()(
             setInfoBadgeOrder: (infoBadgeOrder) => set({ infoBadgeOrder }),
             // 表示モード設定セッター（Phase 14）
             setActiveDisplayPreset: (selection) => {
-                const { layoutPreset } = mapDisplayModeToPresentationAxes(selection.baseDisplayMode);
                 set({
                     activeDisplayPresetId: selection.id,
                     displayMode: selection.baseDisplayMode,
-                    layoutPreset,
                     thumbnailPresentation: selection.thumbnailPresentation,
                 });
             },
             setDisplayMode: (displayMode) => {
-                const { layoutPreset, thumbnailPresentation } = mapDisplayModeToPresentationAxes(displayMode);
+                const { thumbnailPresentation } = mapDisplayModeToPresentationAxes(displayMode);
                 set({
                     activeDisplayPresetId: displayMode,
                     displayMode,
-                    layoutPreset,
                     thumbnailPresentation,
                 });
             },
-            setLayoutPreset: (layoutPreset) => set({
-                layoutPreset,
-                displayMode: mapLayoutPresetToLegacyDisplayMode(layoutPreset),
-                activeDisplayPresetId: mapLayoutPresetToLegacyDisplayMode(layoutPreset),
-            }),
             setThumbnailPresentation: (thumbnailPresentation) => set({ thumbnailPresentation }),
             // 外部アプリアクション（Phase 12-7）
             addExternalApp: (name, path, extensions) => {
@@ -990,27 +936,33 @@ export const useSettingsStore = create<SettingsState>()(
                         normalizeSearchDestination(destination as SearchDestination)
                     )
                     : currentState.searchDestinations;
-                const fallbackDisplayMode = persistedWithoutLegacyKeys.displayMode ?? currentState.displayMode;
+                // displayMode がなく旧 layoutPreset だけ残っている場合は変換して救済する
+                const legacyLayoutPreset = (persistedWithoutLegacyKeys as Record<string, unknown>).layoutPreset;
+                const fallbackDisplayMode: DisplayMode = persistedWithoutLegacyKeys.displayMode
+                    ?? (typeof legacyLayoutPreset === 'string' ? mapLegacyLayoutPresetToDisplayMode(legacyLayoutPreset) : undefined)
+                    ?? currentState.displayMode;
                 const fallbackActiveDisplayPresetId = typeof persistedWithoutLegacyKeys.activeDisplayPresetId === 'string' && persistedWithoutLegacyKeys.activeDisplayPresetId
                     ? persistedWithoutLegacyKeys.activeDisplayPresetId
                     : fallbackDisplayMode;
                 const mappedAxes = mapDisplayModeToPresentationAxes(fallbackDisplayMode);
-                const persistedLayoutPreset = normalizeLayoutPreset(persistedWithoutLegacyKeys.layoutPreset);
                 const persistedThumbnailPresentation = normalizeThumbnailPresentation(persistedWithoutLegacyKeys.thumbnailPresentation);
+
+                // layoutPreset フィールドはレガシーキーとして読み捨てる
+                const { layoutPreset: _legacyLayoutPreset, ...persistedWithoutLayoutPreset } = persistedWithoutLegacyKeys as typeof persistedWithoutLegacyKeys & { layoutPreset?: unknown };
 
                 return {
                     ...currentState,
-                    ...persistedWithoutLegacyKeys,
+                    ...persistedWithoutLayoutPreset,
                     rightPanelVideoMuted: typeof typedPersisted?.rightPanelVideoMuted === 'boolean'
                         ? typedPersisted.rightPanelVideoMuted
                         : currentState.rightPanelVideoMuted,
                     dateGroupingMode: normalizeDateGroupingMode(persistedWithoutLegacyKeys.dateGroupingMode),
+                    displayMode: fallbackDisplayMode,
                     activeDisplayPresetId: fallbackActiveDisplayPresetId,
                     searchDestinations: persistedDestinations,
                     scanExclusionRules: normalizeScanExclusionRules(persistedWithoutLegacyKeys.scanExclusionRules),
                     storageMaintenanceSettings: normalizeStorageMaintenanceSettings(persistedWithoutLegacyKeys.storageMaintenanceSettings),
                     ratingDisplayThresholds: normalizeRatingDisplayThresholds(persistedWithoutLegacyKeys.ratingDisplayThresholds),
-                    layoutPreset: persistedLayoutPreset ?? mappedAxes.layoutPreset,
                     thumbnailPresentation: persistedThumbnailPresentation ?? mappedAxes.thumbnailPresentation,
                     videoFlipbookSpeed: persistedWithoutLegacyKeys.videoFlipbookSpeed
                         ?? legacyFlipbookSpeed

@@ -5,7 +5,6 @@ import type {
     FlipbookSpeed,
     GroupBy,
     DateGroupingMode,
-    LayoutPreset,
     PlayModeJumpInterval,
     PlayModeJumpType,
     ProfileScopedSettingsV1,
@@ -52,7 +51,7 @@ export interface GlobalSettingsExportV1 {
     infoBadgeOrder: string[];
     activeDisplayPresetId: string;
     displayMode: DisplayMode;
-    layoutPreset: LayoutPreset;
+    layoutPreset?: string;
     thumbnailPresentation: ThumbnailPresentation;
     externalApps: ExternalApp[];
     groupBy: GroupBy;

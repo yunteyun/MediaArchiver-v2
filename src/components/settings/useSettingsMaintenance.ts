@@ -413,7 +413,6 @@ export function useSettingsMaintenance({
                     showFileSize: settings.showFileSize,
                     activeDisplayPresetId: settings.activeDisplayPresetId,
                     displayMode: settings.displayMode,
-                    layoutPreset: settings.layoutPreset,
                     thumbnailPresentation: settings.thumbnailPresentation,
                     externalApps: settings.externalApps,
                     groupBy: settings.groupBy,
