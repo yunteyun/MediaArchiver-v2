@@ -1,279 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { Play, FileText, Image as ImageIcon, Archive, Loader, Music, FileMusic, Clapperboard, Maximize2 } from 'lucide-react';
+import { Play, FileText, Music, FileMusic } from 'lucide-react';
 import type { MediaFile } from '../types/file';
 import { useUIStore } from '../stores/useUIStore';
 import { useFileStore } from '../stores/useFileStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useToastStore } from '../stores/useToastStore';
-import { useTagStore, type Tag } from '../stores/useTagStore';
-
-import { toMediaUrl } from '../utils/mediaPath';
-import { getArchiveImageCount, isAudioArchive } from '../utils/fileHelpers';
-import {
-    getRandomSafeTime,
-    getSequentialPreviewTime,
-    shouldFallbackSequentialPreview,
-    VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS,
-} from '../utils/videoPreview';
-import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
-import {
-    getDisplayPresetById,
-    isHorizontalDisplayMode,
-    getHorizontalThumbnailAspectRatio,
-    type ResolvedFileCardDisplayPreset,
-} from './fileCard/displayModes';
-import type { FileCardTagOrderMode, TagPopoverTrigger } from '../stores/useSettingsStore';
-import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
+import { useTagStore } from '../stores/useTagStore';
 import { useDisplayPresetStore } from '../stores/useDisplayPresetStore';
-import { FileCardRatingBadge } from './fileCard/FileCardRatingBadge';
-import { resolveColorHex, getTextColorForBackground } from '../lib/colors';
+
+import { isAudioArchive } from '../utils/fileHelpers';
+import { getDisplayPresetById, isHorizontalDisplayMode, getHorizontalThumbnailAspectRatio } from './fileCard/displayModes';
+import { FileCardInfoArea } from './fileCard/FileCardInfoArea';
+import { FileCardThumbnail } from './fileCard/FileCardThumbnail';
+import { FileCardTagPopover } from './fileCard/FileCardTagPopover';
+import { FileCardTagSummary } from './fileCard/FileCardTagSummary';
+import { useFileCardHover } from './fileCard/useFileCardHover';
+import type { FileCardTagSummaryRendererProps } from './fileCard/FileCardInfoArea';
 
 function isPerfDebugEnabled(): boolean {
     return import.meta.env.DEV && (globalThis as { __MA_DEBUG_PERF?: boolean }).__MA_DEBUG_PERF === true;
-}
-
-const ARCHIVE_PREVIEW_FRAME_COUNT = 8;
-const VIDEO_FLIPBOOK_INTERVAL_MS = {
-    slow: 840,
-    normal: 520,
-    fast: 220,
-} as const;
-const ARCHIVE_FLIPBOOK_INTERVAL_MS = {
-    slow: 760,
-    normal: 460,
-    fast: 280,
-} as const;
-
-type TagSummaryUiConfig = {
-    tagChipPaddingClass: string;
-    tagChipTextClass: string;
-    tagChipFontWeightClass: string;
-    tagChipRadiusClass: string;
-    tagChipMaxWidthClass: string;
-    rowGapClass: string;
-    rowLayoutClass: string;
-};
-
-type FileCardTagSummaryRowProps = {
-    visibleTags: Tag[];
-    hiddenCount: number;
-    isTagBorderMode: boolean;
-    tagSummaryUi: TagSummaryUiConfig;
-    triggerRef: React.RefObject<HTMLButtonElement | null>;
-    onMoreClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
-    onMoreMouseEnter: () => void;
-    onMoreMouseLeave: () => void;
-};
-
-type FileCardTagSummaryProps = {
-    visibleCount: number;
-    showTags: boolean;
-    sortedTags: Tag[];
-    fileCardTagOrderMode: FileCardTagOrderMode;
-    displayPreset: ResolvedFileCardDisplayPreset;
-    isTagBorderMode: boolean;
-    triggerRef: React.RefObject<HTMLButtonElement | null>;
-    tagPopoverTrigger: TagPopoverTrigger;
-    showTagPopover: boolean;
-    setShowTagPopover: React.Dispatch<React.SetStateAction<boolean>>;
-    openPopover: () => void;
-    closePopoverWithDelay: () => void;
-};
-
-function getTagSummaryUiConfig(displayPreset: ResolvedFileCardDisplayPreset): TagSummaryUiConfig {
-    const preset = displayPreset.tagSummaryUi;
-    return {
-        tagChipPaddingClass: preset.chipPaddingClass,
-        tagChipTextClass: preset.chipTextClass,
-        tagChipFontWeightClass: preset.chipFontWeightClass,
-        tagChipRadiusClass: preset.chipRadiusClass,
-        tagChipMaxWidthClass: preset.chipMaxWidthClass,
-        rowGapClass: preset.rowGapClass,
-        rowLayoutClass: preset.rowLayoutClass,
-    };
-}
-
-const FileCardTagSummaryRow = React.memo(({
-    visibleTags,
-    hiddenCount,
-    isTagBorderMode,
-    tagSummaryUi,
-    triggerRef,
-    onMoreClick,
-    onMoreMouseEnter,
-    onMoreMouseLeave,
-}: FileCardTagSummaryRowProps) => {
-    return (
-        <div className={`flex min-w-0 overflow-hidden ${tagSummaryUi.rowGapClass} ${tagSummaryUi.rowLayoutClass}`}>
-            {visibleTags.map(tag => (
-                <span
-                    key={tag.id}
-                    className={`inline-flex min-w-0 ${tagSummaryUi.tagChipMaxWidthClass} items-center ${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} ${tagSummaryUi.tagChipFontWeightClass} whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} ${isTagBorderMode ? 'border-l-2' : ''}`}
-                    style={isTagBorderMode ? {
-                        backgroundColor: 'rgba(55, 65, 81, 0.9)',
-                        color: '#e5e7eb',
-                        borderLeftColor: resolveColorHex(tag.categoryColor || tag.color || ''),
-                        opacity: 0.85
-                    } : {
-                        backgroundColor: resolveColorHex(tag.categoryColor || tag.color || ''),
-                        color: getTextColorForBackground(tag.categoryColor || tag.color || ''),
-                        borderColor: resolveColorHex(tag.categoryColor || tag.color || ''),
-                        opacity: 0.85
-                    }}
-                >
-                    <span className="truncate">{tag.name}</span>
-                </span>
-            ))}
-            {hiddenCount > 0 && (
-                <button
-                    ref={triggerRef}
-                    onClick={onMoreClick}
-                    onMouseEnter={onMoreMouseEnter}
-                    onMouseLeave={onMoreMouseLeave}
-                    className={`${tagSummaryUi.tagChipPaddingClass} ${tagSummaryUi.tagChipTextClass} ${tagSummaryUi.tagChipFontWeightClass} whitespace-nowrap ${tagSummaryUi.tagChipRadiusClass} bg-surface-700 hover:bg-surface-600 text-surface-300 transition-colors cursor-pointer`}
-                >
-                    +{hiddenCount}
-                </button>
-            )}
-        </div>
-    );
-});
-
-FileCardTagSummaryRow.displayName = 'FileCardTagSummaryRow';
-
-const FileCardTagSummary = React.memo(({
-    visibleCount,
-    showTags,
-    sortedTags,
-    fileCardTagOrderMode,
-    displayPreset,
-    isTagBorderMode,
-    triggerRef,
-    tagPopoverTrigger,
-    showTagPopover,
-    setShowTagPopover,
-    openPopover,
-    closePopoverWithDelay,
-}: FileCardTagSummaryProps) => {
-    if (!showTags || sortedTags.length === 0) return null;
-
-    const tagSummaryUi = getTagSummaryUiConfig(displayPreset);
-    const visibleTags = fileCardTagOrderMode === 'strict'
-        ? sortedTags.slice(0, visibleCount)
-        : getBalancedSummaryTags(sortedTags, visibleCount);
-    const hiddenCount = Math.max(0, sortedTags.length - visibleCount);
-
-    return (
-        <FileCardTagSummaryRow
-            visibleTags={visibleTags}
-            hiddenCount={hiddenCount}
-            isTagBorderMode={isTagBorderMode}
-            tagSummaryUi={tagSummaryUi}
-            triggerRef={triggerRef}
-            onMoreClick={(e) => {
-                e.stopPropagation();
-                if (tagPopoverTrigger === 'click') setShowTagPopover(!showTagPopover);
-            }}
-            onMoreMouseEnter={() => {
-                if (tagPopoverTrigger === 'hover') openPopover();
-            }}
-            onMoreMouseLeave={() => {
-                if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
-            }}
-        />
-    );
-});
-
-FileCardTagSummary.displayName = 'FileCardTagSummary';
-
-// FileCard の要約タグは、カテゴリが偏りすぎないようにカテゴリ単位で1つずつ選ぶ。
-// 既存の sortOrder 順は維持しつつ、未分類タグはカテゴリタグの後ろに回す。
-function getBalancedSummaryTags(tags: Tag[], visibleCount: number): Tag[] {
-    if (visibleCount <= 0) return [];
-    if (tags.length <= visibleCount) return tags.slice(0, visibleCount);
-
-    const categorizedBuckets: Tag[][] = [];
-    const bucketIndexByCategoryId = new Map<string, number>();
-    const uncategorizedBucket: Tag[] = [];
-
-    for (const tag of tags) {
-        if (!tag.categoryId) {
-            uncategorizedBucket.push(tag);
-            continue;
-        }
-
-        let bucketIndex = bucketIndexByCategoryId.get(tag.categoryId);
-        if (bucketIndex === undefined) {
-            bucketIndex = categorizedBuckets.length;
-            bucketIndexByCategoryId.set(tag.categoryId, bucketIndex);
-            categorizedBuckets.push([]);
-        }
-        categorizedBuckets[bucketIndex]!.push(tag);
-    }
-
-    const buckets = uncategorizedBucket.length > 0
-        ? [...categorizedBuckets, uncategorizedBucket]
-        : categorizedBuckets;
-
-    const bucketPositions = new Array(buckets.length).fill(0);
-    const result: Tag[] = [];
-
-    while (result.length < visibleCount) {
-        let pickedInRound = false;
-
-        for (let i = 0; i < buckets.length; i += 1) {
-            const bucket = buckets[i];
-            const pos = bucketPositions[i];
-            if (!bucket || pos >= bucket.length) continue;
-
-            result.push(bucket[pos]!);
-            bucketPositions[i] = pos + 1;
-            pickedInRound = true;
-
-            if (result.length >= visibleCount) break;
-        }
-
-        if (!pickedInRound) break;
-    }
-
-    return result;
-}
-
-const MAX_VISIBLE_ANIMATED_PREVIEWS = 2;
-const HOVER_ZOOM_PREVIEW_MAX_WIDTH = 460;
-const HOVER_ZOOM_PREVIEW_MAX_HEIGHT = 520;
-const HOVER_ZOOM_PREVIEW_MIN_SIZE = 240;
-const HOVER_ZOOM_PREVIEW_GAP = 2;
-const HOVER_ZOOM_PREVIEW_DELAY_MS = 600;
-
-const activeVisibleAnimatedPreviewIds = new Set<string>();
-const visibleAnimatedPreviewListeners = new Set<() => void>();
-
-function notifyVisibleAnimatedPreviewListeners() {
-    for (const listener of visibleAnimatedPreviewListeners) {
-        listener();
-    }
-}
-
-function subscribeVisibleAnimatedPreviewSlots(listener: () => void) {
-    visibleAnimatedPreviewListeners.add(listener);
-    return () => {
-        visibleAnimatedPreviewListeners.delete(listener);
-    };
-}
-
-function requestVisibleAnimatedPreviewSlot(fileId: string): boolean {
-    if (activeVisibleAnimatedPreviewIds.has(fileId)) return true;
-    if (activeVisibleAnimatedPreviewIds.size >= MAX_VISIBLE_ANIMATED_PREVIEWS) return false;
-    activeVisibleAnimatedPreviewIds.add(fileId);
-    notifyVisibleAnimatedPreviewListeners();
-    return true;
-}
-
-function releaseVisibleAnimatedPreviewSlot(fileId: string) {
-    if (!activeVisibleAnimatedPreviewIds.delete(fileId)) return;
-    notifyVisibleAnimatedPreviewListeners();
 }
 
 interface FileCardProps {
@@ -290,9 +35,6 @@ interface FileCardProps {
     } | null;
 }
 
-
-
-
 export const FileCard = React.memo(({
     file,
     isSelected,
@@ -303,17 +45,6 @@ export const FileCard = React.memo(({
     overallRatingAxis = null,
 }: FileCardProps) => {
     const perfDebugEnabled = isPerfDebugEnabled();
-    const isAudioArchiveFile = useMemo(() => file.type === 'archive' && isAudioArchive(file), [file]);
-    // アイコン選択ロジック
-    const Icon = (() => {
-        if (file.type === 'video') return Play;
-        if (file.type === 'image') return ImageIcon;
-        if (file.type === 'audio') return Music;
-        if (file.type === 'archive') {
-            return isAudioArchiveFile ? FileMusic : Archive;
-        }
-        return FileText;
-    })();
 
     const openLightbox = useUIStore((s) => s.openLightbox);
     const thumbnailAction = useSettingsStore((s) => s.thumbnailAction);
@@ -321,7 +52,6 @@ export const FileCard = React.memo(({
     const animatedImagePreviewMode = useSettingsStore((s) => s.animatedImagePreviewMode);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const searchDestinations = useSettingsStore((s) => s.searchDestinations);
-    // カード表示設定（Phase 12-3）
     const showFileName = useSettingsStore((s) => s.showFileName);
     const showDuration = useSettingsStore((s) => s.showDuration);
     const showTags = useSettingsStore((s) => s.showTags);
@@ -335,6 +65,17 @@ export const FileCard = React.memo(({
     const activeDisplayPresetId = useUIStore((s) => s.currentActiveDisplayPresetId);
     const thumbnailPresentation = useUIStore((s) => s.currentThumbnailPresentation);
     const externalDisplayPresets = useDisplayPresetStore((s) => s.presets);
+    const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
+    const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
+    const isTagBorderMode = tagDisplayStyle === 'border';
+    const fileCardTagOrderMode = useSettingsStore((s) => s.fileCardTagOrderMode);
+    const fileTagsCache = useFileStore((s) => s.fileTagsCache);
+    const playMode = useSettingsStore((s) => s.playMode);
+    const videoFlipbookSpeed = useSettingsStore((s) => s.videoFlipbookSpeed);
+    const archiveFlipbookSpeed = useSettingsStore((s) => s.archiveFlipbookSpeed);
+    const allTags = useTagStore((s) => s.tags);
+    const tagCategories = useTagStore((s) => s.categories);
+
     const displayPreset = useMemo(
         () => getDisplayPresetById(activeDisplayPresetId, externalDisplayPresets, displayMode),
         [activeDisplayPresetId, externalDisplayPresets, displayMode]
@@ -342,195 +83,62 @@ export const FileCard = React.memo(({
     const config = displayPreset.definition.layout;
     const isDetailedHorizontalMode = isHorizontalDisplayMode(displayPreset.baseDisplayMode);
     const detailedThumbnailAspectRatio = getHorizontalThumbnailAspectRatio(displayPreset.baseDisplayMode);
-    const thumbnailObjectFitClass = thumbnailPresentation === 'contain' ? 'object-contain' : 'object-cover';
-    // Phase 14-8: タグポップオーバートリガー設定
-    const tagPopoverTrigger = useSettingsStore((s) => s.tagPopoverTrigger);
-    // タグ表示スタイル設定
-    const tagDisplayStyle = useSettingsStore((s) => s.tagDisplayStyle);
-    const isTagBorderMode = tagDisplayStyle === 'border';
-    const fileCardTagOrderMode = useSettingsStore((s) => s.fileCardTagOrderMode);
-    const fileTagsCache = useFileStore((s) => s.fileTagsCache);
 
+    const isAudioArchiveFile = useMemo(() => file.type === 'archive' && isAudioArchive(file), [file]);
 
-    // Phase 15-2: サムネイルバッジの計算（メモ化）
+    const Icon = (() => {
+        if (file.type === 'video') return Play;
+        if (file.type === 'audio') return Music;
+        if (file.type === 'archive') return isAudioArchiveFile ? FileMusic : null;
+        return FileText;
+    })();
+
     const thumbnailBadges = useMemo(() => {
         const badges = { attributes: [] as Array<{ label: string; color: string }>, extension: '' };
 
         if (displayPreset.definition.hideThumbnailBadges) return badges;
 
-        // 拡張子バッジ（右上）
         const ext = file.name.split('.').pop()?.toUpperCase() || '';
         badges.extension = ext;
 
-        // 属性バッジ（左上）
-        // 1. アニメーションバッジ（右上に移設したのでここでは追加しない）
-        // if (file.isAnimated) {
-        //     badges.attributes.push({ label: 'ANIM', color: 'bg-pink-600' });
-        // }
-
-        // 2. 縦長画像バッジ
         try {
             const meta = file.metadata ? JSON.parse(file.metadata) : null;
             if (meta?.width && meta?.height && meta.height > meta.width * 1.3) {
                 badges.attributes.push({ label: 'TALL', color: 'bg-indigo-800/80' });
             }
         } catch {
-            // JSON parse error - silent fail
+            // ignore
         }
 
         return badges;
     }, [file.name, file.metadata, displayPreset.definition.hideThumbnailBadges]);
 
-    // 拡張子の色分け（半透明ダーク系で洗練された印象に）
     const extensionColor = useMemo(() => {
         const ext = file.name.split('.').pop()?.toUpperCase() || '';
         if (['MP4', 'MOV', 'WEBM', 'AVI', 'MKV'].includes(ext)) return 'bg-blue-800/80';
         if (['ZIP', 'RAR', 'CBZ', '7Z', 'TAR', 'GZ'].includes(ext)) return 'bg-orange-800/80';
         if (['MP3', 'WAV', 'FLAC', 'AAC', 'OGG'].includes(ext)) return 'bg-purple-800/80';
-        return 'bg-emerald-800/80'; // Default: images
+        return 'bg-emerald-800/80';
     }, [file.name]);
 
-
-
-    // Phase 14-7: タグポップオーバー
     const [showTagPopover, setShowTagPopover] = useState(false);
     const popoverRef = useRef<HTMLDivElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
-    // Phase 14-8: タグポップオーバー hover タイムアウト制御
     const tagHoverTimeoutRef = useRef<number | null>(null);
-
-
-    // Hover state
-    const [isHovered, setIsHovered] = useState(false);
-    const [scrubIndex, setScrubIndex] = useState(0);
-    const [preloadState, setPreloadState] = useState<'idle' | 'loading' | 'ready'>('idle');
-    const [archivePreviewFrames, setArchivePreviewFrames] = useState<string[]>([]);
-    const [archivePreviewFetchState, setArchivePreviewFetchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-    const preloadedImages = useRef<HTMLImageElement[]>([]);
-    const hoverTimeoutRef = useRef<number | null>(null);
-    const flipbookIntervalRef = useRef<number | null>(null);
-    const [animatedPreviewSessionKey, setAnimatedPreviewSessionKey] = useState(0);
-    const thumbnailAreaRef = useRef<HTMLDivElement>(null);
-    const cardRootRef = useRef<HTMLDivElement>(null);
-    const [isThumbnailVisible, setIsThumbnailVisible] = useState(false);
-    const [visibleAnimatedPreviewVersion, setVisibleAnimatedPreviewVersion] = useState(0);
-    const [isVisibleAnimatedPreviewActive, setIsVisibleAnimatedPreviewActive] = useState(false);
-    const [hoverZoomLayout, setHoverZoomLayout] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
-    const [isZoomButtonHovered, setIsZoomButtonHovered] = useState(false);
-    const hoverZoomDelayRef = useRef<number | null>(null);
     const isOpeningFileRef = useRef(false);
-    const zoomButtonRef = useRef<HTMLButtonElement>(null);
+    const cardRootRef = useRef<HTMLDivElement>(null);
 
-    // Play mode state
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const playDelayRef = useRef<number | null>(null);
-    const jumpIntervalRef = useRef<NodeJS.Timeout | null>(null); // Phase 17-3: interval 管理
-
-    // Phase 17-3: 同時再生制御
-    const hoveredPreviewId = useUIStore((s) => s.hoveredPreviewId);
-    const setHoveredPreview = useUIStore((s) => s.setHoveredPreview);
-
-    // Phase 17-3: playMode 設定を取得
-    const playMode = useSettingsStore((s) => s.playMode);
-    const videoFlipbookSpeed = useSettingsStore((s) => s.videoFlipbookSpeed);
-    const archiveFlipbookSpeed = useSettingsStore((s) => s.archiveFlipbookSpeed);
-    const allTags = useTagStore((s) => s.tags);
-    const tagCategories = useTagStore((s) => s.categories);
-
-    // Phase 17-3: shouldPlayVideo を計算
-    const shouldPlayVideo = useMemo(() => {
-        return hoveredPreviewId === file.id && thumbnailAction === 'play' && file.type === 'video';
-    }, [hoveredPreviewId, file.id, file.type, thumbnailAction]);
-
-    const isAnimatedImage = useMemo(() => {
-        return file.type === 'image' && file.isAnimated === true;
-    }, [file.type, file.isAnimated]);
-
-    const shouldShowHoverZoomPreview = useMemo(() => {
-        return (
-            isZoomButtonHovered &&
-            (file.type === 'image' || file.type === 'archive') &&
-            Boolean(file.type === 'archive' ? file.thumbnailPath : (file.path || file.thumbnailPath))
-        );
-    }, [file.path, file.thumbnailPath, file.type, isZoomButtonHovered]);
-
-    const shouldAnimateImagePreview = useMemo(() => {
-        return (
-            isAnimatedImage &&
-            !performanceMode &&
-            (
-                (animatedImagePreviewMode === 'hover' && isHovered) ||
-                (animatedImagePreviewMode === 'visible' && isVisibleAnimatedPreviewActive)
-            )
-        );
-    }, [isAnimatedImage, isHovered, animatedImagePreviewMode, isVisibleAnimatedPreviewActive, performanceMode]);
-
-    const imageDimensions = useMemo(() => {
-        try {
-            const meta = file.metadata ? JSON.parse(file.metadata) : null;
-            const width = Number(meta?.width);
-            const height = Number(meta?.height);
-            if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
-                return { width, height };
-            }
-        } catch {
-            // ignore malformed metadata
-        }
-        return null;
-    }, [file.metadata]);
-
-    const archiveImageCount = getArchiveImageCount(file);
-    const canFlipbookArchive = file.type === 'archive'
-        && archiveThumbnailAction === 'flipbook'
-        && !isAudioArchiveFile
-        && (archiveImageCount ?? 0) > 1;
-
-    // Phase 17-3: interval クリーンアップヘルパー
-    const clearJumpInterval = useCallback(() => {
-        if (jumpIntervalRef.current) {
-            clearInterval(jumpIntervalRef.current);
-            jumpIntervalRef.current = null;
-        }
-    }, []);
-
-    const clearFlipbookInterval = useCallback(() => {
-        if (flipbookIntervalRef.current) {
-            clearInterval(flipbookIntervalRef.current);
-            flipbookIntervalRef.current = null;
-        }
-    }, []);
-
-    const preloadFrameImages = useCallback((framePaths: string[]) => {
-        const images = framePaths.map((framePath) => {
-            const img = new Image();
-            img.src = toMediaUrl(framePath);
-            return img;
-        });
-        preloadedImages.current = images;
-
-        return Promise.all(images.map((img) =>
-            new Promise((resolve) => {
-                img.onload = resolve;
-                img.onerror = resolve;
-            })
-        ));
-    }, []);
-
-    // プレビューフレームのパスをパース
-    const previewFrames = useMemo(() => {
-        if (!file.previewFrames) return [];
-        return file.previewFrames.split(',').filter(Boolean);
-    }, [file.previewFrames]);
-
-    const activePreviewFrames = useMemo(() => {
-        if (file.type === 'video') return previewFrames;
-        if (canFlipbookArchive) return archivePreviewFrames;
-        return [];
-    }, [file.type, previewFrames, canFlipbookArchive, archivePreviewFrames]);
-
-    const canScrubPreview = file.type === 'video';
-    const canFlipbookPreview = (thumbnailAction === 'flipbook' && file.type === 'video') || canFlipbookArchive;
-    const canHoverFramePreview = (thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview;
+    const hover = useFileCardHover({
+        file,
+        thumbnailAction,
+        archiveThumbnailAction,
+        animatedImagePreviewMode,
+        performanceMode,
+        videoFlipbookSpeed,
+        archiveFlipbookSpeed,
+        playMode,
+        thumbnailPresentation,
+    });
 
     const tagById = useMemo(
         () => new Map(allTags.map((tag) => [tag.id, tag])),
@@ -544,7 +152,7 @@ export const FileCard = React.memo(({
 
     const fileTags = useMemo(() => {
         const tagIds = fileTagsCache.get(file.id) ?? file.tags ?? [];
-        const resolvedTags: Tag[] = [];
+        const resolvedTags = [];
 
         for (const tagId of tagIds) {
             const tag = tagById.get(tagId);
@@ -563,7 +171,6 @@ export const FileCard = React.memo(({
         [tagCategories]
     );
 
-    // タグをカテゴリ順 -> タグ順でソート（未分類は後ろ）
     const sortedTags = useMemo(() => {
         return [...fileTags].sort((a, b) => {
             const aCategoryOrder = a.categoryId
@@ -581,7 +188,6 @@ export const FileCard = React.memo(({
         });
     }, [fileTags, categorySortOrderById]);
 
-    // Phase 14-8: タグポップオーバー hover 制御
     const openPopover = useCallback(() => {
         if (tagHoverTimeoutRef.current) {
             clearTimeout(tagHoverTimeoutRef.current);
@@ -596,7 +202,6 @@ export const FileCard = React.memo(({
         }, 150);
     }, []);
 
-    // Phase 14-8: タグポップオーバー hover timeout クリーンアップ
     useEffect(() => {
         return () => {
             if (tagHoverTimeoutRef.current) {
@@ -606,156 +211,9 @@ export const FileCard = React.memo(({
     }, []);
 
     useEffect(() => {
-        return () => {
-            clearFlipbookInterval();
-        };
-    }, [clearFlipbookInterval]);
-
-    useEffect(() => {
-        return () => {
-            if (hoverZoomDelayRef.current) {
-                clearTimeout(hoverZoomDelayRef.current);
-            }
-        };
-    }, []);
-
-    useEffect(() => {
-        setArchivePreviewFrames([]);
-        setArchivePreviewFetchState('idle');
-        setPreloadState('idle');
-        setScrubIndex(0);
-    }, [file.id]);
-
-    useEffect(() => {
-        if (!shouldShowHoverZoomPreview || !zoomButtonRef.current) {
-            setHoverZoomLayout(null);
-            return;
-        }
-
-        const updatePosition = () => {
-            const buttonRect = zoomButtonRef.current?.getBoundingClientRect();
-            if (!buttonRect) return;
-
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const gap = HOVER_ZOOM_PREVIEW_GAP;
-            const margin = 12;
-            const aspectRatio = imageDimensions ? (imageDimensions.width / imageDimensions.height) : 1;
-            const maxWidth = Math.max(
-                HOVER_ZOOM_PREVIEW_MIN_SIZE,
-                Math.min(HOVER_ZOOM_PREVIEW_MAX_WIDTH, Math.floor(viewportWidth * 0.3))
-            );
-            const maxHeight = Math.max(
-                HOVER_ZOOM_PREVIEW_MIN_SIZE,
-                Math.min(HOVER_ZOOM_PREVIEW_MAX_HEIGHT, Math.floor(viewportHeight * 0.62))
-            );
-
-            let previewWidth = maxWidth;
-            let previewHeight = previewWidth / aspectRatio;
-            if (previewHeight > maxHeight) {
-                previewHeight = maxHeight;
-                previewWidth = previewHeight * aspectRatio;
-            }
-
-            previewWidth = Math.round(previewWidth);
-            previewHeight = Math.round(previewHeight);
-
-            const preferredLeft = buttonRect.right + gap;
-            const fallbackLeft = buttonRect.left - previewWidth - gap;
-            const left = preferredLeft + previewWidth <= viewportWidth - margin
-                ? preferredLeft
-                : fallbackLeft >= margin
-                    ? fallbackLeft
-                    : Math.max(margin, viewportWidth - previewWidth - margin);
-
-            const anchorTop = buttonRect.top - previewHeight + HOVER_ZOOM_PREVIEW_GAP;
-            const top = Math.min(
-                Math.max(margin, anchorTop),
-                Math.max(margin, viewportHeight - previewHeight - margin)
-            );
-
-            setHoverZoomLayout({ top, left, width: previewWidth, height: previewHeight });
-        };
-
-        updatePosition();
-        window.addEventListener('scroll', updatePosition, true);
-        window.addEventListener('resize', updatePosition);
-
-        return () => {
-            window.removeEventListener('scroll', updatePosition, true);
-            window.removeEventListener('resize', updatePosition);
-        };
-    }, [imageDimensions, shouldShowHoverZoomPreview]);
-
-    useEffect(() => {
-        if (!isAnimatedImage || !thumbnailAreaRef.current) {
-            setIsThumbnailVisible(false);
-            return;
-        }
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (!entry) return;
-                setIsThumbnailVisible(entry.isIntersecting && entry.intersectionRatio >= 0.35);
-            },
-            { threshold: [0, 0.35] }
-        );
-
-        observer.observe(thumbnailAreaRef.current);
-        return () => observer.disconnect();
-    }, [isAnimatedImage]);
-
-    useEffect(() => {
-        if (animatedImagePreviewMode !== 'visible') {
-            setIsVisibleAnimatedPreviewActive(false);
-            return;
-        }
-        return subscribeVisibleAnimatedPreviewSlots(() => {
-            setVisibleAnimatedPreviewVersion((prev) => prev + 1);
-        });
-    }, [animatedImagePreviewMode]);
-
-    useEffect(() => {
-        const shouldUseVisibleAnimatedPreview =
-            isAnimatedImage &&
-            animatedImagePreviewMode === 'visible' &&
-            !performanceMode &&
-            isThumbnailVisible;
-
-        if (!shouldUseVisibleAnimatedPreview) {
-            releaseVisibleAnimatedPreviewSlot(file.id);
-            setIsVisibleAnimatedPreviewActive(false);
-            return;
-        }
-
-        const acquired = requestVisibleAnimatedPreviewSlot(file.id);
-        setIsVisibleAnimatedPreviewActive(acquired);
-    }, [
-        file.id,
-        isAnimatedImage,
-        animatedImagePreviewMode,
-        performanceMode,
-        isThumbnailVisible,
-        visibleAnimatedPreviewVersion,
-    ]);
-
-    useEffect(() => {
-        return () => {
-            releaseVisibleAnimatedPreviewSlot(file.id);
-        };
-    }, [file.id]);
-
-    useEffect(() => {
-        if (!isVisibleAnimatedPreviewActive || animatedImagePreviewMode !== 'visible') return;
-        setAnimatedPreviewSessionKey((prev) => prev + 1);
-    }, [isVisibleAnimatedPreviewActive, animatedImagePreviewMode]);
-
-    // Phase 14-7: Click-outside handler for tag popover (Phase 14-8: click モード限定)
-    useEffect(() => {
-        if (tagPopoverTrigger !== 'click') return;  // click モード限定
+        if (tagPopoverTrigger !== 'click') return;
         if (!showTagPopover) return;
         const handleClickOutside = (e: MouseEvent) => {
-            // ポップオーバーと+Nボタン両方を判定対象に含める
             if (
                 popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
                 triggerRef.current && !triggerRef.current.contains(e.target as Node)
@@ -767,8 +225,6 @@ export const FileCard = React.memo(({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showTagPopover, tagPopoverTrigger]);
 
-    // FileCardInfoDetailed 側の visibleCount 指定は維持しつつ、
-    // タグ要約の選定/描画ロジックは専用コンポーネントへ移譲する。
     const TagSummaryRenderer = useCallback(({ visibleCount }: FileCardTagSummaryRendererProps) => {
         return (
             <FileCardTagSummary
@@ -798,257 +254,7 @@ export const FileCard = React.memo(({
         closePopoverWithDelay,
     ]);
 
-
-    // ★ onMouseEnter でプリロード開始
-    const handleMouseEnter = useCallback(() => {
-        // Phase 17-3: 同時再生制御
-        setHoveredPreview(file.id);
-
-        // パフォーマンスモードではホバーアニメーション無効
-        if (performanceMode) return;
-
-        // 100ms後にホバー状態をアクティブに（素早い通過時は発火しない）
-        hoverTimeoutRef.current = window.setTimeout(() => {
-            setIsHovered(true);
-
-            if (
-                isAnimatedImage &&
-                animatedImagePreviewMode === 'hover'
-            ) {
-                setAnimatedPreviewSessionKey((prev) => prev + 1);
-            }
-
-            if (
-                canHoverFramePreview &&
-                activePreviewFrames.length > 0 &&
-                preloadState === 'idle'
-            ) {
-                setPreloadState('loading');
-                void preloadFrameImages(activePreviewFrames).then(() => setPreloadState('ready'));
-                return;
-            }
-
-            if (
-                canFlipbookArchive &&
-                activePreviewFrames.length === 0 &&
-                archivePreviewFetchState === 'idle'
-            ) {
-                setArchivePreviewFetchState('loading');
-                setPreloadState('loading');
-
-                void window.electronAPI.getArchivePreviewFrames(file.path, ARCHIVE_PREVIEW_FRAME_COUNT)
-                    .then((frames) => {
-                        if (frames.length === 0) {
-                            setArchivePreviewFrames([]);
-                            setArchivePreviewFetchState('error');
-                            setPreloadState('idle');
-                            return;
-                        }
-
-                        setArchivePreviewFrames(frames);
-                        setArchivePreviewFetchState('ready');
-                        return preloadFrameImages(frames).then(() => setPreloadState('ready'));
-                    })
-                    .catch(() => {
-                        setArchivePreviewFrames([]);
-                        setArchivePreviewFetchState('error');
-                        setPreloadState('idle');
-                    });
-            }
-        }, 100);
-    }, [
-        animatedImagePreviewMode,
-        isAnimatedImage,
-        file.id,
-        file.path,
-        activePreviewFrames,
-        preloadState,
-        performanceMode,
-        setHoveredPreview,
-        canHoverFramePreview,
-        canFlipbookArchive,
-        archivePreviewFetchState,
-        preloadFrameImages,
-    ]);
-
-    const handleMouseLeave = useCallback(() => {
-        if (hoverTimeoutRef.current) {
-            clearTimeout(hoverTimeoutRef.current);
-            hoverTimeoutRef.current = null;
-        }
-        if (playDelayRef.current) {
-            clearTimeout(playDelayRef.current);
-            playDelayRef.current = null;
-        }
-        clearFlipbookInterval();
-        setIsHovered(false);
-        setIsZoomButtonHovered(false);
-        setScrubIndex(0);
-        if (hoverZoomDelayRef.current) {
-            clearTimeout(hoverZoomDelayRef.current);
-            hoverZoomDelayRef.current = null;
-        }
-
-        // Phase 17-3: 同時再生制御
-        setHoveredPreview(null);
-    }, [clearFlipbookInterval, setHoveredPreview]);
-
-    // Scrub: マウス位置からフレームインデックスを計算
-    const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        if (thumbnailAction !== 'scrub' || !canScrubPreview || preloadState !== 'ready' || activePreviewFrames.length === 0) return;
-
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const percentage = x / rect.width;
-        const index = Math.floor(percentage * activePreviewFrames.length);
-        setScrubIndex(Math.max(0, Math.min(index, activePreviewFrames.length - 1)));
-    }, [thumbnailAction, canScrubPreview, preloadState, activePreviewFrames.length]);
-
-    // コマ送りモード: ホバー中にプレビューフレームを順送り表示
-    useEffect(() => {
-        const shouldFlipbook =
-            isHovered &&
-        canFlipbookPreview &&
-        (file.type === 'video' || canFlipbookArchive) &&
-        preloadState === 'ready' &&
-        activePreviewFrames.length > 1;
-
-        if (!shouldFlipbook) {
-            clearFlipbookInterval();
-            return;
-        }
-
-        clearFlipbookInterval();
-        const activeFlipbookSpeed = file.type === 'archive' ? archiveFlipbookSpeed : videoFlipbookSpeed;
-        const flipbookIntervalMs = file.type === 'archive'
-            ? ARCHIVE_FLIPBOOK_INTERVAL_MS[activeFlipbookSpeed]
-            : VIDEO_FLIPBOOK_INTERVAL_MS[activeFlipbookSpeed];
-        flipbookIntervalRef.current = window.setInterval(() => {
-            setScrubIndex((prev) => (prev + 1) % activePreviewFrames.length);
-        }, flipbookIntervalMs);
-
-        return () => {
-            clearFlipbookInterval();
-        };
-    }, [isHovered, canFlipbookPreview, file.type, canFlipbookArchive, preloadState, activePreviewFrames.length, videoFlipbookSpeed, archiveFlipbookSpeed, clearFlipbookInterval]);
-
-    // Phase 17-3: Video 要素の制御（3モード対応 + interval管理強化）
-    useEffect(() => {
-        const shouldPlay = hoveredPreviewId === file.id && thumbnailAction === 'play' && file.type === 'video';
-
-        if (!shouldPlay || !videoRef.current) {
-            clearJumpInterval();
-            return;
-        }
-
-        const video = videoRef.current;
-        let cancelled = false;
-        let currentSegment = 0;
-
-        const startPlayback = async () => {
-            if (cancelled) return;
-            const duration = video.duration;
-
-            // 初期位置設定
-            if (duration && duration > 2) {
-                // sequential ガード: 短い動画は light にフォールバック
-                const effectiveJumpType =
-                    playMode.jumpType === 'sequential' && shouldFallbackSequentialPreview(duration)
-                        ? 'light'
-                        : playMode.jumpType;
-
-                if (effectiveJumpType === 'random') {
-                    video.currentTime = getRandomSafeTime(duration);
-                } else if (effectiveJumpType === 'sequential') {
-                    video.currentTime = getSequentialPreviewTime(duration, 0);
-                    currentSegment = 0;
-                }
-                // 'light' の場合は currentTime = 0 のまま
-            }
-
-            video.muted = true;
-            video.volume = 0;
-
-            try {
-                await video.play();
-            } catch {
-                return;
-            }
-
-            // ジャンプループ（light モードではスキップ）
-            const effectiveJumpType =
-                playMode.jumpType === 'sequential' && shouldFallbackSequentialPreview(video.duration)
-                    ? 'light'
-                    : playMode.jumpType;
-
-            if (effectiveJumpType !== 'light') {
-                jumpIntervalRef.current = setInterval(() => {
-                    if (!video.duration || isNaN(video.duration)) return;
-
-                    if (effectiveJumpType === 'random') {
-                        video.currentTime = getRandomSafeTime(video.duration, video.currentTime);
-                    } else if (effectiveJumpType === 'sequential') {
-                        currentSegment = (currentSegment + 1) % VIDEO_PREVIEW_SEQUENTIAL_SEGMENTS;
-                        video.currentTime = getSequentialPreviewTime(video.duration, currentSegment);
-                    }
-                }, playMode.jumpInterval);
-            }
-        };
-
-        const handleLoadedMetadata = () => {
-            startPlayback();
-        };
-
-        if (video.readyState >= 1) {
-            startPlayback();
-        } else {
-            video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-        }
-
-        return () => {
-            cancelled = true;
-            clearJumpInterval();
-            video.pause();
-            video.currentTime = 0;
-        };
-    }, [hoveredPreviewId, file.id, file.type, thumbnailAction, playMode.jumpType, playMode.jumpInterval, clearJumpInterval]);
-
-    // 表示する画像パスを決定
-    const displayImagePath = useMemo(() => {
-        if (
-            isHovered &&
-            preloadState === 'ready' &&
-            activePreviewFrames.length > 0 &&
-            ((thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview)
-        ) {
-            return activePreviewFrames[scrubIndex];
-        }
-        if (shouldAnimateImagePreview) {
-            return file.path;
-        }
-        return file.thumbnailPath;
-    }, [isHovered, preloadState, activePreviewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, canScrubPreview, canFlipbookPreview, shouldAnimateImagePreview]);
-
-    const displayImageSrc = useMemo(() => {
-        if (!displayImagePath) return '';
-        const base = toMediaUrl(displayImagePath);
-        if (shouldAnimateImagePreview && displayImagePath === file.path) {
-            return `${base}?animPreview=${animatedPreviewSessionKey}`;
-        }
-        return base;
-    }, [displayImagePath, shouldAnimateImagePreview, file.path, animatedPreviewSessionKey]);
-
-    const hoverZoomImageSrc = useMemo(() => {
-        const sourcePath = file.type === 'archive'
-            ? file.thumbnailPath
-            : (file.path || file.thumbnailPath);
-        if (!sourcePath) return '';
-        const base = toMediaUrl(sourcePath);
-        return file.isAnimated ? `${base}?hoverZoom=${animatedPreviewSessionKey}` : base;
-    }, [file.isAnimated, file.path, file.thumbnailPath, file.type, animatedPreviewSessionKey]);
-
     const handleCardClick = (e: React.MouseEvent) => {
-        // ダブルクリック時の click イベント重複発火を防ぐ
         if (e.detail === 2) return;
 
         if (e.shiftKey) {
@@ -1076,11 +282,9 @@ export const FileCard = React.memo(({
         };
 
         try {
-            // Phase 18-B: デフォルトアプリ設定 + エラーハンドリング + フォールバック
             const { externalApps, defaultExternalApps } = useSettingsStore.getState();
             const ext = file.name.split('.').pop()?.toLowerCase() || '';
 
-            // デフォルトアプリが設定されている場合のみ外部アプリで開く
             const defaultAppId = defaultExternalApps[ext];
             if (defaultAppId) {
                 const app = externalApps.find((a: { id: string; }) => a.id === defaultAppId);
@@ -1089,12 +293,10 @@ export const FileCard = React.memo(({
                     const result = await window.electronAPI.openWithApp(file.path, app.path, file.id);
 
                     if (!result.success) {
-                        // エラー時: トースト表示 + OS標準で開く
                         useToastStore.getState().error(result.error || '外部アプリで開けませんでした');
                         await window.electronAPI.openExternal(file.path);
                         await syncExternalOpenCount();
                     } else if (result.externalOpenCount !== undefined) {
-                        // 成功時: カウント更新
                         useFileStore.getState().updateFileExternalOpenCount(
                             file.id,
                             result.externalOpenCount,
@@ -1105,7 +307,6 @@ export const FileCard = React.memo(({
                 }
             }
 
-            // デフォルト設定なし or アプリが見つからない → OS標準で開く
             await window.electronAPI.openExternal(file.path);
             await syncExternalOpenCount();
         } finally {
@@ -1116,10 +317,7 @@ export const FileCard = React.memo(({
     const handleContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
 
-        // Bug 2修正: 複数選択対応
         const selectedIdsArray = Array.from(useFileStore.getState().selectedIds);
-
-        // 右クリック対象が選択中に含まれているかを判定
         const effectiveIds = selectedIdsArray.includes(file.id) ? selectedIdsArray : [file.id];
 
         const start = perfDebugEnabled ? performance.now() : 0;
@@ -1153,13 +351,10 @@ export const FileCard = React.memo(({
             onClick={handleCardClick}
             onDoubleClick={handleDoubleClick}
             onContextMenu={handleContextMenu}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onMouseMove={handleMouseMove}
-            style={{
-                width: '100%',
-                height: '100%'
-            }}
+            onMouseEnter={hover.handleMouseEnter}
+            onMouseLeave={hover.handleMouseLeave}
+            onMouseMove={hover.handleMouseMove}
+            style={{ width: '100%', height: '100%' }}
             // ⚠️ overflow-hidden を削除するとサムネイルの角丸やレイアウトが崩れる。
             // カード外に要素を表示する場合は React Portal (createPortal) を使用すること。
             className={`
@@ -1172,265 +367,74 @@ export const FileCard = React.memo(({
                         : 'border-surface-700/40 bg-surface-800 hover:border-cyan-500/40 hover:bg-surface-750 hover:shadow-md hover:shadow-black/30'}
             `}
         >
-            {/* Thumbnail Area - Phase 14: 固定高さ */}
-            <div
-                ref={thumbnailAreaRef}
-                className={`relative bg-surface-900 flex items-center justify-center overflow-hidden group flex-shrink-0 ${isDetailedHorizontalMode ? 'h-full' : 'w-full'}`}
-                style={isDetailedHorizontalMode
-                    ? { height: '100%', aspectRatio: detailedThumbnailAspectRatio }
-                    : { aspectRatio: config.aspectRatio }
-                }
-            >
-                {/* サムネイル画像 */}
-                {displayImagePath ? (
-                    <img
-                        src={displayImageSrc}
-                        alt={file.name}
-                        className={`w-full h-full ${thumbnailObjectFitClass} transition-transform duration-300 ${!shouldPlayVideo ? 'group-hover:scale-105' : ''
-                            } ${shouldPlayVideo ? 'opacity-0' : 'opacity-100'}`}
-                        loading="lazy"
-                        onError={(e) => {
-                            // 画像ロードエラー時はプレースホルダーを表示（不透明度を下げるなど視覚的FB）
-                            e.currentTarget.style.opacity = '0.3';
-                        }}
-                    />
-                ) : (
-                    <Icon size={40} className="text-surface-600" />
-                )}
+            <FileCardThumbnail
+                file={file}
+                isSelected={isSelected}
+                isAudioArchiveFile={isAudioArchiveFile}
+                isDetailedHorizontalMode={isDetailedHorizontalMode}
+                detailedThumbnailAspectRatio={detailedThumbnailAspectRatio}
+                aspectRatio={config.aspectRatio}
+                displayImagePath={hover.displayImagePath}
+                displayImageSrc={hover.displayImageSrc}
+                hoverZoomImageSrc={hover.hoverZoomImageSrc}
+                thumbnailObjectFitClass={hover.thumbnailObjectFitClass}
+                shouldPlayVideo={hover.shouldPlayVideo}
+                isHovered={hover.isHovered}
+                preloadState={hover.preloadState}
+                canHoverFramePreview={hover.canHoverFramePreview}
+                canFlipbookArchive={hover.canFlipbookArchive}
+                activePreviewFrames={hover.activePreviewFrames}
+                scrubIndex={hover.scrubIndex}
+                showDuration={showDuration}
+                hideThumbnailBadges={!!displayPreset.definition.hideThumbnailBadges}
+                thumbnailBadges={thumbnailBadges}
+                extensionColor={extensionColor}
+                overallRating={overallRating}
+                overallRatingAxis={overallRatingAxis}
+                shouldShowHoverZoomPreview={hover.shouldShowHoverZoomPreview}
+                hoverZoomLayout={hover.hoverZoomLayout}
+                thumbnailAreaRef={hover.thumbnailAreaRef}
+                videoRef={hover.videoRef}
+                zoomButtonRef={hover.zoomButtonRef}
+                onZoomClick={(e) => {
+                    e.stopPropagation();
+                    openLightbox(file);
+                }}
+                onZoomButtonMouseEnter={hover.handleZoomButtonMouseEnter}
+                onZoomButtonMouseLeave={hover.handleZoomButtonMouseLeave}
+                onVideoError={() => hover.setHoveredPreview(null)}
+            />
 
-                {/* Video オーバーレイ（Playモード時のみ） */}
-                {shouldPlayVideo && file.type === 'video' && (
-                    <video
-                        ref={videoRef}
-                        src={toMediaUrl(file.path)}
-                        className={`absolute inset-0 w-full h-full ${thumbnailObjectFitClass}`}
-                        muted
-                        loop
-                        playsInline
-                        preload="metadata"
-                        onError={() => {
-                            // Phase 19.5 Bug Fix: 動画ロードエラー時にプレビューを解除して404ループを防止
-                            setHoveredPreview(null);
-                        }}
-                    />
-                )}
-
-                {/* ローディングインジケーター（Scrub / コマ送り ロード中） */}
-                {isHovered && preloadState === 'loading' && canHoverFramePreview && (
-                    <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded flex items-center gap-1">
-                        <Loader size={10} className="animate-spin" />
-                        <span>Loading...</span>
-                    </div>
-                )}
-
-                {/* スクラブ / コマ送り 進捗バー */}
-                {isHovered && canHoverFramePreview && preloadState === 'ready' && activePreviewFrames.length > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
-                        <div
-                            className="h-full bg-cyan-400 transition-all duration-100"
-                            style={{
-                                width: `${activePreviewFrames.length > 1
-                                    ? (scrubIndex / (activePreviewFrames.length - 1)) * 100
-                                    : 0}%`
-                            }}
-                        />
-                    </div>
-                )}
-
-                {/* 右下バッジ群 */}
-                {((showDuration && file.duration) || (file.type === 'archive' && archiveImageCount != null && archiveImageCount > 1)) && (
-                    <div className="absolute bottom-1 right-1 flex items-center gap-1">
-                        {file.type === 'archive' && archiveImageCount != null && archiveImageCount > 1 && (
-                            <>
-                                {isHovered && canFlipbookArchive && preloadState === 'ready' && activePreviewFrames.length > 0 && (
-                                    <div className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                                        {`${scrubIndex + 1}/${activePreviewFrames.length}`}
-                                    </div>
-                                )}
-                                <div className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                                    {archiveImageCount}p
-                                </div>
-                            </>
-                        )}
-                        {showDuration && file.duration && (
-                            <div className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
-                                {file.duration}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Phase 15: バッジ（右上） - アニメーション + 属性 + 拡張子 */}
-                <div className="absolute top-1 right-1 flex gap-1 z-10">
-                    {!isSelected && file.type === 'archive' && !isAudioArchiveFile && (archiveImageCount ?? 0) > 0 && (
-                        <div className="bg-emerald-700/85 rounded-sm p-0.5 opacity-90" title="画像書庫">
-                            <ImageIcon size={12} className="text-white" strokeWidth={2.4} />
-                        </div>
-                    )}
-                    {/* アニメーションバッジ（アイコン） */}
-                    {file.isAnimated && !isSelected && (
-                        <div className="bg-pink-800/80 rounded-sm p-0.5 opacity-90">
-                            <Clapperboard size={12} className="text-white" strokeWidth={2.5} />
-                        </div>
-                    )}
-                    {/* 属性バッジ（TALL等） */}
-                    {!isSelected && thumbnailBadges.attributes.filter(b => b.label !== 'ANIM').map((badge, i) => (
-                        <span key={i} className={`text-[10px] font-bold text-white px-1.5 py-0.5 rounded-sm opacity-90 ${badge.color}`}>
-                            {badge.label}
-                        </span>
-                    ))}
-                    {/* Phase 26: 音声書庫バッジ（Music アイコン） */}
-                    {!isSelected && file.type === 'archive' && isAudioArchiveFile && (
-                        <div className="bg-purple-800/80 rounded-sm p-0.5 opacity-90">
-                            <Music size={12} className="text-white" strokeWidth={2.5} />
-                        </div>
-                    )}
-                    {/* 拡張子バッジ */}
-                    {thumbnailBadges.extension && (
-                        <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm opacity-90 text-white uppercase ${extensionColor}`}>
-                            {thumbnailBadges.extension}
-                        </div>
-                    )}
-                </div>
-
-                {overallRating !== undefined && overallRatingAxis && (
-                    <div className="pointer-events-none absolute left-1.5 top-1.5 z-10">
-                        <FileCardRatingBadge
-                            value={overallRating}
-                            minValue={overallRatingAxis.minValue}
-                            maxValue={overallRatingAxis.maxValue}
-                            axisName={overallRatingAxis.name}
-                        />
-                    </div>
-                )}
-
-                <button
-                    ref={zoomButtonRef}
-                    type="button"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        openLightbox(file);
-                    }}
-                    onMouseEnter={() => {
-                        if (hoverZoomDelayRef.current) {
-                            clearTimeout(hoverZoomDelayRef.current);
-                        }
-                        hoverZoomDelayRef.current = window.setTimeout(() => {
-                            setIsZoomButtonHovered(true);
-                            hoverZoomDelayRef.current = null;
-                        }, HOVER_ZOOM_PREVIEW_DELAY_MS);
-                    }}
-                    onMouseLeave={() => {
-                        if (hoverZoomDelayRef.current) {
-                            clearTimeout(hoverZoomDelayRef.current);
-                            hoverZoomDelayRef.current = null;
-                        }
-                        setIsZoomButtonHovered(false);
-                    }}
-                    className={`absolute bottom-2 left-2 z-10 rounded-md border border-surface-500/80 bg-black/65 p-2 text-surface-100 shadow-lg transition-all ${isHovered ? 'opacity-100' : 'pointer-events-none opacity-0'} hover:scale-105 hover:bg-black/85 hover:text-white`}
-                    title="中央ビューアで開く"
-                    aria-label="中央ビューアで開く"
-                >
-                    <Maximize2 size={18} />
-                </button>
-
-
-            </div>
-
-            {/* 情報エリア - Phase 14: モード別レイアウト */}
+            {/* 情報エリア */}
             {showFileName && (
                 <div className={isDetailedHorizontalMode ? 'h-full flex-1 min-w-0 border-l border-surface-700/60' : ''}>
-                <FileCardInfoArea
-                    file={file}
-                    displayPreset={displayPreset}
-                    infoAreaHeight={config.infoAreaHeight}
-                    showFileSize={showFileSize}
-                    showCreatedDate={showCreatedDate}
-                    showFolderBadge={showFolderBadge}
-                    showDriveBadge={showDriveBadge}
-                    driveColors={driveColors}
-                    infoBadgeOrder={infoBadgeOrder}
-                    folderBadgeColor={folderBadgeColor}
-                    TagSummaryRenderer={TagSummaryRenderer}
-                />
+                    <FileCardInfoArea
+                        file={file}
+                        displayPreset={displayPreset}
+                        infoAreaHeight={config.infoAreaHeight}
+                        showFileSize={showFileSize}
+                        showCreatedDate={showCreatedDate}
+                        showFolderBadge={showFolderBadge}
+                        showDriveBadge={showDriveBadge}
+                        driveColors={driveColors}
+                        infoBadgeOrder={infoBadgeOrder}
+                        folderBadgeColor={folderBadgeColor}
+                        TagSummaryRenderer={TagSummaryRenderer}
+                    />
                 </div>
             )}
 
-            {/* Phase 14-7: タグポップオーバー (Portal) */}
-            {showTagPopover && triggerRef.current && createPortal(
-                <div
-                    ref={popoverRef}
-                    onMouseEnter={() => {
-                        if (tagPopoverTrigger === 'hover') openPopover();
-                    }}
-                    onMouseLeave={() => {
-                        if (tagPopoverTrigger === 'hover') closePopoverWithDelay();
-                    }}
-                    className="bg-surface-800 border border-surface-600
-                               rounded-lg shadow-2xl p-3 min-w-[200px] max-w-[300px]"
-                    style={{
-                        position: 'fixed',
-                        top: `${triggerRef.current.getBoundingClientRect().bottom + 4}px`,
-                        left: `${triggerRef.current.getBoundingClientRect().left}px`,
-                        zIndex: 9999
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-surface-200">
-                            タグ ({sortedTags.length})
-                        </span>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowTagPopover(false);
-                            }}
-                            className="text-surface-400 hover:text-surface-200 text-sm"
-                        >
-                            ✕
-                        </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                        {sortedTags.map(tag => (
-                            <span
-                                key={tag.id}
-                                className={`px-2 py-1 text-[10px] font-bold whitespace-nowrap rounded ${isTagBorderMode ? 'border-l-4' : ''}`}
-                                style={isTagBorderMode ? {
-                                    backgroundColor: 'rgba(55, 65, 81, 0.9)',
-                                    color: '#e5e7eb',
-                                    borderLeftColor: resolveColorHex(tag.categoryColor || tag.color || '')
-                                } : {
-                                    backgroundColor: resolveColorHex(tag.categoryColor || tag.color || ''),
-                                    color: getTextColorForBackground(tag.categoryColor || tag.color || '')
-                                }}
-                            >
-                                {tag.name}
-                            </span>
-                        ))}
-                    </div>
-                </div>,
-                document.body
-            )}
-
-            {shouldShowHoverZoomPreview && hoverZoomLayout && hoverZoomImageSrc && createPortal(
-                <div
-                    className="pointer-events-none fixed overflow-hidden rounded-xl border border-surface-500/80 bg-surface-800/95 shadow-2xl shadow-black/50 backdrop-blur-sm"
-                    style={{
-                        top: hoverZoomLayout.top,
-                        left: hoverZoomLayout.left,
-                        width: hoverZoomLayout.width,
-                        height: hoverZoomLayout.height,
-                        zIndex: 9998,
-                    }}
-                >
-                    <img
-                        src={hoverZoomImageSrc}
-                        alt={`${file.name} enlarged preview`}
-                        className="h-full w-full object-contain bg-surface-900/90"
-                    />
-                </div>,
-                document.body
-            )}
+            <FileCardTagPopover
+                show={showTagPopover}
+                triggerRef={triggerRef}
+                popoverRef={popoverRef}
+                sortedTags={sortedTags}
+                isTagBorderMode={isTagBorderMode}
+                tagPopoverTrigger={tagPopoverTrigger}
+                onClose={() => setShowTagPopover(false)}
+                onMouseEnter={openPopover}
+                onMouseLeave={closePopoverWithDelay}
+            />
         </div>
     );
 });

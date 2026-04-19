@@ -2,27 +2,28 @@
 
 **Last Updated**: 2026-04-19
 
-- **Current Focus**: ファイルカード表示基盤 フェーズ B 完了
-- **Current Status**: `cardDirection` 分岐解消・プリセット型正規化・`layoutPreset` 完全撤去 完了。コミット前。
+- **Current Focus**: ファイルカード表示基盤 フェーズ C 完了
+- **Current Status**: FileCard.tsx 責務分割完了（1439行 → 442行）。lint・型チェック全通過。コミット前。
 
 ## Recent Achievements
 
-- **ファイルカード表示基盤 フェーズ B（`cardDirection` 分岐解消・プリセット型正規化）**:
+- **ファイルカード表示基盤 フェーズ C（FileCard.tsx 責務分割）**:
+  - `FileCardTagSummary.tsx` を新設（タグサマリー UI コンポーネント 2 本 + `FileCardTagSummaryRow`）
+  - `tagSummaryUtils.ts` を新設（`getTagSummaryUiConfig` / `getBalancedSummaryTags` ヘルパ）
+  - `useAnimatedPreviewSlots.ts` を新設（グローバルスロット管理 + `useAnimatedPreviewSlots` hook）
+  - `useFileCardHover.ts` を新設（ホバー/フリップブック/スクラブ/video 再生の state・effects・handlers 全て）
+  - `FileCardThumbnail.tsx` を新設（サムネイルエリア全体 + ズームプレビューポータル）
+  - `FileCardTagPopover.tsx` を新設（タグポップオーバーポータル）
+  - `FileCard.tsx` を 1439 行 → 442 行に削減（骨格＋ストア接続のみ）
+
+- **ファイルカード表示基盤 フェーズ B（`cardDirection` 分岐解消・プリセット型正規化・layoutPreset 完全撤去）**:
   - `cardDirection === 'horizontal'` の直接比較 4 箇所を `isHorizontalDisplayMode(baseDisplayMode)` ヘルパ呼び出しへ置換
   - `FileCardDisplayModeDefinition` から `cardDirection` / `horizontalThumbnailAspectRatio` フィールドを削除
-  - `DISPLAY_MODE_DIRECTIONS` / `HORIZONTAL_THUMBNAIL_ASPECT_RATIOS` 定数マップを `displayModes.ts` に新設
-  - 7 つのビルトインプリセットからフィールド削除（horizontal は `DISPLAY_MODE_DIRECTIONS` マップで管理）
-  - `ExternalDisplayPresetManifest` から両フィールドを削除、`displayPresetService.ts` で受信時に廃止警告を出力
-  - `mapLegacyLayoutPresetToDisplayMode` 関数と persist.merge の `layoutPreset` 救済ロジックを撤去
-  - `settingsTransfer.ts` の重複 `DisplayMode` 定義と `layoutPreset?: string` フィールドを削除
-  - テスト +10 件（`isHorizontalDisplayMode` 全モード網羅・マップ整合性・アスペクト比検証）
 
 - **ファイルカード表示基盤 フェーズ A（LayoutPreset 軸の除去）**:
   - `LayoutPreset` 型・`setLayoutPreset`・双方向マップを除去し、DisplayMode × ThumbnailPresentation の 2 軸に正規化
 
-- **v1.16.4 リリース**:
-  - 音声書庫の操作パネル表示不具合を修正
-  - グループ表示でスクロールすると週見出しが点滅する問題を修正
+- **v1.16.4 リリース**
 
 ## Completed Phases
 - ✅ Phase 0〜28 完了
@@ -34,11 +35,11 @@
 - ✅ **v1.16.4 リリース**
 - ✅ **ファイルカード表示基盤 フェーズ A**（LayoutPreset 軸の除去）
 - ✅ **ファイルカード表示基盤 フェーズ B**（cardDirection 分岐解消・プリセット型正規化・layoutPreset 完全撤去）
+- ✅ **ファイルカード表示基盤 フェーズ C**（FileCard.tsx 責務分割）
 
 ## Next Steps
-- [ ] ファイルカード表示基盤 フェーズ C: FileCard.tsx 1436 行の責務分割
 - [ ] ファイルカード表示基盤 フェーズ D: 漫画モード・動画モード・WhiteBrowser 風の新規追加
 - [ ] キーボードショートカット拡充・ヘルプモーダル追加
 
 ## Known Issues
-なし
+- `duplicateNameCandidates.test.ts` / `profileLifecycle.test.ts` / `useDuplicateStore.test.ts` が 7 件失敗しているが、フェーズ B 以前からのプレエグジスティング失敗（今回の変更とは無関係）
