@@ -3,7 +3,7 @@ import type { FileCardDisplayPreset } from './types';
 export const mangaDisplayPreset: FileCardDisplayPreset = {
     definition: {
         mode: 'manga',
-        label: '縦型',
+        label: '縦型カード',
         menuOrder: 50,
         iconKey: 'layoutGrid',
         cardGrowMax: 12,

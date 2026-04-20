@@ -164,7 +164,7 @@ export const FileCardThumbnail = React.memo(({
                             </>
                         )}
                         {showDuration && file.duration && (
-                            <div className="bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                            <div className="bg-black/85 text-white text-xs font-semibold px-1.5 py-0.5 rounded">
                                 {file.duration}
                             </div>
                         )}

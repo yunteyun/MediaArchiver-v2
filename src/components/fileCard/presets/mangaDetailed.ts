@@ -4,7 +4,7 @@ import { DETAILED_INFO_HORIZONTAL_PANEL_PRESET_BASE } from './shared';
 export const mangaDetailedDisplayPreset: FileCardDisplayPreset = {
     definition: {
         mode: 'mangaDetailed',
-        label: '詳細表示（縦）',
+        label: '縦サムネ + 詳細パネル',
         menuOrder: 46,
         iconKey: 'layoutGrid',
         cardGrowMax: 16,

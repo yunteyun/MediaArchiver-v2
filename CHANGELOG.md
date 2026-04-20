@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - 表示モード管理の内部設計を整理し、冗長だった `LayoutPreset` 軸を除去した。`DisplayMode`（カード構造）と `ThumbnailPresentation`（サムネイル表現）の 2 軸に一本化することで、将来の表示モード追加（漫画・動画・WhiteBrowser 風）が行いやすくなった（表示への変更なし）。
 - 表示プリセット内部の `cardDirection` / `horizontalThumbnailAspectRatio` フィールドを廃止し、横型レイアウトの判定を `DisplayMode` からの導出に統一した。また旧バージョンからの `layoutPreset` 互換コードを撤去した（表示への変更なし）。
+- 表示モードのラベルを見直し、用途が直感的に伝わるようにした（`縦型` → `縦型カード`、`詳細表示（縦）` → `縦サムネ + 詳細パネル`）。
+- 動画・GIF などで表示される再生時間バッジ（サムネ右下）の視認性を強化した（背景を濃く・太字化）。
 
 ---
 

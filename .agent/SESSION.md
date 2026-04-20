@@ -1,44 +1,34 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-19
+**Last Updated**: 2026-04-21
 
-- **Current Focus**: ファイルカード表示基盤 フェーズ C 完了
-- **Current Status**: FileCard.tsx 責務分割完了（1439行 → 442行）。lint・型チェック全通過。コミット前。
+- **Current Focus**: ファイルカード表示基盤 フェーズ D-1 コミット完了
+- **Current Status**: フェーズ D-1 完了・コミット済み。次はフェーズ D-2（WhiteBrowser コマ送り PoC）。
 
 ## Recent Achievements
 
+- **ファイルカード表示基盤 フェーズ D-1（ラベル整理 + duration バッジ視認性調整）**:
+  - `manga` ラベル: 「縦型」→「縦型カード」
+  - `mangaDetailed` ラベル: 「詳細表示（縦）」→「縦サムネ + 詳細パネル」
+  - duration バッジ（サムネ右下）を `bg-black/70 text-xs` → `bg-black/85 text-xs font-semibold` に強化
+  - docs（`アプリ使用メモ` / `Glossary` / `回帰確認チェックリスト`）のラベル参照更新
+  - ADR-002 を実態反映で更新（duration バッジは既に実装済みであり、今回は視認性調整のみ）
+
+- **ファイルカード表示基盤 フェーズ D 要件整理（ADR-002 作成）**:
+  - `docs/archive/file_card_表示設計に関する将来要望まとめ.md` と現状実装を突き合わせ、5 つの論点を整理
+  - `.agent/decisions/002-file-card-display-modes-refinement.md` を新設
+  - フェーズ D-1（ラベル整理 + video duration バッジ）、D-2（WhiteBrowser PoC）へのサブフェーズ分割を決定
+
 - **ファイルカード表示基盤 フェーズ C（FileCard.tsx 責務分割）**:
-  - `FileCardTagSummary.tsx` を新設（タグサマリー UI コンポーネント 2 本 + `FileCardTagSummaryRow`）
-  - `tagSummaryUtils.ts` を新設（`getTagSummaryUiConfig` / `getBalancedSummaryTags` ヘルパ）
-  - `useAnimatedPreviewSlots.ts` を新設（グローバルスロット管理 + `useAnimatedPreviewSlots` hook）
-  - `useFileCardHover.ts` を新設（ホバー/フリップブック/スクラブ/video 再生の state・effects・handlers 全て）
-  - `FileCardThumbnail.tsx` を新設（サムネイルエリア全体 + ズームプレビューポータル）
-  - `FileCardTagPopover.tsx` を新設（タグポップオーバーポータル）
   - `FileCard.tsx` を 1439 行 → 442 行に削減（骨格＋ストア接続のみ）
-
-- **ファイルカード表示基盤 フェーズ B（`cardDirection` 分岐解消・プリセット型正規化・layoutPreset 完全撤去）**:
-  - `cardDirection === 'horizontal'` の直接比較 4 箇所を `isHorizontalDisplayMode(baseDisplayMode)` ヘルパ呼び出しへ置換
-  - `FileCardDisplayModeDefinition` から `cardDirection` / `horizontalThumbnailAspectRatio` フィールドを削除
-
-- **ファイルカード表示基盤 フェーズ A（LayoutPreset 軸の除去）**:
-  - `LayoutPreset` 型・`setLayoutPreset`・双方向マップを除去し、DisplayMode × ThumbnailPresentation の 2 軸に正規化
-
-- **v1.16.4 リリース**
 
 ## Completed Phases
 - ✅ Phase 0〜28 完了
-- ✅ **v1.15.0 リリース**
-- ✅ **v1.16.0 リリース**
-- ✅ **v1.16.1 リリース**
-- ✅ **v1.16.2 リリース**
-- ✅ **v1.16.3 リリース**
-- ✅ **v1.16.4 リリース**
-- ✅ **ファイルカード表示基盤 フェーズ A**（LayoutPreset 軸の除去）
-- ✅ **ファイルカード表示基盤 フェーズ B**（cardDirection 分岐解消・プリセット型正規化・layoutPreset 完全撤去）
-- ✅ **ファイルカード表示基盤 フェーズ C**（FileCard.tsx 責務分割）
+- ✅ **v1.15.0 〜 v1.16.4 リリース**
+- ✅ **ファイルカード表示基盤 フェーズ A〜D-1** 完了
 
 ## Next Steps
-- [ ] ファイルカード表示基盤 フェーズ D: 漫画モード・動画モード・WhiteBrowser 風の新規追加
+- [ ] ファイルカード表示基盤 フェーズ D-2: WhiteBrowser コマ送り PoC（マウス位置連動フレーム切替）
 - [ ] キーボードショートカット拡充・ヘルプモーダル追加
 
 ## Known Issues
