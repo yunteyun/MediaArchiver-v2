@@ -11,6 +11,20 @@ import type {
 } from '../../stores/useSettingsStore';
 import { SettingsSection } from './SettingsSection';
 
+const PREVIEW_FRAME_PRESETS = [
+    { value: 0, label: 'オフ' },
+    { value: 5, label: '低（5枚）' },
+    { value: 10, label: '中（10枚・推奨）' },
+    { value: 20, label: '高（20枚）' },
+] as const;
+
+function pickPreviewFramePreset(n: number): 0 | 5 | 10 | 20 {
+    if (n <= 0) return 0;
+    if (n <= 5) return 5;
+    if (n <= 14) return 10;
+    return 20;
+}
+
 interface ThumbnailsSettingsTabProps {
     previewFrameCount: number;
     onProfilePreviewFrameCountChange: (count: number) => void;
@@ -84,23 +98,25 @@ export const ThumbnailsSettingsTab = React.memo(({
         >
             <div>
                 <label className="block text-sm font-medium text-surface-300 mb-2">
-                    プレビューフレーム数（プロファイル別）: {previewFrameCount === 0 ? 'オフ' : `${previewFrameCount}枚`}
+                    プレビューフレーム数（プロファイル別）
                 </label>
-                <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    step="5"
-                    value={previewFrameCount}
-                    onChange={(e) => onProfilePreviewFrameCountChange(Number(e.target.value))}
-                    className="w-full h-2 bg-surface-700 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                />
-                <div className="flex justify-between text-xs text-surface-500 mt-1">
-                    <span>オフ</span>
-                    <span>30枚</span>
+                <div className="flex gap-4 flex-wrap">
+                    {PREVIEW_FRAME_PRESETS.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="radio"
+                                name="previewFrameCount"
+                                value={opt.value}
+                                checked={pickPreviewFramePreset(previewFrameCount) === opt.value}
+                                onChange={() => onProfilePreviewFrameCountChange(opt.value)}
+                                className="w-4 h-4 accent-primary-500"
+                            />
+                            <span className="text-surface-200">{opt.label}</span>
+                        </label>
+                    ))}
                 </div>
                 <p className="text-xs text-surface-500 mt-1">
-                    現在のプロファイルに保存されます。スキャン速度に影響します。0でプレビューフレーム生成をスキップ。
+                    現在のプロファイルに保存されます。枚数が多いほどスキャン時間・ディスク使用量が増えます。
                 </p>
             </div>
 

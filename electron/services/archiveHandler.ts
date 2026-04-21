@@ -92,6 +92,11 @@ const SEVEN_ZA_PATH = resolve7zaPath();
 
 // 7za spawn の同時実行数を制限してメインプロセスのブロックを防ぐ
 const metadataLimit = pLimit(2);
+// preview 抽出は直列 1 本に絞る（8 連続 7za spawn × 複数ファイル並行を防ぐ）
+const previewLimit = pLimit(1);
+
+// in-flight coalesce: 同一ファイルへの並行呼び出しを単一 Promise に束ねる
+const previewInflight = new Map<string, Promise<string[]>>();
 
 // in-memory LRU キャッシュ（stat ベースキー → Promise）
 // stat が変われば自動的に古いキャッシュに当たらない
@@ -478,6 +483,22 @@ export async function getArchiveThumbnail(filePath: string): Promise<string | nu
 export async function getArchivePreviewFrames(
     filePath: string,
     limit: number = 9
+): Promise<string[]> {
+    const key = `${buildArchivePreviewCacheKey(filePath)}|${limit}`;
+    const existing = previewInflight.get(key);
+    if (existing) return existing;
+
+    const promise = previewLimit(() => getArchivePreviewFramesRaw(filePath, limit));
+    previewInflight.set(key, promise);
+    promise.finally(() => {
+        previewInflight.delete(key);
+    });
+    return promise;
+}
+
+async function getArchivePreviewFramesRaw(
+    filePath: string,
+    limit: number
 ): Promise<string[]> {
     try {
         ensureDirectories();

@@ -14,7 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 詳細表示（WhiteBrowser）モードで archive ファイルをホバーしたとき、マウスの左右位置に連動してページを送れるようにした（PoC）。
 
 ### Changed
+- プレビューフレーム数の設定を、スライダからラジオボタン形式の 4 段階（オフ / 低 / 中 / 高）に変更した。設定値の意味と負荷の目安が直感的に選べるようになった。
 - WhiteBrowser モードのホバー挙動（マウス位置連動コマ送り）をハードコードからプリセット駆動に正規化した。`hoverBehavior` フィールドをプリセット定義に追加したことで、外部プリセットでも同等の挙動を宣言できるようになった（表示への変更なし）。
+
+### Performance
+- archive プレビューフレーム取得に in-flight coalesce と同時実行制限（最大 1 本）を追加した。大容量書庫を複数同時 hover した際の 7za 多重起動によるメインプロセスのブロックを防止した。
 - 表示モード管理の内部設計を整理し、冗長だった `LayoutPreset` 軸を除去した。`DisplayMode`（カード構造）と `ThumbnailPresentation`（サムネイル表現）の 2 軸に一本化することで、将来の表示モード追加（漫画・動画・WhiteBrowser 風）が行いやすくなった（表示への変更なし）。
 - 表示プリセット内部の `cardDirection` / `horizontalThumbnailAspectRatio` フィールドを廃止し、横型レイアウトの判定を `DisplayMode` からの導出に統一した。また旧バージョンからの `layoutPreset` 互換コードを撤去した（表示への変更なし）。
 - 表示モードのラベルを見直し、用途が直感的に伝わるようにした（`縦型` → `縦型カード`、`詳細表示（縦）` → `縦サムネ + 詳細パネル`）。
