@@ -8,6 +8,7 @@ import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT, resolveLightboxMediaKind } from '../../components/lightbox/shared/lightboxShared';
 import { resolveArchiveDetailKeyboardAction } from '../../components/lightbox/shared/viewerKeyboard';
+import { CenterViewerManga } from './CenterViewerManga';
 
 interface CenterViewerStageProps {
     file: MediaFile;
@@ -89,7 +90,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     useEffect(() => {
         let disposed = false;
 
-        if (kind !== 'archive') {
+        if (kind !== 'archive' || openMode === 'archive-manga') {
             setArchiveFrames([]);
             setArchiveLoading(false);
             setArchiveError(null);
@@ -129,7 +130,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         return () => {
             disposed = true;
         };
-    }, [file.path, kind, showToast]);
+    }, [file.path, kind, openMode, showToast]);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -369,6 +370,10 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 />
             </div>
         );
+    }
+
+    if (kind === 'archive' && openMode === 'archive-manga') {
+        return <CenterViewerManga file={file} />;
     }
 
     if (kind === 'archive') {

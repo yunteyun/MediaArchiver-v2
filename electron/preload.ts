@@ -304,6 +304,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('archive:getAudioFiles', archivePath),
     extractArchiveAudioFile: (archivePath: string, entryName: string) =>
         ipcRenderer.invoke('archive:extractAudioFile', { archivePath, entryName }),
+    getArchiveImageByIndex: (filePath: string, index: number) =>
+        ipcRenderer.invoke('archive:getImageByIndex', { filePath, index }),
 
     // === Tags ===
     // Categories

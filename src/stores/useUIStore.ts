@@ -38,7 +38,7 @@ export type SettingsSubTab =
     | 'update' | 'logs' | 'backup';
 /** 後方互換エイリアス */
 export type SettingsModalTab = SettingsModalCategory;
-export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image';
+export type LightboxOpenMode = 'default' | 'archive-audio' | 'archive-image' | 'archive-manga';
 export type FileSortBy = 'name' | 'date' | 'size' | 'type' | 'accessCount' | 'lastAccessed' | 'overallRating';
 export type FileSortOrder = 'asc' | 'desc';
 export interface SearchCondition {
@@ -224,8 +224,22 @@ export const useUIStore = create<UIState>((set) => ({
     toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
     setViewMode: (viewMode) => set({ viewMode }),
     openLightbox: (file, mode = 'default', startTime = null) => {
-        beginUiPerfTrace('center-viewer-open', { fileId: file.id, fileType: file.type, mode });
-        set({ lightboxFile: file, lightboxOpenMode: mode, lightboxStartTime: startTime, lightboxCurrentTime: null });
+        let resolvedMode: LightboxOpenMode = mode;
+        if (mode === 'default' && file.type === 'archive') {
+            try {
+                const meta = file.metadata
+                    ? (JSON.parse(file.metadata) as Record<string, unknown>)
+                    : null;
+                const entries = meta?.imageEntries;
+                if (Array.isArray(entries) && entries.length > 0) {
+                    resolvedMode = 'archive-manga';
+                }
+            } catch {
+                // metadata parse failure is non-fatal
+            }
+        }
+        beginUiPerfTrace('center-viewer-open', { fileId: file.id, fileType: file.type, mode: resolvedMode });
+        set({ lightboxFile: file, lightboxOpenMode: resolvedMode, lightboxStartTime: startTime, lightboxCurrentTime: null });
     },
     closeLightbox: () => set({ lightboxFile: null, lightboxOpenMode: 'default', lightboxStartTime: null, lightboxCurrentTime: null }),
     setLightboxCurrentTime: (lightboxCurrentTime) => set({ lightboxCurrentTime }),

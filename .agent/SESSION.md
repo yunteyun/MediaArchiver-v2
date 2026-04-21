@@ -2,10 +2,16 @@
 
 **Last Updated**: 2026-04-21
 
-- **Current Focus**: テスト修正（既存 7 件失敗を全解消）
-- **Current Status**: D-1〜D-4 すべて完了。テスト 124 件全グリーン。次フェーズ未確定。
+- **Current Focus**: Issue #42 漫画ビューア MVP 実装完了
+- **Current Status**: 漫画ビューア（単ページ表示・±2 先読み・キーボード操作）を実装し Issue #42 をクローズ。次フェーズ未確定。
 
 ## Recent Achievements
+
+- **漫画ビューア MVP（Issue #42）**:
+  - `archive:getImageByIndex` IPC を新設（7za 抽出 + WebP キャッシュ、漫画専用 pLimit(2)）
+  - `useArchivePagePreload` フックで ±2 ページを非同期先読み
+  - `CenterViewerManga.tsx` 新設：全画面単ページ表示、← / → / PageDown / PageUp でページ送り、ページ番号表示
+  - `LightboxOpenMode` に `'archive-manga'` を追加し、画像を含む書庫のダブルクリックで自動起動
 
 - **既存テスト失敗 7 件の解消**:
   - `duplicateNameCandidates.ts` — 末尾に数字がない場合の `numbered_series` キー誤生成バグを修正（タイトル中の数字を連番と誤判定する問題）

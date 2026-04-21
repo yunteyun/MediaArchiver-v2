@@ -379,6 +379,7 @@ declare global {
             cleanArchiveTemp: () => Promise<{ success: boolean }>;
             getArchiveAudioFiles: (archivePath: string) => Promise<string[]>;
             extractArchiveAudioFile: (archivePath: string, entryName: string) => Promise<string | null>;
+            getArchiveImageByIndex: (filePath: string, index: number) => Promise<string | null>;
 
             // Tags - Categories
             getTagCategories: () => Promise<RendererTagCategory[]>;

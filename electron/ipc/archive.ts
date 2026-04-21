@@ -10,6 +10,7 @@ import {
     getArchiveAudioFiles,
     extractArchiveAudioFile
 } from '../services/archiveHandler';
+import { getArchiveImageByIndex } from '../services/archiveImageService';
 
 export function registerArchiveHandlers(): void {
     // 書庫メタデータ取得
@@ -36,6 +37,11 @@ export function registerArchiveHandlers(): void {
     // 書庫から音声ファイルを抽出
     ipcMain.handle('archive:extractAudioFile', async (_event, { archivePath, entryName }: { archivePath: string; entryName: string }) => {
         return extractArchiveAudioFile(archivePath, entryName);
+    });
+
+    // 漫画ビューア: 指定インデックスの画像を取得
+    ipcMain.handle('archive:getImageByIndex', async (_event, { filePath, index }: { filePath: string; index: number }) => {
+        return getArchiveImageByIndex(filePath, index);
     });
 }
 
