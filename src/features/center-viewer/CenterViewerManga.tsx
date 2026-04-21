@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { getArchiveImageCount } from '../../utils/fileHelpers';
@@ -6,6 +7,7 @@ import { useMangaViewerSettingsStore } from '../../stores/useMangaViewerSettings
 import { resolvePagePair, stepPage } from './mangaPagePairing';
 import { useArchivePagePreload } from './useArchivePagePreload';
 import { MangaViewerSettingsPanel } from './MangaViewerSettingsPanel';
+import { MangaPageSlider } from './MangaPageSlider';
 
 interface CenterViewerMangaProps {
     file: MediaFile;
@@ -24,6 +26,27 @@ export const CenterViewerManga = React.memo<CenterViewerMangaProps>(({ file }) =
     const [loading, setLoading] = useState(true);
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const togglePanel = useCallback(() => setIsPanelOpen((v) => !v), []);
+
+    const handleZoneClick = useCallback((zone: 'left' | 'right') => {
+        const direction: 'next' | 'prev' =
+            bindingDirection === 'rtl'
+                ? (zone === 'left' ? 'next' : 'prev')
+                : (zone === 'left' ? 'prev' : 'next');
+        setCurrentIndex(i => stepPage(i, direction, totalCount, { pageMode, bindingDirection, firstPageSingle }));
+    }, [bindingDirection, totalCount, pageMode, firstPageSingle]);
+
+    const handleContainerClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        if ((e.target as HTMLElement).closest('[data-manga-control]')) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const relX = (e.clientX - rect.left) / rect.width;
+        if (relX < 1 / 3) handleZoneClick('left');
+        else if (relX > 2 / 3) handleZoneClick('right');
+    }, [handleZoneClick]);
+
+    const handleSeek = useCallback((index: number) => {
+        setCurrentIndex(resolvePagePair(index, totalCount, { pageMode, firstPageSingle }).primary);
+    }, [totalCount, pageMode, firstPageSingle]);
 
     // ファイルが変わったらリセット
     useEffect(() => {
@@ -136,12 +159,47 @@ export const CenterViewerManga = React.memo<CenterViewerMangaProps>(({ file }) =
         ? `${pair.primary + 1} - ${pair.secondary! + 1} / ${totalCount}`
         : `${(pair.primary) + 1} / ${totalCount}`;
 
+    const isAtStart = currentIndex === 0;
+    const isAtEnd = stepPage(currentIndex, 'next', totalCount, settings) === currentIndex;
+
+    // 綴じ方向ごとのナビボタン役割
+    const leftBtnDirection: 'prev' | 'next' = bindingDirection === 'rtl' ? 'next' : 'prev';
+    const rightBtnDirection: 'prev' | 'next' = bindingDirection === 'rtl' ? 'prev' : 'next';
+    const leftBtnDisabled = leftBtnDirection === 'prev' ? isAtStart : isAtEnd;
+    const rightBtnDisabled = rightBtnDirection === 'prev' ? isAtStart : isAtEnd;
+
     return (
         <div
-            className="pointer-events-auto relative flex h-full w-full select-none items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
+            className="pointer-events-auto group relative flex h-full w-full select-none items-center justify-center"
+            onClick={handleContainerClick}
         >
-            <MangaViewerSettingsPanel isOpen={isPanelOpen} onToggle={togglePanel} />
+            <div data-manga-control>
+                <MangaViewerSettingsPanel isOpen={isPanelOpen} onToggle={togglePanel} />
+            </div>
+
+            {/* 左ナビボタン */}
+            <button
+                data-manga-control
+                type="button"
+                disabled={leftBtnDisabled}
+                onClick={() => setCurrentIndex(i => stepPage(i, leftBtnDirection, totalCount, settings))}
+                className="pointer-events-auto absolute left-2 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-60 hover:!opacity-100 disabled:cursor-default disabled:!opacity-20"
+                aria-label={leftBtnDirection === 'next' ? '次のページ' : '前のページ'}
+            >
+                <ChevronLeft size={24} />
+            </button>
+
+            {/* 右ナビボタン */}
+            <button
+                data-manga-control
+                type="button"
+                disabled={rightBtnDisabled}
+                onClick={() => setCurrentIndex(i => stepPage(i, rightBtnDirection, totalCount, settings))}
+                className="pointer-events-auto absolute right-2 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-60 hover:!opacity-100 disabled:cursor-default disabled:!opacity-20"
+                aria-label={rightBtnDirection === 'next' ? '次のページ' : '前のページ'}
+            >
+                <ChevronRight size={24} />
+            </button>
 
             {loading ? (
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-surface-500 border-t-white" />
@@ -162,9 +220,13 @@ export const CenterViewerManga = React.memo<CenterViewerMangaProps>(({ file }) =
             )}
 
             {totalCount > 0 && (
-                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-black/60 px-3 py-1 text-xs tabular-nums text-white">
-                    {pageLabel}
-                </div>
+                <MangaPageSlider
+                    currentIndex={currentIndex}
+                    totalCount={totalCount}
+                    bindingDirection={bindingDirection}
+                    pageLabel={pageLabel}
+                    onSeek={handleSeek}
+                />
             )}
         </div>
     );
