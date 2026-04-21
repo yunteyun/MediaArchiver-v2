@@ -1,11 +1,18 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-21
+**Last Updated**: 2026-04-22
 
-- **Current Focus**: Issue #42 漫画ビューア MVP 実装完了
-- **Current Status**: 漫画ビューア（単ページ表示・±2 先読み・キーボード操作）を実装し Issue #42 をクローズ。次フェーズ未確定。
+- **Current Focus**: 漫画ビューア改善（NeeView 参照）
+- **Current Status**: 見開き表示・右綴じ/左綴じ・表紙単独表示・設定パネルを実装してコミット済み。次は画像クリックでビューアが閉じてしまうバグを修正予定。
 
 ## Recent Achievements
+
+- **漫画ビューア コア体験改善（NeeView 参照）**:
+  - `mangaPagePairing.ts` 新設：見開きペア計算（`resolvePagePair`）とステップ移動（`stepPage`）の純関数。単体テスト 31 件全グリーン
+  - `useMangaViewerSettingsStore.ts` 新設：Zustand + persist で設定永続化（ページモード / 綴じ方向 / 表紙単独）
+  - `MangaViewerSettingsPanel.tsx` 新設：NeeView 互換の設定パネル UI（歯車アイコン → スライドイン）
+  - `CenterViewerManga.tsx` 更新：見開きレイアウト・右綴じ時の左右反転・設定パネル統合
+  - `useArchivePagePreload.ts` 更新：spread 時はペア単位（次 2 ペア + 前 1 ペア）の先読みに変更
 
 - **漫画ビューア MVP（Issue #42）**:
   - `archive:getImageByIndex` IPC を新設（7za 抽出 + WebP キャッシュ、漫画専用 pLimit(2)）
@@ -13,39 +20,17 @@
   - `CenterViewerManga.tsx` 新設：全画面単ページ表示、← / → / PageDown / PageUp でページ送り、ページ番号表示
   - `LightboxOpenMode` に `'archive-manga'` を追加し、画像を含む書庫のダブルクリックで自動起動
 
-- **既存テスト失敗 7 件の解消**:
-  - `duplicateNameCandidates.ts` — 末尾に数字がない場合の `numbered_series` キー誤生成バグを修正（タイトル中の数字を連番と誤判定する問題）
-  - `useDuplicateStore.test.ts` — `findDuplicates` シグネチャ変更（`folderIds` 引数追加）に合わせてテストを更新
-  - `profileLifecycle.test.ts` — `showCreatedDate` / `showFolderBadge` / `showDriveBadge` / `driveColors` / `infoBadgeOrder` フィールド追加に合わせてモックと期待値を更新
-
-- **ファイルカード表示基盤 フェーズ D-4（archive 並列制御 + プレビューフレーム数 UI 改善）**:
-  - `getArchivePreviewFrames` に in-flight coalesce を追加（同一ファイルの並行呼び出しを単一 Promise に束ねる）
-  - `previewLimit = pLimit(1)` を新設し、7za 抽出ループ全体の同時実行数を制限
-  - プレビューフレーム数の設定 UI をスライダ → ラジオ 4 択（オフ/低/中/高 = 0/5/10/20 枚）に変更
-  - archive フレーム枚数は 8 枚固定のまま（設定化なし）
-
-- **ファイルカード表示基盤 フェーズ D-3（ホバー挙動のプリセット駆動化）**:
-  - `displayModeTypes.ts` に `HoverBehavior` 型と `hoverBehavior?` フィールドを追加
-  - `ExternalDisplayPresetManifest` にも `hoverBehavior?` を追加（外部プリセット対応）
-  - `whiteBrowser.ts` に `hoverBehavior: 'mousePositionScrub'` を明記
-  - `resolveExternalDisplayPresets` でマニフェストマージ時に `hoverBehavior` を継承
-  - `useFileCardHover` の `displayMode: string` 引数を `hoverBehavior: HoverBehavior` に置換
-  - `canMouseScrubArchive` 判定を `displayMode === 'whiteBrowser'` から `hoverBehavior === 'mousePositionScrub'` に正規化
-
-- **ファイルカード表示基盤 フェーズ D-2（WhiteBrowser コマ送り PoC）**:
-  - マウス位置連動フレーム切替を archive ファイルに対して実装
-
-- **ファイルカード表示基盤 フェーズ D-1（ラベル整理 + duration バッジ視認性調整）**:
-  - ラベル変更・duration バッジ強化・docs 更新
-
 ## Completed Phases
 - ✅ Phase 0〜28 完了
 - ✅ **v1.15.0 〜 v1.16.4 リリース**
 - ✅ **ファイルカード表示基盤 フェーズ A〜D-4** 完了
+- ✅ **漫画ビューア MVP（Issue #42）**
+- ✅ **漫画ビューア コア体験改善（見開き・綴じ方向・設定パネル）**
 
 ## Next Steps
+- [ ] 漫画ビューア: 画像クリックでビューアが閉じてしまうバグを修正（`pointer-events` の伝播問題）
 - [ ] キーボードショートカット拡充・ヘルプモーダル追加
 - [ ] 登録フォルダ削除時にサムネイルを残すオプション
 
 ## Known Issues
-（なし）
+- 漫画ビューアで画像をクリックすると `CenterViewerRoot` の backdrop ハンドラに伝播してビューアが閉じる（`pointer-events-none` 継承が原因、次タスクで修正）
