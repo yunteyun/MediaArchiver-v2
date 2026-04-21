@@ -43,6 +43,7 @@ type UseFileCardHoverParams = {
         jumpInterval: number;
     };
     thumbnailPresentation: string;
+    displayMode: string;
 };
 
 export function useFileCardHover({
@@ -55,6 +56,7 @@ export function useFileCardHover({
     archiveFlipbookSpeed,
     playMode,
     thumbnailPresentation,
+    displayMode,
 }: UseFileCardHoverParams) {
     const hoveredPreviewId = useUIStore((s) => s.hoveredPreviewId);
     const setHoveredPreview = useUIStore((s) => s.setHoveredPreview);
@@ -111,6 +113,13 @@ export function useFileCardHover({
         && !isAudioArchiveFile
         && (archiveImageCount ?? 0) > 1;
 
+    const canMouseScrubArchive = displayMode === 'whiteBrowser'
+        && file.type === 'archive'
+        && !isAudioArchiveFile
+        && (archiveImageCount ?? 0) > 1;
+
+    const shouldFetchArchiveFrames = canFlipbookArchive || canMouseScrubArchive;
+
     const previewFrames = useMemo(() => {
         if (!file.previewFrames) return [];
         return file.previewFrames.split(',').filter(Boolean);
@@ -118,13 +127,13 @@ export function useFileCardHover({
 
     const activePreviewFrames = useMemo(() => {
         if (file.type === 'video') return previewFrames;
-        if (canFlipbookArchive) return archivePreviewFrames;
+        if (canFlipbookArchive || canMouseScrubArchive) return archivePreviewFrames;
         return [];
-    }, [file.type, previewFrames, canFlipbookArchive, archivePreviewFrames]);
+    }, [file.type, previewFrames, canFlipbookArchive, canMouseScrubArchive, archivePreviewFrames]);
 
     const canScrubPreview = file.type === 'video';
     const canFlipbookPreview = (thumbnailAction === 'flipbook' && file.type === 'video') || canFlipbookArchive;
-    const canHoverFramePreview = (thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview;
+    const canHoverFramePreview = (thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview || canMouseScrubArchive;
 
     const shouldPlayVideo = useMemo(() => {
         return hoveredPreviewId === file.id && thumbnailAction === 'play' && file.type === 'video';
@@ -310,7 +319,7 @@ export function useFileCardHover({
                 return;
             }
 
-            if (canFlipbookArchive && activePreviewFrames.length === 0 && archivePreviewFetchState === 'idle') {
+            if (shouldFetchArchiveFrames && activePreviewFrames.length === 0 && archivePreviewFetchState === 'idle') {
                 setArchivePreviewFetchState('loading');
                 setPreloadState('loading');
 
@@ -344,7 +353,7 @@ export function useFileCardHover({
         performanceMode,
         setHoveredPreview,
         canHoverFramePreview,
-        canFlipbookArchive,
+        shouldFetchArchiveFrames,
         archivePreviewFetchState,
         preloadFrameImages,
     ]);
@@ -370,14 +379,16 @@ export function useFileCardHover({
     }, [clearFlipbookInterval, setHoveredPreview]);
 
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        if (thumbnailAction !== 'scrub' || !canScrubPreview || preloadState !== 'ready' || activePreviewFrames.length === 0) return;
+        const isVideoScrub = thumbnailAction === 'scrub' && canScrubPreview;
+        if (!isVideoScrub && !canMouseScrubArchive) return;
+        if (preloadState !== 'ready' || activePreviewFrames.length === 0) return;
 
         const rect = e.currentTarget.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const percentage = x / rect.width;
         const index = Math.floor(percentage * activePreviewFrames.length);
         setScrubIndex(Math.max(0, Math.min(index, activePreviewFrames.length - 1)));
-    }, [thumbnailAction, canScrubPreview, preloadState, activePreviewFrames.length]);
+    }, [thumbnailAction, canScrubPreview, canMouseScrubArchive, preloadState, activePreviewFrames.length]);
 
     // コマ送りモード effect
     useEffect(() => {
@@ -386,7 +397,8 @@ export function useFileCardHover({
             canFlipbookPreview &&
             (file.type === 'video' || canFlipbookArchive) &&
             preloadState === 'ready' &&
-            activePreviewFrames.length > 1;
+            activePreviewFrames.length > 1 &&
+            !canMouseScrubArchive;
 
         if (!shouldFlipbook) {
             clearFlipbookInterval();
@@ -405,7 +417,7 @@ export function useFileCardHover({
         return () => {
             clearFlipbookInterval();
         };
-    }, [isHovered, canFlipbookPreview, file.type, canFlipbookArchive, preloadState, activePreviewFrames.length, videoFlipbookSpeed, archiveFlipbookSpeed, clearFlipbookInterval]);
+    }, [isHovered, canFlipbookPreview, file.type, canFlipbookArchive, canMouseScrubArchive, preloadState, activePreviewFrames.length, videoFlipbookSpeed, archiveFlipbookSpeed, clearFlipbookInterval]);
 
     // Video 再生制御 effect
     useEffect(() => {
@@ -489,7 +501,7 @@ export function useFileCardHover({
             isHovered &&
             preloadState === 'ready' &&
             activePreviewFrames.length > 0 &&
-            ((thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview)
+            ((thumbnailAction === 'scrub' && canScrubPreview) || canFlipbookPreview || canMouseScrubArchive)
         ) {
             return activePreviewFrames[scrubIndex];
         }
@@ -497,7 +509,7 @@ export function useFileCardHover({
             return file.path;
         }
         return file.thumbnailPath;
-    }, [isHovered, preloadState, activePreviewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, canScrubPreview, canFlipbookPreview, shouldAnimateImagePreview]);
+    }, [isHovered, preloadState, activePreviewFrames, scrubIndex, file.path, file.thumbnailPath, thumbnailAction, canScrubPreview, canFlipbookPreview, canMouseScrubArchive, shouldAnimateImagePreview]);
 
     const displayImageSrc = useMemo(() => {
         if (!displayImagePath) return '';

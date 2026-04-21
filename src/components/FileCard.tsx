@@ -138,6 +138,7 @@ export const FileCard = React.memo(({
         archiveFlipbookSpeed,
         playMode,
         thumbnailPresentation,
+        displayMode,
     });
 
     const tagById = useMemo(
