@@ -138,7 +138,7 @@ export const FileCard = React.memo(({
         archiveFlipbookSpeed,
         playMode,
         thumbnailPresentation,
-        displayMode,
+        hoverBehavior: displayPreset.definition.hoverBehavior ?? 'default',
     });
 
     const tagById = useMemo(

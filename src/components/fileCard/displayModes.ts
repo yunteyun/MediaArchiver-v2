@@ -171,6 +171,7 @@ export function resolveExternalDisplayPresets(
                 cardGrowMax: manifest.cardGrowMax ?? base.definition.cardGrowMax,
                 infoVariant: manifest.infoVariant ?? base.definition.infoVariant,
                 hideThumbnailBadges: manifest.hideThumbnailBadges ?? base.definition.hideThumbnailBadges,
+                hoverBehavior: manifest.hoverBehavior ?? base.definition.hoverBehavior,
             },
             tagSummaryUi: mergeTagSummaryUiPreset(base.tagSummaryUi, manifest.tagSummaryUi),
             detailedInfoUi: mergeDetailedInfoUiPreset(base.detailedInfoUi, manifest.detailedInfoUi),

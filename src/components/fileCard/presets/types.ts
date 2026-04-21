@@ -4,6 +4,7 @@ import type {
     FileCardDisplayModeDefinition,
     FileCardInfoVariant,
     FileCardLayoutConfig,
+    HoverBehavior,
 } from '../displayModeTypes';
 
 export type DetailedPanelBadgeKey = 'size' | 'extension' | 'updatedDate' | 'folder' | 'drive';
@@ -61,6 +62,7 @@ export interface ExternalDisplayPresetManifest {
     detailedInfoUi?: Partial<DetailedInfoUiPreset>;
     compactInfoUi?: Partial<CompactInfoUiPreset>;
     thumbnailPresentation?: ThumbnailPresentation;
+    hoverBehavior?: HoverBehavior;
 }
 
 export interface ResolvedFileCardDisplayPreset extends FileCardDisplayPreset {

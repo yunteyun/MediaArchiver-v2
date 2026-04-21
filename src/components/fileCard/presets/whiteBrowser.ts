@@ -9,6 +9,7 @@ export const whiteBrowserDisplayPreset: FileCardDisplayPreset = {
         iconKey: 'layoutGrid',
         cardGrowMax: 20,
         infoVariant: 'detailed',
+        hoverBehavior: 'mousePositionScrub',
         layout: {
             aspectRatio: '16/9',
             cardWidth: 420,

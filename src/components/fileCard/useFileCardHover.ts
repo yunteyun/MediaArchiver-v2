@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { MediaFile } from '../../types/file';
+import type { HoverBehavior } from './displayModeTypes';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { getArchiveImageCount, isAudioArchive } from '../../utils/fileHelpers';
 import {
@@ -43,7 +44,7 @@ type UseFileCardHoverParams = {
         jumpInterval: number;
     };
     thumbnailPresentation: string;
-    displayMode: string;
+    hoverBehavior: HoverBehavior;
 };
 
 export function useFileCardHover({
@@ -56,7 +57,7 @@ export function useFileCardHover({
     archiveFlipbookSpeed,
     playMode,
     thumbnailPresentation,
-    displayMode,
+    hoverBehavior,
 }: UseFileCardHoverParams) {
     const hoveredPreviewId = useUIStore((s) => s.hoveredPreviewId);
     const setHoveredPreview = useUIStore((s) => s.setHoveredPreview);
@@ -113,7 +114,7 @@ export function useFileCardHover({
         && !isAudioArchiveFile
         && (archiveImageCount ?? 0) > 1;
 
-    const canMouseScrubArchive = displayMode === 'whiteBrowser'
+    const canMouseScrubArchive = hoverBehavior === 'mousePositionScrub'
         && file.type === 'archive'
         && !isAudioArchiveFile
         && (archiveImageCount ?? 0) > 1;

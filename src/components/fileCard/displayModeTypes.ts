@@ -12,6 +12,8 @@ export type FileCardInfoVariant = 'compact' | 'detailed';
 
 export type DisplayModeIconKey = 'grid' | 'maximize' | 'layoutGrid' | 'film' | 'minimize';
 
+export type HoverBehavior = 'default' | 'mousePositionScrub';
+
 export interface FileCardDisplayModeDefinition {
     mode: DisplayMode;
     label: string;
@@ -21,5 +23,6 @@ export interface FileCardDisplayModeDefinition {
     cardGrowMax?: number;
     infoVariant: FileCardInfoVariant;
     hideThumbnailBadges?: boolean;
+    hoverBehavior?: HoverBehavior;
 }
 
