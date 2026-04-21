@@ -109,7 +109,7 @@ describe('useDuplicateStore', () => {
 
         await useDuplicateStore.getState().startSearch('similar_name' satisfies DuplicateSearchMode);
 
-        expect(findDuplicates).toHaveBeenCalledWith('similar_name');
+        expect(findDuplicates).toHaveBeenCalledWith('similar_name', undefined);
         expect(useDuplicateStore.getState().searchMode).toBe('similar_name');
     });
 

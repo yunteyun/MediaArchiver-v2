@@ -2,10 +2,15 @@
 
 **Last Updated**: 2026-04-21
 
-- **Current Focus**: ファイルカード表示基盤 フェーズ D-4 完了（archive 並列制御 + プレビューフレーム数 UI 改善）
-- **Current Status**: D-1〜D-4 すべて完了。次フェーズ未確定。
+- **Current Focus**: テスト修正（既存 7 件失敗を全解消）
+- **Current Status**: D-1〜D-4 すべて完了。テスト 124 件全グリーン。次フェーズ未確定。
 
 ## Recent Achievements
+
+- **既存テスト失敗 7 件の解消**:
+  - `duplicateNameCandidates.ts` — 末尾に数字がない場合の `numbered_series` キー誤生成バグを修正（タイトル中の数字を連番と誤判定する問題）
+  - `useDuplicateStore.test.ts` — `findDuplicates` シグネチャ変更（`folderIds` 引数追加）に合わせてテストを更新
+  - `profileLifecycle.test.ts` — `showCreatedDate` / `showFolderBadge` / `showDriveBadge` / `driveColors` / `infoBadgeOrder` フィールド追加に合わせてモックと期待値を更新
 
 - **ファイルカード表示基盤 フェーズ D-4（archive 並列制御 + プレビューフレーム数 UI 改善）**:
   - `getArchivePreviewFrames` に in-flight coalesce を追加（同一ファイルの並行呼び出しを単一 Promise に束ねる）
@@ -37,4 +42,4 @@
 - [ ] 登録フォルダ削除時にサムネイルを残すオプション
 
 ## Known Issues
-- `duplicateNameCandidates.test.ts` / `profileLifecycle.test.ts` / `useDuplicateStore.test.ts` が 7 件失敗しているが、フェーズ B 以前からのプレエグジスティング失敗（今回の変更とは無関係）
+（なし）
