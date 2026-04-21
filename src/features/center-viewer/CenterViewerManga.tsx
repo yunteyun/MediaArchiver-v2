@@ -137,7 +137,10 @@ export const CenterViewerManga = React.memo<CenterViewerMangaProps>(({ file }) =
         : `${(pair.primary) + 1} / ${totalCount}`;
 
     return (
-        <div className="relative flex h-full w-full select-none items-center justify-center">
+        <div
+            className="pointer-events-auto relative flex h-full w-full select-none items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+        >
             <MangaViewerSettingsPanel isOpen={isPanelOpen} onToggle={togglePanel} />
 
             {loading ? (
