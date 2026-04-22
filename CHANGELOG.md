@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.17.0] - 2026-04-22
+
 ### Added
 - 画像書庫（ZIP / CBZ / RAR / CBR）をページ単位で全画面閲覧できる漫画ビューアを追加した。← / → / PageDown / PageUp キーでページ送り、±2 ページの先読みによりスムーズに閲覧できる。
 - 画像を含む書庫ファイルをダブルクリックすると、漫画ビューアが自動で起動するようにした。
