@@ -7,6 +7,11 @@
 
 ## Recent Achievements
 
+- **ビューアのもたつき改善（Issue #40 + #41）**:
+  - `useFileStore.incrementAccessCount` の全件 `map()` 走査を `findIndex` + `slice` スポット差し替えに変更
+  - アクセストラッキング IPC を `requestIdleCallback`（fallback: `setTimeout 200ms`）で遅延化
+  - `CenterViewerPreloader.tsx` 新設：前後 ±2 件の画像を非表示 `<img>` で先読み
+
 - **漫画ビューア マウス操作 + シークバー（フェーズ2）**:
   - `MangaPageSlider.tsx` 新設：ページシークバー（RTL/LTR 対応、range input 反転・ページ番号統合）
   - `CenterViewerManga.tsx` 更新：クリックゾーン（左右 1/3）・ホバーナビボタン（ChevronLeft/Right）・シークバー統合
@@ -31,6 +36,7 @@
 - ✅ **漫画ビューア MVP（Issue #42）**
 - ✅ **漫画ビューア コア体験改善（見開き・綴じ方向・設定パネル）**
 - ✅ **漫画ビューア マウス操作 + シークバー（フェーズ2）**
+- ✅ **ビューアのもたつき改善（Issue #40 + #41）**
 
 ## Next Steps
 - [ ] キーボードショートカット拡充・ヘルプモーダル追加

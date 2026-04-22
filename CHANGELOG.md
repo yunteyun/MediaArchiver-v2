@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - 類似名重複検索で、タイトル中に数字を含むファイル名（例: 「Room 1408 Director Cut」）が連番ファイルとして誤判定され、無関係なファイルが重複候補に混入することがある問題を修正した。
 
 ### Performance
+- 中央ビューアで次/前ファイルへ移動するとき、前後 ±2 件の画像ファイルを事前に読み込むようになった。同じフォルダ内の画像を連続して閲覧する際のもたつきが軽減される。
+- 中央ビューアを開いた直後のアクセス記録処理をアイドル時間に遅延し、ビューア表示の応答速度を改善した。
 - archive プレビューフレーム取得に in-flight coalesce と同時実行制限（最大 1 本）を追加した。大容量書庫を複数同時 hover した際の 7za 多重起動によるメインプロセスのブロックを防止した。
 - 表示モード管理の内部設計を整理し、冗長だった `LayoutPreset` 軸を除去した。`DisplayMode`（カード構造）と `ThumbnailPresentation`（サムネイル表現）の 2 軸に一本化することで、将来の表示モード追加（漫画・動画・WhiteBrowser 風）が行いやすくなった（表示への変更なし）。
 - 表示プリセット内部の `cardDirection` / `horizontalThumbnailAspectRatio` フィールドを廃止し、横型レイアウトの判定を `DisplayMode` からの導出に統一した。また旧バージョンからの `layoutPreset` 互換コードを撤去した（表示への変更なし）。

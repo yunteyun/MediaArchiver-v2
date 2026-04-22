@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
@@ -47,6 +47,17 @@ export const CenterViewerManga = React.memo<CenterViewerMangaProps>(({ file }) =
     const handleSeek = useCallback((index: number) => {
         setCurrentIndex(resolvePagePair(index, totalCount, { pageMode, firstPageSingle }).primary);
     }, [totalCount, pageMode, firstPageSingle]);
+
+    // ホイールでページ送り（連続発火を抑える簡易スロットル）
+    const wheelLastRef = useRef(0);
+    const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+        if (e.deltaY === 0) return;
+        const now = Date.now();
+        if (now - wheelLastRef.current < 180) return;
+        wheelLastRef.current = now;
+        const direction: 'next' | 'prev' = e.deltaY > 0 ? 'next' : 'prev';
+        setCurrentIndex(i => stepPage(i, direction, totalCount, { pageMode, bindingDirection, firstPageSingle }));
+    }, [totalCount, pageMode, bindingDirection, firstPageSingle]);
 
     // ファイルが変わったらリセット
     useEffect(() => {
@@ -172,6 +183,7 @@ export const CenterViewerManga = React.memo<CenterViewerMangaProps>(({ file }) =
         <div
             className="pointer-events-auto group relative flex h-full w-full select-none items-center justify-center"
             onClick={handleContainerClick}
+            onWheel={handleWheel}
         >
             <div data-manga-control>
                 <MangaViewerSettingsPanel isOpen={isPanelOpen} onToggle={togglePanel} />
@@ -221,7 +233,7 @@ export const CenterViewerManga = React.memo<CenterViewerMangaProps>(({ file }) =
 
             {totalCount > 0 && (
                 <MangaPageSlider
-                    currentIndex={currentIndex}
+                    currentIndex={pair.secondary ?? pair.primary}
                     totalCount={totalCount}
                     bindingDirection={bindingDirection}
                     pageLabel={pageLabel}

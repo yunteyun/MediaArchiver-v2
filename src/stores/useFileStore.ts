@@ -180,15 +180,14 @@ export const useFileStore = create<FileState>((set, get) => ({
     // Phase 17: アクセス回数をインクリメント（即時UI反映）
     incrementAccessCount: (fileId: string, lastAccessedAt: number) =>
         set((state) => {
-            const updatedFiles = state.files.map(file =>
-                file.id === fileId
-                    ? { ...file, accessCount: (file.accessCount || 0) + 1, lastAccessedAt }
-                    : file
-            );
+            const idx = state.files.findIndex(f => f.id === fileId);
+            if (idx === -1) return {};
+            const prev = state.files[idx];
+            const updated = { ...prev, accessCount: (prev.accessCount || 0) + 1, lastAccessedAt };
+            const files = [...state.files.slice(0, idx), updated, ...state.files.slice(idx + 1)];
             const newFileMap = new Map(state.fileMap);
-            const updated = newFileMap.get(fileId);
-            if (updated) newFileMap.set(fileId, { ...updated, accessCount: (updated.accessCount || 0) + 1, lastAccessedAt });
-            return { files: updatedFiles, fileMap: newFileMap };
+            newFileMap.set(fileId, updated);
+            return { files, fileMap: newFileMap };
         }),
 
     // Phase 18-A: 外部アプリ起動カウント更新（即時UI反映）

@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { CenterViewerStage } from './CenterViewerStage';
 import { CenterViewerPlaybackOverlay } from './CenterViewerPlaybackOverlay';
+import { CenterViewerPreloader } from './CenterViewerPreloader';
 import { completeUiPerfTrace } from '../../utils/perfDebug';
 import { resolveViewerKeyboardAction } from '../../components/lightbox/shared/viewerKeyboard';
 
@@ -96,14 +97,22 @@ export const CenterViewerRoot = React.memo(() => {
     useEffect(() => {
         if (!lightboxFile) return;
 
+        const fileId = lightboxFile.id;
         const countAccess = async () => {
-            const result = await window.electronAPI.incrementAccessCount(lightboxFile.id);
+            const result = await window.electronAPI.incrementAccessCount(fileId);
             if (result.success && result.lastAccessedAt) {
-                incrementAccessCount(lightboxFile.id, result.lastAccessedAt);
+                incrementAccessCount(fileId, result.lastAccessedAt);
             }
         };
 
-        void countAccess();
+        // 初期描画を妨げないようアイドル時に実行する
+        if (typeof window.requestIdleCallback === 'function') {
+            const handle = window.requestIdleCallback(() => { void countAccess(); });
+            return () => window.cancelIdleCallback(handle);
+        } else {
+            const timer = setTimeout(() => { void countAccess(); }, 200);
+            return () => clearTimeout(timer);
+        }
     }, [incrementAccessCount, lightboxFile]);
 
     useEffect(() => {
@@ -124,6 +133,7 @@ export const CenterViewerRoot = React.memo(() => {
 
     return (
         <div className="absolute inset-0 z-20">
+            <CenterViewerPreloader files={files} currentIndex={currentIndex} />
             <div className="absolute inset-0 bg-black/55" onClick={closeLightbox} />
 
             <div className="pointer-events-none absolute inset-0 flex flex-col">
