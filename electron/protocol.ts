@@ -126,6 +126,18 @@ export function registerMediaProtocol() {
                         'Access-Control-Allow-Origin': '*'
                     }
                 });
+            } else if (mimeType.startsWith('image/')) {
+                // 画像はバッファ全体を一括返却してプログレッシブ描写を防ぐ
+                const buffer = await fs.promises.readFile(filePath);
+                return new Response(buffer, {
+                    status: 200,
+                    headers: {
+                        'Content-Length': fileSize.toString(),
+                        'Content-Type': mimeType,
+                        'Accept-Ranges': 'bytes',
+                        'Access-Control-Allow-Origin': '*'
+                    }
+                });
             } else {
                 const stream = fs.createReadStream(filePath);
                 return new Response(stream as unknown as BodyInit, {
@@ -133,7 +145,7 @@ export function registerMediaProtocol() {
                     headers: {
                         'Content-Length': fileSize.toString(),
                         'Content-Type': mimeType,
-                        'Accept-Ranges': 'bytes', // Enable seeking support
+                        'Accept-Ranges': 'bytes',
                         'Access-Control-Allow-Origin': '*'
                     }
                 });

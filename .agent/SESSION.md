@@ -2,10 +2,14 @@
 
 **Last Updated**: 2026-04-22
 
-- **Current Focus**: 漫画ビューア改善（NeeView 参照）
-- **Current Status**: マウス操作 + シークバー（フェーズ2）を実装してコミット済み。
+- **Current Focus**: 画像段階描写バグ修正 → リリース準備
+- **Current Status**: PNG 段階描写修正（decode() + protocol バッファ化）をコミット済み。
 
 ## Recent Achievements
+
+- **画像段階描写の解消**:
+  - `electron/protocol.ts`: 画像ファイルは `fs.promises.readFile` でバッファ一括返却（ネットワーク層の段階配信を排除）
+  - `CenterViewerStage.tsx`: `HTMLImageElement.decode()` で完全デコード待ち後に `<img>` をレンダリング、フォールバック URL を廃止、`key={src}` で DOM 再生成により GPU タイル描写を防止
 
 - **ビューアのもたつき改善（Issue #40 + #41）**:
   - `useFileStore.incrementAccessCount` の全件 `map()` 走査を `findIndex` + `slice` スポット差し替えに変更

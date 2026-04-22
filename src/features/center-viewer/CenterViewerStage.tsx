@@ -57,6 +57,24 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         return resolveLightboxMediaKind(file);
     }, [file]);
 
+    // 画像は decode() 完了後に表示して段階描写（top から順に塗られる挙動）を防ぐ
+    const [displayedImageSrc, setDisplayedImageSrc] = useState<string>('');
+    useEffect(() => {
+        if (kind !== 'image') {
+            setDisplayedImageSrc('');
+            return;
+        }
+        setDisplayedImageSrc('');
+        const src = toMediaUrl(file.path);
+        let cancelled = false;
+        const img = new Image();
+        img.src = src;
+        img.decode()
+            .then(() => { if (!cancelled) setDisplayedImageSrc(src); })
+            .catch(() => { if (!cancelled) setDisplayedImageSrc(src); });
+        return () => { cancelled = true; };
+    }, [file.path, kind]);
+
     useEffect(() => {
         setHasError(false);
     }, [file.id, file.path]);
@@ -593,9 +611,12 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         );
     }
 
+    if (!displayedImageSrc) return null;
+
     return (
         <img
-            src={toMediaUrl(file.path)}
+            key={displayedImageSrc}
+            src={displayedImageSrc}
             alt={file.name}
             style={mediaStyle}
             className="pointer-events-auto max-h-full max-w-full"
