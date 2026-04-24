@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, Music } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import type { LightboxOpenMode } from '../../stores/useUIStore';
@@ -35,6 +35,9 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const setLightboxCurrentTime = useUIStore((state) => state.setLightboxCurrentTime);
     const showToast = useUIStore((state) => state.showToast);
+    // ref でラップして useEffect の依存配列から除外する（参照変化による不要な再実行を防ぐ）
+    const showToastRef = useRef(showToast);
+    showToastRef.current = showToast;
     const [hasError, setHasError] = useState(false);
     const [archiveFrames, setArchiveFrames] = useState<string[]>([]);
     const [archiveLoading, setArchiveLoading] = useState(false);
@@ -48,6 +51,9 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
     const [archiveAudioAutoPlay, setArchiveAudioAutoPlay] = useState(true);
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    // キーボードハンドラー内で最新の長さを参照するためのref（依存配列から除外して不要な再登録を防ぐ）
+    const archiveFramesRef = useRef(archiveFrames);
+    archiveFramesRef.current = archiveFrames;
     const lastPersistedPlaybackPositionRef = useRef<number | null>(typeof file.playbackPositionSeconds === 'number'
         ? file.playbackPositionSeconds
         : null);
@@ -135,7 +141,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 setArchiveFrames([]);
                 setArchiveAudioEntries([]);
                 setArchiveError('書庫プレビューの取得に失敗しました');
-                showToast('書庫プレビューの取得に失敗しました', 'error');
+                showToastRef.current('書庫プレビューの取得に失敗しました', 'error');
             } finally {
                 if (!disposed) {
                     setArchiveLoading(false);
@@ -148,7 +154,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         return () => {
             disposed = true;
         };
-    }, [file.path, kind, openMode, showToast]);
+    }, [file.path, kind, openMode]);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -283,7 +289,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                     return Math.max(0, current - 1);
                 }
 
-                return Math.min(archiveFrames.length - 1, current + 1);
+                return Math.min(archiveFramesRef.current.length - 1, current + 1);
             });
         };
 
@@ -291,13 +297,13 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         return () => {
             window.removeEventListener('keydown', handleKeyDown, true);
         };
-    }, [archiveFrames.length, kind, selectedArchiveFrameIndex]);
+    }, [kind, selectedArchiveFrameIndex]);
 
-    const handleSelectArchiveAudio = async (entry: string, index: number) => {
+    const handleSelectArchiveAudio = useCallback(async (entry: string, index: number) => {
         try {
             const extractedPath = await window.electronAPI.extractArchiveAudioFile(file.path, entry);
             if (!extractedPath) {
-                showToast('書庫内音声の読み込みに失敗しました', 'error');
+                showToastRef.current('書庫内音声の読み込みに失敗しました', 'error');
                 return;
             }
             setCurrentArchiveAudioPath(extractedPath);
@@ -306,11 +312,11 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
             setArchiveAudioIsPlaying(true);
         } catch (error) {
             console.error('Failed to extract archive audio file in center viewer:', error);
-            showToast('書庫内音声の読み込みに失敗しました', 'error');
+            showToastRef.current('書庫内音声の読み込みに失敗しました', 'error');
         }
-    };
+    }, [file.path]);
 
-    const handleArchiveAudioEnded = async () => {
+    const handleArchiveAudioEnded = useCallback(async () => {
         setArchiveAudioIsPlaying(false);
         setArchiveAudioCurrentTime(0);
         if (!archiveAudioAutoPlay || currentArchiveAudioIndex < 0 || currentArchiveAudioIndex >= archiveAudioEntries.length - 1) {
@@ -320,7 +326,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
         const nextEntry = archiveAudioEntries[nextIndex];
         if (!nextEntry) return;
         await handleSelectArchiveAudio(nextEntry, nextIndex);
-    };
+    }, [archiveAudioAutoPlay, currentArchiveAudioIndex, archiveAudioEntries, handleSelectArchiveAudio]);
 
     if (hasError) {
         return (

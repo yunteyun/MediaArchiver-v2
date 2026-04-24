@@ -2,10 +2,15 @@
 
 **Last Updated**: 2026-04-24
 
-- **Current Focus**: 動画再生のガクガク改善・ビューア周りの調査
-- **Current Status**: localhost HTTP メディアサーバーへの切り替え完了・動作確認済み。次はビューア全体の調査を予定。
+- **Current Focus**: ビューア周りのパフォーマンス改善・リファクタ
+- **Current Status**: リスク低の改善（showToast ref 化・useCallback 化）を実装済み。次は /plan で中規模リファクタを設計予定。
 
 ## Recent Achievements
+
+- **ビューアパフォーマンス改善（リスク低）**:
+  - `CenterViewerStage.tsx`: `showToast` を ref 化して書庫読み込み effect の依存配列から除外（不要な再取得を防止）
+  - `CenterViewerStage.tsx`: `archiveFrames` を ref 化してキーボードリスナーの不要な再登録を排除
+  - `CenterViewerStage.tsx`: `handleSelectArchiveAudio` / `handleArchiveAudioEnded` を `useCallback` 化
 
 - **動画再生ガクガク改善・メディアサーバー切り替え**:
   - `electron/services/mediaServer.ts` 新設: localhost HTTP サーバー（ランダムポート + 秘密トークン）でメディアファイルを配信
