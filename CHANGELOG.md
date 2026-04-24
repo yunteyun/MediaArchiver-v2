@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- 特定の動画ファイルを再生するとガクガクする問題の改善を図った。メディアファイルの配信をカスタムプロトコルからローカル HTTP サーバー方式に切り替え、Chromium 標準の HTTP ストリーミング動作に準拠させた。
+
+### Changed
+- 中央ビューアの動画プレーヤーに `preload="metadata"` を追加し、起動直後の過剰なバッファリングを抑制した。
+
 ---
 
 ## [1.17.1] - 2026-04-24

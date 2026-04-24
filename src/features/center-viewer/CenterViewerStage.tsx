@@ -339,6 +339,7 @@ export const CenterViewerStage = React.memo<CenterViewerStageProps>(({
                 className="pointer-events-auto max-h-full max-w-full"
                 controls
                 autoPlay
+                preload="metadata"
                 onTimeUpdate={(event) => {
                     const now = Date.now();
                     if (now - lastTimeUpdateRef.current >= 500) {

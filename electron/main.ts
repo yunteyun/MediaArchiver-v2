@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol, Menu } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { createRequire } from 'node:module';
@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dbManager } from './services/databaseManager';
 import { logger } from './services/logger';
 import { registerMediaProtocol } from './protocol';
+import { startMediaServer, stopMediaServer, getMediaBaseUrl } from './services/mediaServer';
 import { registerDatabaseHandlers } from './ipc/database';
 import { registerScannerHandlers } from './ipc/scanner';
 import { registerAppHandlers } from './ipc/app';
@@ -345,9 +346,18 @@ app.whenReady().then(async () => {
     logger.refreshLogPath();
     logger.info('Storage config initialized');
 
-    // Register custom protocol handler
+    // Register custom protocol handler (legacy fallback)
     registerMediaProtocol();
     logger.info('Custom protocol (media://) registered');
+
+    // Start local HTTP media server
+    await startMediaServer();
+    logger.info(`Media server started: ${getMediaBaseUrl()}`);
+
+    // Provide base URL to renderer via synchronous IPC
+    ipcMain.on('media-server:getBaseUrl', (event) => {
+        event.returnValue = getMediaBaseUrl();
+    });
 
     // Initialize Database Manager (loads active profile)
     dbManager.initialize();
@@ -413,6 +423,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
     disposePreviewFrameWorker();
+    stopMediaServer();
 });
 
 process.on('uncaughtException', (error) => {

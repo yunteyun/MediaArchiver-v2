@@ -191,6 +191,9 @@ interface AppBundledReleaseNotesResult {
 declare global {
     interface Window {
         electronAPI: {
+            // Media Server
+            getMediaBaseUrl: () => string;
+
             // Database
             getFiles: (folderId?: string) => Promise<MediaFile[]>;
             getFilesByFolderPathDirect: (folderPath: string) => Promise<MediaFile[]>;

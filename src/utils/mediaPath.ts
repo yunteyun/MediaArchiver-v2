@@ -1,25 +1,25 @@
 /**
  * Media Path Utilities
- * 
- * Converts file paths to media:// protocol URLs for secure access.
+ *
+ * Converts file paths to HTTP media server URLs for secure local access.
  */
 
+let _cachedBase: string | null = null;
+
+function getBase(): string {
+    if (_cachedBase !== null) return _cachedBase;
+    _cachedBase = window.electronAPI.getMediaBaseUrl();
+    return _cachedBase;
+}
+
 /**
- * Convert a file path to a media:// protocol URL
- * 
- * @param filePath - Absolute file path (Windows or Unix style)
- * @returns media:// URL or empty string if path is null/undefined
- * 
+ * Convert a file path to a media server URL.
+ *
  * @example
- * toMediaUrl('C:\\Users\\user\\image.jpg') // => 'media://C:/Users/user/image.jpg'
- * toMediaUrl('/home/user/image.jpg') // => 'media:///home/user/image.jpg'
+ * toMediaUrl('C:\\Users\\user\\image.jpg') // => 'http://127.0.0.1:PORT/TOKEN/C%3A%2FUsers%2Fuser%2Fimage.jpg'
  */
 export function toMediaUrl(filePath: string | null | undefined): string {
     if (!filePath) return '';
-
-    // Normalize Windows backslashes to forward slashes
     const normalized = filePath.replace(/\\/g, '/');
-
-    // Use a stable host segment to avoid drive-letter ambiguity in custom protocol URLs.
-    return `media://local/${encodeURIComponent(normalized)}`;
+    return `${getBase()}/${encodeURIComponent(normalized)}`;
 }

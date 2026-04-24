@@ -109,7 +109,13 @@ function subscribe<T>(channel: string, callback: (payload: T) => void): () => vo
  * 機能に安全にアクセスできるAPIを公開します。
  */
 
+// メディアサーバーのベース URL を起動時に同期取得してキャッシュ
+const _mediaBaseUrl: string = ipcRenderer.sendSync('media-server:getBaseUrl') as string;
+
 contextBridge.exposeInMainWorld('electronAPI', {
+    // === Media Server ===
+    getMediaBaseUrl: () => _mediaBaseUrl,
+
     // === Database ===
     getFiles: (folderId?: string) => ipcRenderer.invoke('db:getFiles', folderId),
     getFilesByFolderPathDirect: (folderPath: string) => ipcRenderer.invoke('db:getFilesByFolderPathDirect', folderPath),

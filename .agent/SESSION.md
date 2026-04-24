@@ -3,12 +3,16 @@
 **Last Updated**: 2026-04-24
 
 - **Current Focus**: 動画再生のガクガク改善・ビューア周りの調査
-- **Current Status**: Range リクエスト 8MB キャップを実装・コミット済み。次はビューア全体の調査を予定。
+- **Current Status**: localhost HTTP メディアサーバーへの切り替え完了。次はビューア全体の調査を予定。
 
 ## Recent Achievements
 
-- **動画再生ガクガク改善**:
-  - `electron/protocol.ts`: open-ended Range リクエスト（`bytes=N-`）を 8MB にキャップし、大容量ファイルの過剰バッファリングを防止
+- **動画再生ガクガク改善・メディアサーバー切り替え**:
+  - `electron/services/mediaServer.ts` 新設: localhost HTTP サーバー（ランダムポート + 秘密トークン）でメディアファイルを配信
+  - `electron/main.ts`: アプリ起動時にサーバー開始・終了時に停止、IPC sync ハンドラで URL を提供
+  - `electron/preload.ts`: 起動時に同期 IPC でベース URL を取得してキャッシュ
+  - `src/utils/mediaPath.ts`: `toMediaUrl()` を `media://` から HTTP URL 方式に変更
+  - `src/features/center-viewer/CenterViewerStage.tsx`: `<video>` に `preload="metadata"` を追加
 
 - **HDD 大容量ファイル問題の修正（Issue #43）**:
   - `electron/protocol.ts`: `getMimeType` に `.mkv` / `.avi` / `.m4v` / `.ts` / `.m2ts` / `.wmv` / `.aac` / `.opus` / `.avif` / `.bmp` / `.tif` / `.tiff` を追加
