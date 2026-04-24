@@ -123,12 +123,7 @@ export function registerMediaProtocol() {
             if (rangeHeader) {
                 const parts = rangeHeader.replace(/bytes=/, "").split("-");
                 const start = parseInt(parts[0], 10);
-                // open-ended リクエスト（bytes=N-）は 8MB にキャップして過剰バッファリングを防ぐ
-                // end が明示指定されている場合（bytes=N-M）はそのまま返す
-                const CHUNK_SIZE = 8 * 1024 * 1024;
-                const end = parts[1]
-                    ? parseInt(parts[1], 10)
-                    : Math.min(start + CHUNK_SIZE - 1, fileSize - 1);
+                const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
                 const chunksize = (end - start) + 1;
 
                 const stream = fs.createReadStream(filePath, { start, end });

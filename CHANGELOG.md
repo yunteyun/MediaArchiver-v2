@@ -10,9 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Fixed
-- 特定の動画ファイルを中央ビューアやプレビューで再生するとガクガクする問題を改善した。Range リクエストのチャンクサイズを上限 8MB に制限し、大容量ファイルの過剰バッファリングによるメモリ圧迫を防ぐようにした。
-
 ---
 
 ## [1.17.1] - 2026-04-24
