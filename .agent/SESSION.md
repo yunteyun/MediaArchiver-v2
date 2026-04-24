@@ -3,7 +3,7 @@
 **Last Updated**: 2026-04-24
 
 - **Current Focus**: 動画再生のガクガク改善・ビューア周りの調査
-- **Current Status**: localhost HTTP メディアサーバーへの切り替え完了。次はビューア全体の調査を予定。
+- **Current Status**: localhost HTTP メディアサーバーへの切り替え完了・動作確認済み。次はビューア全体の調査を予定。
 
 ## Recent Achievements
 
