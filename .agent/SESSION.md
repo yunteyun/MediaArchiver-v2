@@ -2,10 +2,13 @@
 
 **Last Updated**: 2026-04-24
 
-- **Current Focus**: Issue #43 対応 — HDD 上の大容量ファイルが中央ビューアで開けない問題の修正
-- **Current Status**: v1.17.1 リリース準備完了。
+- **Current Focus**: 動画再生のガクガク改善・ビューア周りの調査
+- **Current Status**: Range リクエスト 8MB キャップを実装・コミット済み。次はビューア全体の調査を予定。
 
 ## Recent Achievements
+
+- **動画再生ガクガク改善**:
+  - `electron/protocol.ts`: open-ended Range リクエスト（`bytes=N-`）を 8MB にキャップし、大容量ファイルの過剰バッファリングを防止
 
 - **HDD 大容量ファイル問題の修正（Issue #43）**:
   - `electron/protocol.ts`: `getMimeType` に `.mkv` / `.avi` / `.m4v` / `.ts` / `.m2ts` / `.wmv` / `.aac` / `.opus` / `.avif` / `.bmp` / `.tif` / `.tiff` を追加
