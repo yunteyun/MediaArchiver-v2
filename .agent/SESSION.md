@@ -3,7 +3,7 @@
 **Last Updated**: 2026-04-24
 
 - **Current Focus**: Issue #43 対応 — HDD 上の大容量ファイルが中央ビューアで開けない問題の修正
-- **Current Status**: protocol.ts の MIME タイプ追加・大容量画像ストリーミング切り替えをコミット済み。Issue #43 クローズ。
+- **Current Status**: v1.17.1 リリース準備完了。
 
 ## Recent Achievements
 
