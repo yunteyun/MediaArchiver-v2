@@ -20,16 +20,28 @@ function getMimeType(filePath: string): string {
         '.webm': 'video/webm',
         '.ogg': 'video/ogg',
         '.mov': 'video/quicktime',
+        '.mkv': 'video/x-matroska',
+        '.avi': 'video/x-msvideo',
+        '.m4v': 'video/mp4',
+        '.ts': 'video/mp2t',
+        '.m2ts': 'video/mp2t',
+        '.wmv': 'video/x-ms-wmv',
         '.mp3': 'audio/mpeg',
         '.wav': 'audio/wav',
         '.flac': 'audio/flac',
         '.m4a': 'audio/mp4',
+        '.aac': 'audio/aac',
+        '.opus': 'audio/opus',
         '.jpg': 'image/jpeg',
         '.jpeg': 'image/jpeg',
         '.png': 'image/png',
         '.gif': 'image/gif',
         '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
+        '.svg': 'image/svg+xml',
+        '.avif': 'image/avif',
+        '.bmp': 'image/bmp',
+        '.tif': 'image/tiff',
+        '.tiff': 'image/tiff',
     };
     return mimeTypes[ext] || 'application/octet-stream';
 }
@@ -127,9 +139,13 @@ export function registerMediaProtocol() {
                     }
                 });
             } else if (mimeType.startsWith('image/')) {
-                // 画像はバッファ全体を一括返却してプログレッシブ描写を防ぐ
-                const buffer = await fs.promises.readFile(filePath);
-                return new Response(buffer, {
+                // 100MB 未満はバッファ一括返却（プログレッシブ描写防止）
+                // 100MB 以上はストリーミング（OOM 防止）— decode() がオフスクリーン待機するため描写品質は変わらない
+                const LARGE_IMAGE_THRESHOLD = 100 * 1024 * 1024;
+                const body = fileSize < LARGE_IMAGE_THRESHOLD
+                    ? await fs.promises.readFile(filePath)
+                    : fs.createReadStream(filePath) as unknown as BodyInit;
+                return new Response(body, {
                     status: 200,
                     headers: {
                         'Content-Length': fileSize.toString(),

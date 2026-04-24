@@ -1,11 +1,15 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-22
+**Last Updated**: 2026-04-24
 
-- **Current Focus**: 画像段階描写バグ修正 → リリース準備
-- **Current Status**: PNG 段階描写修正（decode() + protocol バッファ化）をコミット済み。
+- **Current Focus**: Issue #43 対応 — HDD 上の大容量ファイルが中央ビューアで開けない問題の修正
+- **Current Status**: protocol.ts の MIME タイプ追加・大容量画像ストリーミング切り替えをコミット済み。Issue #43 クローズ。
 
 ## Recent Achievements
+
+- **HDD 大容量ファイル問題の修正（Issue #43）**:
+  - `electron/protocol.ts`: `getMimeType` に `.mkv` / `.avi` / `.m4v` / `.ts` / `.m2ts` / `.wmv` / `.aac` / `.opus` / `.avif` / `.bmp` / `.tif` / `.tiff` を追加
+  - `electron/protocol.ts`: 100MB 超の画像ファイルは `readFile` バッファではなく `createReadStream` ストリーミングで返却するよう変更（OOM 防止）
 
 - **画像段階描写の解消**:
   - `electron/protocol.ts`: 画像ファイルは `fs.promises.readFile` でバッファ一括返却（ネットワーク層の段階配信を排除）

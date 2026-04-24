@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+- HDD 上の大容量画像ファイル（100MB 超）を中央ビューアで開くとエラーになる問題を修正した。ファイル全体のメモリ読み込みを廃止し、ストリーミング配信に切り替えた。
+- `.mkv` / `.avi` / `.m4v` / `.aac` / `.avif` など未対応だったメディア形式が中央ビューアで再生できない問題を修正した。
+
 ---
 
 ## [1.17.0] - 2026-04-22
