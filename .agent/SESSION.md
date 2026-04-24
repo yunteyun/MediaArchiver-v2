@@ -3,9 +3,15 @@
 **Last Updated**: 2026-04-24
 
 - **Current Focus**: ビューア周りのパフォーマンス改善・リファクタ
-- **Current Status**: リスク低の改善（showToast ref 化・useCallback 化）を実装済み。次は /plan で中規模リファクタを設計予定。
+- **Current Status**: 中央ビューアのコンポーネント分割リファクタ完了。CenterViewerStage が 635 行 → 137 行に削減。
 
 ## Recent Achievements
+
+- **中央ビューアのコンポーネント分割（中規模リファクタ）**:
+  - `CenterViewerStage.tsx`: 635行 → 137行（薄いディスパッチャ化）
+  - `CenterViewerVideo.tsx` 新設: 動画再生・再生位置永続化ロジックを集約（166行）
+  - `CenterViewerArchive.tsx` 新設: 書庫プレビュー・音声リストを集約（325行）
+  - `useArchiveAudioPlayer.ts` 新設: 書庫音声再生の state・ハンドラをカスタムフックに集約（91行）
 
 - **ビューアパフォーマンス改善（リスク低）**:
   - `CenterViewerStage.tsx`: `showToast` を ref 化して書庫読み込み effect の依存配列から除外（不要な再取得を防止）
