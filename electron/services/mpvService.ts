@@ -30,6 +30,8 @@ class MpvService {
     private pipeName = '';
     private callbacks: MpvEventCallbacks | null = null;
     private lineBuffer = '';
+    // spawn() ごとに採番し、古いプロセスの exit がコールバックを誤爆しないよう保護する
+    private sessionId = 0;
 
     setCallbacks(cb: MpvEventCallbacks): void {
         this.callbacks = cb;
@@ -47,6 +49,9 @@ class MpvService {
         if (!fs.existsSync(mpvPath)) {
             throw new Error(`mpv not found: ${mpvPath}`);
         }
+
+        // このセッション専用の ID を採番。旧プロセスの exit が新コールバックを誤爆しないよう保護する
+        const mySession = ++this.sessionId;
 
         const id = crypto.randomBytes(4).toString('hex');
         this.pipeName = `\\\\.\\pipe\\mpv-mediaarchiver-${id}`;
@@ -70,7 +75,10 @@ class MpvService {
         this.process = spawn(mpvPath, args, { stdio: 'ignore', detached: false });
 
         this.process.on('exit', () => {
-            this.callbacks?.onEnded();
+            // 現在のセッションと一致する場合のみコールバックを呼ぶ
+            if (this.sessionId === mySession) {
+                this.callbacks?.onEnded();
+            }
             this.socket?.destroy();
             this.socket = null;
         });
