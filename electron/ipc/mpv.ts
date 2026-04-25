@@ -146,6 +146,8 @@ export function registerMpvHandlers(): void {
     });
 
     ipcMain.handle('mpv:close', () => {
+        // openGeneration を進めて進行中の mpv:open をキャンセルする
+        openGeneration++;
         mpvService.quit();
         if (videoWindow && !videoWindow.isDestroyed()) {
             videoWindow.close();

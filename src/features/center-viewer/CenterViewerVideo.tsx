@@ -5,6 +5,9 @@ import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 
+// lightboxFile を同期読み取りするためのストアアクセサ（フックではない）
+const getLightboxFile = () => useUIStore.getState().lightboxFile;
+
 interface CenterViewerVideoProps {
     file: MediaFile;
     videoVolume: number;
@@ -161,7 +164,14 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
         };
 
         void launch();
-        return () => { mounted = false; };
+        return () => {
+            mounted = false;
+            // ライトボックスが完全に閉じた場合（別の動画への切り替えではない）は mpv も閉じる。
+            // これにより「背景クリックで戻る→音が流れ続ける」問題を防ぐ。
+            if (!getLightboxFile()) {
+                void window.electronAPI.closeMpv();
+            }
+        };
     }, [file.id, file.path, file.name, startTimeSeconds, videoVolumeSetting, closeLightbox]);
 
     if (useFallback) {
