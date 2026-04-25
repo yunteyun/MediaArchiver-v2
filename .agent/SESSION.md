@@ -2,10 +2,18 @@
 
 **Last Updated**: 2026-04-24
 
-- **Current Focus**: ビューア周りのパフォーマンス改善・リファクタ
-- **Current Status**: 中央ビューアのコンポーネント分割リファクタ完了。CenterViewerStage が 635 行 → 137 行に削減。
+- **Current Focus**: mpv 動画エンジン統合・見どころ機能の mpv ウィンドウ対応
+- **Current Status**: mpv 統合（専用ウィンドウ・IPC 制御・再生位置永続化）と見どころ機能の mpv ウィンドウ対応を実装済み。
 
 ## Recent Achievements
+
+- **mpv 動画エンジン統合・見どころ対応**:
+  - `electron/services/mpvService.ts` 新設: mpv プロセス管理・名前付きパイプ IPC
+  - `electron/ipc/mpv.ts` 新設: mpv 専用 BrowserWindow 管理・IPC ハンドラ
+  - `src/features/mpv-window/` 新設: mpv ウィンドウ UI（MpvWindow.tsx・useMpvPlayer.ts）
+  - `CenterViewerVideo.tsx`: mpv ランチャーに変更、mpv 未配置時は HTML5 フォールバック
+  - `CenterViewerPlaybackOverlay.tsx`: `currentTime` / `onSeek` props 追加で mpv ウィンドウからも利用可能に
+  - mpv.exe を `resources/mpv/` に同梱（README と afterPack 検証追加）
 
 - **中央ビューアのコンポーネント分割（中規模リファクタ）**:
   - `CenterViewerStage.tsx`: 635行 → 137行（薄いディスパッチャ化）

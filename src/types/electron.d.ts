@@ -194,6 +194,19 @@ declare global {
             // Media Server
             getMediaBaseUrl: () => string;
 
+            // mpv Video Player
+            openMpv: (params: { fileId: string; filePath: string; fileName: string; startTime: number | null; volume: number }) => Promise<{ success: boolean; error?: string }>;
+            closeMpv: () => Promise<void>;
+            mpvPause: () => Promise<void>;
+            mpvSeek: (positionSec: number) => Promise<void>;
+            mpvSetVolume: (volume: number) => Promise<void>;
+            isMpvAvailable: () => Promise<boolean>;
+            onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) => () => void;
+            onMpvDurationUpdate: (callback: (data: { duration: number }) => void) => () => void;
+            onMpvPauseChange: (callback: (data: { paused: boolean }) => void) => () => void;
+            onMpvEnded: (callback: () => void) => () => void;
+            onMpvFileContext: (callback: (data: { fileId: string; fileName: string }) => void) => () => void;
+
             // Database
             getFiles: (folderId?: string) => Promise<MediaFile[]>;
             getFilesByFolderPathDirect: (folderPath: string) => Promise<MediaFile[]>;

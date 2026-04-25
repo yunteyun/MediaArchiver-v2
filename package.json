@@ -105,6 +105,10 @@
             {
                 "from": "release-notes",
                 "to": "release-notes"
+            },
+            {
+                "from": "resources/mpv",
+                "to": "mpv"
             }
         ],
         "win": {

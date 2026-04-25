@@ -150,6 +150,16 @@ exports.default = async function afterPack(context) {
 
     console.log('[afterPack] ✓ Found preload fallback: resources/dist-electron/preload.js');
 
+    // mpv バイナリの確認（extraResources として resources/mpv/ に配置）
+    if (nodeplatform === 'win32') {
+        const mpvPath = path.join(appOutDir, 'resources', 'mpv', 'mpv.exe');
+        if (!fs.existsSync(mpvPath)) {
+            console.warn(`[afterPack] ⚠ mpv not found at ${mpvPath} — video playback will fall back to HTML5 <video>`);
+        } else {
+            console.log(`[afterPack] ✓ Found: resources/mpv/mpv.exe`);
+        }
+    }
+
     if (nodeplatform === 'win32') {
         pruneWindowsOnlyArtifacts(appOutDir);
     }

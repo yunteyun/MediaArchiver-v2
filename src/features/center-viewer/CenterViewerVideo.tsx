@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 
 interface CenterViewerVideoProps {
     file: MediaFile;
@@ -17,35 +18,46 @@ const mediaStyle: React.CSSProperties = {
     objectFit: 'contain',
 };
 
-export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
-    file,
-    videoVolume,
-    startTimeSeconds,
-}) => {
+/** mpv が使用できない場合のフォールバック: HTML5 video 要素 */
+const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, startTimeSeconds }) => {
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const setLightboxCurrentTime = useUIStore((state) => state.setLightboxCurrentTime);
     const [hasError, setHasError] = useState(false);
-    const videoRef = useRef<HTMLVideoElement | null>(null);
-    const lastPersistedPlaybackPositionRef = useRef<number | null>(
+    const videoRef = React.useRef<HTMLVideoElement | null>(null);
+    const lastPersistedRef = React.useRef<number | null>(
         typeof file.playbackPositionSeconds === 'number' ? file.playbackPositionSeconds : null
     );
-    const lastTimeUpdateRef = useRef<number>(0);
+    const lastTimeRef = React.useRef<number>(0);
+
+    const normalizePos = React.useCallback((t: number, dur?: number | null): number | null => {
+        if (!Number.isFinite(t) || t < 5) return null;
+        if (typeof dur === 'number' && Number.isFinite(dur) && dur > 0) {
+            if (dur - t <= 15) return null;
+            return Math.max(0, Math.min(dur, t));
+        }
+        return Math.max(0, t);
+    }, []);
+
+    const persistPos = React.useCallback(async (t: number, dur?: number | null, force = false) => {
+        const pos = normalizePos(t, dur);
+        const last = lastPersistedRef.current;
+        if (!force && pos === null && last === null) return;
+        if (!force && pos !== null && last !== null && Math.abs(pos - last) < 10) return;
+        try {
+            const result = await window.electronAPI.updateFilePlaybackPosition(file.id, pos);
+            if (!result.success) return;
+            lastPersistedRef.current = result.playbackPositionSeconds ?? null;
+            updatePlaybackPosition(file.id, result.playbackPositionSeconds ?? null, result.playbackPositionUpdatedAt ?? null);
+        } catch { /* ignore */ }
+    }, [file.id, normalizePos, updatePlaybackPosition]);
 
     useEffect(() => {
         setHasError(false);
     }, [file.id, file.path]);
 
     useEffect(() => {
-        return () => {
-            setLightboxCurrentTime(null);
-        };
+        return () => { setLightboxCurrentTime(null); };
     }, [file.id, setLightboxCurrentTime]);
-
-    useEffect(() => {
-        lastPersistedPlaybackPositionRef.current = typeof file.playbackPositionSeconds === 'number'
-            ? file.playbackPositionSeconds
-            : null;
-    }, [file.id, file.playbackPositionSeconds]);
 
     useEffect(() => {
         if (videoRef.current) {
@@ -53,74 +65,23 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
         }
     }, [file.id, videoVolume]);
 
-    const normalizePlaybackPosition = useCallback((currentTime: number, duration?: number | null): number | null => {
-        if (!Number.isFinite(currentTime) || currentTime < 5) return null;
-        if (typeof duration === 'number' && Number.isFinite(duration) && duration > 0) {
-            if (duration - currentTime <= 15) return null;
-            return Math.max(0, Math.min(duration, currentTime));
-        }
-        return Math.max(0, currentTime);
-    }, []);
-
-    const persistPlaybackPosition = useCallback(async (
-        currentTime: number,
-        duration?: number | null,
-        force: boolean = false,
-    ) => {
-        const normalizedPosition = normalizePlaybackPosition(currentTime, duration);
-        const lastPosition = lastPersistedPlaybackPositionRef.current;
-
-        if (!force) {
-            if (normalizedPosition === null && lastPosition === null) return;
-            if (
-                normalizedPosition !== null
-                && lastPosition !== null
-                && Math.abs(normalizedPosition - lastPosition) < 10
-            ) return;
-        }
-
-        try {
-            const result = await window.electronAPI.updateFilePlaybackPosition(file.id, normalizedPosition);
-            if (!result.success) return;
-            lastPersistedPlaybackPositionRef.current = result.playbackPositionSeconds ?? null;
-            updatePlaybackPosition(
-                file.id,
-                result.playbackPositionSeconds ?? null,
-                result.playbackPositionUpdatedAt ?? null,
-            );
-        } catch (error) {
-            console.error('Failed to persist playback position:', error);
-        }
-    }, [file.id, normalizePlaybackPosition, updatePlaybackPosition]);
-
     useEffect(() => {
         const video = videoRef.current;
         if (!video || startTimeSeconds == null || !Number.isFinite(startTimeSeconds)) return;
-
-        const seekToStartTime = () => {
+        const seek = () => {
             if (!video.duration || Number.isNaN(video.duration)) return;
             video.currentTime = Math.max(0, Math.min(video.duration, startTimeSeconds));
             setLightboxCurrentTime(video.currentTime);
         };
-
-        if (video.readyState >= 1) {
-            seekToStartTime();
-            return;
-        }
-
-        video.addEventListener('loadedmetadata', seekToStartTime, { once: true });
-        return () => {
-            video.removeEventListener('loadedmetadata', seekToStartTime);
-        };
+        if (video.readyState >= 1) { seek(); return; }
+        video.addEventListener('loadedmetadata', seek, { once: true });
+        return () => video.removeEventListener('loadedmetadata', seek);
     }, [file.id, setLightboxCurrentTime, startTimeSeconds]);
 
     useEffect(() => {
         const video = videoRef.current;
-        return () => {
-            if (!video) return;
-            void persistPlaybackPosition(video.currentTime, video.duration, true);
-        };
-    }, [file.id, persistPlaybackPosition]);
+        return () => { if (video) void persistPos(video.currentTime, video.duration, true); };
+    }, [file.id, persistPos]);
 
     if (hasError) {
         return (
@@ -139,28 +100,83 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
             controls
             autoPlay
             preload="metadata"
-            onTimeUpdate={(event) => {
+            onTimeUpdate={(e) => {
                 const now = Date.now();
-                if (now - lastTimeUpdateRef.current >= 500) {
-                    lastTimeUpdateRef.current = now;
-                    setLightboxCurrentTime(event.currentTarget.currentTime);
-                    void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration);
+                if (now - lastTimeRef.current >= 500) {
+                    lastTimeRef.current = now;
+                    setLightboxCurrentTime(e.currentTarget.currentTime);
+                    void persistPos(e.currentTarget.currentTime, e.currentTarget.duration);
                 }
             }}
-            onLoadedMetadata={(event) => {
-                setLightboxCurrentTime(event.currentTarget.currentTime);
-            }}
-            onPause={(event) => {
-                setLightboxCurrentTime(event.currentTarget.currentTime);
-                void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration, true);
-            }}
-            onEnded={(event) => {
-                setLightboxCurrentTime(event.currentTarget.currentTime);
-                void persistPlaybackPosition(event.currentTarget.currentTime, event.currentTarget.duration, true);
-            }}
+            onLoadedMetadata={(e) => setLightboxCurrentTime(e.currentTarget.currentTime)}
+            onPause={(e) => { setLightboxCurrentTime(e.currentTarget.currentTime); void persistPos(e.currentTarget.currentTime, e.currentTarget.duration, true); }}
+            onEnded={(e) => { setLightboxCurrentTime(e.currentTarget.currentTime); void persistPos(e.currentTarget.currentTime, e.currentTarget.duration, true); }}
             onError={() => setHasError(true)}
         />
     );
+});
+
+VideoFallback.displayName = 'VideoFallback';
+
+/** mpv ランチャー: mpv 専用ウィンドウで動画を開き、成功したらライトボックスを閉じる */
+export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
+    file,
+    videoVolume,
+    startTimeSeconds,
+}) => {
+    const closeLightbox = useUIStore((state) => state.closeLightbox);
+    const videoVolumeSetting = useSettingsStore((state) => state.videoVolume);
+    const [useFallback, setUseFallback] = useState(false);
+    const [launching, setLaunching] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const launch = async () => {
+            const available = await window.electronAPI.isMpvAvailable();
+            if (!mounted) return;
+
+            if (!available) {
+                setUseFallback(true);
+                setLaunching(false);
+                return;
+            }
+
+            const result = await window.electronAPI.openMpv({
+                fileId: file.id,
+                filePath: file.path,
+                fileName: file.name,
+                startTime: startTimeSeconds,
+                volume: videoVolumeSetting,
+            });
+
+            if (!mounted) return;
+
+            if (result.success) {
+                closeLightbox();
+            } else {
+                setUseFallback(true);
+                setLaunching(false);
+            }
+        };
+
+        void launch();
+        return () => { mounted = false; };
+    }, [file.id, file.path, file.name, startTimeSeconds, videoVolumeSetting, closeLightbox]);
+
+    if (useFallback) {
+        return <VideoFallback file={file} videoVolume={videoVolume} startTimeSeconds={startTimeSeconds} />;
+    }
+
+    if (launching) {
+        return (
+            <div className="pointer-events-auto px-6 py-8 text-center">
+                <p className="text-sm text-surface-400">動画プレーヤーを起動中...</p>
+            </div>
+        );
+    }
+
+    return null;
 });
 
 CenterViewerVideo.displayName = 'CenterViewerVideo';

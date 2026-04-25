@@ -116,6 +116,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // === Media Server ===
     getMediaBaseUrl: () => _mediaBaseUrl,
 
+    // === mpv Video Player ===
+    openMpv: (params: { fileId: string; filePath: string; fileName: string; startTime: number | null; volume: number }) =>
+        ipcRenderer.invoke('mpv:open', params),
+    closeMpv: () => ipcRenderer.invoke('mpv:close'),
+    mpvPause: () => ipcRenderer.invoke('mpv:pause'),
+    mpvSeek: (positionSec: number) => ipcRenderer.invoke('mpv:seek', { positionSec }),
+    mpvSetVolume: (volume: number) => ipcRenderer.invoke('mpv:setVolume', { volume }),
+    isMpvAvailable: () => ipcRenderer.invoke('mpv:isAvailable') as Promise<boolean>,
+    onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) =>
+        subscribe<{ currentTime: number }>('mpv:timeUpdate', callback),
+    onMpvDurationUpdate: (callback: (data: { duration: number }) => void) =>
+        subscribe<{ duration: number }>('mpv:durationUpdate', callback),
+    onMpvPauseChange: (callback: (data: { paused: boolean }) => void) =>
+        subscribe<{ paused: boolean }>('mpv:pauseChange', callback),
+    onMpvEnded: (callback: () => void) =>
+        subscribe<void>('mpv:ended', callback),
+    onMpvFileContext: (callback: (data: { fileId: string; fileName: string }) => void) =>
+        subscribe<{ fileId: string; fileName: string }>('mpv:fileContext', callback),
+
     // === Database ===
     getFiles: (folderId?: string) => ipcRenderer.invoke('db:getFiles', folderId),
     getFilesByFolderPathDirect: (folderPath: string) => ipcRenderer.invoke('db:getFilesByFolderPathDirect', folderPath),

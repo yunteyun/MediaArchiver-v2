@@ -32,6 +32,8 @@ import { registerDisplayPresetHandlers } from './ipc/displayPreset';
 import { registerAutoOrganizeHandlers } from './ipc/autoOrganize';
 import { scheduleStartupFolderWatchers, syncFolderWatchers, stopAllFolderWatchers } from './services/folderWatchService';
 import { disposePreviewFrameWorker } from './services/previewFrameWorkerService';
+import { registerMpvHandlers } from './ipc/mpv';
+import { mpvService } from './services/mpvService';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -396,6 +398,7 @@ app.whenReady().then(async () => {
     registerSmartFolderHandlers();
     registerAutoOrganizeHandlers();
     registerDisplayPresetHandlers();
+    registerMpvHandlers();
     logger.info('IPC handlers registered');
 
     // 古いアクティビティログを削除（30日以上前）
@@ -424,6 +427,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
     disposePreviewFrameWorker();
     stopMediaServer();
+    mpvService.quit();
 });
 
 process.on('uncaughtException', (error) => {

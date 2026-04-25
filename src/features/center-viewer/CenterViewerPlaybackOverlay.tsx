@@ -12,15 +12,24 @@ import {
 
 interface CenterViewerPlaybackOverlayProps {
     file: MediaFile;
+    /** mpv ウィンドウなど lightboxCurrentTime を使えない文脈で現在再生時間を上書きする */
+    currentTime?: number;
+    /** mpv ウィンドウなど openLightbox を使えない文脈でシーク動作を上書きする */
+    onSeek?: (positionSeconds: number) => void;
 }
 
-export const CenterViewerPlaybackOverlay = React.memo<CenterViewerPlaybackOverlayProps>(({ file }) => {
+export const CenterViewerPlaybackOverlay = React.memo<CenterViewerPlaybackOverlayProps>(({ file, currentTime: currentTimeProp, onSeek }) => {
     const refreshFile = useFileStore((state) => state.refreshFile);
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const openLightbox = useUIStore((state) => state.openLightbox);
     const lightboxFile = useUIStore((state) => state.lightboxFile);
     const lightboxCurrentTime = useUIStore((state) => state.lightboxCurrentTime);
     const showToast = useUIStore((state) => state.showToast);
+
+    const seekTo = (sec: number): void => {
+        if (onSeek) onSeek(sec);
+        else openLightbox(file, 'default', sec);
+    };
     const [bookmarks, setBookmarks] = React.useState<PlaybackBookmark[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
     const [isClearing, setIsClearing] = React.useState(false);
@@ -115,12 +124,14 @@ export const CenterViewerPlaybackOverlay = React.memo<CenterViewerPlaybackOverla
         : null;
     const hasSavedPosition = savedPosition !== null && savedPosition > 0;
     const updatedAt = formatPlaybackUpdatedAt(file.playbackPositionUpdatedAt);
-    const activeCurrentTime = lightboxFile?.id === file.id && typeof lightboxCurrentTime === 'number' && Number.isFinite(lightboxCurrentTime)
-        ? Math.max(0, lightboxCurrentTime)
-        : null;
+    const activeCurrentTime = currentTimeProp !== undefined
+        ? (Number.isFinite(currentTimeProp) ? Math.max(0, currentTimeProp) : null)
+        : (lightboxFile?.id === file.id && typeof lightboxCurrentTime === 'number' && Number.isFinite(lightboxCurrentTime)
+            ? Math.max(0, lightboxCurrentTime)
+            : null);
     const handleResume = () => {
         if (!hasSavedPosition || savedPosition === null) return;
-        openLightbox(file, 'default', savedPosition);
+        seekTo(savedPosition);
     };
 
     const handleClear = async () => {
@@ -395,7 +406,7 @@ export const CenterViewerPlaybackOverlay = React.memo<CenterViewerPlaybackOverla
                                             <div className="flex items-start gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => openLightbox(file, 'default', bookmark.timeSeconds)}
+                                                    onClick={() => seekTo(bookmark.timeSeconds)}
                                                     className="min-w-0 flex-1 rounded-md text-left transition-colors hover:bg-surface-900/70"
                                                 >
                                                     <div className="flex items-center gap-2">
