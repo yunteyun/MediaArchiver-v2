@@ -134,6 +134,9 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
 
     useEffect(() => {
         let mounted = true;
+        // コンポーネント自身が mpv 成功後に closeLightbox を呼んだかどうかのフラグ。
+        // true の場合はクリーンアップで closeMpv を呼ばない（mpv は正常起動済み）。
+        let closedByMpvSuccess = false;
 
         const launch = async () => {
             const available = await window.electronAPI.isMpvAvailable();
@@ -156,6 +159,7 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
             if (!mounted) return;
 
             if (result.success) {
+                closedByMpvSuccess = true;
                 closeLightbox();
             } else {
                 setUseFallback(true);
@@ -166,9 +170,9 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
         void launch();
         return () => {
             mounted = false;
-            // ライトボックスが完全に閉じた場合（別の動画への切り替えではない）は mpv も閉じる。
-            // これにより「背景クリックで戻る→音が流れ続ける」問題を防ぐ。
-            if (!getLightboxFile()) {
+            // mpv 起動成功後に自分で閉じた場合は何もしない。
+            // ユーザーが背景クリック・Esc でライトボックスを閉じた場合（lightboxFile=null）は mpv も閉じる。
+            if (!closedByMpvSuccess && !getLightboxFile()) {
                 void window.electronAPI.closeMpv();
             }
         };
