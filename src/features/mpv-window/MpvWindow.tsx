@@ -42,13 +42,19 @@ export function MpvWindow(): React.ReactElement {
         player.setVolume(v);
     }, [player]);
 
-    const handleSeekStart = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    // onPointerDown でシーク開始、onChange で表示値更新、onPointerUp でシーク確定
+    // onChange 内で seeking フラグを操作しないことで、イベント順序による誤動作を防ぐ
+    const handleSeekPointerDown = useCallback(() => {
         setSeeking(true);
+        setSeekValue(player.currentTime);
+    }, [player.currentTime]);
+
+    const handleSeekChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setSeekValue(Number(e.target.value));
     }, []);
 
-    const handleSeekEnd = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
-        const val = Number((e.target as HTMLInputElement).value);
+    const handleSeekPointerUp = useCallback((e: React.PointerEvent<HTMLInputElement>) => {
+        const val = Number(e.currentTarget.value);
         player.seek(val);
         setSeeking(false);
     }, [player]);
@@ -114,8 +120,9 @@ export function MpvWindow(): React.ReactElement {
                         max={player.duration || 100}
                         step={0.5}
                         value={seeking ? seekValue : player.currentTime}
-                        onChange={handleSeekStart}
-                        onMouseUp={handleSeekEnd}
+                        onPointerDown={handleSeekPointerDown}
+                        onChange={handleSeekChange}
+                        onPointerUp={handleSeekPointerUp}
                         className="h-1.5 flex-1 cursor-pointer accent-blue-500"
                     />
                     <span className="w-12 tabular-nums">{formatTime(player.duration)}</span>
