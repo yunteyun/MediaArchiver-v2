@@ -201,6 +201,7 @@ declare global {
             mpvSeek: (positionSec: number) => Promise<void>;
             mpvSetVolume: (volume: number) => Promise<void>;
             mpvResize: (rect: { x: number; y: number; width: number; height: number }) => Promise<void>;
+            mpvSetVisible: (visible: boolean) => Promise<void>;
             isMpvAvailable: () => Promise<boolean>;
             onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) => () => void;
             onMpvDurationUpdate: (callback: (data: { duration: number }) => void) => () => void;

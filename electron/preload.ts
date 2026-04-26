@@ -125,6 +125,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     mpvSetVolume: (volume: number) => ipcRenderer.invoke('mpv:setVolume', { volume }),
     mpvResize: (rect: { x: number; y: number; width: number; height: number }) =>
         ipcRenderer.invoke('mpv:resize', rect),
+    mpvSetVisible: (visible: boolean) => ipcRenderer.invoke('mpv:setVisible', visible),
     isMpvAvailable: () => ipcRenderer.invoke('mpv:isAvailable') as Promise<boolean>,
     onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) =>
         subscribe<{ currentTime: number }>('mpv:timeUpdate', callback),

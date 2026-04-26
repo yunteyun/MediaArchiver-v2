@@ -128,6 +128,8 @@ const EmbeddedMpvPlaceholder = React.memo<{
 }>(({ file, videoRef }) => {
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const closeLightbox = useUIStore((state) => state.closeLightbox);
+    const renameOpen = useUIStore((s) => s.renameDialogFileId !== null);
+    const moveOpen = useUIStore((s) => s.moveDialogOpen);
     const lastPersistRef = useRef(0);
     const lastPersistedPosRef = useRef<number | null>(null);
 
@@ -157,6 +159,11 @@ const EmbeddedMpvPlaceholder = React.memo<{
     useEffect(() => window.electronAPI.onMpvDurationUpdate(({ duration: d }) => setDuration(d)), []);
     useEffect(() => window.electronAPI.onMpvPauseChange(({ paused }) => setIsPaused(paused)), []);
     useEffect(() => window.electronAPI.onMpvEnded(() => closeLightbox()), [closeLightbox]);
+
+    // リネーム・移動ダイアログが開いている間は mpv 子ウィンドウを非表示にする
+    useEffect(() => {
+        void window.electronAPI.mpvSetVisible(!(renameOpen || moveOpen));
+    }, [renameOpen, moveOpen]);
 
     // 映像エリアのリサイズを main process に通知
     useEffect(() => {

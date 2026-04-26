@@ -23,6 +23,7 @@ export const CenterViewerRoot = React.memo(() => {
     const setFocusedId = useFileStore((state) => state.setFocusedId);
     const videoVolume = useSettingsStore((state) => state.videoVolume);
     const audioVolume = useSettingsStore((state) => state.audioVolume);
+    const mpvEmbedded = useSettingsStore((state) => state.mpvEmbedded);
     const lightboxFile = rawLightboxFile
         ? (fileMap.get(rawLightboxFile.id) ?? rawLightboxFile)
         : null;
@@ -38,6 +39,12 @@ export const CenterViewerRoot = React.memo(() => {
     useEffect(() => {
         setPlaybackOverlayOpen(false);
     }, [lightboxFile?.id]);
+
+    // 見どころオーバーレイが開いている間は mpv 子ウィンドウを非表示にする（埋め込みモードのみ）
+    useEffect(() => {
+        if (!mpvEmbedded) return;
+        void window.electronAPI.mpvSetVisible(!playbackOverlayOpen);
+    }, [playbackOverlayOpen, mpvEmbedded]);
 
     const goToPrevious = useCallback(() => {
         if (currentIndex <= 0) return;

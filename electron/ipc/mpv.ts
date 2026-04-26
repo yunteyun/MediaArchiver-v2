@@ -227,6 +227,13 @@ export function registerMpvHandlers(getMainWindow: () => BrowserWindow | null): 
         });
     });
 
+    ipcMain.handle('mpv:setVisible', (_event, visible: boolean) => {
+        if (videoWindow && !videoWindow.isDestroyed()) {
+            if (visible) videoWindow.showInactive();
+            else videoWindow.hide();
+        }
+    });
+
     ipcMain.handle('mpv:pause', () => { mpvService.command(['cycle', 'pause']); });
     ipcMain.handle('mpv:seek', (_event, { positionSec }: { positionSec: number }) => {
         mpvService.command(['set_property', 'time-pos', positionSec]);
