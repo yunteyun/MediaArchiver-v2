@@ -65,17 +65,17 @@ function createEmbeddedWindow(
         height: rect.height,
         parent,
         frame: false,
-        transparent: false,
-        backgroundColor: '#000000',
+        transparent: true,       // Chromium 層を透過させて mpv の描画を見せる
+        backgroundColor: '#00000000',
         hasShadow: false,
         show: false,
         webPreferences: {
-            // 最小限のレンダラー（空ページ）
             contextIsolation: true,
             nodeIntegration: false,
         },
     });
-    void win.loadURL('data:text/html,<html><body style="margin:0;background:#000;overflow:hidden"></body></html>');
+    // 透明な空ページ: Chromium レイヤーが mpv の描画を隠さないようにする
+    void win.loadURL('data:text/html,<html style="background:transparent"><body style="margin:0;background:transparent;overflow:hidden"></body></html>');
     return win;
 }
 
