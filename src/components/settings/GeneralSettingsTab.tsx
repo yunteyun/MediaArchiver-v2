@@ -48,6 +48,8 @@ interface GeneralSettingsTabProps {
     onLightboxOverlayOpacityChange: (value: number) => void;
     performanceMode: boolean;
     onPerformanceModeChange: (checked: boolean) => void;
+    mpvEmbedded: boolean;
+    onMpvEmbeddedChange: (checked: boolean) => void;
     showFileName: boolean;
     onShowFileNameChange: (checked: boolean) => void;
     showDuration: boolean;
@@ -111,6 +113,8 @@ export const GeneralSettingsTab = React.memo(({
     onLightboxOverlayOpacityChange,
     performanceMode,
     onPerformanceModeChange,
+    mpvEmbedded,
+    onMpvEmbeddedChange,
     showFileName,
     onShowFileNameChange,
     showDuration,
@@ -209,6 +213,15 @@ export const GeneralSettingsTab = React.memo(({
                         className="rounded accent-primary-500"
                     />
                     <span className="text-sm text-surface-200">パフォーマンスモード</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={mpvEmbedded}
+                        onChange={(e) => onMpvEmbeddedChange(e.target.checked)}
+                        className="rounded accent-primary-500"
+                    />
+                    <span className="text-sm text-surface-200">mpv をライトボックス内に統合表示する（実験的・GPU 環境によっては動作しない場合あり）</span>
                 </label>
             </SettingsSection>
             </div>

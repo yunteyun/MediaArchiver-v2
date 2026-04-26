@@ -143,6 +143,7 @@ export const DEFAULT_MEDIA_PLAYBACK_SETTINGS = {
     audioVolume: 0.5,
     lightboxOverlayOpacity: LIGHTBOX_OVERLAY_OPACITY_DEFAULT,
     performanceMode: false,
+    mpvEmbedded: true,
 };
 
 export const DEFAULT_PROFILE_SCOPED_SETTINGS: ProfileScopedSettingsV1 = {
@@ -390,6 +391,7 @@ interface SettingsState {
     audioVolume: number; // 0.0 - 1.0 (音声ファイル専用)
     lightboxOverlayOpacity: number; // 70 - 100
     performanceMode: boolean; // true = アニメーション無効化
+    mpvEmbedded: boolean; // true = ライトボックス内に埋め込み、false = 別ウィンドウ
     previewFrameCount: number; // スキャン時のプレビューフレーム数 (0-30)
     scanThrottleMs: number; // スキャン速度抑制（ファイル間待機時間 ms）
     profileFileTypeFilters: FileTypeCategoryFilters;
@@ -463,6 +465,7 @@ interface SettingsState {
     setAudioVolume: (volume: number) => void;
     setLightboxOverlayOpacity: (opacity: number) => void;
     setPerformanceMode: (enabled: boolean) => void;
+    setMpvEmbedded: (enabled: boolean) => void;
     setPreviewFrameCount: (count: number) => void;
     setScanThrottleMs: (ms: number) => void;
     setThumbnailResolution: (resolution: number) => void;
@@ -547,6 +550,7 @@ export const useSettingsStore = create<SettingsState>()(
             audioVolume: DEFAULT_MEDIA_PLAYBACK_SETTINGS.audioVolume,
             lightboxOverlayOpacity: DEFAULT_MEDIA_PLAYBACK_SETTINGS.lightboxOverlayOpacity,
             performanceMode: DEFAULT_MEDIA_PLAYBACK_SETTINGS.performanceMode,
+            mpvEmbedded: DEFAULT_MEDIA_PLAYBACK_SETTINGS.mpvEmbedded,
             previewFrameCount: DEFAULT_PROFILE_SCOPED_SETTINGS.previewFrameCount,
             scanThrottleMs: DEFAULT_PROFILE_SCOPED_SETTINGS.scanThrottleMs,
             profileFileTypeFilters: { ...DEFAULT_PROFILE_SCOPED_SETTINGS.fileTypeFilters },
@@ -615,6 +619,7 @@ export const useSettingsStore = create<SettingsState>()(
             setAudioVolume: (volume) => set({ audioVolume: volume }),
             setLightboxOverlayOpacity: (opacity) => set({ lightboxOverlayOpacity: clampOverlayOpacity(opacity) }),
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
+            setMpvEmbedded: (mpvEmbedded) => set({ mpvEmbedded }),
             setPreviewFrameCount: (previewFrameCount) => set({ previewFrameCount }),
             setScanThrottleMs: (scanThrottleMs) => set({ scanThrottleMs }),
             setThumbnailResolution: (thumbnailResolution) => set({ thumbnailResolution }),

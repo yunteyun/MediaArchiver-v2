@@ -72,6 +72,8 @@ export const SettingsModal = React.memo(() => {
     const setFloatingPreviewPosition = useSettingsStore((s) => s.setFloatingPreviewPosition);
     const performanceMode = useSettingsStore((s) => s.performanceMode);
     const setPerformanceMode = useSettingsStore((s) => s.setPerformanceMode);
+    const mpvEmbedded = useSettingsStore((s) => s.mpvEmbedded);
+    const setMpvEmbedded = useSettingsStore((s) => s.setMpvEmbedded);
     const previewFrameCount = useSettingsStore((s) => s.previewFrameCount);
     const setProfilePreviewFrameCount = useSettingsStore((s) => s.setProfilePreviewFrameCount);
     const scanThrottleMs = useSettingsStore((s) => s.scanThrottleMs);
@@ -706,6 +708,8 @@ export const SettingsModal = React.memo(() => {
                                 onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
                                 performanceMode={performanceMode}
                                 onPerformanceModeChange={setPerformanceMode}
+                                mpvEmbedded={mpvEmbedded}
+                                onMpvEmbeddedChange={setMpvEmbedded}
                                 showFileName={showFileName}
                                 onShowFileNameChange={(checked) => {
                                     setShowFileName(checked);
@@ -813,6 +817,8 @@ export const SettingsModal = React.memo(() => {
                                 onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
                                 performanceMode={performanceMode}
                                 onPerformanceModeChange={setPerformanceMode}
+                                mpvEmbedded={mpvEmbedded}
+                                onMpvEmbeddedChange={setMpvEmbedded}
                                 showFileName={showFileName}
                                 onShowFileNameChange={(checked) => {
                                     setShowFileName(checked);
@@ -920,6 +926,8 @@ export const SettingsModal = React.memo(() => {
                                 onLightboxOverlayOpacityChange={setLightboxOverlayOpacity}
                                 performanceMode={performanceMode}
                                 onPerformanceModeChange={setPerformanceMode}
+                                mpvEmbedded={mpvEmbedded}
+                                onMpvEmbeddedChange={setMpvEmbedded}
                                 showFileName={showFileName}
                                 onShowFileNameChange={() => {}}
                                 showDuration={showDuration}

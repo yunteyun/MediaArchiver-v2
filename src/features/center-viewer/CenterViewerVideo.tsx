@@ -1,12 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
-
-// lightboxFile を同期読み取りするためのストアアクセサ（フックではない）
-const getLightboxFile = () => useUIStore.getState().lightboxFile;
 
 interface CenterViewerVideoProps {
     file: MediaFile;
@@ -21,18 +18,20 @@ const mediaStyle: React.CSSProperties = {
     objectFit: 'contain',
 };
 
+const getLightboxFile = () => useUIStore.getState().lightboxFile;
+
 /** mpv が使用できない場合のフォールバック: HTML5 video 要素 */
 const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, startTimeSeconds }) => {
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const setLightboxCurrentTime = useUIStore((state) => state.setLightboxCurrentTime);
     const [hasError, setHasError] = useState(false);
-    const videoRef = React.useRef<HTMLVideoElement | null>(null);
-    const lastPersistedRef = React.useRef<number | null>(
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const lastPersistedRef = useRef<number | null>(
         typeof file.playbackPositionSeconds === 'number' ? file.playbackPositionSeconds : null
     );
-    const lastTimeRef = React.useRef<number>(0);
+    const lastTimeRef = useRef<number>(0);
 
-    const normalizePos = React.useCallback((t: number, dur?: number | null): number | null => {
+    const normalizePos = useCallback((t: number, dur?: number | null): number | null => {
         if (!Number.isFinite(t) || t < 5) return null;
         if (typeof dur === 'number' && Number.isFinite(dur) && dur > 0) {
             if (dur - t <= 15) return null;
@@ -41,7 +40,7 @@ const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, s
         return Math.max(0, t);
     }, []);
 
-    const persistPos = React.useCallback(async (t: number, dur?: number | null, force = false) => {
+    const persistPos = useCallback(async (t: number, dur?: number | null, force = false) => {
         const pos = normalizePos(t, dur);
         const last = lastPersistedRef.current;
         if (!force && pos === null && last === null) return;
@@ -54,18 +53,11 @@ const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, s
         } catch { /* ignore */ }
     }, [file.id, normalizePos, updatePlaybackPosition]);
 
-    useEffect(() => {
-        setHasError(false);
-    }, [file.id, file.path]);
+    useEffect(() => { setHasError(false); }, [file.id, file.path]);
+    useEffect(() => { return () => { setLightboxCurrentTime(null); }; }, [file.id, setLightboxCurrentTime]);
 
     useEffect(() => {
-        return () => { setLightboxCurrentTime(null); };
-    }, [file.id, setLightboxCurrentTime]);
-
-    useEffect(() => {
-        if (videoRef.current) {
-            videoRef.current.volume = Math.max(0, Math.min(1, videoVolume));
-        }
+        if (videoRef.current) videoRef.current.volume = Math.max(0, Math.min(1, videoVolume));
     }, [file.id, videoVolume]);
 
     useEffect(() => {
@@ -100,9 +92,7 @@ const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, s
             src={toMediaUrl(file.path)}
             style={mediaStyle}
             className="pointer-events-auto max-h-full max-w-full"
-            controls
-            autoPlay
-            preload="metadata"
+            controls autoPlay preload="metadata"
             onTimeUpdate={(e) => {
                 const now = Date.now();
                 if (now - lastTimeRef.current >= 500) {
@@ -121,7 +111,68 @@ const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, s
 
 VideoFallback.displayName = 'VideoFallback';
 
-/** mpv ランチャー: mpv 専用ウィンドウで動画を開き、成功したらライトボックスを閉じる */
+/** 埋め込みモード: 映像エリアを黒背景で占有し mpv の再生制御・位置保存を担う */
+const EmbeddedMpvPlaceholder = React.memo<{ file: MediaFile; placeholderRef: React.RefObject<HTMLDivElement | null> }>(({ file, placeholderRef }) => {
+    const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
+    const closeLightbox = useUIStore((state) => state.closeLightbox);
+    const lastPersistRef = useRef(0);
+    const lastPersistedPosRef = useRef<number | null>(null);
+
+    // 再生時間を受け取って再生位置を永続化
+    useEffect(() => {
+        return window.electronAPI.onMpvTimeUpdate(({ currentTime: t }) => {
+            const now = Date.now();
+            if (now - lastPersistRef.current < 500) return;
+            lastPersistRef.current = now;
+            const normalized = t < 5 ? null : t;
+            const last = lastPersistedPosRef.current;
+            if (normalized === null && last === null) return;
+            if (normalized !== null && last !== null && Math.abs(normalized - last) < 10) return;
+            lastPersistedPosRef.current = normalized;
+            void window.electronAPI.updateFilePlaybackPosition(file.id, normalized).then((result) => {
+                if (result.success) {
+                    updatePlaybackPosition(file.id, result.playbackPositionSeconds ?? null, result.playbackPositionUpdatedAt ?? null);
+                }
+            });
+        });
+    }, [file.id, updatePlaybackPosition]);
+
+    // 再生終了でライトボックスを閉じる
+    useEffect(() => {
+        return window.electronAPI.onMpvEnded(() => {
+            closeLightbox();
+        });
+    }, [closeLightbox]);
+
+    // リサイズ監視: 映像エリアのサイズ変化を main process に通知
+    useEffect(() => {
+        const el = placeholderRef.current;
+        if (!el) return;
+        const observer = new ResizeObserver(() => {
+            const rect = el.getBoundingClientRect();
+            void window.electronAPI.mpvResize({
+                x: Math.round(rect.left),
+                y: Math.round(rect.top),
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+            });
+        });
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [placeholderRef]);
+
+    return (
+        <div
+            ref={placeholderRef}
+            className="pointer-events-auto w-full h-full"
+            style={{ background: '#000' }}
+        />
+    );
+});
+
+EmbeddedMpvPlaceholder.displayName = 'EmbeddedMpvPlaceholder';
+
+/** mpv ランチャー */
 export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
     file,
     videoVolume,
@@ -129,13 +180,14 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
 }) => {
     const closeLightbox = useUIStore((state) => state.closeLightbox);
     const videoVolumeSetting = useSettingsStore((state) => state.videoVolume);
+    const mpvEmbedded = useSettingsStore((state) => state.mpvEmbedded);
     const [useFallback, setUseFallback] = useState(false);
     const [launching, setLaunching] = useState(true);
+    const [embeddedActive, setEmbeddedActive] = useState(false);
+    const placeholderRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         let mounted = true;
-        // コンポーネント自身が mpv 成功後に closeLightbox を呼んだかどうかのフラグ。
-        // true の場合はクリーンアップで closeMpv を呼ばない（mpv は正常起動済み）。
         let closedByMpvSuccess = false;
 
         const launch = async () => {
@@ -148,19 +200,40 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
                 return;
             }
 
+            // 埋め込みモードでは映像エリアの screen 座標を取得して渡す
+            let videoRect: { x: number; y: number; width: number; height: number } | null = null;
+            if (mpvEmbedded && placeholderRef.current) {
+                const r = placeholderRef.current.getBoundingClientRect();
+                videoRect = {
+                    x: Math.round(r.left),
+                    y: Math.round(r.top),
+                    width: Math.round(r.width),
+                    height: Math.round(r.height),
+                };
+            }
+
             const result = await window.electronAPI.openMpv({
                 fileId: file.id,
                 filePath: file.path,
                 fileName: file.name,
                 startTime: startTimeSeconds,
                 volume: videoVolumeSetting,
+                embedded: mpvEmbedded,
+                videoRect,
             });
 
             if (!mounted) return;
 
             if (result.success) {
-                closedByMpvSuccess = true;
-                closeLightbox();
+                if (result.embedded) {
+                    // 埋め込みモード成功: ライトボックスを維持してプレースホルダーを表示
+                    setLaunching(false);
+                    setEmbeddedActive(true);
+                } else {
+                    // 別ウィンドウモード成功: ライトボックスを閉じる
+                    closedByMpvSuccess = true;
+                    closeLightbox();
+                }
             } else {
                 setUseFallback(true);
                 setLaunching(false);
@@ -170,27 +243,32 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
         void launch();
         return () => {
             mounted = false;
-            // mpv 起動成功後に自分で閉じた場合は何もしない。
-            // ユーザーが背景クリック・Esc でライトボックスを閉じた場合（lightboxFile=null）は mpv も閉じる。
             if (!closedByMpvSuccess && !getLightboxFile()) {
                 void window.electronAPI.closeMpv();
             }
         };
-    }, [file.id, file.path, file.name, startTimeSeconds, videoVolumeSetting, closeLightbox]);
+    }, [file.id, file.path, file.name, startTimeSeconds, videoVolumeSetting, mpvEmbedded, closeLightbox]);
 
     if (useFallback) {
         return <VideoFallback file={file} videoVolume={videoVolume} startTimeSeconds={startTimeSeconds} />;
     }
 
-    if (launching) {
-        return (
-            <div className="pointer-events-auto px-6 py-8 text-center">
-                <p className="text-sm text-surface-400">動画プレーヤーを起動中...</p>
-            </div>
-        );
+    if (embeddedActive) {
+        return <EmbeddedMpvPlaceholder file={file} placeholderRef={placeholderRef} />;
     }
 
-    return null;
+    // 起動中: プレースホルダー div を表示（埋め込みモードでは rect 取得のために必要）
+    return (
+        <div
+            ref={placeholderRef}
+            className="pointer-events-auto flex w-full h-full items-center justify-center"
+            style={{ background: '#000' }}
+        >
+            {launching && (
+                <p className="text-sm text-surface-400">動画プレーヤーを起動中...</p>
+            )}
+        </div>
+    );
 });
 
 CenterViewerVideo.displayName = 'CenterViewerVideo';

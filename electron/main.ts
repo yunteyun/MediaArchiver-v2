@@ -398,7 +398,7 @@ app.whenReady().then(async () => {
     registerSmartFolderHandlers();
     registerAutoOrganizeHandlers();
     registerDisplayPresetHandlers();
-    registerMpvHandlers();
+    registerMpvHandlers(() => mainWindow);
     logger.info('IPC handlers registered');
 
     // 古いアクティビティログを削除（30日以上前）

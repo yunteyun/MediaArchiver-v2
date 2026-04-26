@@ -195,11 +195,12 @@ declare global {
             getMediaBaseUrl: () => string;
 
             // mpv Video Player
-            openMpv: (params: { fileId: string; filePath: string; fileName: string; startTime: number | null; volume: number }) => Promise<{ success: boolean; error?: string }>;
+            openMpv: (params: { fileId: string; filePath: string; fileName: string; startTime: number | null; volume: number; embedded: boolean; videoRect: { x: number; y: number; width: number; height: number } | null }) => Promise<{ success: boolean; embedded?: boolean; error?: string }>;
             closeMpv: () => Promise<void>;
             mpvPause: () => Promise<void>;
             mpvSeek: (positionSec: number) => Promise<void>;
             mpvSetVolume: (volume: number) => Promise<void>;
+            mpvResize: (rect: { x: number; y: number; width: number; height: number }) => Promise<void>;
             isMpvAvailable: () => Promise<boolean>;
             onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) => () => void;
             onMpvDurationUpdate: (callback: (data: { duration: number }) => void) => () => void;

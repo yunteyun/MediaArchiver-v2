@@ -6,6 +6,8 @@ import { logger } from '../services/logger';
 
 let videoWindow: BrowserWindow | null = null;
 let openGeneration = 0;
+let embeddedRect: { x: number; y: number; width: number; height: number } | null = null;
+let isEmbeddedMode = false;
 
 function resolvePreloadPath(): string {
     const candidates = [
@@ -23,7 +25,7 @@ function resolveIndexPath(): string | null {
     return candidates.find(fs.existsSync) ?? null;
 }
 
-function createVideoWindow(): BrowserWindow {
+function createSeparateVideoWindow(): BrowserWindow {
     const win = new BrowserWindow({
         width: 1280,
         height: 720,
@@ -45,23 +47,48 @@ function createVideoWindow(): BrowserWindow {
         void win.loadURL(`${devServerUrl}#mpv-window`);
     } else {
         const indexPath = resolveIndexPath();
-        if (indexPath) {
-            void win.loadFile(indexPath, { hash: 'mpv-window' });
-        }
+        if (indexPath) void win.loadFile(indexPath, { hash: 'mpv-window' });
     }
 
     return win;
 }
 
-export function registerMpvHandlers(): void {
+function createEmbeddedWindow(
+    parent: BrowserWindow,
+    rect: { x: number; y: number; width: number; height: number },
+): BrowserWindow {
+    const contentBounds = parent.getContentBounds();
+    const win = new BrowserWindow({
+        x: contentBounds.x + rect.x,
+        y: contentBounds.y + rect.y,
+        width: rect.width,
+        height: rect.height,
+        parent,
+        frame: false,
+        transparent: false,
+        backgroundColor: '#000000',
+        hasShadow: false,
+        show: false,
+        webPreferences: {
+            // 最小限のレンダラー（空ページ）
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+    });
+    void win.loadURL('data:text/html,<html><body style="margin:0;background:#000;overflow:hidden"></body></html>');
+    return win;
+}
+
+export function registerMpvHandlers(getMainWindow: () => BrowserWindow | null): void {
     ipcMain.handle('mpv:open', async (_event, params: {
         fileId: string;
         filePath: string;
         fileName: string;
         startTime: number | null;
         volume: number;
+        embedded: boolean;
+        videoRect: { x: number; y: number; width: number; height: number } | null;
     }) => {
-        // このリクエスト専用の世代番号。後続リクエストが来たら isSuperseded() が true になる
         const myGen = ++openGeneration;
         const isSuperseded = () => openGeneration !== myGen;
 
@@ -69,18 +96,22 @@ export function registerMpvHandlers(): void {
             return { success: false, error: 'mpv が見つかりません。resources/mpv/mpv.exe を配置してください。' };
         }
 
-        // 既存ウィンドウをクリーンアップ
         if (videoWindow && !videoWindow.isDestroyed()) {
             mpvService.quit();
             videoWindow.close();
             videoWindow = null;
         }
 
-        // ウィンドウはローカル変数で管理し、確定後のみ module-level に昇格する
-        const win = createVideoWindow();
+        const mainWindow = getMainWindow();
+        const useEmbedded = params.embedded && params.videoRect != null && mainWindow != null && !mainWindow.isDestroyed();
 
-        // ready-to-show と closed の両方を待ち、先に来た方で解決する
-        // closed が先なら後続リクエストに閉じられたとみなす
+        isEmbeddedMode = useEmbedded;
+        embeddedRect = params.videoRect;
+
+        const win = useEmbedded
+            ? createEmbeddedWindow(mainWindow!, params.videoRect!)
+            : createSeparateVideoWindow();
+
         const outcome = await new Promise<'ready' | 'closed'>((resolve) => {
             win.once('ready-to-show', () => resolve('ready'));
             win.once('closed', () => resolve('closed'));
@@ -91,26 +122,29 @@ export function registerMpvHandlers(): void {
             return { success: false, error: 'superseded' };
         }
 
-        // 確定後のみ module-level に昇格
         videoWindow = win;
 
-        // コールバックを win クロージャに固定して後続ウィンドウへの誤爆を防ぐ
+        // イベント送信先: 埋め込みモードはメインウィンドウ、別ウィンドウモードはビデオウィンドウ
+        const sendTarget = () => useEmbedded ? getMainWindow() : win;
+
         mpvService.setCallbacks({
             onTimePos: (sec) => {
-                if (!win.isDestroyed()) win.webContents.send('mpv:timeUpdate', { currentTime: sec });
+                const target = sendTarget();
+                if (target && !target.isDestroyed()) target.webContents.send('mpv:timeUpdate', { currentTime: sec });
             },
             onDuration: (sec) => {
-                if (!win.isDestroyed()) win.webContents.send('mpv:durationUpdate', { duration: sec });
+                const target = sendTarget();
+                if (target && !target.isDestroyed()) target.webContents.send('mpv:durationUpdate', { duration: sec });
             },
             onPause: (paused) => {
-                if (!win.isDestroyed()) win.webContents.send('mpv:pauseChange', { paused });
+                const target = sendTarget();
+                if (target && !target.isDestroyed()) target.webContents.send('mpv:pauseChange', { paused });
             },
             onEnded: () => {
-                if (!win.isDestroyed()) win.webContents.send('mpv:ended');
+                const target = sendTarget();
+                if (target && !target.isDestroyed()) target.webContents.send('mpv:ended');
             },
-            onError: (msg) => {
-                logger.error('[mpv] error:', msg);
-            },
+            onError: (msg) => logger.error('[mpv] error:', msg),
         });
 
         const hwnd = win.getNativeWindowHandle().readUInt32LE(0);
@@ -130,10 +164,35 @@ export function registerMpvHandlers(): void {
         }
 
         win.show();
-        win.webContents.send('mpv:fileContext', {
-            fileId: params.fileId,
-            fileName: params.fileName,
-        });
+
+        if (!useEmbedded) {
+            // 別ウィンドウモード: ファイルコンテキストをビデオウィンドウのレンダラーへ
+            win.webContents.send('mpv:fileContext', {
+                fileId: params.fileId,
+                fileName: params.fileName,
+            });
+        }
+
+        // 埋め込みモード: メインウィンドウの移動・リサイズに追従
+        if (useEmbedded && mainWindow) {
+            const reposition = () => {
+                if (!videoWindow || videoWindow.isDestroyed() || !embeddedRect) return;
+                const cb = mainWindow.getContentBounds();
+                videoWindow.setBounds({
+                    x: cb.x + embeddedRect.x,
+                    y: cb.y + embeddedRect.y,
+                    width: embeddedRect.width,
+                    height: embeddedRect.height,
+                });
+            };
+            mainWindow.on('move', reposition);
+            mainWindow.on('resize', reposition);
+
+            win.on('closed', () => {
+                mainWindow.off('move', reposition);
+                mainWindow.off('resize', reposition);
+            });
+        }
 
         win.on('closed', () => {
             if (videoWindow === win) {
@@ -142,11 +201,10 @@ export function registerMpvHandlers(): void {
             }
         });
 
-        return { success: true };
+        return { success: true, embedded: useEmbedded };
     });
 
     ipcMain.handle('mpv:close', () => {
-        // openGeneration を進めて進行中の mpv:open をキャンセルする
         openGeneration++;
         mpvService.quit();
         if (videoWindow && !videoWindow.isDestroyed()) {
@@ -155,17 +213,26 @@ export function registerMpvHandlers(): void {
         }
     });
 
-    ipcMain.handle('mpv:pause', () => {
-        mpvService.command(['cycle', 'pause']);
+    ipcMain.handle('mpv:resize', (_event, rect: { x: number; y: number; width: number; height: number }) => {
+        embeddedRect = rect;
+        if (!videoWindow || videoWindow.isDestroyed() || !isEmbeddedMode) return;
+        const mainWindow = getMainWindow();
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        const cb = mainWindow.getContentBounds();
+        videoWindow.setBounds({
+            x: cb.x + rect.x,
+            y: cb.y + rect.y,
+            width: rect.width,
+            height: rect.height,
+        });
     });
 
+    ipcMain.handle('mpv:pause', () => { mpvService.command(['cycle', 'pause']); });
     ipcMain.handle('mpv:seek', (_event, { positionSec }: { positionSec: number }) => {
         mpvService.command(['set_property', 'time-pos', positionSec]);
     });
-
     ipcMain.handle('mpv:setVolume', (_event, { volume }: { volume: number }) => {
         mpvService.command(['set_property', 'volume', Math.round(volume * 100)]);
     });
-
     ipcMain.handle('mpv:isAvailable', () => isMpvAvailable());
 }

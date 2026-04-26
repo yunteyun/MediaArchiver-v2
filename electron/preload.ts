@@ -117,12 +117,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getMediaBaseUrl: () => _mediaBaseUrl,
 
     // === mpv Video Player ===
-    openMpv: (params: { fileId: string; filePath: string; fileName: string; startTime: number | null; volume: number }) =>
+    openMpv: (params: { fileId: string; filePath: string; fileName: string; startTime: number | null; volume: number; embedded: boolean; videoRect: { x: number; y: number; width: number; height: number } | null }) =>
         ipcRenderer.invoke('mpv:open', params),
     closeMpv: () => ipcRenderer.invoke('mpv:close'),
     mpvPause: () => ipcRenderer.invoke('mpv:pause'),
     mpvSeek: (positionSec: number) => ipcRenderer.invoke('mpv:seek', { positionSec }),
     mpvSetVolume: (volume: number) => ipcRenderer.invoke('mpv:setVolume', { volume }),
+    mpvResize: (rect: { x: number; y: number; width: number; height: number }) =>
+        ipcRenderer.invoke('mpv:resize', rect),
     isMpvAvailable: () => ipcRenderer.invoke('mpv:isAvailable') as Promise<boolean>,
     onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) =>
         subscribe<{ currentTime: number }>('mpv:timeUpdate', callback),

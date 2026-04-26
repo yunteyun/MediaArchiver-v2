@@ -2,10 +2,16 @@
 
 **Last Updated**: 2026-04-24
 
-- **Current Focus**: mpv 動画エンジン統合・見どころ機能の mpv ウィンドウ対応
-- **Current Status**: mpv 統合（専用ウィンドウ・IPC 制御・再生位置永続化）と見どころ機能の mpv ウィンドウ対応を実装済み。
+- **Current Focus**: mpv 埋め込み表示（方針 C）の実装
+- **Current Status**: mpv の統合表示（子ウィンドウを映像エリアに重ねる）と別ウィンドウの切り替え設定を実装済み。動作確認待ち。
 
 ## Recent Achievements
+
+- **mpv 埋め込み表示（方針 C）**:
+  - `electron/ipc/mpv.ts`: 子ウィンドウ方式（`parent: mainWindow`）で映像エリアに重ねる統合表示を実装
+  - `src/features/center-viewer/CenterViewerVideo.tsx`: 埋め込みモードでライトボックスを維持・ResizeObserver で位置追従
+  - `src/stores/useSettingsStore.ts`: `mpvEmbedded` 設定を追加
+  - `src/components/settings/GeneralSettingsTab.tsx` + `SettingsModal.tsx`: 切り替えトグルを設定画面に追加
 
 - **mpv 動画エンジン統合・見どころ対応**:
   - `electron/services/mpvService.ts` 新設: mpv プロセス管理・名前付きパイプ IPC
