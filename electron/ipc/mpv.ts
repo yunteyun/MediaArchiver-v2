@@ -140,6 +140,14 @@ export function registerMpvHandlers(getMainWindow: () => BrowserWindow | null): 
                 const target = sendTarget();
                 if (target && !target.isDestroyed()) target.webContents.send('mpv:pauseChange', { paused });
             },
+            onMute: (muted) => {
+                const target = sendTarget();
+                if (target && !target.isDestroyed()) target.webContents.send('mpv:muteChange', { muted });
+            },
+            onSpeed: (speed) => {
+                const target = sendTarget();
+                if (target && !target.isDestroyed()) target.webContents.send('mpv:speedChange', { speed });
+            },
             onEnded: () => {
                 const target = sendTarget();
                 if (target && !target.isDestroyed()) target.webContents.send('mpv:ended');
@@ -188,10 +196,21 @@ export function registerMpvHandlers(getMainWindow: () => BrowserWindow | null): 
             mainWindow.on('move', reposition);
             mainWindow.on('resize', reposition);
 
+            const onEnterFS = () => { if (!mainWindow.isDestroyed()) mainWindow.webContents.send('mpv:fullscreenChange', { fullscreen: true }); };
+            const onLeaveFS = () => { if (!mainWindow.isDestroyed()) mainWindow.webContents.send('mpv:fullscreenChange', { fullscreen: false }); };
+            mainWindow.on('enter-full-screen', onEnterFS);
+            mainWindow.on('leave-full-screen', onLeaveFS);
+
             win.on('closed', () => {
                 mainWindow.off('move', reposition);
                 mainWindow.off('resize', reposition);
+                mainWindow.off('enter-full-screen', onEnterFS);
+                mainWindow.off('leave-full-screen', onLeaveFS);
             });
+        } else {
+            // 別ウィンドウモード: ビデオウィンドウのフルスクリーン変化をレンダラーへ
+            win.on('enter-full-screen', () => { if (!win.isDestroyed()) win.webContents.send('mpv:fullscreenChange', { fullscreen: true }); });
+            win.on('leave-full-screen', () => { if (!win.isDestroyed()) win.webContents.send('mpv:fullscreenChange', { fullscreen: false }); });
         }
 
         win.on('closed', () => {
@@ -240,6 +259,20 @@ export function registerMpvHandlers(getMainWindow: () => BrowserWindow | null): 
     });
     ipcMain.handle('mpv:setVolume', (_event, { volume }: { volume: number }) => {
         mpvService.command(['set_property', 'volume', Math.round(volume * 100)]);
+    });
+    ipcMain.handle('mpv:setMuted', (_event, { muted }: { muted: boolean }) => {
+        mpvService.command(['set_property', 'mute', muted]);
+    });
+    ipcMain.handle('mpv:setSpeed', (_event, { speed }: { speed: number }) => {
+        mpvService.command(['set_property', 'speed', speed]);
+    });
+    ipcMain.handle('mpv:setFullscreen', (_event, { fullscreen }: { fullscreen: boolean }) => {
+        if (isEmbeddedMode) {
+            const mainWindow = getMainWindow();
+            if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setFullScreen(fullscreen);
+        } else {
+            if (videoWindow && !videoWindow.isDestroyed()) videoWindow.setFullScreen(fullscreen);
+        }
     });
     ipcMain.handle('mpv:isAvailable', () => isMpvAvailable());
 }

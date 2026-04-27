@@ -1,11 +1,21 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-24
+**Last Updated**: 2026-04-27
 
-- **Current Focus**: mpv 埋め込み表示（方針 C）の実装
-- **Current Status**: mpv の統合表示（子ウィンドウを映像エリアに重ねる）と別ウィンドウの切り替え設定を実装済み。動作確認待ち。
+- **Current Focus**: mpv プレーヤー UI 改善・機能拡充
+- **Current Status**: 完了。別ウィンドウ・埋め込みモード両方の UI を共通コントロールバーに統一し、ミュート/速度/フルスクリーンを追加。
 
 ## Recent Achievements
+
+- **mpv プレーヤー UI 改善・機能拡充**:
+  - `MpvControlBar.tsx` 新設: 別ウィンドウ・埋め込みモード共通のコントロールバーコンポーネント
+  - `useMpvKeyboard.ts` 新設: 両モード共通のキーボードハンドラ（Space/M/F/←→/↑↓/Esc）
+  - `useMpvPlayer.ts`: mute / speed / fullscreen の state 追加、音量変更時に useSettingsStore に同期
+  - `MpvWindow.tsx`: 独自コントロール削除、MpvControlBar + useMpvKeyboard に統一。上部バーを surface トークンに修正
+  - `CenterViewerVideo.tsx`: EmbeddedMpvPlaceholder の独自コントロールを MpvControlBar に置換。Space キー動作も解消
+  - `electron/services/mpvService.ts`: mute / speed プロパティの observe 追加
+  - `electron/ipc/mpv.ts`: mpv:setMuted / mpv:setSpeed / mpv:setFullscreen ハンドラ追加、フルスクリーンイベント送信
+  - `electron/preload.ts` + `src/types/electron.d.ts`: 新 IPC の expose と型定義追加
 
 - **mpv 埋め込み表示（方針 C）**:
   - `electron/ipc/mpv.ts`: 子ウィンドウ方式（`parent: mainWindow`）で映像エリアに重ねる統合表示を実装

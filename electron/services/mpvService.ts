@@ -9,6 +9,8 @@ export interface MpvEventCallbacks {
     onTimePos: (sec: number) => void;
     onDuration: (sec: number) => void;
     onPause: (paused: boolean) => void;
+    onMute: (muted: boolean) => void;
+    onSpeed: (speed: number) => void;
     onEnded: () => void;
     onError: (msg: string) => void;
 }
@@ -143,6 +145,10 @@ class MpvService {
                 this.callbacks?.onDuration(data);
             } else if (name === 'pause' && typeof data === 'boolean') {
                 this.callbacks?.onPause(data);
+            } else if (name === 'mute' && typeof data === 'boolean') {
+                this.callbacks?.onMute(data);
+            } else if (name === 'speed' && typeof data === 'number') {
+                this.callbacks?.onSpeed(data);
             }
         } else if (msg['event'] === 'end-file') {
             if (msg['reason'] === 'eof') {
@@ -155,6 +161,8 @@ class MpvService {
         this.sendRaw(['observe_property', 1, 'time-pos']);
         this.sendRaw(['observe_property', 2, 'duration']);
         this.sendRaw(['observe_property', 3, 'pause']);
+        this.sendRaw(['observe_property', 4, 'mute']);
+        this.sendRaw(['observe_property', 5, 'speed']);
     }
 
     private sendRaw(command: unknown[]): void {

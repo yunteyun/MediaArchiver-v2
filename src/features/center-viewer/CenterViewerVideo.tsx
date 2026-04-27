@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pause, Play, Volume2 } from 'lucide-react';
 import type { MediaFile } from '../../types/file';
 import { toMediaUrl } from '../../utils/mediaPath';
 import { useFileStore } from '../../stores/useFileStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
+import { MpvControlBar } from '../mpv-window/MpvControlBar';
+import { useMpvKeyboard } from '../mpv-window/useMpvKeyboard';
 
 interface CenterViewerVideoProps {
     file: MediaFile;
@@ -20,15 +21,6 @@ const mediaStyle: React.CSSProperties = {
 };
 
 const getLightboxFile = () => useUIStore.getState().lightboxFile;
-
-function formatTime(sec: number): string {
-    if (!Number.isFinite(sec) || sec < 0) return '0:00';
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = Math.floor(sec % 60);
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 /** mpv が使用できない場合のフォールバック: HTML5 video 要素 */
 const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, startTimeSeconds }) => {
@@ -121,13 +113,15 @@ const VideoFallback = React.memo<CenterViewerVideoProps>(({ file, videoVolume, s
 
 VideoFallback.displayName = 'VideoFallback';
 
-/** 埋め込みモード: 映像エリア（子ウィンドウが重なる）＋再生コントロール */
+/** 埋め込みモード: 映像エリア（子ウィンドウが重なる）＋共通コントロールバー */
 const EmbeddedMpvPlaceholder = React.memo<{
     file: MediaFile;
     videoRef: React.RefObject<HTMLDivElement | null>;
 }>(({ file, videoRef }) => {
     const updatePlaybackPosition = useFileStore((state) => state.updatePlaybackPosition);
     const closeLightbox = useUIStore((state) => state.closeLightbox);
+    const setVideoVolume = useSettingsStore((state) => state.setVideoVolume);
+    const initialVolume = useSettingsStore((state) => state.videoVolume);
     const renameOpen = useUIStore((s) => s.renameDialogFileId !== null);
     const moveOpen = useUIStore((s) => s.moveDialogOpen);
     const lastPersistRef = useRef(0);
@@ -136,9 +130,11 @@ const EmbeddedMpvPlaceholder = React.memo<{
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
-    const [volume, setVolumeLocal] = useState(0.7);
-    const [seeking, setSeeking] = useState(false);
-    const [seekValue, setSeekValue] = useState(0);
+    const [isMuted, setIsMuted] = useState(false);
+    const isMutedRef = useRef(false);
+    const [playbackRate, setPlaybackRate] = useState(1);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [volume, setVolumeLocal] = useState(initialVolume);
 
     // mpv イベント購読
     useEffect(() => window.electronAPI.onMpvTimeUpdate(({ currentTime: t }) => {
@@ -158,6 +154,12 @@ const EmbeddedMpvPlaceholder = React.memo<{
 
     useEffect(() => window.electronAPI.onMpvDurationUpdate(({ duration: d }) => setDuration(d)), []);
     useEffect(() => window.electronAPI.onMpvPauseChange(({ paused }) => setIsPaused(paused)), []);
+    useEffect(() => window.electronAPI.onMpvMuteChange(({ muted }) => {
+        setIsMuted(muted);
+        isMutedRef.current = muted;
+    }), []);
+    useEffect(() => window.electronAPI.onMpvSpeedChange(({ speed }) => setPlaybackRate(speed)), []);
+    useEffect(() => window.electronAPI.onMpvFullscreenChange(({ fullscreen }) => setIsFullscreen(fullscreen)), []);
     useEffect(() => window.electronAPI.onMpvEnded(() => closeLightbox()), [closeLightbox]);
 
     // リネーム・移動ダイアログが開いている間は mpv 子ウィンドウを非表示にする
@@ -182,78 +184,64 @@ const EmbeddedMpvPlaceholder = React.memo<{
         return () => observer.disconnect();
     }, [videoRef]);
 
-    // シークバー操作
-    const handleSeekPointerDown = useCallback(() => {
-        setSeeking(true);
-        setSeekValue(currentTime);
-    }, [currentTime]);
-
-    const handleSeekChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSeekValue(Number(e.target.value));
-    }, []);
-
-    const handleSeekPointerUp = useCallback((e: React.PointerEvent<HTMLInputElement>) => {
-        const val = Number(e.currentTarget.value);
-        void window.electronAPI.mpvSeek(val);
-        setSeeking(false);
-    }, []);
-
-    const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const v = Number(e.target.value);
+    const handleVolumeChange = useCallback((v: number) => {
         setVolumeLocal(v);
         void window.electronAPI.mpvSetVolume(v);
+        setVideoVolume(v);
+    }, [setVideoVolume]);
+
+    const handleTogglePause = useCallback(() => {
+        void window.electronAPI.mpvPause();
     }, []);
 
-    const displayTime = seeking ? seekValue : currentTime;
+    const handleSeek = useCallback((sec: number) => {
+        void window.electronAPI.mpvSeek(sec);
+    }, []);
+
+    const handleToggleMute = useCallback(() => {
+        void window.electronAPI.mpvSetMuted(!isMutedRef.current);
+    }, []);
+
+    const handleSpeedChange = useCallback((speed: number) => {
+        void window.electronAPI.mpvSetSpeed(speed);
+    }, []);
+
+    const handleToggleFullscreen = useCallback(() => {
+        void window.electronAPI.mpvSetFullscreen(!isFullscreen);
+    }, [isFullscreen]);
+
+    useMpvKeyboard({
+        togglePause: handleTogglePause,
+        seek: handleSeek,
+        currentTime,
+        volume,
+        onVolumeChange: handleVolumeChange,
+        onToggleMute: handleToggleMute,
+        onToggleFullscreen: handleToggleFullscreen,
+    });
 
     return (
         <div className="pointer-events-auto flex h-full w-full flex-col">
             {/* 映像エリア: 子ウィンドウ（mpv）がここに重なる */}
-            <div ref={videoRef} className="min-h-0 flex-1" style={{ background: '#000' }} />
+            <div ref={videoRef} className="min-h-0 flex-1 bg-black" />
 
-            {/* 再生コントロール: 子ウィンドウの外側（メインウィンドウの Chromium に描画） */}
-            <div className="flex-shrink-0 select-none px-4 pb-2 pt-2" style={{ background: 'rgba(15,23,42,0.97)' }}>
-                {/* シークバー */}
-                <div className="mb-1.5 flex items-center gap-2 text-xs text-slate-400">
-                    <span className="w-10 text-right tabular-nums">{formatTime(displayTime)}</span>
-                    <input
-                        type="range"
-                        min={0}
-                        max={duration || 100}
-                        step={0.5}
-                        value={seeking ? seekValue : currentTime}
-                        onPointerDown={handleSeekPointerDown}
-                        onChange={handleSeekChange}
-                        onPointerUp={handleSeekPointerUp}
-                        className="h-1.5 flex-1 cursor-pointer accent-blue-500"
-                    />
-                    <span className="w-10 tabular-nums">{formatTime(duration)}</span>
-                </div>
-                {/* ボタン */}
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={() => void window.electronAPI.mpvPause()}
-                        className="flex items-center justify-center rounded-full p-1.5 text-white transition hover:bg-slate-700"
-                        aria-label={isPaused ? '再生' : '一時停止'}
-                    >
-                        {isPaused ? <Play size={18} fill="white" /> : <Pause size={18} fill="white" />}
-                    </button>
-                    <div className="flex items-center gap-2 text-slate-400">
-                        <Volume2 size={14} />
-                        <input
-                            type="range"
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            value={volume}
-                            onChange={handleVolumeChange}
-                            className="h-1.5 w-20 cursor-pointer accent-blue-500"
-                            aria-label="音量"
-                        />
-                    </div>
-                </div>
-            </div>
+            {/* 共通コントロールバー */}
+            <MpvControlBar
+                currentTime={currentTime}
+                duration={duration}
+                isPaused={isPaused}
+                volume={volume}
+                isMuted={isMuted}
+                playbackRate={playbackRate}
+                isFullscreen={isFullscreen}
+                file={file}
+                onTogglePause={handleTogglePause}
+                onSeek={handleSeek}
+                onVolumeChange={handleVolumeChange}
+                onToggleMute={handleToggleMute}
+                onSpeedChange={handleSpeedChange}
+                onToggleFullscreen={handleToggleFullscreen}
+            />
         </div>
     );
 });
@@ -347,11 +335,11 @@ export const CenterViewerVideo = React.memo<CenterViewerVideoProps>(({
     // 起動中: 映像エリアと同じレイアウト（コントロール分を確保）で rect を取得できるようにする
     return (
         <div className="pointer-events-auto flex h-full w-full flex-col">
-            <div ref={videoAreaRef} className="flex min-h-0 flex-1 items-center justify-center" style={{ background: '#000' }}>
+            <div ref={videoAreaRef} className="flex min-h-0 flex-1 items-center justify-center bg-black">
                 {launching && <p className="text-sm text-surface-400">動画プレーヤーを起動中...</p>}
             </div>
             {/* コントロール分のプレースホルダー（高さを合わせるため） */}
-            <div className="flex-shrink-0 py-4" style={{ background: 'rgba(15,23,42,0.97)' }} />
+            <div className="flex-shrink-0 bg-surface-900/95 py-4" />
         </div>
     );
 });

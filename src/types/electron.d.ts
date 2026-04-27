@@ -202,12 +202,18 @@ declare global {
             mpvSetVolume: (volume: number) => Promise<void>;
             mpvResize: (rect: { x: number; y: number; width: number; height: number }) => Promise<void>;
             mpvSetVisible: (visible: boolean) => Promise<void>;
+            mpvSetMuted: (muted: boolean) => Promise<void>;
+            mpvSetSpeed: (speed: number) => Promise<void>;
+            mpvSetFullscreen: (fullscreen: boolean) => Promise<void>;
             isMpvAvailable: () => Promise<boolean>;
             onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) => () => void;
             onMpvDurationUpdate: (callback: (data: { duration: number }) => void) => () => void;
             onMpvPauseChange: (callback: (data: { paused: boolean }) => void) => () => void;
             onMpvEnded: (callback: () => void) => () => void;
             onMpvFileContext: (callback: (data: { fileId: string; fileName: string }) => void) => () => void;
+            onMpvMuteChange: (callback: (data: { muted: boolean }) => void) => () => void;
+            onMpvSpeedChange: (callback: (data: { speed: number }) => void) => () => void;
+            onMpvFullscreenChange: (callback: (data: { fullscreen: boolean }) => void) => () => void;
 
             // Database
             getFiles: (folderId?: string) => Promise<MediaFile[]>;

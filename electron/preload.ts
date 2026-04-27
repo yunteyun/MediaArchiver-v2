@@ -126,6 +126,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     mpvResize: (rect: { x: number; y: number; width: number; height: number }) =>
         ipcRenderer.invoke('mpv:resize', rect),
     mpvSetVisible: (visible: boolean) => ipcRenderer.invoke('mpv:setVisible', visible),
+    mpvSetMuted: (muted: boolean) => ipcRenderer.invoke('mpv:setMuted', { muted }),
+    mpvSetSpeed: (speed: number) => ipcRenderer.invoke('mpv:setSpeed', { speed }),
+    mpvSetFullscreen: (fullscreen: boolean) => ipcRenderer.invoke('mpv:setFullscreen', { fullscreen }),
     isMpvAvailable: () => ipcRenderer.invoke('mpv:isAvailable') as Promise<boolean>,
     onMpvTimeUpdate: (callback: (data: { currentTime: number }) => void) =>
         subscribe<{ currentTime: number }>('mpv:timeUpdate', callback),
@@ -137,6 +140,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         subscribe<void>('mpv:ended', callback),
     onMpvFileContext: (callback: (data: { fileId: string; fileName: string }) => void) =>
         subscribe<{ fileId: string; fileName: string }>('mpv:fileContext', callback),
+    onMpvMuteChange: (callback: (data: { muted: boolean }) => void) =>
+        subscribe<{ muted: boolean }>('mpv:muteChange', callback),
+    onMpvSpeedChange: (callback: (data: { speed: number }) => void) =>
+        subscribe<{ speed: number }>('mpv:speedChange', callback),
+    onMpvFullscreenChange: (callback: (data: { fullscreen: boolean }) => void) =>
+        subscribe<{ fullscreen: boolean }>('mpv:fullscreenChange', callback),
 
     // === Database ===
     getFiles: (folderId?: string) => ipcRenderer.invoke('db:getFiles', folderId),
