@@ -75,8 +75,8 @@
 ## このリポジトリで参照する基準文書
 - `AGENTS.md`
   - 文字コード、PowerShell、ドキュメント更新、コミット運用
-- `docs/dev/specs/lightbox-redesign-v2.md`
-  - Lightbox / Center Viewer / RightPanel の責務基準
+- `docs/dev/specs/lightbox-redesign-v3.md`
+  - 中央ビューア / RightPanel の責務基準（v2 は deprecated）
 - `docs/dev/operations/回帰確認チェックリスト.md`
   - UI 変更時の最低限の確認観点
 - `docs/dev/operations/github-issues-workflow.md`
@@ -190,7 +190,7 @@
 
 ### Lightbox / Center Viewer 改修
 - 調査役:
-  - `docs/dev/specs/lightbox-redesign-v2.md` と現実装差分の確認
+  - `docs/dev/specs/lightbox-redesign-v3.md` と現実装差分の確認
 - 実装役:
   - `src/features/center-viewer/` と `src/components/RightPanel/` の修正
 - 検証役:

@@ -1,9 +1,9 @@
 # Current Session Status
 
-**Last Updated**: 2026-04-27
+**Last Updated**: 2026-04-28
 
-- **Current Focus**: mpv プレーヤー UI 改善・機能拡充
-- **Current Status**: 完了。別ウィンドウ・埋め込みモード両方の UI を共通コントロールバーに統一し、ミュート/速度/フルスクリーンを追加。
+- **Current Focus**: 中央ビューア完全リアーキテクチャ
+- **Current Status**: 実装完了・動作確認中。`src/features/viewer/` に新ビューアを構築し、`center-viewer/` と `mpv-window/` を削除。全 149 件のテストグリーン。
 
 ## Recent Achievements
 

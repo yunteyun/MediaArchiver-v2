@@ -56,8 +56,8 @@
 
 ## docs/dev/specs
 
-- `docs/dev/specs/lightbox-redesign-v2.md`
-  - Lightbox / Center Viewer の設計方針
+- `docs/dev/specs/lightbox-redesign-v3.md`
+  - 中央ビューア（旧 Lightbox / Center Viewer）の設計方針（v2 は deprecated）
 - `docs/dev/specs/smart-folder-v1-spec.md`
   - スマートフォルダ v1 の仕様
 - `docs/dev/specs/display-presets.md`

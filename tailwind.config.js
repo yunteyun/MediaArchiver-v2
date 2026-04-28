@@ -36,6 +36,17 @@ export default {
                     900: '#0f172a',
                     950: '#020617',
                 },
+                // 中央ビューア専用トークン（lightbox-redesign-v3.md）
+                viewer: {
+                    backdrop: 'rgba(0, 0, 0, 0.55)',
+                    surface: '#0b0b0b',
+                    'surface-soft': 'rgba(0, 0, 0, 0.7)',
+                },
+            },
+            zIndex: {
+                'viewer-base': '20',
+                'viewer-overlay': '30',
+                'viewer-popover': '40',
             },
             animation: {
                 'slide-up': 'slideUp 0.3s ease-out',
