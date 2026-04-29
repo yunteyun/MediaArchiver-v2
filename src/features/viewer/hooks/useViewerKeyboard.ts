@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ModeKeyHandler } from '../types';
-import { useKeyboardContext } from '../ViewerContext';
+import { useKeyboardContext } from '../viewerContexts';
 
 /**
  * モードコンポーネントが優先キーハンドラを登録するフック。

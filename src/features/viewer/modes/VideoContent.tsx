@@ -4,7 +4,7 @@ import { toMediaUrl } from '../../../utils/mediaPath';
 import { useFileStore } from '../../../stores/useFileStore';
 import { useUIStore } from '../../../stores/useUIStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { useViewerContext } from '../ViewerContext';
+import { useViewerContext } from '../viewerContexts';
 import { useViewerKeyboard } from '../hooks/useViewerKeyboard';
 import { useViewerSlots } from '../hooks/useViewerSlots';
 import { useElectronViewerApi } from '../hooks/useElectronViewerApi';

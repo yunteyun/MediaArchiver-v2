@@ -6,7 +6,7 @@ import { useMangaViewerSettingsStore } from '../../../stores/useMangaViewerSetti
 import { resolvePagePair, stepPage } from './manga/pagePairing';
 import { useArchivePagePreload } from './manga/useArchivePagePreload';
 import { MangaPageSlider } from './manga/MangaPageSlider';
-import { useViewerContext } from '../ViewerContext';
+import { useViewerContext } from '../viewerContexts';
 import { useViewerKeyboard } from '../hooks/useViewerKeyboard';
 import { useViewerSlots } from '../hooks/useViewerSlots';
 import { MangaSettingsPopover } from './manga/MangaSettingsPopover';
@@ -16,7 +16,10 @@ export const MangaContent = React.memo(() => {
     const pageMode = useMangaViewerSettingsStore(s => s.pageMode);
     const bindingDirection = useMangaViewerSettingsStore(s => s.bindingDirection);
     const firstPageSingle = useMangaViewerSettingsStore(s => s.firstPageSingle);
-    const settings = { pageMode, bindingDirection, firstPageSingle };
+    const settings = useMemo(
+        () => ({ pageMode, bindingDirection, firstPageSingle }),
+        [pageMode, bindingDirection, firstPageSingle],
+    );
 
     const [totalCount, setTotalCount] = useState<number>(() => getArchiveImageCount(file) ?? 0);
     const [currentIndex, setCurrentIndex] = useState(0);

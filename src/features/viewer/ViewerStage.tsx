@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Archive } from 'lucide-react';
 import type { LightboxOpenMode } from '../../stores/useUIStore';
 import { resolveLightboxMediaKind } from '../../components/lightbox/shared/lightboxShared';
-import { useViewerContext } from './ViewerContext';
+import { useViewerContext } from './viewerContexts';
 import { ImageContent } from './modes/ImageContent';
 import { AudioContent } from './modes/AudioContent';
 import { VideoContent } from './modes/VideoContent';

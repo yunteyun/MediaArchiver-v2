@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import type React from 'react';
 import type { SlotKind } from '../types';
-import { useSlotContext } from '../ViewerContext';
+import { useSlotContext } from '../viewerContexts';
 
 /**
  * モードコンポーネントが Shell のスロットに UI を登録するフック。

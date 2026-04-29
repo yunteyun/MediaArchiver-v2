@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Music } from 'lucide-react';
 import { toMediaUrl } from '../../../utils/mediaPath';
-import { useViewerContext } from '../ViewerContext';
+import { useViewerContext } from '../viewerContexts';
 
 export const AudioContent = React.memo(() => {
     const { file, audioVolume } = useViewerContext();

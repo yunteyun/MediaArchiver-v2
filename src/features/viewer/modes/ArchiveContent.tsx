@@ -4,7 +4,7 @@ import type { LightboxOpenMode } from '../../../stores/useUIStore';
 import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT } from '../../../components/lightbox/shared/lightboxShared';
 import { isAudioArchive } from '../../../utils/fileHelpers';
 import { toMediaUrl } from '../../../utils/mediaPath';
-import { useViewerContext } from '../ViewerContext';
+import { useViewerContext } from '../viewerContexts';
 import { useViewerKeyboard } from '../hooks/useViewerKeyboard';
 import { useArchiveAudioPlayer } from './archive/useArchiveAudioPlayer';
 import { ArchiveAudioList } from './archive/ArchiveAudioList';

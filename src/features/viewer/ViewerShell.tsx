@@ -4,7 +4,7 @@ import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useUIStore } from '../../stores/useUIStore';
 import { completeUiPerfTrace } from '../../utils/perfDebug';
 import type { ModeKeyHandler, ViewerSlot } from './types';
-import { ViewerProvider } from './ViewerContext';
+import { ViewerProvider } from './viewerContexts';
 import { ViewerBackdrop } from './shell/ViewerBackdrop';
 import { ViewerTopBar } from './shell/ViewerTopBar';
 import { ViewerNavButtons } from './shell/ViewerNavButtons';

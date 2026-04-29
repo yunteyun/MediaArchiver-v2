@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { toMediaUrl } from '../../../utils/mediaPath';
-import { useViewerContext } from '../ViewerContext';
+import { useViewerContext } from '../viewerContexts';
 
 const mediaStyle: React.CSSProperties = {
     display: 'block',
