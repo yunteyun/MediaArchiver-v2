@@ -138,6 +138,8 @@ export function usePlaybackBookmarks(file: MediaFile) {
     const [state, dispatch] = useReducer(reducer, initialState);
 
     // ブックマーク読み込み
+    // 注：useElectronViewerApi() は毎回新しいオブジェクトを返すため、
+    // api を依存配列に含めると無限ループになってしまう
     useEffect(() => {
         if (file.type !== 'video') { dispatch({ type: 'LOADED', bookmarks: [] }); return; }
         let disposed = false;
@@ -148,7 +150,8 @@ export function usePlaybackBookmarks(file: MediaFile) {
             if (!disposed) dispatch({ type: 'LOADED', bookmarks: [] });
         });
         return () => { disposed = true; };
-    }, [api, file.id, file.type]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [file.id, file.type]);
 
     // ファイル切替でリセット
     useEffect(() => {

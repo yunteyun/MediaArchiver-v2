@@ -1,5 +1,6 @@
 import React, { useEffect, useReducer, useRef } from 'react';
 import { Music } from 'lucide-react';
+import { useUIStore } from '../../../stores/useUIStore';
 import type { LightboxOpenMode } from '../../../stores/useUIStore';
 import { LIGHTBOX_ARCHIVE_PREVIEW_LIMIT } from '../../../components/lightbox/shared/lightboxShared';
 import { isAudioArchive } from '../../../utils/fileHelpers';
@@ -53,7 +54,9 @@ const mediaStyle: React.CSSProperties = {
 
 export const ArchiveContent = React.memo<ArchiveContentProps>(({ openMode }) => {
     const { file, audioVolume } = useViewerContext();
-    const showToast = useRef<((msg: string, type: 'error' | 'success') => void) | null>(null);
+    const showToastFn = useUIStore(s => s.showToast);
+    const showToast = useRef(showToastFn);
+    showToast.current = showToastFn;
 
     const [archiveFrames, setArchiveFrames] = React.useState<string[]>([]);
     const [loading, setLoading] = React.useState(false);

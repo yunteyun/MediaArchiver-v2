@@ -140,7 +140,6 @@ const VideoFallback: React.FC<{
                     autoPlay
                     preload="metadata"
                     onPlay={() => setIsPaused(false)}
-                    onPause={() => setIsPaused(true)}
                     onTimeUpdate={(e) => {
                         const now = Date.now();
                         if (now - lastTimeRef.current >= 500) {
@@ -157,6 +156,7 @@ const VideoFallback: React.FC<{
                         setLightboxCurrentTime(e.currentTarget.currentTime);
                     }}
                     onPause={(e) => {
+                        setIsPaused(true);
                         setLightboxCurrentTime(e.currentTarget.currentTime);
                         void persistPos(e.currentTarget.currentTime, e.currentTarget.duration, true);
                     }}
