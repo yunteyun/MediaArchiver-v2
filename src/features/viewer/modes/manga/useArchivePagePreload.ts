@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { resolvePagePair, stepPage, type MangaViewerSettings } from './mangaPagePairing';
+import { resolvePagePair, stepPage, type MangaViewerSettings } from './pagePairing';
 
 export function useArchivePagePreload(
     filePath: string,
@@ -15,12 +15,10 @@ export function useArchivePagePreload(
 
         let indices: number[];
         if (pageMode === 'spread') {
-            // 現在のsecondary + 前後ペア分のインデックスを先読み
             const set = new Set<number>();
             const currentPair = resolvePagePair(currentIndex, totalCount, s);
             if (currentPair.secondary !== null) set.add(currentPair.secondary);
 
-            // 次2ペア
             let fwd = currentIndex;
             for (let i = 0; i < 2; i++) {
                 const next = stepPage(fwd, 'next', totalCount, s);
@@ -30,7 +28,6 @@ export function useArchivePagePreload(
                 if (pair.secondary !== null) set.add(pair.secondary);
                 fwd = next;
             }
-            // 前1ペア
             const prev = stepPage(currentIndex, 'prev', totalCount, s);
             if (prev !== currentIndex) {
                 const pair = resolvePagePair(prev, totalCount, s);

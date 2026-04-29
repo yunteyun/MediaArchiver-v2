@@ -1,5 +1,5 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
-import { useUIStore } from '../../stores/useUIStore';
+import { useUIStore } from '../../../../stores/useUIStore';
 
 export interface UseArchiveAudioPlayerResult {
     currentAudioPath: string | null;
@@ -20,7 +20,7 @@ export function useArchiveAudioPlayer(
     filePath: string,
     audioEntries: string[],
 ): UseArchiveAudioPlayerResult {
-    const showToast = useUIStore((state) => state.showToast);
+    const showToast = useUIStore(s => s.showToast);
     const showToastRef = useRef(showToast);
     showToastRef.current = showToast;
 
@@ -49,8 +49,7 @@ export function useArchiveAudioPlayer(
             setCurrentAudioIndex(index);
             setAudioCurrentTime(0);
             setIsPlaying(true);
-        } catch (error) {
-            console.error('Failed to extract archive audio file:', error);
+        } catch {
             showToastRef.current('書庫内音声の読み込みに失敗しました', 'error');
         }
     }, [filePath]);
@@ -58,21 +57,12 @@ export function useArchiveAudioPlayer(
     const handleEnded = useCallback(async () => {
         setIsPlaying(false);
         setAudioCurrentTime(0);
-        if (!autoPlay || currentAudioIndex < 0 || currentAudioIndex >= audioEntries.length - 1) {
-            return;
-        }
+        if (!autoPlay || currentAudioIndex < 0 || currentAudioIndex >= audioEntries.length - 1) return;
         const nextIndex = currentAudioIndex + 1;
         const nextEntry = audioEntries[nextIndex];
         if (!nextEntry) return;
         await handleSelect(nextEntry, nextIndex);
     }, [autoPlay, currentAudioIndex, audioEntries, handleSelect]);
-
-    const handleTimeUpdate = useCallback((time: number) => {
-        setAudioCurrentTime(time);
-    }, []);
-
-    const handlePlay = useCallback(() => setIsPlaying(true), []);
-    const handlePause = useCallback(() => setIsPlaying(false), []);
 
     return {
         currentAudioPath,
@@ -84,8 +74,8 @@ export function useArchiveAudioPlayer(
         setAutoPlay,
         handleSelect,
         handleEnded,
-        handleTimeUpdate,
-        handlePlay,
-        handlePause,
+        handleTimeUpdate: useCallback((time: number) => { setAudioCurrentTime(time); }, []),
+        handlePlay: useCallback(() => setIsPlaying(true), []),
+        handlePause: useCallback(() => setIsPlaying(false), []),
     };
 }

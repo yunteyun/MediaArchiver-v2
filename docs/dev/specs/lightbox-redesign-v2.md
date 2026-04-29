@@ -1,5 +1,8 @@
 # Lightbox Redesign v2
 
+> **Status: deprecated.** このドキュメントは v1 → v2 移行時の経緯を残す資料として保持しているのみ。
+> 中央ビューアの設計方針は [`lightbox-redesign-v3.md`](./lightbox-redesign-v3.md) を参照すること。
+
 ## 基本方針
 - 全画面ライトボックスはやめる
 - 情報表示と編集は右サイドバーに寄せる

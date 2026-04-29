@@ -43,7 +43,7 @@ const ProfileModal = lazyWithPerf('profile-modal', () => import('./components/Pr
 const DeleteConfirmDialog = lazyWithPerf('delete-confirm-dialog', () => import('./components/DeleteConfirmDialog').then((module) => ({ default: module.DeleteConfirmDialog })));
 const RenameFileDialog = lazyWithPerf('rename-file-dialog', () => import('./components/RenameFileDialog').then((module) => ({ default: module.RenameFileDialog })));
 const MoveFolderDialog = lazyWithPerf('move-folder-dialog', () => import('./components/MoveFolderDialog').then((module) => ({ default: module.MoveFolderDialog })));
-const CenterViewerRoot = lazyWithPerf('center-viewer', () => import('./features/center-viewer/CenterViewerRoot').then((module) => ({ default: module.CenterViewerRoot })));
+const ViewerShell = lazyWithPerf('center-viewer', () => import('./features/viewer/ViewerShell').then((module) => ({ default: module.ViewerShell })));
 const FloatingPreview = lazyWithPerf('floating-preview', () => import('./components/RightPanel/FloatingPreview').then((module) => ({ default: module.FloatingPreview })));
 
 function MainViewLoading({ label }: { label: string }) {
@@ -628,7 +628,7 @@ function App() {
                     )}
                     {lightboxFile && (
                         <Suspense fallback={<OverlayLoading label="ビューアを読み込み中..." />}>
-                            <CenterViewerRoot />
+                            <ViewerShell />
                         </Suspense>
                     )}
                 </div>

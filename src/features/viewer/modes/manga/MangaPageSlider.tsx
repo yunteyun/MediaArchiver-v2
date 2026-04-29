@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import type { MangaBindingDirection } from './mangaPagePairing';
+import type { MangaBindingDirection } from './pagePairing';
 
 interface MangaPageSliderProps {
     currentIndex: number;
@@ -24,14 +24,13 @@ export const MangaPageSlider = React.memo<MangaPageSliderProps>(
 
         if (totalCount === 0) return null;
 
-        // RTL: スライダー値を反転（右端=ページ1、左端=最終ページ）
         const displayValue = bindingDirection === 'rtl' ? max - currentIndex : currentIndex;
         const leftLabel = bindingDirection === 'rtl' ? `${totalCount}` : '1';
         const rightLabel = bindingDirection === 'rtl' ? '1' : `${totalCount}`;
 
         return (
             <div
-                data-manga-control
+                data-viewer-control
                 className="pointer-events-auto absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded bg-black/60 px-3 py-1.5"
             >
                 <span className="min-w-[1.5rem] text-center text-xs tabular-nums text-surface-400">
